@@ -175,13 +175,15 @@ def provision(saved: dict[str, str]) -> None:
         return
     if first != 401:
         raise RuntimeError(f"Login sandbox indisponível (HTTP {first}); encerre outras sessões se necessário.")
-    before = inbox_tokens(saved["email"])
     browser = client()
     status, _ = api(browser, "POST", "/v1/accounts", {
         "email": saved["email"], "name": saved["name"],
     }, key=new_key())
     if status != 202:
         raise RuntimeError(f"Cadastro de teste recusado (HTTP {status}).")
+    # The register call itself sends a challenge. Record that token before
+    # explicitly requesting a fresh one; only the fresh challenge is usable.
+    before = inbox_tokens(saved["email"])
     status, _ = api(browser, "POST", "/v1/accounts/email-verification", {
         "email": saved["email"],
     }, key=new_key())
