@@ -1,5 +1,7 @@
 # CF-UX-ACOMP — Integração da experiência de acompanhamento à jornada existente
 
+**Atualização de implementação do backlog (17/11/2026):** a análise deste documento foi incorporada à [matriz de rastreabilidade por issue](./CF-UX-ACOMP-RASTREABILIDADE-ISSUES.md); os critérios de UX são adendos nas issues existentes, não novos épicos. O PR #55 que introduziu esta proposta já foi mesclado. As instruções abaixo sobre «decisão a tomar» refletem o registro histórico da proposta.
+
 **Status:** proposta para revisão · **data da auditoria:** 17/11/2026 · **repositório:** leonardobrain42/carbonflow · **alvo:** Angular + Quarkus + PostgreSQL · **piloto:** PIL-SYN-BR-001 (sintético, VM0038).
 
 ## 1. Decisão proposta
