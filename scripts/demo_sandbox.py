@@ -27,7 +27,7 @@ DEFAULT_NAME = "Demonstração CarbonFlow"
 INBOX = "/run/carbonflow-demo-inbox"
 PROJECT = os.environ.get("CARBONFLOW_DEMO_PROJECT", "carbonflow-demo")
 PORT = os.environ.get("CARBONFLOW_PORT", "18088")
-EMAIL_RE = re.compile(r"^[a-z0-9][a-z0-9._+-]{0,55}@[a-z0-9.-]+\\.test$")
+EMAIL_RE = re.compile(r"^[a-z0-9][a-z0-9._+-]{0,55}@[a-z0-9.-]+\.test$")
 PROJECT_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,45}$")
 
 
