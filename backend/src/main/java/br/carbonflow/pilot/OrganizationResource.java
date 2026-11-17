@@ -1,6 +1,7 @@
 package br.carbonflow.pilot;
 
 import java.net.URI;
+import java.util.List;
 import java.util.UUID;
 
 import jakarta.ws.rs.Consumes;
@@ -23,6 +24,11 @@ public class OrganizationResource {
 
     OrganizationResource(OrganizationBootstrap organizations) {
         this.organizations = organizations;
+    }
+
+    @GET
+    public List<OrganizationBootstrap.Workspace> list(@CookieParam(AccountAccess.COOKIE) String token) {
+        return organizations.list(token);
     }
 
     @POST
