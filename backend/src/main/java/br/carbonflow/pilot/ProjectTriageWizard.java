@@ -133,17 +133,17 @@ class ProjectTriageWizard {
             PilotCommands.requireVersion(expected, previous.version());
             // These are new illustrative user answers, not the PIL-SYN-BR-001 fixture or E8 evidence.
             ObjectNode answers = mapper.createObjectNode();
-            answers.set("1", normalized(1, Map.of(
+            answers.set("1", normalizeSample(1, Map.of(
                     "objective", "Estudar redução potencial pela eletrificação de frota",
                     "activityType", "MOBILIDADE_ELETRICA", "methodologyCandidate", "VM0038")));
-            answers.set("2", normalized(2, Map.of(
+            answers.set("2", normalizeSample(2, Map.of(
                     "activityDescription", "Operação planejada de frota BEV e recarga controlada",
                     "baselinePractice", "Veículos de combustão comparáveis ainda não documentados",
                     "expectedBenefit", "Redução potencial de emissões, ainda não quantificada")));
-            answers.set("3", normalized(3, Map.of(
+            answers.set("3", normalizeSample(3, Map.of(
                     "vehicleCount", 25, "propulsion", "BEV", "chargerType", "DCFC",
                     "chargerCount", 1, "electricitySource", "DESCONHECIDA")));
-            answers.set("4", normalized(4, Map.of(
+            answers.set("4", normalizeSample(4, Map.of(
                     "country", "BR", "state", "DF", "locality", "Brasília",
                     "referenceDate", "2027-09-27",
                     "evidenceStatus", "DESCONHECIDO", "rightsStatus", "DESCONHECIDO")));
@@ -161,8 +161,9 @@ class ProjectTriageWizard {
         return step;
     }
 
-    private ObjectNode normalize(int step, Map<String, ?> values) {
-        return normalize(step, mapper.valueToTree(values));
+    private ObjectNode normalizeSample(int step, Map<String, ?> values) {
+        JsonNode sample = mapper.valueToTree(values);
+        return normalize(step, sample);
     }
 
     private ObjectNode normalize(int step, JsonNode input) {
