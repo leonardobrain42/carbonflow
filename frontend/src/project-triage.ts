@@ -201,6 +201,39 @@ export class ProjectTriageComponent {
     return names[value] ?? value;
   }
 
+  fieldLabel(key: string) {
+    const labels: Record<string, string> = {
+      objective: 'Objetivo', activityType: 'Tipo de atividade',
+      methodologyCandidate: 'Metodologia candidata', activityDescription: 'Como funcionará',
+      baselinePractice: 'Cenário atual', expectedBenefit: 'Benefício esperado',
+      vehicleCount: 'Número de veículos', propulsion: 'Propulsão',
+      chargerType: 'Tipo de recarga', chargerCount: 'Número de carregadores',
+      electricitySource: 'Origem da eletricidade',
+      notApplicableReason: 'Justificativa de não aplicabilidade',
+      country: 'País', state: 'Estado ou região', locality: 'Localidade',
+      referenceDate: 'Data de referência', evidenceStatus: 'Dados de origem',
+      rightsStatus: 'Direitos e titularidade', rightsJustification: 'Justificativa sobre direitos',
+    };
+    return labels[key] ?? key;
+  }
+
+  missingLabels(fields: string[]) {
+    return fields.map(field => this.fieldLabel(field)).join(', ');
+  }
+
+  valueLabel(value: string) {
+    const values: Record<string, string> = {
+      DESCONHECIDO: 'Ainda não conhecido', DESCONHECIDA: 'Ainda não conhecida',
+      DECLARADO: 'Declarado, ainda não comprovado',
+      DISPONIVEL_DECLARADO: 'Disponibilidade declarada, sem conferência',
+      EM_PREPARACAO: 'Em preparação',
+      NAO_APLICAVEL_JUSTIFICADO: 'Não aplicável, com justificativa',
+      MOBILIDADE_ELETRICA: 'Mobilidade elétrica',
+      RESIDUOS: 'Resíduos', ENERGIA: 'Energia', AGRICULTURA: 'Agricultura',
+    };
+    return values[value] ?? value;
+  }
+
   readonly example = computed(() => !!this.view()?.exampleKind);
 
   private message(reason: unknown, fallback: string) {
