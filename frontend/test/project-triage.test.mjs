@@ -127,7 +127,7 @@ test('CF-IMP-009: exemplo 25 BEVs Brasília/DF em 27-09-2027 gera resumo sem ER 
     await page.getByText('Não há reduções de CO₂e verificadas nem VCUs emitidas.',{exact:false}).waitFor();
     assert.equal(pilotRequests(),0);
     await page.reload();
-    await page.getByText('EXEMPLO SINTÉTICO', {exact:false}).waitFor();
+    await page.getByRole('status').filter({hasText:'EXEMPLO SINTÉTICO · 25 BEVs'}).waitFor();
     await page.setViewportSize({width:390,height:844});
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth),false);
   } finally {
