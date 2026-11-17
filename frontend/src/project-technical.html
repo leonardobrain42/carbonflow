@@ -17,6 +17,7 @@
     <header class="cf-workspace-topbar">
       <span>Projeto próprio · preparação técnica</span>
       <a routerLink="/workspace" class="cf-workspace-link">Voltar aos meus projetos</a>
+      <a [routerLink]="['/workspace/projects', projectId, 'triage']" class="cf-workspace-link">Triagem guiada</a>
     </header>
     <main id="technical-main" class="cf-workspace-content">
       @if (loading()) {
