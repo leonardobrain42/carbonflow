@@ -1,0 +1,119 @@
+name: CarbonFlow CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  angular-build:
+    name: Angular / build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --no-audit --no-fund
+        working-directory: frontend
+      - run: npm run build
+        working-directory: frontend
+
+  quarkus-tests:
+    name: Quarkus / integration tests (PostgreSQL)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16-bookworm
+        env:
+          POSTGRES_DB: carbonflow_test
+          POSTGRES_USER: carbonflow
+          POSTGRES_PASSWORD: ci-only-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U carbonflow -d carbonflow_test"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      CARBONFLOW_TEST_DB_URL: jdbc:postgresql://127.0.0.1:5432/carbonflow_test
+      CARBONFLOW_DB_USER: carbonflow
+      CARBONFLOW_DB_PASSWORD: ci-only-password
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --no-audit --no-fund && npm run build
+        working-directory: frontend
+      - name: Run tests against disposable PostgreSQL
+        working-directory: backend
+        run: |
+          chmod +x ./mvnw
+          ./mvnw -B -ntp clean verify
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: quarkus-test-reports
+          path: backend/target/surefire-reports/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  browser-e2e:
+    name: Angular / browser journeys (isolated Compose)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      CARBONFLOW_PORT: '18087'
+      CARBONFLOW_TEST_URL: http://127.0.0.1:18087
+      COMPOSE_PROJECT_NAME: carbonflow-ci-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --no-audit --no-fund
+        working-directory: frontend
+      - name: Install browser matching locked playwright-core
+        working-directory: frontend
+        run: |
+          npx --no-install playwright-core install --with-deps chromium
+          echo "CARBONFLOW_CHROME=$(node -e "process.stdout.write(require('playwright-core').chromium.executablePath())")" >> "$GITHUB_ENV"
+      - name: Start isolated disposable application
+        run: docker compose up --build --wait -d
+      - name: Execute browser journeys sequentially
+        working-directory: frontend
+        run: |
+          set -o pipefail
+          node --test --test-concurrency=1 test/*.test.mjs 2>&1 | tee ../browser-e2e.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-journey-results
+          path: browser-e2e.log
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Destroy only the CI Compose environment
+        if: always()
+        run: docker compose down -v --remove-orphans
