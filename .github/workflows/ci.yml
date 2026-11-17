@@ -123,7 +123,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     env:
-      CARBONFLOW_PORT: '18088'
+      # Deliberately leave CARBONFLOW_PORT unset to test the script's default
+      # and catch host-port mismatches during initial provisioning.
       CARBONFLOW_DEMO_PROJECT: carbonflow-demo-ci-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@v4
