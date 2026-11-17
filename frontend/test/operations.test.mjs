@@ -26,13 +26,21 @@ test('consulta trabalhos e confere o piso inclusivo de retenção na interface',
 
     await panel.getByText('Retenção e cota de evidências', {exact: true}).click();
     const date = panel.getByLabel('Conferir guarda em uma data de ensaio', {exact: true});
+    const consultRetention = panel.getByRole('button', {name: 'Consultar retenção', exact: true});
     await date.fill('2034-09-30');
-    await panel.getByRole('button', {name: 'Consultar retenção', exact: true}).click();
+    const [floorResponse] = await Promise.all([
+      page.waitForResponse(response => response.url().endsWith('/retention?asOf=2034-09-30')),
+      consultRetention.click(),
+    ]);
+    assert.equal(floorResponse.status(), 200);
+    assert.equal((await floorResponse.json()).asOf, '2034-09-30');
+    // The current date can already show "Guarda mínima". Wait for the form to finish applying the new date.
+    await consultRetention.and(panel.locator(':enabled')).waitFor();
     await panel.getByText('Monitoramento · Guarda mínima · Guarda até 30/09/2034, inclusive', {exact: true}).waitFor();
     await date.fill('2034-10-01');
     const [retentionResponse] = await Promise.all([
-      page.waitForResponse(response => response.url().includes('/retention?asOf=2034-10-01')),
-      panel.getByRole('button', {name: 'Consultar retenção', exact: true}).click(),
+      page.waitForResponse(response => response.url().endsWith('/retention?asOf=2034-10-01')),
+      consultRetention.click(),
     ]);
     assert.equal(retentionResponse.status(), 200);
     assert.equal((await retentionResponse.json()).asOf, '2034-10-01');
