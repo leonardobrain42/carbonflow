@@ -28,7 +28,7 @@ INBOX = "/run/carbonflow-demo-inbox"
 PROJECT = os.environ.get("CARBONFLOW_DEMO_PROJECT", "carbonflow-demo")
 PORT = os.environ.get("CARBONFLOW_PORT", "18088")
 EMAIL_RE = re.compile(r"^[a-z0-9][a-z0-9._+-]{0,55}@[a-z0-9.-]+\.test$")
-PROJECT_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,45}$")
+PROJECT_RE = re.compile(r"^(?:carbonflow-demo|cf-demo)(?:-[a-z0-9][a-z0-9_-]{0,40})?$")
 
 
 def validate() -> None:
@@ -154,6 +154,9 @@ def verified_login(saved: dict[str, str]) -> int:
             state, body = api(browser, "GET", "/v1/account-session")
             if state != 200 or body is None or body["identity"]["email"] != saved["email"]:
                 raise RuntimeError("Conta autenticada retornou sessão inconsistente.")
+            view, _ = api(browser, "GET", "/workspace")
+            if view != 200:
+                raise RuntimeError("Rota /workspace não respondeu com a interface Angular.")
             scoped, orgs = api(browser, "GET", "/v1/organizations")
             if scoped != 200 or not isinstance(orgs, list):
                 raise RuntimeError("Não foi possível consultar organizações da conta.")
