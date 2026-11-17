@@ -36,7 +36,7 @@ test('demonstra os quatro recortes, a coleta de M2 e a recusa sem EC', async () 
     assert.equal(await page.getByText('Em coleta', {exact: true}).count(), 3);
     await page.getByText('Aguardando depósito', {exact: true}).waitFor();
     await page.getByText('EF-SYN-v1 · 0,30 tCO₂/MWh', {exact: true}).waitFor();
-    assert.deepEqual(await page.getByRole('rowheader').allTextContents(),
+    assert.deepEqual(await page.getByRole('table', {name: 'Entradas e emissões por recorte'}).getByRole('rowheader').allTextContents(),
       ['M1 · 2027', 'M1 · 2028', 'M2 · 2028', 'M2 · 2029']);
 
     const [rejected] = await Promise.all([
