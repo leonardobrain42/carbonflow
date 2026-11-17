@@ -41,6 +41,15 @@ class DemoSandboxTest(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "não é privado"):
                     demo.credentials(saved["email"], "Teste", True)
 
+    def test_compose_uses_same_default_port_as_http_client(self):
+        from unittest.mock import Mock
+        with patch.object(demo, "PORT", "18088"), patch.dict(demo.os.environ, {}, clear=True), \
+             patch.object(demo.subprocess, "run", return_value=Mock(stdout="")) as run:
+            demo.compose("config", capture=True)
+            call = run.call_args
+            self.assertEqual(call.kwargs["env"]["CARBONFLOW_PORT"], "18088")
+            self.assertEqual(call.args[0][-1], "config")
+
     def test_compose_names_are_restricted(self):
         with patch.object(demo, "PROJECT", "prod/../../etc"), patch.object(demo, "PORT", "18088"):
             with self.assertRaises(ValueError):
