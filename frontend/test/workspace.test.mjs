@@ -44,7 +44,7 @@ async function stubAccount(page, state) {
     assert.ok(route.request().headers()['idempotency-key']);
     const body = JSON.parse(route.request().postData());
     assert.equal(body.organizationId, organization.id);
-    const projectId = '10000000-0000-4000-8000-0000000000' + String(state.projects.length + 10));
+    const projectId = '10000000-0000-4000-8000-0000000000' + String(state.projects.length + 10);
     const project = {
       projectId, organizationId: organization.id, environment: 'SANDBOX',
       state: 'DRAFT', version: 1, title: body.title, description: body.description,
