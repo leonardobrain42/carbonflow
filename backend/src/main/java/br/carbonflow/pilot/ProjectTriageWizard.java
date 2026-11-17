@@ -43,7 +43,7 @@ class ProjectTriageWizard {
     private static final List<Set<String>> FIELDS = List.of(
             Set.of("objective", "activityType", "methodologyCandidate"),
             Set.of("activityDescription", "baselinePractice", "expectedBenefit"),
-            Set.of("vehicleCount", "propulsion", "chargerType", "chargerCount", "electricitySource"),
+            Set.of("vehicleCount", "propulsion", "chargerType", "chargerCount", "electricitySource", "notApplicableReason"),
             Set.of("country", "state", "locality", "referenceDate", "evidenceStatus",
                    "rightsStatus", "rightsJustification")
     );
@@ -220,19 +220,24 @@ class ProjectTriageWizard {
         for (int i = 1; i <= 4; i++) {
             JsonNode step = snapshot.answers().path(Integer.toString(i));
             List<String> missing = new ArrayList<>();
-            boolean notApplicable = i == 3 && !category.isBlank()
+            boolean nonMobility = i == 3 && !category.isBlank()
                     && !Set.of("MOBILIDADE_ELETRICA", "DESCONHECIDO").contains(category);
-            if (!notApplicable) for (String required : REQUIRED.get(i - 1)) {
+            if (nonMobility) {
+                JsonNode reason = step.path("notApplicableReason");
+                if (!reason.isTextual() || reason.asText().isBlank()) {
+                    missing.add("notApplicableReason");
+                }
+            } else for (String required : REQUIRED.get(i - 1)) {
                 JsonNode answer = step.path(required);
                 if (answer.isMissingNode() || answer.isNull() || answer.isTextual()
                         && (answer.asText().isBlank() || "DESCONHECIDO".equals(answer.asText()))) {
                     missing.add(required);
                 }
             }
-            String state = notApplicable ? "NAO_APLICAVEL_A_ETAPA"
+            String state = nonMobility && missing.isEmpty() ? "NAO_APLICAVEL_JUSTIFICADO"
                     : step.isMissingNode() || step.size() == 0 ? "NAO_INICIADO"
                     : missing.isEmpty() ? "PREENCHIDO" : "PENDENTE";
-            if (!notApplicable) for (String field : missing) pending.add("Etapa " + i + ": " + field);
+            for (String field : missing) pending.add("Etapa " + i + ": " + field);
             stages.add(new StepSummary(i, TITLES.get(i - 1), state, List.copyOf(missing)));
         }
         stages.add(new StepSummary(5, TITLES.get(4), "RESUMO_SEM_PARECER", List.of()));
