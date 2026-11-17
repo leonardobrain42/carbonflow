@@ -177,8 +177,6 @@ class AccountAccessTest {
             String owner = newAccountSession(client);
             String other = newAccountSession(client);
             assertEquals(0, json.readTree(get(client, SESSIONS, owner).body()).path("projects").size());
-            assertEquals(401, get(client, ORGANIZATIONS, cookie(
-                    post(client, "/v1/session", Map.of("identity", "SIM-PREP", "password", "piloto-prep"), null))).statusCode());
             assertEquals(json.readTree("[]"), json.readTree(get(client, ORGANIZATIONS, owner).body()));
             assertEquals(json.readTree("[]"), json.readTree(get(client, ORGANIZATIONS, other).body()));
             var input = Map.of("name", "  Espaço privado  ", "role", "ORG_ACCESS_ADMIN", "representation", "PP");
@@ -188,6 +186,7 @@ class AccountAccessTest {
             var pilot = post(client, "/v1/session", Map.of("identity", "SIM-PREP", "password", "piloto-prep"), null);
             assertEquals(204, pilot.statusCode());
             assertEquals(401, createOrganization(client, cookie(pilot), input, key()).statusCode());
+            assertEquals(401, get(client, ORGANIZATIONS, cookie(pilot)).statusCode());
             assertEquals(204, delete(client, "/v1/session", cookie(pilot)).statusCode());
 
             String command = key();
