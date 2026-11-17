@@ -133,8 +133,8 @@ class ProjectTriageWizardTest {
         assertFalse(result.toString().contains("ER_CO2E"));
         assertFalse(result.toString().contains("VCU_EMITIDA"));
         assertEquals(1L, count(project));
-        assertEquals(409, call("POST", endpoint + "/examples/bev-df-2027", owner.cookie(),
-                UUID.randomUUID().toString(), "\"0\"", null).statusCode() == 412 ? 409 : 412); // placeholder replaced below
+        assertEquals(412, call("POST", endpoint + "/examples/bev-df-2027", owner.cookie(),
+                UUID.randomUUID().toString(), "\"0\"", null).statusCode());
         assertEquals(0L, database.read(connection -> first(connection,
                 "SELECT count(*) FROM pilot_intake_revision WHERE project_id=?",
                 row -> row.getLong(1), project)).longValue());
