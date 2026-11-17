@@ -19,6 +19,20 @@ docker compose down
 
 `docker compose down` mantém o volume e as execuções. Se a porta 8080 estiver em uso, inicie com `CARBONFLOW_PORT=18080 docker compose up --build -d --wait` e abra [a porta alternativa](http://127.0.0.1:18080/). Para escolher outra senha local, defina `CARBONFLOW_DB_PASSWORD` antes da primeira inicialização do volume.
 
+
+
+## Demo local: entrar no /workspace sem configurar e-mail real
+
+A **CF-IMP-006** possui um inicializador de demo que cria uma conta por **cadastro e confirmação reais da API**, com senha **aleatória local** e banco separado do piloto. Este comando não muda a autenticação nem embute credenciais no código:
+
+```sh
+python3 scripts/demo_sandbox.py start
+```
+
+Abra **http://127.0.0.1:18088/workspace** e use o e-mail `demo@carbonflow.test` e a senha exibida no terminal. Para consultar novamente: `python3 scripts/demo_sandbox.py show`. Para criar outra conta fictícia: `python3 scripts/demo_sandbox.py add-user --email demo2@carbonflow.test`. Para parar mantendo dados: `python3 scripts/demo_sandbox.py stop`.
+
+Este modo usa `compose.demo.yaml`, é acessível apenas em `127.0.0.1`, guarda senhas localmente fora do Git e não concede poderes PP/REV/VVB. Veja [a documentação de segurança e operação](docs/CF-IMP-006-DEMO-SANDBOX.md). O fluxo ainda não cria projetos (CF-IMP-007).
+
 ## Demonstrar autorização
 
 As credenciais abaixo pertencem às contas fictícias da demonstração local.
