@@ -1,0 +1,256 @@
+[ {
+  "original" : {
+    "row" : {
+      "id" : "eff57d39-816b-404e-bb04-2afbfb1509c9",
+      "version" : 2
+    },
+    "artifact" : "4fd75d4a-bb40-49ea-b035-e58c02aca228",
+    "sha256" : "40514ee1c574d43514182e2c351462dac7163b4f58c8576fa27f0b4e15e6aba2",
+    "fact" : {
+      "kind" : "EC",
+      "sourceFactId" : "SIM-PAI-2028-01-01",
+      "site" : "SIM-PATIO-01",
+      "charger" : null,
+      "vehicle" : null,
+      "circuit" : "SIM-EC-02",
+      "meter" : "SIM-MED-02",
+      "sourceStart" : "2028-01-01T02:00:00Z",
+      "sourceEndExclusive" : "2028-01-01T04:00:00Z",
+      "zone" : "America/Sao_Paulo",
+      "start" : "2028-01-01T02:00:00Z",
+      "endExclusive" : "2028-01-01T04:00:00Z",
+      "quantity" : "8",
+      "unit" : "kWh",
+      "kwh" : "8",
+      "evidence" : null
+    },
+    "period" : "M1"
+  },
+  "segments" : [ {
+    "row" : {
+      "id" : "fe60771b-1de1-45f2-8558-5fcd7d42853a",
+      "version" : 1
+    },
+    "artifact" : "897d502a-f835-42c8-a5be-91bb11e925c6",
+    "sha256" : "d762174a9cdf08f9460d682428b1c13d290bb859106766c032c9f74040ce1d0b",
+    "fact" : {
+      "kind" : "EC",
+      "sourceFactId" : "SIM-ESQUERDA-2028-01-01",
+      "site" : "SIM-PATIO-01",
+      "charger" : null,
+      "vehicle" : null,
+      "circuit" : "SIM-EC-02",
+      "meter" : "SIM-MED-02",
+      "sourceStart" : "2028-01-01T02:00:00Z",
+      "sourceEndExclusive" : "2028-01-01T03:00:00Z",
+      "zone" : "America/Sao_Paulo",
+      "start" : "2028-01-01T02:00:00Z",
+      "endExclusive" : "2028-01-01T03:00:00Z",
+      "quantity" : "2",
+      "unit" : "kWh",
+      "kwh" : "2",
+      "evidence" : null
+    },
+    "period" : "M1"
+  }, {
+    "row" : {
+      "id" : "b65a0485-56de-459c-bbb3-9121a3a918ea",
+      "version" : 1
+    },
+    "artifact" : "80b96666-0797-456b-beff-b323042c6306",
+    "sha256" : "cdd9c42377d71ab9b6dd54d987a936800f9ed42974dfd8f07107ac0d5acef661",
+    "fact" : {
+      "kind" : "EC",
+      "sourceFactId" : "SIM-DIREITA-2028-01-01",
+      "site" : "SIM-PATIO-01",
+      "charger" : null,
+      "vehicle" : null,
+      "circuit" : "SIM-EC-02",
+      "meter" : "SIM-MED-02",
+      "sourceStart" : "2028-01-01T03:00:00Z",
+      "sourceEndExclusive" : "2028-01-01T04:00:00Z",
+      "zone" : "America/Sao_Paulo",
+      "start" : "2028-01-01T03:00:00Z",
+      "endExclusive" : "2028-01-01T04:00:00Z",
+      "quantity" : "6",
+      "unit" : "kWh",
+      "kwh" : "6",
+      "evidence" : null
+    },
+    "period" : "M1"
+  } ],
+  "proof" : "SIM-PROVA-MEDICAO-UTC",
+  "reason" : "Segmentos da leitura registrados na origem",
+  "measuredBy" : "SIM-OP",
+  "eventId" : "6836b161-9a5f-49ea-9c43-727a874028ac"
+}, {
+  "original" : {
+    "row" : {
+      "id" : "6f908cbe-3562-4e61-80ee-811b28f5a397",
+      "version" : 2
+    },
+    "artifact" : "4f8a60b2-0705-4fab-b060-8b7a0216b7de",
+    "sha256" : "1a7ee6674ea344249ae46115008571e0763adbdca83d93d8b1ce672979d8c96c",
+    "fact" : {
+      "kind" : "EC",
+      "sourceFactId" : "SIM-PAI-2028-10-01",
+      "site" : "SIM-PATIO-01",
+      "charger" : null,
+      "vehicle" : null,
+      "circuit" : "SIM-EC-02",
+      "meter" : "SIM-MED-02",
+      "sourceStart" : "2028-10-01T02:00:00Z",
+      "sourceEndExclusive" : "2028-10-01T04:00:00Z",
+      "zone" : "America/Sao_Paulo",
+      "start" : "2028-10-01T02:00:00Z",
+      "endExclusive" : "2028-10-01T04:00:00Z",
+      "quantity" : "8",
+      "unit" : "kWh",
+      "kwh" : "8",
+      "evidence" : null
+    },
+    "period" : "M1"
+  },
+  "segments" : [ {
+    "row" : {
+      "id" : "5216c9ee-d7a4-4e29-ac87-cffe04aa63e4",
+      "version" : 1
+    },
+    "artifact" : "45a14d94-4965-444c-ab41-a766fe22a56b",
+    "sha256" : "6dbce34933e7ebc18e78776351e9d13069c8583ac135e7600fa295926fac0872",
+    "fact" : {
+      "kind" : "EC",
+      "sourceFactId" : "SIM-ESQUERDA-2028-10-01",
+      "site" : "SIM-PATIO-01",
+      "charger" : null,
+      "vehicle" : null,
+      "circuit" : "SIM-EC-02",
+      "meter" : "SIM-MED-02",
+      "sourceStart" : "2028-10-01T02:00:00Z",
+      "sourceEndExclusive" : "2028-10-01T03:00:00Z",
+      "zone" : "America/Sao_Paulo",
+      "start" : "2028-10-01T02:00:00Z",
+      "endExclusive" : "2028-10-01T03:00:00Z",
+      "quantity" : "2",
+      "unit" : "kWh",
+      "kwh" : "2",
+      "evidence" : null
+    },
+    "period" : "M1"
+  }, {
+    "row" : {
+      "id" : "c572bc83-60eb-4bdc-9ade-6c1055ccf8e1",
+      "version" : 1
+    },
+    "artifact" : "b5008b5f-d7f9-4563-837c-9feb4f794bf3",
+    "sha256" : "ee6680c45ab64127a3cdf00389ac717ff06e3b62dd5384fc13c89ff7a44a1b63",
+    "fact" : {
+      "kind" : "EC",
+      "sourceFactId" : "SIM-DIREITA-2028-10-01",
+      "site" : "SIM-PATIO-01",
+      "charger" : null,
+      "vehicle" : null,
+      "circuit" : "SIM-EC-02",
+      "meter" : "SIM-MED-02",
+      "sourceStart" : "2028-10-01T03:00:00Z",
+      "sourceEndExclusive" : "2028-10-01T04:00:00Z",
+      "zone" : "America/Sao_Paulo",
+      "start" : "2028-10-01T03:00:00Z",
+      "endExclusive" : "2028-10-01T04:00:00Z",
+      "quantity" : "6",
+      "unit" : "kWh",
+      "kwh" : "6",
+      "evidence" : null
+    },
+    "period" : "M2"
+  } ],
+  "proof" : "SIM-PROVA-MEDICAO-UTC",
+  "reason" : "Segmentos da leitura registrados na origem",
+  "measuredBy" : "SIM-OP",
+  "eventId" : "d4a72744-6057-4611-969c-4a3535451c0a"
+}, {
+  "original" : {
+    "row" : {
+      "id" : "6fc197f3-2212-4f24-a021-848d74b8aac0",
+      "version" : 2
+    },
+    "artifact" : "9a9844ed-a148-49a8-b896-23b8e6096c6b",
+    "sha256" : "724542c43f9f5091536fea0a7134dfcde706a0699292129a9869ec8193000af5",
+    "fact" : {
+      "kind" : "EC",
+      "sourceFactId" : "SIM-PAI-2029-01-01",
+      "site" : "SIM-PATIO-01",
+      "charger" : null,
+      "vehicle" : null,
+      "circuit" : "SIM-EC-02",
+      "meter" : "SIM-MED-02",
+      "sourceStart" : "2029-01-01T02:00:00Z",
+      "sourceEndExclusive" : "2029-01-01T04:00:00Z",
+      "zone" : "America/Sao_Paulo",
+      "start" : "2029-01-01T02:00:00Z",
+      "endExclusive" : "2029-01-01T04:00:00Z",
+      "quantity" : "8",
+      "unit" : "kWh",
+      "kwh" : "8",
+      "evidence" : null
+    },
+    "period" : "M2"
+  },
+  "segments" : [ {
+    "row" : {
+      "id" : "3068b408-2f83-4db9-83e8-b30433ee0401",
+      "version" : 1
+    },
+    "artifact" : "3b8af4f9-ccf9-489b-9827-10156d20a3f5",
+    "sha256" : "9f6ff7fd6382ec7c2af0e4555b54a369a8caa4a94fedc48e963ce843ece028a8",
+    "fact" : {
+      "kind" : "EC",
+      "sourceFactId" : "SIM-ESQUERDA-2029-01-01",
+      "site" : "SIM-PATIO-01",
+      "charger" : null,
+      "vehicle" : null,
+      "circuit" : "SIM-EC-02",
+      "meter" : "SIM-MED-02",
+      "sourceStart" : "2029-01-01T02:00:00Z",
+      "sourceEndExclusive" : "2029-01-01T03:00:00Z",
+      "zone" : "America/Sao_Paulo",
+      "start" : "2029-01-01T02:00:00Z",
+      "endExclusive" : "2029-01-01T03:00:00Z",
+      "quantity" : "2",
+      "unit" : "kWh",
+      "kwh" : "2",
+      "evidence" : null
+    },
+    "period" : "M2"
+  }, {
+    "row" : {
+      "id" : "1e038c73-656a-414e-9a96-742821502ee0",
+      "version" : 1
+    },
+    "artifact" : "ea31f8c4-fb7e-4c6a-ab62-9dfc55c03f8a",
+    "sha256" : "6bc71aee2e5d77159572d1df2e14f84e6df002a6da0361284e9a484aec1b88e6",
+    "fact" : {
+      "kind" : "EC",
+      "sourceFactId" : "SIM-DIREITA-2029-01-01",
+      "site" : "SIM-PATIO-01",
+      "charger" : null,
+      "vehicle" : null,
+      "circuit" : "SIM-EC-02",
+      "meter" : "SIM-MED-02",
+      "sourceStart" : "2029-01-01T03:00:00Z",
+      "sourceEndExclusive" : "2029-01-01T04:00:00Z",
+      "zone" : "America/Sao_Paulo",
+      "start" : "2029-01-01T03:00:00Z",
+      "endExclusive" : "2029-01-01T04:00:00Z",
+      "quantity" : "6",
+      "unit" : "kWh",
+      "kwh" : "6",
+      "evidence" : null
+    },
+    "period" : "M2"
+  } ],
+  "proof" : "SIM-PROVA-MEDICAO-UTC",
+  "reason" : "Segmentos da leitura registrados na origem",
+  "measuredBy" : "SIM-OP",
+  "eventId" : "b46e53db-66df-4b1d-855d-c46f2630753b"
+} ]

@@ -1,0 +1,205 @@
+@if (active()) {
+  <section class="access-panel intake" aria-labelledby="intake-heading">
+    <div class="section-heading">
+      <h2 id="intake-heading">Enquadramento e inventário</h2>
+      @if (status(); as view) {
+        <span class="note">Ficha v{{ view.snapshot.version }} · Simulação</span>
+      }
+    </div>
+
+    @if (feedback()) {
+      <p #notice tabindex="-1" class="feedback" [class.error]="failed()" [attr.role]="failed() ? 'alert' : 'status'">
+        {{ feedback() }}
+      </p>
+    }
+    @if (status(); as view) {
+      @let snapshot = view.snapshot;
+      @let current = snapshot.intake;
+      <div class="intake-card">
+        <div class="section-heading">
+          <h3>Triagem</h3>
+          <strong class="intake-state">{{ current ? text(current.state) : 'A iniciar' }}</strong>
+        </div>
+        @if (current) {
+          <p>{{ current.candidate.profile.locality }}, {{ current.candidate.profile.state }} · Preparação {{ current.preparedBy }}
+            @if (current.reviewedBy) { · Revisão {{ current.reviewedBy }} }
+          </p>
+          @if (current.selection; as selection) {
+            <p class="note">{{ selection.program }} · {{ selection.methodology }} · {{ selection.additionality }} · {{ selection.packageEdition }}</p>
+            <p class="note">{{ selection.gridRoute }} · Ato de referência {{ selection.referenceActDate }} · Corte das fontes {{ selection.sourceCutoff }}</p>
+            <p class="note">{{ selection.matrix }}</p>
+          }
+          @if (current.reasons.length) {
+            <ul class="intake-reasons">
+              @for (reason of current.reasons; track reason.code) {
+                <li>{{ reason.message }} <span class="note">{{ reason.rule }}</span></li>
+              }
+            </ul>
+          }
+        }
+        @if (has('PREP') && current?.state !== 'ENQUADRADO') {
+          <form class="intake-form" (submit)="$event.preventDefault(); propose(profile.value)">
+            <div>
+              <label for="intake-profile">Configuração de ensaio</label>
+              <select #profile id="intake-profile">
+                <option value="padrao">Planaltina · recorte do piloto</option>
+                <option value="aberta">Rede aberta</option>
+                <option value="infraestrutura">Infraestrutura adicional</option>
+                <option value="923">Estimativa EC pela rota de 92,3%</option>
+              </select>
+            </div>
+            <button type="submit" class="primary" [disabled]="busy()">Registrar triagem</button>
+          </form>
+        }
+        @if (has('REV') && current && current.state !== 'ENQUADRADO' && current.preparedBy !== actor()) {
+          <button type="button" class="primary intake-action" (click)="review()" [disabled]="busy()">Revisar enquadramento</button>
+        }
+      </div>
+
+      @if (current) {
+        <div class="intake-card">
+          <div class="section-heading"><h3>Evidências e marcos</h3></div>
+          <dl class="intake-milestones">
+            <div><dt>Compromisso significativo</dt><dd>{{ snapshot.commitment?.date ?? 'Pendente' }}</dd></div>
+            <div><dt>Primeira operação</dt><dd>{{ snapshot.operation?.start ?? 'Pendente' }}</dd></div>
+            <div><dt>Período de crédito</dt><dd>{{ snapshot.operation ? snapshot.operation.creditStart + ' a ' + snapshot.operation.creditEndInclusive : 'Pendente' }}</dd></div>
+          </dl>
+          @if (recordProofs().length) {
+            <form class="intake-form" (submit)="record($event, proof.value)">
+              <div>
+                <label for="case-evidence">Evidência sintética</label>
+                <select #proof id="case-evidence">
+                  @for (option of recordProofs(); track option.ref.id) {
+                    <option [value]="option.ref.id">{{ text(option.kind) }} · {{ option.date }}</option>
+                  }
+                </select>
+              </div>
+              <button type="submit" class="secondary" [disabled]="busy()">Registrar evidência</button>
+            </form>
+          }
+          <details class="intake-details">
+            <summary>Registros de evidência ({{ snapshot.records.length }})</summary>
+            <ul class="intake-entries">
+              @for (entry of snapshot.records; track entry.id) {
+                <li><strong>{{ text(entry.input.type) }} · v{{ entry.version }}</strong>
+                  <p class="note">{{ text(entry.input.status) }} · {{ entry.input.effectiveDate }} · {{ entry.recordedBy }}
+                    @if (entry.input.evidence; as proof) { · {{ proof.id }} v{{ proof.version }} }
+                  </p>
+                  <p>{{ entry.input.justification }}</p>
+                </li>
+              } @empty { <li>Aguardando evidências.</li> }
+            </ul>
+          </details>
+          @if (has('PP') && current.state === 'ENQUADRADO' && !snapshot.commitment) {
+            <button type="button" class="primary intake-action" (click)="commit()" [disabled]="busy()">Registrar compromisso</button>
+          }
+          @if (has('OP') && snapshot.commitment && !snapshot.operation) {
+            <button type="button" class="primary intake-action" (click)="operate()" [disabled]="busy()">Registrar comissionamento</button>
+          }
+        </div>
+
+        <div class="intake-card">
+          <div class="section-heading">
+            <h3>Inventário e medição EC</h3>
+            <span class="note">{{ current.candidate.inventory.sites.length }} pátio(s) · {{ current.candidate.inventory.stations.length }} DCFC · {{ current.candidate.inventory.vehicles.length }} BEV · {{ current.candidate.inventory.models.length }} modelo(s)</span>
+          </div>
+          <details class="intake-details">
+            <summary>Ativos e comparáveis</summary>
+            <ul class="intake-entries">
+              @for (station of current.candidate.inventory.stations; track station.id) {
+                <li>{{ station.id }} · {{ station.site }} · {{ station.model }} · {{ station.powerKw }} kW</li>
+              }
+              @for (model of current.candidate.inventory.models; track model.id) {
+                <li>{{ model.id }} · {{ model.bev }} · {{ model.comparable }}</li>
+              }
+              @for (circuit of current.candidate.inventory.ecCircuits; track circuit.id) {
+                <li>{{ circuit.id }} · {{ circuit.station }}</li>
+              }
+            </ul>
+          </details>
+          @if (has('OP') && current.state === 'ENQUADRADO') {
+            <form class="intake-form" (submit)="meter($event, meterId.value, calibrated.checked)">
+              <div>
+                <label for="intake-meter">Medidor da amostra</label>
+                <select #meterId id="intake-meter">
+                  @for (sample of samples()?.meters ?? []; track sample.details.meterId) {
+                    <option [value]="sample.details.meterId">{{ sample.details.meterId }} · {{ sample.circuit }} · {{ sample.details.effectiveFrom.slice(0, 10) }}</option>
+                  }
+                </select>
+              </div>
+              <label class="intake-check"><input #calibrated type="checkbox" checked> Vincular calibração</label>
+              <button type="submit" class="secondary" [disabled]="busy()">Registrar revisão</button>
+            </form>
+          }
+          @if (view.meterWindows.length) {
+            <div class="table-scroll intake-details" tabindex="0" role="region" aria-label="Histórico de medidores">
+              <table aria-label="Revisões de medidor">
+                <thead><tr><th scope="col">Circuito / medidor</th><th scope="col">Revisão</th><th scope="col">Vigência [início, fim)</th><th scope="col">Calibração [início, fim)</th></tr></thead>
+                <tbody>
+                  @for (meter of view.meterWindows; track meter.revision.circuit + ':' + meter.revision.revision) {
+                    <tr>
+                      <th scope="row">{{ meter.revision.circuit }} / {{ meter.revision.details.meterId }}</th>
+                      <td>{{ meter.revision.revision }} @if (meter.revision.predecessor) { · anterior {{ meter.revision.predecessor }} }</td>
+                      <td>{{ meter.revision.details.effectiveFrom }}<br>{{ meter.effectiveUntilExclusive ?? 'Sem sucessora' }}</td>
+                      <td>{{ meter.revision.calibratedFrom ?? 'Pendente' }}<br>{{ meter.revision.calibratedUntil ?? '' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+          @if (has('OP') && current.state === 'ENQUADRADO') {
+            <form class="intake-form" (submit)="reading($event, interval.value, kwh.value)">
+              <div>
+                <label for="intake-interval">Intervalo de teste (EC)</label>
+                <select #interval id="intake-interval">
+                  @for (sample of readingExamples; track sample.id) { <option [value]="sample.id">{{ sample.label }}</option> }
+                </select>
+              </div>
+              <div>
+                <label for="intake-kwh">Energia em kWh</label>
+                <input #kwh id="intake-kwh" class="intake-kwh" inputmode="decimal" value="12.50" required>
+              </div>
+              <button type="submit" class="secondary" [disabled]="busy()">Pré-checar leitura</button>
+            </form>
+          }
+          @if (view.readings.length) {
+            <ul class="intake-entries">
+              @for (reading of view.readings; track reading.raw.originId) {
+                <li><strong>{{ text(reading.state) }}</strong> · {{ reading.raw.meterId }} · {{ reading.raw.kwh }} kWh
+                  <p class="note">{{ reading.raw.start }} a {{ reading.raw.endExclusive }} · Ficha v{{ reading.configurationVersion }} · {{ reading.raw.originId }}</p>
+                  @for (reason of reading.reasons; track reason.code) { <p>{{ reason.message }} <span class="note">{{ reason.rule }}</span></p> }
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      }
+
+      <div class="intake-card">
+        <details>
+          <summary>Uso real bloqueado</summary>
+          <ul class="intake-reasons">
+            @for (gate of view.realUseBlockers; track gate.code) {
+              <li><strong>{{ gate.code }}</strong> · {{ gate.message }}</li>
+            }
+          </ul>
+        </details>
+        @if (snapshot.version > 0) {
+          <button type="button" class="secondary intake-action" (click)="loadHistory()" [disabled]="busy()">Consultar versões da ficha</button>
+          @if (history(); as revisions) {
+            <ul class="intake-entries">
+              @for (revision of revisions; track revision.version) {
+                <li><a class="resource-link" [href]="versionLink(revision.version)">Ficha v{{ revision.version }} em JSON</a>
+                  @if (revision.predecessor) { <span class="note"> · Precedente v{{ revision.predecessor }}</span> }
+                </li>
+              }
+            </ul>
+          }
+        }
+      </div>
+    } @else if (busy()) {
+      <p role="status">Consultando ficha…</p>
+    }
+  </section>
+}

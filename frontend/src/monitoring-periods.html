@@ -1,0 +1,143 @@
+@if (enabled()) {
+  <section class="panel" aria-labelledby="monitoring-title">
+    <div class="section-heading">
+      <h2 id="monitoring-title">Períodos de monitoramento</h2>
+      <button class="secondary" type="button" (click)="refresh()" [disabled]="busy()">Atualizar períodos e memórias</button>
+    </div>
+    <div class="intake-form">
+      <div>
+        <label for="monitoring-period">Janela</label>
+        <select id="monitoring-period" #periodChoice (change)="choose(periodChoice.value)" [disabled]="busy()">
+          @for (item of windows; track item.id) {
+            <option [value]="item.id">{{ item.id }} · {{ date(item.start) }} a {{ date(item.endInclusive) }}</option>
+          }
+        </select>
+      </div>
+    </div>
+    <p class="note">Horário de Brasília · fim exclusivo em {{ date(window().endExclusive) }} às 00:00.</p>
+    <p><a class="resource-link" [href]="sampleUrl(selected())">Baixar CSV de cobertura {{ selected() }}</a></p>
+    @if (current(); as period) {
+      <div class="intake-card">
+        <h3>{{ period.id }} · {{ label(period.state) }} · revisão {{ period.revision }}</h3>
+        <p class="note">{{ period.actor }} · {{ period.reason }}</p>
+        @if (period.state === 'FECHADO') {
+          <a class="resource-link" [href]="windowUrl('/closures/' + period.revision)" download>Baixar fechamento</a>
+        }
+        @if (period.impact; as impact) {
+          <p>Reabertura da revisão {{ impact.affectedRevision }} · <a class="resource-link"
+            [href]="windowUrl('/closures/' + impact.affectedRevision)" download>Baixar fechamento anterior</a></p>
+          @if (impact.divergenceId) {
+            <p>Divergência pendente · <code>{{ impact.divergenceId }}</code></p>
+          }
+          @if (impact.dependents.length) {
+            <ul>@for (related of impact.dependents; track related.event) {
+              <li>{{ related.input.reference }} v{{ related.input.version }} · {{ related.input.status }}</li>
+            }</ul>
+          }
+        }
+        @if (actions(period); as available) {
+          @if (available.length) {
+            <form class="intake-form" (submit)="act($event, period, step.value, instant.value, reason.value,
+              monitoringMemory.value, monitoringArtifact.value)">
+              <div>
+                <label for="monitoring-step">Ação de monitoramento</label>
+                <select id="monitoring-step" #step>
+                  @for (action of available; track action.id) { <option [value]="action.id">{{ action.label }}</option> }
+                </select>
+              </div>
+              <div>
+                <label for="monitoring-instant">Instante efetivo simulado</label>
+                <input id="monitoring-instant" #instant [value]="effective(period)" required>
+              </div>
+              <div [hidden]="!has('REV') || period.state !== 'EM_CONFERENCIA'">
+                <label for="monitoring-memory">Memória revisada</label>
+                <select id="monitoring-memory" #monitoringMemory>
+                  <option value="">Selecione a memória</option>
+                  @for (run of memories(); track run.id) {
+                    <option [value]="run.id">{{ run.result!.totals.er ?? 'Sem saldo' }} tCO₂e · {{ run.id.slice(0,8) }} · v{{ run.version }}</option>
+                  }
+                </select>
+                <button class="secondary intake-action" type="button" (click)="assess(monitoringMemory.value)"
+                  [disabled]="busy() || !memories().length">Conferir cobertura</button>
+              </div>
+              <div [hidden]="period.state !== 'COM_LACUNAS'">
+                <label for="monitoring-artifact">ID do CSV de recuperação</label>
+                <input id="monitoring-artifact" #monitoringArtifact>
+              </div>
+              <div>
+                <label for="monitoring-reason">Motivo da transição</label>
+                <input id="monitoring-reason" #reason required maxlength="600">
+              </div>
+              <button class="primary" type="submit" [disabled]="busy()">Registrar transição</button>
+            </form>
+          }
+        }
+        @if (report() ?? period.coverage; as coverage) {
+          <p>{{ coverage.complete ? 'Cobertura completa' : coverage.findings + ' pendência(s)' }} · {{ coverage.expectedChannels }} canais esperados</p>
+          @if (coverage.examples.length) {
+            <ul>@for (finding of coverage.examples; track $index) {
+              <li>{{ label(finding.code) }} {{ finding.channel ?? '' }}
+                @if (finding.from && finding.until) { · {{ finding.from }} a {{ finding.until }} }
+                @if (finding.row) { · <code>{{ finding.row }}</code> }
+              </li>
+            }</ul>
+          }
+        }
+        @if (related().length) {
+          <ul>@for (item of related(); track item.event) {
+            <li>{{ item.input.reference }} v{{ item.input.version }} · {{ item.input.status }}</li>
+          }</ul>
+        }
+        @if (has('PP') && period.state === 'FECHADO') {
+          <details>
+            <summary>Vincular dependente simulado</summary>
+            <form class="intake-form" (submit)="link($event, period, dependent.value, packageRef.value)">
+              <div>
+                <label for="monitoring-dependent">Dependente</label>
+                <select id="monitoring-dependent" #dependent (change)="packageRef.hidden = dependent.value !== 'PACOTE'">
+                  @if (period.id === 'M1') {
+                    <option value="SIM-V1|EM_REVISAO">V1 em revisão</option>
+                    <option value="SIM-I1|AGUARDANDO_DEPOSITO">I1 aguardando depósito</option>
+                    <option value="SIM-V1|APROVADO|SIM-APROVA-V1">Prova simulada de aprovação de V1</option>
+                    <option value="SIM-I1|DEPOSITO_REGISTRADO|SIM-DEPOSITO-01">Prova simulada de depósito de I1</option>
+                  }
+                  <option value="PACOTE">Artefato aprovado do dossiê</option>
+                </select>
+              </div>
+              <input #packageRef aria-label="Referência do artefato aprovado" placeholder="ID@versão" [hidden]="period.id === 'M1'">
+              <button class="secondary" type="submit" [disabled]="busy()">Vincular dependente</button>
+            </form>
+          </details>
+        }
+        <button class="secondary intake-action" type="button" (click)="showHistory()" [disabled]="busy()">Consultar histórico do período</button>
+        @if (history().length) {
+          <ul>@for (item of history(); track item.version) {
+            <li>v{{ item.version }} · {{ label(item.state) }} · {{ item.actor }} · {{ item.effectiveAt ?? 'Planejamento' }}
+              @if (item.closureSha256) {
+                · <a class="resource-link" [href]="windowUrl('/closures/' + item.revision)" download>Fechamento r{{ item.revision }}</a>
+              }
+            </li>
+          }</ul>
+        }
+      </div>
+    } @else if (has('PREP') || has('PP')) {
+      <button class="primary" type="button" (click)="propose()" [disabled]="busy()">Propor {{ selected() }}</button>
+    } @else {
+      <p class="note">A janela ainda precisa ser proposta por PREP ou PP.</p>
+    }
+    @if (has('OP')) {
+      <details>
+        <summary>Vincular segmentos medidos</summary>
+        <form class="intake-form" (submit)="split($event, original.value, segments.value, proof.value, splitReason.value)">
+          <p class="note">Copie as referências ID@versão em Original, na prévia do CSV. Use uma linha por segmento.</p>
+          <div><label for="split-original">Leitura original</label><input id="split-original" #original required></div>
+          <div><label for="split-segments">Segmentos</label><textarea id="split-segments" #segments rows="3" required></textarea></div>
+          <div><label for="split-proof">Referência sintética de medição</label><input id="split-proof" #proof placeholder="SIM-…" required></div>
+          <div><label for="split-reason">Motivo da segmentação</label><input id="split-reason" #splitReason required maxlength="600"></div>
+          <button class="secondary" type="submit" [disabled]="busy()">Reconciliar segmentos</button>
+        </form>
+      </details>
+    }
+    @if (feedback()) { <p class="feedback" [class.error]="error()" role="status">{{ feedback() }}</p> }
+  </section>
+}

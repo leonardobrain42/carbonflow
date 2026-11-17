@@ -1,0 +1,36 @@
+services:
+  db:
+    image: postgres:16-bookworm
+    environment:
+      POSTGRES_DB: carbonflow
+      POSTGRES_USER: carbonflow
+      POSTGRES_PASSWORD: ${CARBONFLOW_DB_PASSWORD:-carbonflow}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "carbonflow", "-d", "carbonflow"]
+      interval: 3s
+      timeout: 3s
+      retries: 15
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      QUARKUS_HTTP_HOST: 0.0.0.0
+      CARBONFLOW_DB_URL: jdbc:postgresql://db:5432/carbonflow
+      CARBONFLOW_DB_USER: carbonflow
+      CARBONFLOW_DB_PASSWORD: ${CARBONFLOW_DB_PASSWORD:-carbonflow}
+    ports:
+      - "127.0.0.1:${CARBONFLOW_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:8080/health/ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  pgdata:

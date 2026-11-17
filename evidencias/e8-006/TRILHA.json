@@ -1,0 +1,718 @@
+[
+    {
+        "actor": "SIM-OP",
+        "action": "PROPOR_PERIODO",
+        "target": null,
+        "details": {
+            "code": "ACAO_NEGADA"
+        },
+        "eventId": "74e4daa4-18b1-43e3-bf1b-fcde1a8c630a",
+        "outcome": "NEGADO",
+        "occurredAt": "2026-11-16T15:16:46.008575+00:00"
+    },
+    {
+        "actor": "SIM-PREP",
+        "action": "PROPOR_PERIODO",
+        "target": "M1",
+        "details": {
+            "id": "M1",
+            "start": "2027-10-01",
+            "reason": "Calendário do kit",
+            "endExclusive": "2028-10-01"
+        },
+        "eventId": "ed1d7557-7de6-4508-bf4f-ba1d883a61c6",
+        "outcome": "PERMITIDO",
+        "occurredAt": "2026-11-16T15:16:46.02396+00:00"
+    },
+    {
+        "actor": "SIM-OP",
+        "action": "PROPOR_PERIODO",
+        "target": null,
+        "details": {
+            "code": "ACAO_NEGADA"
+        },
+        "eventId": "f905065d-dcbe-4eb9-93f1-7fcf3b44a705",
+        "outcome": "NEGADO",
+        "occurredAt": "2026-11-16T15:16:46.048285+00:00"
+    },
+    {
+        "actor": "SIM-PP",
+        "action": "PROPOR_PERIODO",
+        "target": "M2",
+        "details": {
+            "id": "M2",
+            "start": "2028-10-01",
+            "reason": "Calendário do kit",
+            "endExclusive": "2029-10-01"
+        },
+        "eventId": "fb2fb721-4c9b-4d79-9cb1-73d98f974b0b",
+        "outcome": "PERMITIDO",
+        "occurredAt": "2026-11-16T15:16:46.06335+00:00"
+    },
+    {
+        "actor": "SIM-REV",
+        "action": "TX-E3-41",
+        "target": "M1",
+        "details": {
+            "code": "ACAO_NEGADA"
+        },
+        "eventId": "b3026543-4596-450d-8058-ef35d407f935",
+        "outcome": "NEGADO",
+        "occurredAt": "2026-11-16T15:16:46.091492+00:00"
+    },
+    {
+        "actor": "SIM-OP",
+        "action": "TX-E3-41",
+        "target": "M1",
+        "details": {
+            "to": "COLETANDO",
+            "from": "PREVISTO",
+            "after": 2,
+            "proof": {
+                "id": "SIM-COMISSIONAMENTO",
+                "version": 1
+            },
+            "before": 1,
+            "reason": "Conferência do período sintético",
+            "revision": 1,
+            "effectiveAt": "2027-10-01T00:00:00-03:00"
+        },
+        "eventId": "337106f0-6ef0-4fd3-9148-dac3a57aadd5",
+        "outcome": "PERMITIDO",
+        "occurredAt": "2026-11-16T15:16:46.12528+00:00"
+    },
+    {
+        "actor": "SIM-OP",
+        "action": "TX-E3-42",
+        "target": "M1",
+        "details": {
+            "code": "JANELA_EM_CURSO"
+        },
+        "eventId": "c1adf6b4-7200-45db-87fd-9cc1b5f19701",
+        "outcome": "NEGADO",
+        "occurredAt": "2026-11-16T15:16:46.148654+00:00"
+    },
+    {
+        "actor": "SIM-OP",
+        "action": "TX-E3-41",
+        "target": "M2",
+        "details": {
+            "code": "FORA_DA_JANELA"
+        },
+        "eventId": "6e961266-d442-46a3-9469-9c5ff164be18",
+        "outcome": "NEGADO",
+        "occurredAt": "2026-11-16T15:16:46.166827+00:00"
+    },
+    {
+        "actor": "SIM-REV",
+        "action": "CONGELAR_SELECAO_ED_EC",
+        "target": "36ca0256-4676-4e8a-8420-14a334e142f4",
+        "details": {
+            "period": "M1",
+            "purpose": "RETRATO_SELECAO_SIMULADA"
+        },
+        "eventId": "3299522d-ff36-4d3f-af52-520c0e77258d",
+        "outcome": "PERMITIDO",
+        "occurredAt": "2026-11-16T15:16:47.199393+00:00"
+    },
+    {
+        "actor": "SIM-PREP",
+        "action": "PROPOR_CALCULO_SELECAO",
+        "target": "9859783c-5b39-4b35-9a2c-5fcc8a708685",
+        "details": {
+            "factor": {
+                "id": "EF-SYN-v1",
+                "version": 1
+            },
+            "selection": {
+                "id": "36ca0256-4676-4e8a-8420-14a334e142f4",
+                "version": 1
+            },
+            "configuration": 2
+        },
+        "eventId": "2a6c3269-9d6e-47dc-93f4-58c93d4e3829",
+        "outcome": "PERMITIDO",
+        "occurredAt": "2026-11-16T15:16:47.235158+00:00"
+    },
+    {
+        "actor": "SIM-REV",
+        "action": "CONFIRMAR_CALCULO_SELECAO",
+        "target": "9859783c-5b39-4b35-9a2c-5fcc8a708685",
+        "details": {
+            "after": 2,
+            "before": 1,
+            "reason": "Conferência da seleção sintética"
+        },
+        "eventId": "1adc3593-d6a7-46ac-8c98-5b96c041b432",
+        "outcome": "PERMITIDO",
+        "occurredAt": "2026-11-16T15:16:47.269519+00:00"
+    },
+    {
+        "actor": "SIM-OP",
+        "action": "TX-E3-42",
+        "target": "M1",
+        "details": {
+            "to": "EM_CONFERENCIA",
+            "from": "COLETANDO",
+            "after": 3,
+            "proof": {
+                "id": "SIM-COMISSIONAMENTO",
+                "version": 1
+            },
+            "before": 2,
+            "reason": "Conferência do período sintético",
+            "revision": 1,
+            "effectiveAt": "2028-10-01T00:00:00-03:00"
+        },
+        "eventId": "fff97518-7efc-4ec1-85df-ab0d66e39337",
+        "outcome": "PERMITIDO",
+        "occurredAt": "2026-11-16T15:16:47.500111+00:00"
+    },
+    {
+        "actor": "SIM-OP",
+        "action": "TX-E3-41",
+        "target": "M2",
+        "details": {
+            "to": "COLETANDO",
+            "from": "PREVISTO",
+            "after": 2,
+            "proof": {
+                "id": "SIM-COMISSIONAMENTO",
+                "version": 1
+            },
+            "before": 1,
+            "reason": "Conferência do período sintético",
+            "revision": 1,
+            "effectiveAt": "2028-10-01T00:00:00-03:00"
+        },
+        "eventId": "3ca69f86-be29-4330-9d37-3af9bd800271",
+        "outcome": "PERMITIDO",
+        "occurredAt": "2026-11-16T15:16:47.516753+00:00"
+    },
+    {
+        "actor": "SIM-OP",
+        "action": "TX-E3-41",
+        "target": "M2",
+        "details": {
+            "code": "VERSAO_OBSOLETA"
+        },
+        "eventId": "b5732050-d25f-42d6-a85e-6a79a66207d2",
+        "outcome": "NEGADO",
+        "occurredAt": "2026-11-16T15:16:47.538009+00:00"
+    },
+    {
+        "actor": "SIM-REV",
+        "action": "TX-E3-45",
+        "target": "M1",
+        "details": {
+            "code": "FECHAMENTO_COM_LACUNAS"
+        },
+        "eventId": "893567fe-6098-456c-9885-6e38c50a09f8",
+        "outcome": "NEGADO",
+        "occurredAt": "2026-11-16T15:16:47.629538+00:00"
+    },
+    {
+        "actor": "SIM-REV",
+        "action": "TX-E3-43",
+        "target": "M1",
+        "details": {
+            "to": "COM_LACUNAS",
+            "from": "EM_CONFERENCIA",
+            "after": 4,
+            "proof": {
+                "id": "9859783c-5b39-4b35-9a2c-5fcc8a708685",
+                "version": 3
+            },
+            "before": 3,
+            "reason": "Conferência do período sintético",
+            "revision": 1,
+            "effectiveAt": "2028-10-01T00:00:00-03:00"
+        },
+        "eventId": "958e956f-2396-4c15-8d70-6eab3f089e51",
+        "outcome": "PERMITIDO",
+        "occurredAt": "2026-11-16T15:16:47.665967+00:00"
+    },
+    {
+        "actor": "SIM-PREP",
+        "action": "TX-E3-44",
+        "target": "M1",
+        "details": {
+            "code": "RECUPERACAO_SEM_PROVA"
+        },
+        "eventId": "9144e06d-6812-490e-9f98-ed66b581eb42",
+        "outcome": "NEGADO",
+        "occurredAt": "2026-11-16T15:16:47.699939+00:00"
+    },
+    {
+        "actor": "SIM-PREP",
+        "action": "TX-E3-44",
+        "target": "M1",
+        "details": {
+            "to": "EM_CONFERENCIA",
+            "from": "COM_LACUNAS",
+            "after": 5,
+            "proof": "5e7c7bff-88f8-4479-bfb4-ab5978b8c68f",
+            "before": 4,
+            "reason": "Conferência do período sintético",
+            "revision": 1,
+            "effectiveAt": "2028-10-02T00:00:00-03:00"
+        },
+        "eventId": "c3fa3b6e-2a36-4246-a577-8e4e889ed194",
+        "outcome": "PERMITIDO",
+        "occurredAt": "2026-11-16T15:16:48.382632+00:00"
+    },
+    {
+        "actor": "SIM-REV",
+        "action": "CONGELAR_SELECAO_ED_EC",
+        "target": "641f15d9-0000-41b9-a5f8-15e972cd4c54",
+        "details": {
+            "period": "M1",
+            "purpose": "RETRATO_SELECAO_SIMULADA"
+        },
+        "eventId": "c8710dda-a20b-4e25-860d-219e4617bb69",
+        "outcome": "PERMITIDO",
+        "occurredAt": "2026-11-16T15:16:48.404234+00:00"
+    },
+    {
+        "actor": "SIM-PREP",
+        "action": "PROPOR_CALCULO_SELECAO",
+        "target": "c799cee7-0395-4dd0-87ac-bc3805d38a56",
+        "details": {
+            "factor": {
+                "id": "EF-SYN-v1",
+                "version": 1
+            },
+            "selection": {
+                "id": "641f15d9-0000-41b9-a5f8-15e972cd4c54",
+                "version": 1
+            },
+            "configuration": 2
+        },
+        "eventId": "d4159e4e-eef2-4563-9a2b-24657f698453",
+        "outcome": "PERMITIDO",
+        "occurredAt": "2026-11-16T15:16:48.436757+00:00"
+    },
+    {
+        "actor": "SIM-REV",
+        "action": "CONFIRMAR_CALCULO_SELECAO",
+        "target": "c799cee7-0395-4dd0-87ac-bc3805d38a56",
+        "details": {
+            "after": 2,
+            "before": 1,
+            "reason": "Conferência da seleção sintética"
+        },
+        "eventId": "ad3b35a2-8df9-4bd1-bdd9-ddf6edbdc3c4",
+        "outcome": "PERMITIDO",
+        "occurredAt": "2026-11-16T15:16:48.463458+00:00"
+    },
+    {
+        "actor": "SIM-REV",
+        "action": "TX-E3-45",
+        "target": "M1",
+        "details": {
+            "code": "FECHAMENTO_COM_LACUNAS"
+        },
+        "eventId": "54b0491f-d56f-43fc-9b04-8f13b5ae2827",
+        "outcome": "NEGADO",
+        "occurredAt": "2026-11-16T15:16:48.714925+00:00"
+    },
+    {
+        "actor": "SIM-REV",
+        "action": "TX-E3-45",
+        "target": "M1",
+        "details": {
+            "to": "FECHADO",
+            "from": "EM_CONFERENCIA",
+            "after": 6,
+            "proof": {
+                "id": "c799cee7-0395-4dd0-87ac-bc3805d38a56",
+                "version": 3
+            },
+            "before": 5,
+            "reason": "Conferência do período sintético",
+            "revision": 1,
+            "effectiveAt": "2028-10-02T00:00:00-03:00"
+        },
+        "eventId": "3a2df69e-6332-4e88-b667-32b9022e444e",
+        "outcome": "PERMITIDO",
+        "occurredAt": "2026-11-16T15:16:48.792775+00:00"
+    },
+    {
+        "actor": "SIM-REV",
+        "action": "TX-E3-45",
+        "target": "M1",
+        "details": {
+            "code": "VERSAO_OBSOLETA"
+        },
+        "eventId": "d6441080-528b-4913-b7bf-f6c62eab4999",
+        "outcome": "NEGADO",
+        "occurredAt": "2026-11-16T15:16:48.806918+00:00"
+    },
+    {
+        "actor": "SIM-PP",
+        "action": "VINCULAR_DEPENDENTE_FECHAMENTO",
+        "target": "M1@1",
+        "details": {
+            "kind": "PACOTE",
+            "proof": null,
+            "status": "VINCULADO",
+            "version": 2,
+            "reference": "4d70cba7-1fe2-418f-ac6a-e15aae662f8c"
+        },
+        "eventId": "fd04be39-0ac7-4ceb-90ea-b7603031c13f",
+        "outcome": "PERMITIDO",
+        "occurredAt": "2026-11-16T15:16:48.983983+00:00"
+    },
+    {
+        "actor": "SIM-PP",
+        "action": "VINCULAR_DEPENDENTE_FECHAMENTO",
+        "target": "M1@1",
+        "details": {
+            "kind": "DECISAO",
+            "proof": null,
+            "status": "EM_REVISAO",
+            "version": 1,
+            "reference": "SIM-V1"
+        },
+        "eventId": "bec01e25-68cd-4b56-b08f-4da34b725dc8",
+        "outcome": "PERMITIDO",
+        "occurredAt": "2026-11-16T15:16:49.003834+00:00"
+    },
+    {
+        "actor": "SIM-PP",
+        "action": "VINCULAR_DEPENDENTE_FECHAMENTO",
+        "target": "M1@1",
+        "details": {
+            "kind": "DECISAO",
+            "proof": null,
+            "status": "AGUARDANDO_DEPOSITO",
+            "version": 1,
+            "reference": "SIM-I1"
+        },
+        "eventId": "a3a6f4b9-9b31-4c33-a313-491443257254",
+        "outcome": "PERMITIDO",
+        "occurredAt": "2026-11-16T15:16:49.015771+00:00"
+    },
+    {
+        "actor": "SIM-REV",
+        "action": "CONGELAR_SELECAO_ED_EC",
+        "target": "44434ee8-796a-4ee7-ada0-37037f9d2eed",
+        "details": {
+            "period": "M2",
+            "purpose": "RETRATO_SELECAO_SIMULADA"
+        },
+        "eventId": "a5660311-b2b6-4cbe-baf6-d1f25eb329db",
+        "outcome": "PERMITIDO",
+        "occurredAt": "2026-11-16T15:16:49.929774+00:00"
+    },
+    {
+        "actor": "SIM-PREP",
+        "action": "PROPOR_CALCULO_SELECAO",
+        "target": "8507bca6-93d8-474e-84cb-e9a11ebd1922",
+        "details": {
+            "factor": {
+                "id": "EF-SYN-v1",
+                "version": 1
+            },
+            "selection": {
+                "id": "44434ee8-796a-4ee7-ada0-37037f9d2eed",
+                "version": 1
+            },
+            "configuration": 2
+        },
+        "eventId": "4bdc7eb1-5cc3-43c5-ac36-6fbcf433f681",
+        "outcome": "PERMITIDO",
+        "occurredAt": "2026-11-16T15:16:49.95889+00:00"
+    },
+    {
+        "actor": "SIM-REV",
+        "action": "CONFIRMAR_CALCULO_SELECAO",
+        "target": "8507bca6-93d8-474e-84cb-e9a11ebd1922",
+        "details": {
+            "after": 2,
+            "before": 1,
+            "reason": "Conferência da seleção sintética"
+        },
+        "eventId": "ad84b6d1-6031-4332-9b03-7d2a65142b1d",
+        "outcome": "PERMITIDO",
+        "occurredAt": "2026-11-16T15:16:49.981487+00:00"
+    },
+    {
+        "actor": "SIM-PP",
+        "action": "VINCULAR_DEPENDENTE_FECHAMENTO",
+        "target": "M1",
+        "details": {
+            "code": "PROVA_SINTETICA_INVALIDA"
+        },
+        "eventId": "14b3bdd6-9692-4830-b2b6-40ff2fdcc708",
+        "outcome": "NEGADO",
+        "occurredAt": "2026-11-16T15:16:50.362457+00:00"
+    },
+    {
+        "actor": "SIM-PP",
+        "action": "VINCULAR_DEPENDENTE_FECHAMENTO",
+        "target": "M1@1",
+        "details": {
+            "kind": "ATO_EXTERNO",
+            "proof": {
+                "id": "SIM-APROVA-V1",
+                "version": 1
+            },
+            "status": "APROVADO",
+            "version": 1,
+            "reference": "SIM-V1"
+        },
+        "eventId": "c58986c8-6334-4aab-be1c-344933fa763a",
+        "outcome": "PERMITIDO",
+        "occurredAt": "2026-11-16T15:16:50.371765+00:00"
+    },
+    {
+        "actor": "SIM-PREP",
+        "action": "TX-E3-46",
+        "target": "M1",
+        "details": {
+            "code": "ACAO_NEGADA"
+        },
+        "eventId": "47bb8554-46f3-4775-8486-b3579a0e18f5",
+        "outcome": "NEGADO",
+        "occurredAt": "2026-11-16T15:16:50.380528+00:00"
+    },
+    {
+        "actor": "SIM-REV",
+        "action": "TX-E3-46",
+        "target": "M1",
+        "details": {
+            "to": "EM_CONFERENCIA",
+            "from": "FECHADO",
+            "after": 7,
+            "proof": {
+                "state": "DIVERGENCIA_PENDENTE_E8_010",
+                "dependents": [
+                    {
+                        "event": "c58986c8-6334-4aab-be1c-344933fa763a",
+                        "input": {
+                            "kind": "ATO_EXTERNO",
+                            "proof": {
+                                "id": "SIM-APROVA-V1",
+                                "version": 1
+                            },
+                            "status": "APROVADO",
+                            "version": 1,
+                            "reference": "SIM-V1"
+                        },
+                        "sha256": null,
+                        "recordedBy": "SIM-PP"
+                    },
+                    {
+                        "event": "a3a6f4b9-9b31-4c33-a313-491443257254",
+                        "input": {
+                            "kind": "DECISAO",
+                            "proof": null,
+                            "status": "AGUARDANDO_DEPOSITO",
+                            "version": 1,
+                            "reference": "SIM-I1"
+                        },
+                        "sha256": null,
+                        "recordedBy": "SIM-PP"
+                    },
+                    {
+                        "event": "bec01e25-68cd-4b56-b08f-4da34b725dc8",
+                        "input": {
+                            "kind": "DECISAO",
+                            "proof": null,
+                            "status": "EM_REVISAO",
+                            "version": 1,
+                            "reference": "SIM-V1"
+                        },
+                        "sha256": null,
+                        "recordedBy": "SIM-PP"
+                    },
+                    {
+                        "event": "fd04be39-0ac7-4ceb-90ea-b7603031c13f",
+                        "input": {
+                            "kind": "PACOTE",
+                            "proof": null,
+                            "status": "VINCULADO",
+                            "version": 2,
+                            "reference": "4d70cba7-1fe2-418f-ac6a-e15aae662f8c"
+                        },
+                        "sha256": "09fd5ae3fc0dd21343203947ba38dbdc239966a4a8bb4dabb0827b5b272e0b4a",
+                        "recordedBy": "SIM-PP"
+                    }
+                ],
+                "divergenceId": "a11d003c-465b-4083-9f68-2774ef60c793",
+                "affectedRevision": 1
+            },
+            "before": 6,
+            "reason": "Conferência do período sintético",
+            "revision": 2,
+            "effectiveAt": "2028-10-15T00:00:00-03:00"
+        },
+        "eventId": "ce6b94dc-2685-43e3-b602-5558fe93d60b",
+        "outcome": "PERMITIDO",
+        "occurredAt": "2026-11-16T15:16:50.391738+00:00"
+    },
+    {
+        "actor": "SIM-PP",
+        "action": "VINCULAR_DEPENDENTE_FECHAMENTO",
+        "target": "M1",
+        "details": {
+            "code": "TRANSICAO_INDISPONIVEL"
+        },
+        "eventId": "54724fa8-47ee-48dd-897d-f524c32fe627",
+        "outcome": "NEGADO",
+        "occurredAt": "2026-11-16T15:16:50.404743+00:00"
+    },
+    {
+        "actor": "SIM-PP",
+        "action": "CONCEDER_ACESSO",
+        "target": "4d70cba7-1fe2-418f-ac6a-e15aae662f8c@2",
+        "details": {
+            "code": "PACOTE_AFETADO_POR_REABERTURA"
+        },
+        "eventId": "1cc7d153-beb0-4f23-98c5-855eb9ccc2d5",
+        "outcome": "NEGADO",
+        "occurredAt": "2026-11-16T15:16:50.424451+00:00"
+    },
+    {
+        "actor": "SIM-REV",
+        "action": "TX-E3-45",
+        "target": "M1",
+        "details": {
+            "code": "MEMORIA_JA_FECHADA"
+        },
+        "eventId": "23047784-33a9-4c1d-b2fa-751f62963249",
+        "outcome": "NEGADO",
+        "occurredAt": "2026-11-16T15:16:50.43271+00:00"
+    },
+    {
+        "actor": "SIM-REV",
+        "action": "REEXECUTAR_SNAPSHOT",
+        "target": "c799cee7-0395-4dd0-87ac-bc3805d38a56",
+        "details": {
+            "matches": true,
+            "snapshotSha256": "fd13fc997c74aaa6c725896e86a98baf26d457f204e1d8d666c839deec3111bb"
+        },
+        "eventId": "d5e49b42-28b5-43dd-a2e9-f5242db249c8",
+        "outcome": "PERMITIDO",
+        "occurredAt": "2026-11-16T15:16:50.448593+00:00"
+    },
+    {
+        "actor": "SIM-REV",
+        "action": "CONGELAR_SELECAO_ED_EC",
+        "target": "7db1747d-492f-4f27-ad84-c770003b45b9",
+        "details": {
+            "period": "M1",
+            "purpose": "RETRATO_SELECAO_SIMULADA"
+        },
+        "eventId": "fb3a0ce4-317b-444d-8196-9e013dd44e05",
+        "outcome": "PERMITIDO",
+        "occurredAt": "2026-11-16T15:16:50.832786+00:00"
+    },
+    {
+        "actor": "SIM-PREP",
+        "action": "PROPOR_CALCULO_SELECAO",
+        "target": "ea53f527-11b0-486a-85d7-ef51643fdd2a",
+        "details": {
+            "factor": {
+                "id": "EF-SYN-v1",
+                "version": 1
+            },
+            "selection": {
+                "id": "7db1747d-492f-4f27-ad84-c770003b45b9",
+                "version": 1
+            },
+            "configuration": 2
+        },
+        "eventId": "f9daf2f6-f63b-4165-81c0-001384073899",
+        "outcome": "PERMITIDO",
+        "occurredAt": "2026-11-16T15:16:50.84613+00:00"
+    },
+    {
+        "actor": "SIM-REV",
+        "action": "CONFIRMAR_CALCULO_SELECAO",
+        "target": "ea53f527-11b0-486a-85d7-ef51643fdd2a",
+        "details": {
+            "after": 2,
+            "before": 1,
+            "reason": "Conferência da seleção sintética"
+        },
+        "eventId": "40623032-0c3e-4aad-9ddf-97ae8efde3a1",
+        "outcome": "PERMITIDO",
+        "occurredAt": "2026-11-16T15:16:50.857545+00:00"
+    },
+    {
+        "actor": "SIM-REV",
+        "action": "TX-E3-45",
+        "target": "M1",
+        "details": {
+            "to": "FECHADO",
+            "from": "EM_CONFERENCIA",
+            "after": 8,
+            "proof": {
+                "id": "ea53f527-11b0-486a-85d7-ef51643fdd2a",
+                "version": 3
+            },
+            "before": 7,
+            "reason": "Conferência do período sintético",
+            "revision": 2,
+            "effectiveAt": "2028-10-15T00:00:00-03:00"
+        },
+        "eventId": "0ffe35fa-091c-45d9-b2b7-053298465d52",
+        "outcome": "PERMITIDO",
+        "occurredAt": "2026-11-16T15:16:51.210661+00:00"
+    },
+    {
+        "actor": "SIM-PP",
+        "action": "VINCULAR_DEPENDENTE_FECHAMENTO",
+        "target": "M1",
+        "details": {
+            "code": "DEPENDENTE_AFETADO"
+        },
+        "eventId": "2784fefe-b412-424d-abdd-676f2a637a9c",
+        "outcome": "NEGADO",
+        "occurredAt": "2026-11-16T15:16:51.233218+00:00"
+    },
+    {
+        "actor": "SIM-OP",
+        "action": "TX-E3-42",
+        "target": "M2",
+        "details": {
+            "to": "EM_CONFERENCIA",
+            "from": "COLETANDO",
+            "after": 3,
+            "proof": {
+                "id": "SIM-COMISSIONAMENTO",
+                "version": 1
+            },
+            "before": 2,
+            "reason": "Conferência do período sintético",
+            "revision": 1,
+            "effectiveAt": "2029-10-01T00:00:00-03:00"
+        },
+        "eventId": "83edc987-b8ba-4cf8-9ab7-c07d3993c048",
+        "outcome": "PERMITIDO",
+        "occurredAt": "2026-11-16T15:16:51.250086+00:00"
+    },
+    {
+        "actor": "SIM-REV",
+        "action": "TX-E3-45",
+        "target": "M2",
+        "details": {
+            "to": "FECHADO",
+            "from": "EM_CONFERENCIA",
+            "after": 4,
+            "proof": {
+                "id": "8507bca6-93d8-474e-84cb-e9a11ebd1922",
+                "version": 3
+            },
+            "before": 3,
+            "reason": "Conferência do período sintético",
+            "revision": 1,
+            "effectiveAt": "2029-10-01T00:00:00-03:00"
+        },
+        "eventId": "52be75f6-6093-41a9-a356-cca54f673cdc",
+        "outcome": "PERMITIDO",
+        "occurredAt": "2026-11-16T15:16:51.269685+00:00"
+    }
+]

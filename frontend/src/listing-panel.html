@@ -1,0 +1,242 @@
+@if (visible()) {
+  <section class="panel" aria-labelledby="listings-title">
+    <div class="section-heading">
+      <h2 id="listings-title">Listagens e consulta pública</h2>
+      <button type="button" class="secondary" (click)="refresh()" [disabled]="busy()">Atualizar listagens</button>
+    </div>
+    <p class="note">Simulação · confira o canal, entregue manualmente e vincule a prova de cada retorno.</p>
+    @if (isVvb()) {
+      <label for="assigned-consult">Consulta atribuída</label>
+      <select id="assigned-consult" #assignment [disabled]="busy()" [value]="consultation()?.id ?? ''"
+        (change)="selectAssignment(assignment.value)">
+        @for (item of assigned(); track item.id) {
+          <option [value]="item.id">{{ displayTime(item.opening) }} · {{ status(item.state) }}</option>
+        } @empty { <option value="">Nenhuma manifestação atribuída</option> }
+      </select>
+    } @else {
+      @if (canAct()) {
+        <details>
+          <summary>Preparar tentativa de listagem</summary>
+          <form class="intake-form" (submit)="create($event, initialPackage.value, previousAttempt.value, admitted.checked)">
+            <div><label for="listing-kind">Tipo de listagem</label>
+              <select id="listing-kind" #kind [value]="kindChoice()" (change)="kindChoice.set(kind.value)">
+                @for (item of kinds; track item.act) { <option [value]="item.act">{{ item.label }}</option> }
+              </select>
+            </div>
+            <div><label for="listing-initial-package">Dossiê congelado da listagem</label>
+              <select id="listing-initial-package" #initialPackage required>
+                <option value="">Selecione o dossiê</option>
+                @for (item of packs(kindChoice()); track refValue(item)) {
+                  <option [value]="refValue(item)">{{ refName(item) }} · {{ item.command.actDate }}</option>
+                }
+              </select>
+            </div>
+            <div><label for="listing-predecessor">Tentativa rejeitada anterior, quando houver</label>
+              <select id="listing-predecessor" #previousAttempt>
+                <option value="">Primeira tentativa</option>
+                @for (item of listings(); track item.attempt.id) {
+                  @if (item.attempt.state === 'REJEITADO' && item.attempt.kind === kindChoice()) {
+                    <option [value]="item.attempt.id">{{ item.attempt.target }}</option>
+                  }
+                }
+              </select>
+              <label class="field-row"><input type="checkbox" #admitted> Prova simulada de admissão de nova tentativa</label>
+            </div>
+            <button class="primary" type="submit" [disabled]="busy()">Preparar listagem</button>
+          </form>
+        </details>
+      }
+      @if (listings().length) {
+        <div class="intake-form">
+          <div><label for="listing-current">Tentativa de listagem</label>
+            <select id="listing-current" #selected [value]="chosen()" (change)="select(selected.value)" [disabled]="busy()">
+              @for (item of listings(); track item.attempt.id) {
+                <option [value]="item.attempt.id">{{ label(item.attempt.kind) }} · {{ status(item.attempt.state) }} · {{ item.attempt.target ?? item.attempt.id.slice(0,8) }}</option>
+              }
+            </select>
+          </div>
+        </div>
+      }
+      @if (current(); as item) {
+        @let attempt = item.attempt;
+        <div class="intake-card">
+          <h3>{{ label(attempt.kind) }} · {{ status(attempt.state) }}</h3>
+          <p>Pacote {{ refName(attempt.pack.reference) }} · {{ status(item.channelStatus) }}</p>
+          <p class="note">{{ item.nextStep }}</p>
+          @if (item.responseDue) { <p>Prazo da exigência · {{ displayTime(item.responseDue) }}</p> }
+          @if (item.rejectionReviewAt) { <p>Marco nominal de 12 meses da inativação · {{ displayTime(item.rejectionReviewAt) }}</p> }
+          @if (attempt.submission) { <p>Recibo {{ attempt.submission.receipt }} · {{ attempt.submission.destination }} ·
+            <code class="energy-hash">{{ attempt.submission.sha256 }}</code></p> }
+          @if (attempt.fees) { <p>Boleto {{ attempt.fees.invoice.proof.officialId }} ·
+            {{ attempt.fees.settlement ? 'Quitação comprovada' : 'Em aberto' }}</p> }
+          @if (attempt.publication) { <p>Publicação comprovada · {{ displayTime(attempt.publication.effectiveAt) }} · {{ attempt.publication.authority }}</p> }
+          @if (canAct() && canCheck(attempt) && options()) {
+            <details><summary>Conferir canal e poder</summary>
+              <form class="intake-form" (submit)="check($event, attempt, channelPackage.value, checked.value, until.value, hasPower.checked)">
+                <div><label for="listing-channel-package">Revisão conferida</label>
+                  <select id="listing-channel-package" #channelPackage required>
+                    @for (dossier of packs(attempt.kind); track refValue(dossier)) {
+                      @if (dossier.id === attempt.pack.reference.id) {
+                        <option [value]="refValue(dossier)">{{ refName(dossier) }}</option>
+                      }
+                    }
+                  </select>
+                </div>
+                <div><label for="listing-route">Canal conferido</label>
+                  <select id="listing-route" #route [value]="channelChoice()" (change)="channelChoice.set(route.value)">
+                    <option value="ARQUIVO">Arquivo · Registry</option><option value="DIGITAL_HUMANO">Preenchimento humano · Project Hub</option>
+                    <option value="INDETERMINADO">Indeterminado</option>
+                  </select>
+                </div>
+                <p class="note">{{ options()?.methodologyEdition }} · PD {{ options()?.documentEdition }} · Conferência V5#89 em simulação</p>
+                <div><label for="listing-checked">Data da conferência em Brasília</label>
+                  <input id="listing-checked" #checked type="datetime-local" required [value]="attempt.pack.actDate + 'T09:00'">
+                </div>
+                <div>
+                  <label class="field-row"><input type="checkbox" #hasPower> Poder simulado comprovado</label>
+                  <label for="listing-power">Fim exclusivo do poder em Brasília</label>
+                  <input id="listing-power" #until type="datetime-local" value="2030-01-01T00:00">
+                </div>
+                <button class="primary" type="submit" [disabled]="busy()">Salvar conferência</button>
+              </form>
+            </details>
+          }
+          @if (canAct() && available(attempt).length) {
+            <form class="intake-form" (submit)="act($event, attempt, step, {date: actDate.value, target: target.value,
+              receipt: receipt.value, official: official.value, page: publicationPage.value, reason: reason.value})">
+              @let step = selectedStep(attempt);
+              <div><label for="listing-step">Ação da tentativa</label>
+                <select id="listing-step" #selection [value]="actionChoice()" (change)="actionChoice.set(selection.value)">
+                  @for (entry of available(attempt); track entry.id) { <option [value]="entry.id">{{ entry.label }}</option> }
+                </select>
+              </div>
+              <div [hidden]="!!step.receipt"><label for="listing-act-date">Data efetiva em Brasília</label>
+                <input id="listing-act-date" #actDate type="datetime-local" [required]="!step.receipt"
+                  [value]="attempt.lastAt ? toField(attempt.lastAt) : attempt.pack.actDate + 'T10:00'">
+                <button type="button" class="secondary" (click)="evaluateDate(attempt, actDate.value)" [disabled]="busy() || !actDate.value">Conferir situação na data</button>
+              </div>
+              <div [hidden]="!step.receipt || !!attempt.target"><label for="listing-target">Identificador externo da tentativa</label>
+                <input id="listing-target" #target placeholder="SIM-…" [required]="!!step.receipt && !attempt.target"></div>
+              <div [hidden]="!step.receipt"><label for="listing-receipt">Recibo da versão e do canal</label>
+                <select id="listing-receipt" #receipt [required]="!!step.receipt">
+                  <option value="">Selecione o recibo</option>
+                  @for (entry of validReceipts(attempt); track entry.input.exportId) {
+                    <option [value]="entry.input.exportId">{{ entry.input.code }} · {{ refName(entry.input.dossier) }}</option>
+                  }
+                </select>
+                <p class="note">Exporte e capture o recibo em Dossiês PD e MR. Use Registry para arquivo ou Hub para preenchimento humano.</p>
+              </div>
+              <div [hidden]="!options()?.proofs?.[step.id]"><label for="listing-official">Identificador do ato comprovado</label>
+                <input id="listing-official" #official placeholder="SIM-…" [required]="!!options()?.proofs?.[step.id]">
+                <p class="note">{{ options()?.proofs?.[step.id] }}</p>
+              </div>
+              <div [hidden]="step.id !== 'TX-E3-14'"><label for="listing-page">Página da publicação simulada</label>
+                <input id="listing-page" #publicationPage [required]="step.id === 'TX-E3-14'"
+                  [value]="'https://registry.example.invalid/listagens/' + (attempt.target ?? 'SIM-LISTAGEM')">
+              </div>
+              <div [hidden]="!step.reason"><label for="listing-reason">Motivo e providência</label>
+                <input id="listing-reason" #reason [required]="!!step.reason" maxlength="600"></div>
+              <button class="primary" type="submit" [disabled]="busy()">Registrar evento da listagem</button>
+            </form>
+          }
+          <button type="button" class="secondary" (click)="showHistory(attempt)" [disabled]="busy()">Consultar trilha da tentativa</button>
+          @if (history().length) {
+            <ul>@for (entry of history(); track entry.id) {
+              <li>{{ entry.action }} · {{ entry.outcome }} · {{ entry.actor }} · {{ displayTime(entry.occurredAt) }}</li>
+            }</ul>
+          }
+        </div>
+      }
+    }
+
+    @if (consultation(); as consult) {
+      <div class="intake-card">
+        <div class="section-heading">
+          <h3>Consulta pública · {{ status(consult.state) }}</h3>
+          <a class="resource-link" [href]="publicUrl(consult)">Ver resumo público</a>
+        </div>
+        <p>De {{ displayTime(consult.opening) }} até {{ displayTime(consult.endExclusive) }} · fim exclusivo.</p>
+        @if (canAct()) {
+          @if (consult.state === 'ABERTA') {
+            <details><summary>Comprovar encerramento oficial</summary>
+              <form class="intake-form" (submit)="close($event, consult, endDate.value, closeId.value, noComments.checked)">
+                <div><label for="consultation-end">Data do encerramento em Brasília</label>
+                  <input id="consultation-end" #endDate type="datetime-local" [value]="toField(consult.endExclusive)" required></div>
+                <div><label for="consultation-close-id">Ato oficial simulado de encerramento</label>
+                  <input id="consultation-close-id" #closeId required placeholder="SIM-…"></div>
+                <label class="field-row"><input type="checkbox" #noComments> Resumo sem manifestações na janela</label>
+                <button type="submit" class="primary" [disabled]="busy()">Registrar encerramento</button>
+              </form>
+            </details>
+          }
+          <details><summary>Capturar manifestação do Hub</summary>
+            <form class="intake-form" (submit)="submit($event, consult, receivedDate.value, hubId.value, topic.value, body.value, contact.value)">
+              <div><label for="comment-date">Recebimento da manifestação em Brasília</label>
+                <input id="comment-date" #receivedDate type="datetime-local" [value]="toField(consult.opening)" required></div>
+              <div><label for="comment-hub-id">Recibo simulado do Hub</label>
+                <input id="comment-hub-id" #hubId required placeholder="SIM-…"></div>
+              <div><label for="comment-topic">Assunto da manifestação</label>
+                <select id="comment-topic" #topic><option>ACESSO</option><option>SEGURANCA</option><option>IMPACTO_LOCAL</option><option>OUTRO</option></select></div>
+              <div><label for="comment-body">Conteúdo reservado da manifestação</label>
+                <textarea id="comment-body" #body maxlength="600" required></textarea></div>
+              <div><label for="comment-contact">Contato reservado</label>
+                <input id="comment-contact" #contact maxlength="600" required></div>
+              <button type="submit" class="primary" [disabled]="busy()">Registrar manifestação</button>
+            </form>
+          </details>
+          <p class="note">Para reclamações do projeto, use o registro próprio em Enquadramento e inventário.</p>
+        }
+        @for (entry of comments(); track entry.comment.id) {
+          @let comment = entry.comment;
+          <section class="preview-card">
+            <h4>{{ comment.topic }} · {{ comment.state }}</h4>
+            <p class="note">{{ comment.window }} · {{ displayTime(comment.received.effectiveAt) }} · {{ comment.target }}</p>
+            @if (comment.responseDue) { <p>Prazo da resposta · {{ displayTime(comment.responseDue) }}</p> }
+            <p>{{ comment.body }}</p>
+            @if (entry.contact) { <details><summary>Contato reservado</summary><p>{{ entry.contact }}</p></details> }
+            @for (response of comment.responses; track response.version) {
+              <p>Resposta v{{ response.version }} · {{ response.body }} @if (response.late) { · Após o prazo }</p>
+            }
+            @for (evaluation of comment.evaluations; track evaluation.capture.proof.officialId) {
+              <p>{{ evaluation.capture.authority }} · {{ evaluation.result }} · resposta v{{ evaluation.responseVersion }} · {{ evaluation.reason }}</p>
+            }
+            @if (canAct() && (['APRESENTADO','ENCAMINHADO','COM_ACHADO'].includes(comment.state) || comment.state === 'RESPONDIDO' && !comment.vvb) ||
+              isVvb() && comment.state === 'RESPONDIDO') {
+              <form class="intake-form" (submit)="commentAction($event, comment, stepInput.value, commentDate.value,
+                commentOfficial.value, assign.checked, responseBody.value, result.value)">
+                <div><label [for]="'comment-step-' + comment.id">Etapa da manifestação</label>
+                  <select [id]="'comment-step-' + comment.id" #stepInput (change)="setCommentStep(comment.id, stepInput.value)">
+                    @if (isVvb()) { <option value="TX-E3-23">Avaliar resposta</option> }
+                    @else if (comment.state === 'APRESENTADO') { <option value="TX-E3-21">Capturar encaminhamento</option> }
+                    @else {
+                      @if (['ENCAMINHADO','COM_ACHADO'].includes(comment.state)) { <option value="TX-E3-22">Registrar resposta</option> }
+                      @if (!comment.vvb) { <option value="VINCULAR_VVB">Vincular VVB</option> }
+                    }
+                  </select>
+                </div>
+                <div><label [for]="'comment-step-date-' + comment.id">Data efetiva em Brasília</label>
+                  <input [id]="'comment-step-date-' + comment.id" #commentDate type="datetime-local"
+                    [value]="toField(comment.window === 'NA_JANELA' ? consult.endExclusive : comment.received.effectiveAt)" required></div>
+                <div [hidden]="!['TX-E3-21','TX-E3-23'].includes(commentStep(comment, stepInput.value))">
+                  <label [for]="'comment-step-proof-' + comment.id">Identificador do ato de manifestação</label>
+                  <input [id]="'comment-step-proof-' + comment.id" #commentOfficial placeholder="SIM-…">
+                </div>
+                <label [hidden]="!['TX-E3-21','VINCULAR_VVB'].includes(commentStep(comment, stepInput.value))" class="field-row">
+                  <input type="checkbox" #assign> Vincular SIM-VVB
+                </label>
+                <div [hidden]="!['TX-E3-22','TX-E3-23'].includes(commentStep(comment, stepInput.value))">
+                  <label [for]="'comment-response-' + comment.id">Resposta ou avaliação</label>
+                  <textarea [id]="'comment-response-' + comment.id" #responseBody maxlength="600"></textarea>
+                </div>
+                <div [hidden]="!isVvb()"><label [for]="'comment-result-' + comment.id">Resultado do VVB</label>
+                  <select [id]="'comment-result-' + comment.id" #result><option value="SUFICIENTE">Suficiente</option><option value="ACHADO">Abrir achado</option></select></div>
+                <button type="submit" class="primary" [disabled]="busy() || !commentStep(comment, stepInput.value)">Registrar etapa da manifestação</button>
+              </form>
+            }
+          </section>
+        } @empty { <p class="note">Nenhuma manifestação disponível para esta identidade.</p> }
+      </div>
+    }
+    @if (feedback()) { <p class="feedback" [class.error]="error()" role="status">{{ feedback() }}</p> }
+  </section>
+}

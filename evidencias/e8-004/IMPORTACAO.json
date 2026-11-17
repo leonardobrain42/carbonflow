@@ -1,0 +1,499 @@
+{
+  "environment": "SIMULACAO",
+  "kit": "0.2.14",
+  "fixture": "fixtures/e8-004-ed-ec.csv",
+  "job": {
+    "id": "48dbe791-b859-4585-adc1-7323d797ba62",
+    "period": "M1",
+    "artifact": {
+      "id": "8017e586-41b2-4746-872b-ba9b438702f5",
+      "version": 1,
+      "sha256": "10adb35d688e0ec6ff6dd7a04d1fcc9a562931bdacc46231d567159768b5aeaa",
+      "originalName": "e8-004-ed-ec.csv",
+      "sourceId": "SIM-OP-01",
+      "authorizationId": "SIM-AUT-ED-EC",
+      "bytes": 1619,
+      "receivedBy": "SIM-OP",
+      "receivedAt": "2026-11-16T04:17:09.875596Z"
+    },
+    "mappingProfile": {
+      "id": "SIM-CSV-UTF8-ED-EC",
+      "version": 1
+    },
+    "configurationVersion": 16,
+    "version": 3,
+    "state": "CONCLUIDO",
+    "total": 11,
+    "processed": 11,
+    "classifications": {
+      "AUSENTE": 1,
+      "CANDIDATA": 3,
+      "CONFLITO_ID": 1,
+      "DUPLICATA": 1,
+      "INVALIDA": 2,
+      "PENDENTE": 2,
+      "SOBREPOSICAO": 1
+    },
+    "message": null
+  },
+  "rows": [
+    {
+      "id": "ac9c8452-9460-4219-a474-15a0510622a0",
+      "line": 2,
+      "original": "ED,SIM-ED-EVENTO-01,2028-03-31T08:00:00-03:00,2028-03-31T08:20:00-03:00,America/Sao_Paulo,SIM-PATIO-01,SIM-DCFC-01,SIM-BEV-01,,SIM-ED-01,12500,Wh,",
+      "classification": "CANDIDATA",
+      "reasons": [],
+      "fact": {
+        "kind": "ED",
+        "sourceFactId": "SIM-ED-EVENTO-01",
+        "site": "SIM-PATIO-01",
+        "charger": "SIM-DCFC-01",
+        "vehicle": "SIM-BEV-01",
+        "circuit": null,
+        "meter": "SIM-ED-01",
+        "sourceStart": "2028-03-31T08:00:00-03:00",
+        "sourceEndExclusive": "2028-03-31T08:20:00-03:00",
+        "zone": "America/Sao_Paulo",
+        "start": "2028-03-31T11:00:00Z",
+        "endExclusive": "2028-03-31T11:20:00Z",
+        "quantity": "12500",
+        "unit": "Wh",
+        "kwh": "12.5",
+        "evidence": null
+      },
+      "relatedRowId": null,
+      "version": 1,
+      "decision": "EM_PREVIA",
+      "proposal": null,
+      "resolution": null
+    },
+    {
+      "id": "e5ef1ca3-47ca-452c-9b64-a3cee80bc21f",
+      "line": 3,
+      "original": "EC,SIM-EC-EVENTO-01,2028-03-31T22:00:00-03:00,2028-03-31T23:00:00-03:00,America/Sao_Paulo,SIM-PATIO-01,,,SIM-EC-01,SIM-MED-01,30.00,kWh,",
+      "classification": "CANDIDATA",
+      "reasons": [],
+      "fact": {
+        "kind": "EC",
+        "sourceFactId": "SIM-EC-EVENTO-01",
+        "site": "SIM-PATIO-01",
+        "charger": null,
+        "vehicle": null,
+        "circuit": "SIM-EC-01",
+        "meter": "SIM-MED-01",
+        "sourceStart": "2028-03-31T22:00:00-03:00",
+        "sourceEndExclusive": "2028-03-31T23:00:00-03:00",
+        "zone": "America/Sao_Paulo",
+        "start": "2028-04-01T01:00:00Z",
+        "endExclusive": "2028-04-01T02:00:00Z",
+        "quantity": "30.00",
+        "unit": "kWh",
+        "kwh": "30",
+        "evidence": null
+      },
+      "relatedRowId": null,
+      "version": 3,
+      "decision": "ADMITIDA",
+      "proposal": {
+        "preparedBy": "SIM-PREP",
+        "reason": "Conferência do CSV sintético",
+        "predecessor": null
+      },
+      "resolution": {
+        "reviewedBy": "SIM-REV",
+        "reason": "Conferência do CSV sintético",
+        "observation": {
+          "id": "b4bd6d90-59c2-4b51-820a-2ff5fc39c7cb",
+          "version": 1
+        },
+        "eventId": "64d98175-e5c0-4ea5-b7c6-2a29ed889028"
+      }
+    },
+    {
+      "id": "b0d1685f-1b0c-4303-8bf4-2b4545c92851",
+      "line": 4,
+      "original": "EC,SIM-EC-EVENTO-ALIAS,2028-04-01T01:00:00Z,2028-04-01T02:00:00Z,America/Sao_Paulo,SIM-PATIO-01,,,SIM-EC-01,SIM-MED-01,30000,Wh,",
+      "classification": "DUPLICATA",
+      "reasons": [
+        {
+          "code": "DUPLICATA",
+          "message": "Conteúdo físico equivalente já aparece em outra linha."
+        }
+      ],
+      "fact": {
+        "kind": "EC",
+        "sourceFactId": "SIM-EC-EVENTO-ALIAS",
+        "site": "SIM-PATIO-01",
+        "charger": null,
+        "vehicle": null,
+        "circuit": "SIM-EC-01",
+        "meter": "SIM-MED-01",
+        "sourceStart": "2028-04-01T01:00:00Z",
+        "sourceEndExclusive": "2028-04-01T02:00:00Z",
+        "zone": "America/Sao_Paulo",
+        "start": "2028-04-01T01:00:00Z",
+        "endExclusive": "2028-04-01T02:00:00Z",
+        "quantity": "30000",
+        "unit": "Wh",
+        "kwh": "30",
+        "evidence": null
+      },
+      "relatedRowId": "e5ef1ca3-47ca-452c-9b64-a3cee80bc21f",
+      "version": 1,
+      "decision": "EM_PREVIA",
+      "proposal": null,
+      "resolution": null
+    },
+    {
+      "id": "b4088106-15c5-4f24-9630-57ae2f5a7455",
+      "line": 5,
+      "original": "EC,SIM-EC-AUSENTE,2028-03-31T20:00:00-03:00,2028-03-31T21:00:00-03:00,America/Sao_Paulo,SIM-PATIO-01,,,SIM-EC-01,SIM-MED-01,,kWh,",
+      "classification": "AUSENTE",
+      "reasons": [
+        {
+          "code": "ENERGIA_AUSENTE",
+          "message": "A energia está ausente e permanece sem valor."
+        }
+      ],
+      "fact": {
+        "kind": "EC",
+        "sourceFactId": "SIM-EC-AUSENTE",
+        "site": "SIM-PATIO-01",
+        "charger": null,
+        "vehicle": null,
+        "circuit": "SIM-EC-01",
+        "meter": "SIM-MED-01",
+        "sourceStart": "2028-03-31T20:00:00-03:00",
+        "sourceEndExclusive": "2028-03-31T21:00:00-03:00",
+        "zone": "America/Sao_Paulo",
+        "start": "2028-03-31T23:00:00Z",
+        "endExclusive": "2028-04-01T00:00:00Z",
+        "quantity": null,
+        "unit": "kWh",
+        "kwh": null,
+        "evidence": null
+      },
+      "relatedRowId": null,
+      "version": 1,
+      "decision": "EM_PREVIA",
+      "proposal": null,
+      "resolution": null
+    },
+    {
+      "id": "83408ef7-0a4b-462c-ae03-82f6def15f85",
+      "line": 6,
+      "original": "EC,SIM-EC-ZERO-PENDENTE,2028-03-31T19:00:00-03:00,2028-03-31T20:00:00-03:00,America/Sao_Paulo,SIM-PATIO-01,,,SIM-EC-01,SIM-MED-01,0,kWh,",
+      "classification": "PENDENTE",
+      "reasons": [
+        {
+          "code": "PENDENTE_ZERO",
+          "message": "Zero medido exige prova aplicável ao contorno e ao intervalo."
+        }
+      ],
+      "fact": {
+        "kind": "EC",
+        "sourceFactId": "SIM-EC-ZERO-PENDENTE",
+        "site": "SIM-PATIO-01",
+        "charger": null,
+        "vehicle": null,
+        "circuit": "SIM-EC-01",
+        "meter": "SIM-MED-01",
+        "sourceStart": "2028-03-31T19:00:00-03:00",
+        "sourceEndExclusive": "2028-03-31T20:00:00-03:00",
+        "zone": "America/Sao_Paulo",
+        "start": "2028-03-31T22:00:00Z",
+        "endExclusive": "2028-03-31T23:00:00Z",
+        "quantity": "0",
+        "unit": "kWh",
+        "kwh": "0",
+        "evidence": null
+      },
+      "relatedRowId": null,
+      "version": 1,
+      "decision": "EM_PREVIA",
+      "proposal": null,
+      "resolution": null
+    },
+    {
+      "id": "15f184df-0891-4995-8cc7-1be3436beb69",
+      "line": 7,
+      "original": "EC,SIM-EC-ZERO-COM-PROVA,2028-03-31T18:00:00-03:00,2028-03-31T19:00:00-03:00,America/Sao_Paulo,SIM-PATIO-01,,,SIM-EC-01,SIM-MED-01,0,kWh,SIM-PROVA-ZERO-EC-01",
+      "classification": "CANDIDATA",
+      "reasons": [],
+      "fact": {
+        "kind": "EC",
+        "sourceFactId": "SIM-EC-ZERO-COM-PROVA",
+        "site": "SIM-PATIO-01",
+        "charger": null,
+        "vehicle": null,
+        "circuit": "SIM-EC-01",
+        "meter": "SIM-MED-01",
+        "sourceStart": "2028-03-31T18:00:00-03:00",
+        "sourceEndExclusive": "2028-03-31T19:00:00-03:00",
+        "zone": "America/Sao_Paulo",
+        "start": "2028-03-31T21:00:00Z",
+        "endExclusive": "2028-03-31T22:00:00Z",
+        "quantity": "0",
+        "unit": "kWh",
+        "kwh": "0",
+        "evidence": "SIM-PROVA-ZERO-EC-01"
+      },
+      "relatedRowId": null,
+      "version": 1,
+      "decision": "EM_PREVIA",
+      "proposal": null,
+      "resolution": null
+    },
+    {
+      "id": "299b6b67-ab98-4c7c-b758-50c86ed6ef78",
+      "line": 8,
+      "original": "EC,SIM-EC-UNIDADE,2028-03-31T16:00:00-03:00,2028-03-31T17:00:00-03:00,America/Sao_Paulo,SIM-PATIO-01,,,SIM-EC-01,SIM-MED-01,12,kW,",
+      "classification": "INVALIDA",
+      "reasons": [
+        {
+          "code": "UNIDADE_INVALIDA",
+          "message": "Informe energia em Wh, kWh ou MWh."
+        }
+      ],
+      "fact": null,
+      "relatedRowId": null,
+      "version": 1,
+      "decision": "EM_PREVIA",
+      "proposal": null,
+      "resolution": null
+    },
+    {
+      "id": "5d95a13b-86b3-4fa8-8718-d32a2de79b39",
+      "line": 9,
+      "original": "EC,SIM-EC-SEM-FUSO,2028-03-31T15:00:00,2028-03-31T16:00:00,America/Sao_Paulo,SIM-PATIO-01,,,SIM-EC-01,SIM-MED-01,12,kWh,",
+      "classification": "INVALIDA",
+      "reasons": [
+        {
+          "code": "FUSO_OU_DATA_INVALIDA",
+          "message": "Início e fim exigem deslocamento de fuso explícito."
+        }
+      ],
+      "fact": null,
+      "relatedRowId": null,
+      "version": 1,
+      "decision": "EM_PREVIA",
+      "proposal": null,
+      "resolution": null
+    },
+    {
+      "id": "5e8b0004-5d83-4ba8-b551-10a7c13b7908",
+      "line": 10,
+      "original": "EC,SIM-EC-CRUZA-TROCA,2028-03-31T23:30:00-03:00,2028-04-01T00:30:00-03:00,America/Sao_Paulo,SIM-PATIO-01,,,SIM-EC-01,SIM-MED-01,12.50,kWh,",
+      "classification": "PENDENTE",
+      "reasons": [
+        {
+          "code": "REVISAO_SEM_COBERTURA",
+          "message": "O medidor ou sua revisão não cobre todo o intervalo."
+        }
+      ],
+      "fact": {
+        "kind": "EC",
+        "sourceFactId": "SIM-EC-CRUZA-TROCA",
+        "site": "SIM-PATIO-01",
+        "charger": null,
+        "vehicle": null,
+        "circuit": "SIM-EC-01",
+        "meter": "SIM-MED-01",
+        "sourceStart": "2028-03-31T23:30:00-03:00",
+        "sourceEndExclusive": "2028-04-01T00:30:00-03:00",
+        "zone": "America/Sao_Paulo",
+        "start": "2028-04-01T02:30:00Z",
+        "endExclusive": "2028-04-01T03:30:00Z",
+        "quantity": "12.50",
+        "unit": "kWh",
+        "kwh": "12.5",
+        "evidence": null
+      },
+      "relatedRowId": null,
+      "version": 1,
+      "decision": "EM_PREVIA",
+      "proposal": null,
+      "resolution": null
+    },
+    {
+      "id": "a32aca9f-dad5-4830-a047-920c028844e2",
+      "line": 11,
+      "original": "EC,SIM-EC-EVENTO-01,2028-03-31T22:00:00-03:00,2028-03-31T23:00:00-03:00,America/Sao_Paulo,SIM-PATIO-01,,,SIM-EC-01,SIM-MED-01,25.00,kWh,",
+      "classification": "CONFLITO_ID",
+      "reasons": [
+        {
+          "code": "CONFLITO_ID",
+          "message": "O mesmo ID da origem já tem outro conteúdo. Solicite revisão."
+        }
+      ],
+      "fact": {
+        "kind": "EC",
+        "sourceFactId": "SIM-EC-EVENTO-01",
+        "site": "SIM-PATIO-01",
+        "charger": null,
+        "vehicle": null,
+        "circuit": "SIM-EC-01",
+        "meter": "SIM-MED-01",
+        "sourceStart": "2028-03-31T22:00:00-03:00",
+        "sourceEndExclusive": "2028-03-31T23:00:00-03:00",
+        "zone": "America/Sao_Paulo",
+        "start": "2028-04-01T01:00:00Z",
+        "endExclusive": "2028-04-01T02:00:00Z",
+        "quantity": "25.00",
+        "unit": "kWh",
+        "kwh": "25",
+        "evidence": null
+      },
+      "relatedRowId": "e5ef1ca3-47ca-452c-9b64-a3cee80bc21f",
+      "version": 3,
+      "decision": "ADMITIDA",
+      "proposal": {
+        "preparedBy": "SIM-PREP",
+        "reason": "Conferência do CSV sintético",
+        "predecessor": {
+          "id": "b4bd6d90-59c2-4b51-820a-2ff5fc39c7cb",
+          "version": 1
+        }
+      },
+      "resolution": {
+        "reviewedBy": "SIM-REV",
+        "reason": "Conferência do CSV sintético",
+        "observation": {
+          "id": "b4bd6d90-59c2-4b51-820a-2ff5fc39c7cb",
+          "version": 2
+        },
+        "eventId": "1a811102-e6a7-47c1-9939-fc8af7ad5a86"
+      }
+    },
+    {
+      "id": "e81b44ab-0430-4177-93d6-f1addaaf725b",
+      "line": 12,
+      "original": "EC,SIM-EC-SOBREPOSTA,2028-03-31T22:30:00-03:00,2028-03-31T23:30:00-03:00,America/Sao_Paulo,SIM-PATIO-01,,,SIM-EC-01,SIM-MED-01,15,kWh,",
+      "classification": "SOBREPOSICAO",
+      "reasons": [
+        {
+          "code": "SOBREPOSICAO",
+          "message": "O intervalo sobrepõe outra leitura do mesmo contorno."
+        }
+      ],
+      "fact": {
+        "kind": "EC",
+        "sourceFactId": "SIM-EC-SOBREPOSTA",
+        "site": "SIM-PATIO-01",
+        "charger": null,
+        "vehicle": null,
+        "circuit": "SIM-EC-01",
+        "meter": "SIM-MED-01",
+        "sourceStart": "2028-03-31T22:30:00-03:00",
+        "sourceEndExclusive": "2028-03-31T23:30:00-03:00",
+        "zone": "America/Sao_Paulo",
+        "start": "2028-04-01T01:30:00Z",
+        "endExclusive": "2028-04-01T02:30:00Z",
+        "quantity": "15",
+        "unit": "kWh",
+        "kwh": "15",
+        "evidence": null
+      },
+      "relatedRowId": "e5ef1ca3-47ca-452c-9b64-a3cee80bc21f",
+      "version": 1,
+      "decision": "EM_PREVIA",
+      "proposal": null,
+      "resolution": null
+    }
+  ],
+  "active": [
+    {
+      "ref": {
+        "id": "b4bd6d90-59c2-4b51-820a-2ff5fc39c7cb",
+        "version": 2
+      },
+      "predecessor": 1,
+      "rowId": "a32aca9f-dad5-4830-a047-920c028844e2",
+      "period": "M1",
+      "configurationVersion": 16,
+      "physicalHash": "ab6ccad7ee6d82076971f2cb0489706a86c71c04a04e72bab3091c5ea24939ac",
+      "fact": {
+        "kind": "EC",
+        "sourceFactId": "SIM-EC-EVENTO-01",
+        "site": "SIM-PATIO-01",
+        "charger": null,
+        "vehicle": null,
+        "circuit": "SIM-EC-01",
+        "meter": "SIM-MED-01",
+        "sourceStart": "2028-03-31T22:00:00-03:00",
+        "sourceEndExclusive": "2028-03-31T23:00:00-03:00",
+        "zone": "America/Sao_Paulo",
+        "start": "2028-04-01T01:00:00Z",
+        "endExclusive": "2028-04-01T02:00:00Z",
+        "quantity": "25.00",
+        "unit": "kWh",
+        "kwh": "25",
+        "evidence": null
+      },
+      "resolution": {
+        "reviewedBy": "SIM-REV",
+        "reason": "Conferência do CSV sintético",
+        "observation": {
+          "id": "b4bd6d90-59c2-4b51-820a-2ff5fc39c7cb",
+          "version": 2
+        },
+        "eventId": "1a811102-e6a7-47c1-9939-fc8af7ad5a86"
+      }
+    }
+  ],
+  "savedSelection": {
+    "id": "514a4351-db9e-4ee7-8adf-1a60f18bd452",
+    "version": 1,
+    "period": "M1",
+    "eventId": "c5f99027-b510-4c65-9a1e-5482dbe15e78",
+    "observations": 1
+  },
+  "frozen": {
+    "observations": [
+      {
+        "ref": {
+          "id": "b4bd6d90-59c2-4b51-820a-2ff5fc39c7cb",
+          "version": 1
+        },
+        "predecessor": null,
+        "rowId": "e5ef1ca3-47ca-452c-9b64-a3cee80bc21f",
+        "period": "M1",
+        "configurationVersion": 16,
+        "physicalHash": "3fa1f8c7b0b5f8b6c94d76a86013e4763e97e09cdae3473f20eafb516e103aed",
+        "fact": {
+          "kind": "EC",
+          "sourceFactId": "SIM-EC-EVENTO-01",
+          "site": "SIM-PATIO-01",
+          "charger": null,
+          "vehicle": null,
+          "circuit": "SIM-EC-01",
+          "meter": "SIM-MED-01",
+          "sourceStart": "2028-03-31T22:00:00-03:00",
+          "sourceEndExclusive": "2028-03-31T23:00:00-03:00",
+          "zone": "America/Sao_Paulo",
+          "start": "2028-04-01T01:00:00Z",
+          "endExclusive": "2028-04-01T02:00:00Z",
+          "quantity": "30.00",
+          "unit": "kWh",
+          "kwh": "30",
+          "evidence": null
+        },
+        "resolution": {
+          "reviewedBy": "SIM-REV",
+          "reason": "Conferência do CSV sintético",
+          "observation": {
+            "id": "b4bd6d90-59c2-4b51-820a-2ff5fc39c7cb",
+            "version": 1
+          },
+          "eventId": "64d98175-e5c0-4ea5-b7c6-2a29ed889028"
+        }
+      }
+    ],
+    "nextCursor": null
+  },
+  "recoveryTest": {
+    "injectedAfter": 250,
+    "resumedTotal": 10000,
+    "lineLimitRejected": 10001
+  }
+}

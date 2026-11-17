@@ -1,0 +1,294 @@
+@if (enabled()) {
+  <section class="panel" aria-labelledby="issuance-title">
+    <div class="section-heading">
+      <h2 id="issuance-title">Emissão e conciliação</h2>
+      <button type="button" class="secondary" [disabled]="busy()" (click)="refresh()">Atualizar emissão</button>
+    </div>
+    <p class="note">Simulação em unidades fictícias. Cada posição vale para uma verificação e um recorte de vintage, mesmo com contas de destino diferentes.</p>
+    @if (restoring()) {
+      <p role="status">Recuperação em andamento. Use os comprovantes do intervalo para recompor efeitos. Acompanhe a liberação em Trabalhos, retenção e recuperação.</p>
+    }
+    @if (feedback()) {
+      <p [attr.role]="failed() ? 'alert' : 'status'">{{ feedback() }}</p>
+    }
+    @if (options() && !verifications().length) {
+      <p>Comprove a aprovação de V1 ou V2 em <strong>Auditorias e pedidos REG, V1 e V2</strong>. Depois volte aqui e clique em <strong>Atualizar emissão</strong>.</p>
+    }
+    @if (selection(); as verification) {
+      <div class="intake-form"><div>
+        <label for="issuance-verification">Verificação aprovada</label>
+        <select id="issuance-verification" #verificationChoice [value]="selected()" (change)="chooseVerification(verificationChoice.value)">
+          @for (entry of verifications(); track entry.id) {
+            <option [value]="entry.id">{{ entry.kind }} · {{ entry.requestTarget }}</option>
+          }
+        </select>
+      </div></div>
+      <article class="intake-card">
+        <h3>Ativação do registro</h3>
+        <p>Aprovação <code>{{ verification.approvalId }}</code> · Fechamento {{ verification.closure.period }} r{{ verification.closure.revision }}</p>
+        @if (!verification.closureEligible) {
+          <p role="status">Fechamento reaberto. Novos pedidos estão bloqueados para esta revisão.</p>
+        }
+        @if (verification.activation; as activation) {
+          <p>{{ activation.active ? 'Ativa' : 'Inativa' }} · Registro <code>{{ activation.registryId }}</code> · Prova <code>{{ activation.capture.proof.officialId }}</code></p>
+        } @else {
+          <p>Ativação pendente. Registre a confirmação do registro antes de preparar um pedido.</p>
+        }
+        @if (canCapture() && (verification.closureEligible || verification.activation)) {
+          <details [open]="!verification.activation">
+            <summary>Comprovar situação no registro</summary>
+            <form class="intake-form" (submit)="activate($event, verification)">
+              <div><label for="issuance-registry">Identificador do registro</label>
+                <input id="issuance-registry" name="registry" required [value]="verification.activation?.registryId ?? ''" [readOnly]="!!verification.activation"></div>
+              <div><label for="issuance-active">Situação comprovada</label>
+                <select id="issuance-active" name="active">
+                  <option value="1" [disabled]="!verification.closureEligible">Ativa</option><option value="0">Inativa</option>
+                </select></div>
+              <div><label for="issuance-activation-proof">Identificador oficial da ativação</label>
+                <input id="issuance-activation-proof" name="official-id" required></div>
+              <div><label for="issuance-activation-date">Data e hora da ativação em Brasília</label>
+                <input id="issuance-activation-date" name="date" type="datetime-local" required></div>
+              <p class="note">Prova de ensaio <code>{{ proofFor('ATIVACAO') }}</code></p>
+              <button type="submit" class="primary" [disabled]="busy()">Registrar situação do registro</button>
+            </form>
+          </details>
+        }
+      </article>
+      @if (verification.activation) {
+        <article class="intake-card">
+          <h3>Posição por vintage</h3>
+          <ul>
+            @for (vintage of verification.cuts; track vintage.start; let index=$index) {
+              @let balance = verification.balances[index];
+              <li>
+                <strong>{{ cut(vintage) }}</strong>
+                @if (balance.position; as position) {
+                  <div>Oficial {{ position.official }} · A deduzir {{ balance.unreflected }} · Disponível {{ balance.available ?? 'bloqueado' }}</div>
+                  <div>Extrato <code>{{ position.capture.proof.officialId }}</code> · {{ date(position.asOf) }}</div>
+                  @for (pending of position.pending; track pending.reference ?? pending.issuance) {
+                    <div class="note">Pendência <code>{{ pending.reference ?? pending.issuance }}</code> · {{ pending.amount }} · {{ pending.status }}</div>
+                  }
+                }
+                @if (balance.hold) { <div>{{ label(balance.hold) }}</div> }
+              </li>
+            }
+          </ul>
+          @if (canCapture()) {
+            <details>
+              <summary>Registrar extrato oficial</summary>
+              <form class="intake-form" (submit)="savePosition($event, verification)">
+                <div><label for="issuance-position-cut">Recorte do extrato</label>
+                  <select id="issuance-position-cut" name="cut">
+                    @for (vintage of verification.cuts; track vintage.start; let index=$index) { <option [value]="index">{{ cut(vintage) }}</option> }
+                  </select></div>
+                <div><label for="issuance-official-balance">Saldo oficial em unidades fictícias</label>
+                  <input id="issuance-official-balance" name="official-balance" type="number" min="0" step="0.000000001" required></div>
+                <div><label for="issuance-extract-id">Identificador oficial do extrato</label>
+                  <input id="issuance-extract-id" name="official-id" required></div>
+                <div><label for="issuance-extract-date">Data e hora do extrato em Brasília</label>
+                  <input id="issuance-extract-date" name="date" type="datetime-local" required></div>
+                <div><label for="issuance-extract-order">Sequência oficial (se informada)</label>
+                  <input id="issuance-extract-order" name="order" type="number" min="0" step="1"></div>
+                <p class="note">Informe as pendências do extrato e quais valores ele já incorpora.</p>
+                @for (index of pendingIndexes(); track index) {
+                  <div><label [for]="'issuance-pending-origin-' + index">Origem da pendência {{ index + 1 }}</label>
+                    <select [id]="'issuance-pending-origin-' + index" [name]="'origin-' + index">
+                      <option value="external">Referência do extrato</option>
+                      @for (entry of attempts(); track entry.attempt.id) {
+                        @if (entry.attempt.externalTarget) { <option [value]="entry.attempt.id">{{ entry.attempt.externalTarget }}</option> }
+                      }
+                    </select></div>
+                  <div><label [for]="'issuance-pending-reference-' + index">Referência externa (se aplicável)</label>
+                    <input [id]="'issuance-pending-reference-' + index" [name]="'reference-' + index"></div>
+                  <div><label [for]="'issuance-pending-amount-' + index">Quantidade</label>
+                    <input [id]="'issuance-pending-amount-' + index" [name]="'pending-' + index" type="number" min="0" step="0.000000001" required></div>
+                  <div><label [for]="'issuance-pending-status-' + index">Reflexo no saldo oficial</label>
+                    <select [id]="'issuance-pending-status-' + index" [name]="'status-' + index">
+                      <option value="NAO_REFLETIDA">A deduzir</option><option value="REFLETIDA">Já refletida</option><option value="INCERTA">Incerta</option>
+                    </select></div>
+                }
+                <div>
+                  <button type="button" class="secondary" (click)="pendingCount.update(addPending)" [disabled]="busy() || pendingCount() >= 100">Adicionar pendência</button>
+                  @if (pendingCount()) {
+                    <button type="button" class="secondary" (click)="pendingCount.update(removePending)" [disabled]="busy()">Remover última pendência</button>
+                  }
+                </div>
+                <p class="note">Prova de ensaio <code>{{ proofFor('POSICAO') }}</code></p>
+                <button type="submit" class="primary" [disabled]="busy()">Registrar posição</button>
+              </form>
+            </details>
+          }
+          <button type="button" class="secondary" [disabled]="busy()" (click)="showPositions(verification)">Consultar histórico de posições</button>
+          @if (positions(); as history) {
+            <ul>
+              @for (position of history; track position.id) {
+                <li><code>{{ position.capture.proof.officialId }}</code> · {{ cut(position.vintage) }} · {{ date(position.asOf) }} · Saldo {{ position.official }}
+                  @if (position.historical) { · Recebido como histórico }
+                </li>
+              } @empty { <li>Nenhum extrato registrado.</li> }
+            </ul>
+          }
+        </article>
+        @if (canCapture() && verification.activation.active && verification.closureEligible && hasAvailable(verification) && (!restoring() || protocols().length)) {
+          <details>
+            <summary>{{ restoring() ? 'Recompor protocolo observado' : 'Preparar pedido de emissão' }}</summary>
+            <form class="intake-form" (submit)="create($event, verification)">
+              @if (restoring()) {
+                <div><label for="issuance-recovery-protocol">Recibo preservado no intervalo</label>
+                  <select id="issuance-recovery-protocol" name="recovery-protocol" required>
+                    <option value="">Selecione o comprovante</option>
+                    @for (effect of protocols(); track effect.reference) {
+                      <option [value]="effect.reference">{{ effect.reference }} · {{ effect.binding?.target }}</option>
+                    }
+                  </select></div>
+              }
+              <div><label for="issuance-destination">Conta de destino</label>
+                <select id="issuance-destination" name="account">
+                  @for (account of options()?.accounts; track account) { <option>{{ account }}</option> }
+                </select></div>
+              @for (balance of verification.balances; track $index) {
+                @if (balance.position && balance.available !== null && balance.available > 0) {
+                  <div><label [for]="'issuance-quantity-' + $index">Quantidade · {{ cut(balance.position.vintage) }}</label>
+                    <input [id]="'issuance-quantity-' + $index" [name]="balance.position.id" type="number"
+                      min="0.000000001" step="0.000000001" [max]="balance.available" [placeholder]="'Até ' + balance.available"></div>
+                }
+              }
+              @if (predecessors().length) {
+                <div><label for="issuance-predecessor">Tentativa anterior (se for reemissão)</label>
+                  <select id="issuance-predecessor" name="predecessor">
+                    <option value="">Primeiro pedido</option>
+                    @for (entry of predecessors(); track entry.attempt.id) { <option [value]="entry.attempt.id">{{ entry.attempt.externalTarget }}</option> }
+                  </select></div>
+              }
+              <div><label for="issuance-request-date">Data e hora do preparo em Brasília</label>
+                <input id="issuance-request-date" name="date" type="datetime-local" required></div>
+              <button type="submit" class="primary" [disabled]="busy()">Criar pedido em preparo</button>
+            </form>
+          </details>
+        }
+      }
+      @if (attempts().length) {
+        <div class="intake-form"><div>
+          <label for="issuance-attempt">Tentativa de emissão</label>
+          <select id="issuance-attempt" #attemptChoice [value]="selectedAttempt()" (change)="chooseAttempt(attemptChoice.value)">
+            @for (entry of attempts(); track entry.attempt.id) {
+              <option [value]="entry.attempt.id">{{ entry.attempt.externalTarget ?? entry.attempt.id.slice(0,8) }} · {{ entry.attempt.account }} · {{ label(entry.attempt.state) }}</option>
+            }
+          </select>
+        </div></div>
+      }
+      @if (current(); as current) {
+        @let attempt = current.attempt;
+        <article class="intake-card">
+          <h3>{{ label(attempt.state) }}</h3>
+          <p>Conta <code>{{ attempt.account }}</code> · Versão {{ attempt.version }}
+            @if (attempt.externalTarget) { · Protocolo <code>{{ attempt.externalTarget }}</code> }
+          </p>
+          <ul>
+            @for (line of attempt.lines; track line.vintage.start; let index=$index) {
+              <li>{{ cut(line.vintage) }} · Solicitado {{ line.amount }} · Depositado líquido {{ current.netDeposited[index].amount }}</li>
+            }
+          </ul>
+          @if (attempt.state === 'AGUARDANDO_DEPOSITO') { <p>Quitação comprovada. A posição segue reservada até chegar a prova do depósito ou do encerramento.</p> }
+          @if (attempt.invoice; as invoice) {
+            <p>Cobrança <code>{{ invoice.capture.proof.officialId }}</code> · BRL {{ invoice.amount }}</p>
+          }
+          @if (attempt.payment; as payment) { <p>Quitação <code>{{ payment.proof.officialId }}</code></p> }
+          @for (deposit of attempt.deposits; track deposit.capture.proof.officialId) {
+            <p>Depósito <code>{{ deposit.capture.proof.officialId }}</code>
+              @for (line of deposit.lines; track line.vintage.start) { · {{ line.amount }} em {{ cut(line.vintage) }} }
+            </p>
+          }
+          @for (adjustment of attempt.adjustments; track adjustment.capture.proof.officialId) {
+            <p>Ajuste <code>{{ adjustment.capture.proof.officialId }}</code> · {{ adjustment.line.amount }} · Depósito <code>{{ adjustment.corrects }}</code></p>
+          }
+          @for (incident of attempt.incidents; track incident.id) {
+            <p>{{ label(incident.code) }} · {{ incident.reason }} · {{ incident.resolutionEvent ? 'Resolvida' : 'Pendente' }}
+              @if (incident.reopen) { · Análise de impacto <code>{{ incident.reopen }}</code> }
+            </p>
+          }
+          @if (attempt.comparison; as comparison) {
+            <p>Comparação de {{ comparison.preparedBy }}</p>
+            <ul>@for (item of comparison.lines; track item.vintage.start) {
+              <li>{{ cut(item.vintage) }} · Oficial {{ item.official }} · Remanescente {{ item.reserved }} · Disponível {{ item.available }}</li>
+            }</ul>
+          }
+          @if (canCapture() && attempt.state === 'EM_PREPARO') {
+            <details [open]="!attempt.check">
+              <summary>Conferir canal e poder</summary>
+              <form class="intake-form" (submit)="check($event, attempt)">
+                <div><label for="issuance-route">Rota simulada</label>
+                  <select id="issuance-route" name="route">
+                    @for (route of options()?.routes; track route) { <option>{{ route }}</option> }
+                  </select></div>
+                <div><label for="issuance-channel-date">Data e hora da conferência em Brasília</label>
+                  <input id="issuance-channel-date" type="datetime-local" name="date" required [value]="date(attempt.lastAt)"></div>
+                <div><label for="issuance-power-until">Fim exclusivo do poder em Brasília</label>
+                  <input id="issuance-power-until" type="datetime-local" name="power-until" required></div>
+                <button type="submit" class="primary" [disabled]="busy()">Registrar conferência de emissão</button>
+              </form>
+            </details>
+          }
+          @if (action(); as step) {
+            <div class="intake-form"><div><label for="issuance-step">Etapa de emissão</label>
+              <select id="issuance-step" #stepChoice [value]="step" (change)="chosenAction.set(stepChoice.value)">
+                @for (id of orderedActions(); track id) { <option [value]="id">{{ label(id) }}</option> }
+              </select>
+            </div></div>
+            @for (entry of [step + ':' + attempt.version]; track entry) {
+              <form class="intake-form" (submit)="register($event, attempt, step)">
+                @if (proofFor(step); as proof) {
+                  @if (step === 'TX-E3-49') {
+                    <div><label for="issuance-official-target">Identificador do protocolo</label>
+                      <input id="issuance-official-target" name="target" required></div>
+                  }
+                  <div><label for="issuance-action-proof">Identificador oficial do comprovante</label>
+                    <input id="issuance-action-proof" name="official-id" required></div>
+                  <div><label for="issuance-attested-account">Conta indicada no comprovante</label>
+                    <select id="issuance-attested-account" name="account" [value]="attempt.account">
+                      @for (account of options()?.accounts; track account) { <option>{{ account }}</option> }
+                    </select></div>
+                  <div><label for="issuance-capture-channel">Meio da prova</label>
+                    <select id="issuance-capture-channel" name="capture-channel">
+                      <option value="ARQUIVO">Arquivo</option><option value="DIGITAL_HUMANO">Captura manual digital</option>
+                    </select></div>
+                  <p class="note">Prova de ensaio <code>{{ proof }}</code></p>
+                }
+                @if (step === 'TX-E3-50') {
+                  <div><label for="issuance-fee">Valor da cobrança em BRL</label>
+                    <input id="issuance-fee" name="fee" min="0.01" step="0.01" type="number" required></div>
+                }
+                @if (step === 'AJUSTE') {
+                  <div><label for="issuance-reference-act">Depósito original</label>
+                    <select id="issuance-reference-act" name="reference-act">
+                      @for (item of attempt.deposits; track item.capture.proof.officialId) { <option>{{ item.capture.proof.officialId }}</option> }
+                    </select></div>
+                }
+                @if (needsAmounts(step)) {
+                  @for (line of attempt.lines; track line.vintage.start; let index=$index) {
+                    <div><label [for]="'issuance-line-' + index">Quantidade · {{ cut(line.vintage) }}</label>
+                      <input [id]="'issuance-line-' + index" [name]="'line-' + index" type="number" [min]="step === 'AJUSTE' ? null : 0.000000001" step="0.000000001"></div>
+                  }
+                }
+                @if (needsReason(step)) {
+                  <div><label for="issuance-reason">Motivo</label>
+                    <input id="issuance-reason" name="reason" required maxlength="600"></div>
+                }
+                @if (canResolve(step) && attempt.incidents.length) {
+                  <label><input type="checkbox" name="resolution"> Vincular prova sintética de resolução da divergência</label>
+                }
+                <div><label for="issuance-action-date">Data e hora do ato em Brasília</label>
+                  <input id="issuance-action-date" type="datetime-local" name="date" required [value]="date(attempt.lastAt)"></div>
+                <button type="submit" class="primary" [disabled]="busy()">{{ label(step) }}</button>
+              </form>
+            }
+          }
+          <button type="button" class="secondary" [disabled]="busy()" (click)="showTrail(attempt)">Consultar trilha da tentativa</button>
+          @if (trail(); as events) {
+            <ul>@for (item of events; track item.id) { <li>{{ item.action }} · {{ item.outcome }} · {{ item.actor }}</li> }</ul>
+          }
+        </article>
+      }
+    }
+  </section>
+}

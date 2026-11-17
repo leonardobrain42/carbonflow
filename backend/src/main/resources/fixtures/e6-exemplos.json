@@ -1,0 +1,134 @@
+{
+  "contractVersion": "1",
+  "environment": "SIMULACAO",
+  "projectId": "PIL-SYN-BR-001",
+  "method": {
+    "program": "VCS",
+    "ruleSet": "5.0",
+    "documentModel": "PD/MR 5.0B",
+    "package": "VM0038@1.1",
+    "dependencies": ["VMD0049@1.1", "VT0011@1.0", "TOOL07@7.0"],
+    "profile": "BR-BEV-LDV-DCFC-FECHADO-SIN",
+    "discountProof": "SIM-DY-REDE-01"
+  },
+  "calculation": {
+    "zone": "America/Sao_Paulo",
+    "factor": {"id": "EF-SYN-v1", "value": "0.30", "unit": "tCO2/MWh"},
+    "replacementCandidate": {"id": "EF-SYN-v2", "value": "0.25", "unit": "tCO2/MWh"},
+    "fuelFactorTco2PerGal": "0.006",
+    "ir": "1",
+    "models": [
+      {"count": 12, "evKwhPer100Mi": "18", "mpg": "32"},
+      {"count": 8, "evKwhPer100Mi": "23", "mpg": "27"}
+    ],
+    "periods": [
+      {
+        "id": "M1", "year": 1, "start": "2027-10-01", "endExclusive": "2028-10-01", "erTco2e": "6.00",
+        "cuts": [
+          {"start": "2027-10-01", "endExclusive": "2028-01-01", "edKwh": "2700", "ecKwh": "3000", "erTco2e": "1.80"},
+          {"start": "2028-01-01", "endExclusive": "2028-10-01", "edKwh": "6300", "ecKwh": "7000", "erTco2e": "4.20"}
+        ]
+      },
+      {
+        "id": "M2", "year": 2, "start": "2028-10-01", "endExclusive": "2029-10-01", "erTco2e": "5.30",
+        "cuts": [
+          {"start": "2028-10-01", "endExclusive": "2029-01-01", "edKwh": "1800", "ecKwh": "2200", "erTco2e": "1.14"},
+          {"start": "2029-01-01", "endExclusive": "2029-10-01", "edKwh": "6200", "ecKwh": "6800", "erTco2e": "4.16"}
+        ]
+      }
+    ]
+  },
+  "importCommand": {
+    "method": "POST",
+    "path": "/v1/projects/PIL-SYN-BR-001/imports",
+    "headers": {"Idempotency-Key": "sim-lote-ed-01"},
+    "body": {
+      "artifact": {"id": "SIM-ARQ-ED-01", "version": 1},
+      "mappingProfile": {"id": "SIM-CSV-UTF8-ED", "version": 1},
+      "sourceId": "SIM-OP-01",
+      "period": {"id": "M1", "version": 1}
+    },
+    "response": {"status": 202, "jobId": "SIM-JOB-01"}
+  },
+  "channelCheck": {
+    "attempt": {"id": "SIM-LIST-VAL", "version": 1},
+    "package": {"id": "SIM-PD", "version": 1},
+    "purpose": "LISTAGEM_VALIDACAO",
+    "channel": "INDETERMINADO",
+    "attemptedAction": "PREPARAR_PROTOCOLO_REAL",
+    "reason": "A edição digital do cenário real ainda precisa de confirmação",
+    "response": {
+      "status": 422,
+      "code": "CANAL_INDETERMINADO",
+      "requestId": "SIM-REQ-002",
+      "message": "Confirmar canal antes do protocolo real",
+      "issues": [{"path": "channel", "ruleId": "EVT-E2-24", "reason": "Prova do canal pendente"}]
+    }
+  },
+  "publicationCapture": {
+    "transitionId": "TX-E3-14",
+    "evidence": [{"id": "SIM-PROVA-PUBLICACAO-01", "version": 1}],
+    "details": {
+      "attempt": {"id": "SIM-LIST-VAL", "version": 2},
+      "package": {"id": "SIM-PD", "version": 1},
+      "issuer": "VERRA",
+      "authorityActId": "SIM-ATO-PUB-01",
+      "authorityNamespace": "SIM-VERRA-LISTAGEM",
+      "authorityTargetId": "SIM-EXTERNO-LIST-VAL",
+      "channel": "SIMULADO",
+      "effectiveAt": "2027-12-05T10:00:00-03:00",
+      "recordedAt": "2027-12-06T09:00:00-03:00",
+      "recordedBy": "SIM-PP-01"
+    }
+  },
+  "issuanceStatus": {
+    "sameVerificationRequired": "SIM-V1",
+    "activationEvidence": {"id": "SIM-ATIVA-V1", "version": 1},
+    "approvalEvidence": {"id": "SIM-APROVA-V1", "version": 1},
+    "pendingI1ExpectedState": "AGUARDANDO_DEPOSITO",
+    "m2ExpectedState": "COLETANDO"
+  },
+  "positionSamples": [
+    {
+      "verification": "SIM-V1", "start": "2028-01-01", "endExclusive": "2028-10-01",
+      "official": 10, "pending": 2, "reflected": false, "proof": "SIM-POS-01"
+    },
+    {
+      "verification": "SIM-V2", "start": "2028-10-01", "endExclusive": "2029-01-01",
+      "official": 30, "pending": 0, "reflected": true, "proof": "SIM-POS-02"
+    }
+  ],
+  "partialDepositCapture": {
+    "transitionId": "TX-E3-52",
+    "evidence": [{"id": "SIM-DEPOSITO-01", "version": 1}],
+    "details": {
+      "attempt": {"id": "SIM-I1", "version": 4},
+      "issuer": "VERRA",
+      "authorityActId": "SIM-DEP-ATO-01",
+      "authorityNamespace": "SIM-VERRA-DEPOSITO",
+      "authorityTargetId": "SIM-EXTERNO-I1",
+      "channel": "SIMULADO",
+      "effectiveAt": "2028-12-20T16:00:00-03:00",
+      "recordedAt": "2028-12-21T10:00:00-03:00",
+      "recordedBy": "SIM-PP-01",
+      "account": "SIM-CONTA-01",
+      "lines": [
+        {"verification": "SIM-V1", "start": "2028-01-01", "endExclusive": "2028-10-01", "quantity": "5", "unit": "UNIDADE_FICTICIA"}
+      ]
+    }
+  },
+  "adjustmentCapture": {
+    "issuer": "VERRA",
+    "authorityActId": "SIM-AJUSTE-ATO-01",
+    "correctsActId": "SIM-DEP-ATO-01",
+    "evidence": [{"id": "SIM-PROVA-AJUSTE-01", "version": 1}],
+    "effectiveAt": "2028-12-22T10:00:00-03:00",
+    "verification": "SIM-V1",
+    "start": "2028-01-01",
+    "endExclusive": "2028-10-01",
+    "delta": "-1",
+    "alreadyReflectedInPosition": true,
+    "newPositionProof": "SIM-POS-03",
+    "newOfficialBalance": "4"
+  }
+}

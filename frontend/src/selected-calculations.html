@@ -1,0 +1,142 @@
+@if (enabled()) {
+  <section class="access-panel" aria-labelledby="selected-calculations-heading">
+    <div class="section-heading">
+      <h2 id="selected-calculations-heading">Cálculo das leituras admitidas</h2>
+      <button type="button" class="secondary" (click)="refresh()" [disabled]="busy()">Atualizar cálculos e seleções</button>
+    </div>
+
+    @if (feedback()) {
+      <p class="feedback" [class.error]="failed()" [attr.role]="failed() ? 'alert' : 'status'">{{ feedback() }}</p>
+    }
+
+    @if (catalogue(); as parameters) {
+      @if (canPrepare()) {
+        <div class="intake-card">
+          <form class="intake-form" (submit)="propose($event, selection.value)">
+            <div>
+              <label for="calculation-period">Período do cálculo</label>
+              <select #periodInput id="calculation-period" [value]="period()" (change)="changePeriod(periodInput.value)" [disabled]="busy()">
+                <option>M1</option><option>M2</option>
+              </select>
+            </div>
+            <div>
+              <label for="calculation-selection">Retrato da seleção ED/EC</label>
+              <select #selection id="calculation-selection" [disabled]="!selections().length">
+                @for (item of selections(); track item.id) {
+                  <option [value]="item.id">{{ item.id.slice(0, 8) }} · {{ item.observations }} observação(ões)</option>
+                } @empty { <option value="">Nenhum retrato salvo</option> }
+              </select>
+            </div>
+            <button type="submit" class="primary" [disabled]="busy() || !selections().length">Propor cálculo</button>
+          </form>
+          @if (!selections().length) {
+            <p class="note">Como REV, use <strong>Guardar seleção atual</strong> em <a href="#imports-heading">Importação ED/EC</a>.</p>
+          }
+        </div>
+      }
+
+      <details class="intake-card">
+        <summary>Fatores e versões</summary>
+        <ul class="intake-entries">
+          @for (factor of parameters.factors; track factor.reference.id + ':' + factor.reference.version) {
+            <li>
+              <strong>{{ factor.reference.id }} · versão {{ factor.reference.version }} · {{ factor.state }}</strong>
+              <p>{{ number(factor.value) }} {{ factor.unit }} · {{ factor.grid }} · {{ factor.validFrom }} a {{ factor.validUntilExclusive }} (fim exclusivo)</p>
+              <p class="note">{{ factor.source }} · {{ factor.sourceYears.join(', ') || factor.sourceYearsNote }}
+                @if (factor.published) { · Publicação declarada no ensaio }
+              </p>
+              @if (factor.reason) { <p class="note">{{ factor.reason }}</p> }
+              @if (canReview() && factor.state === 'CANDIDATO' && factor.reference.id.startsWith('EF-SIM-')) {
+                <form class="intake-form" (submit)="exclude($event, factor, exclusion.value)">
+                  <label>Motivo da exclusão <input #exclusion required maxlength="600"></label>
+                  <button class="secondary" type="submit" [disabled]="busy()">Registrar exclusão</button>
+                </form>
+              }
+            </li>
+          }
+        </ul>
+        @if (canPrepare()) {
+          <details class="intake-details">
+            <summary>Registrar fator candidato sintético</summary>
+            <form class="intake-form" (submit)="proposeFactor($event, {code: code.value, value: value.value, unit: unit.value, grid: grid.value,
+                                                    years: years.value, from: from.value, until: until.value, source: source.value, published: published.checked})">
+              <label>Código <input #code value="EF-SIM-ENSAIO" required></label>
+              <label>Valor <input #value value="0.25" inputmode="decimal" required></label>
+              <label>Unidade <input #unit value="tCO2/MWh" required></label>
+              <label>Rede <input #grid value="OUTRA-REDE" required></label>
+              <label>Anos-fonte separados por vírgula <input #years value="2024,2025,2026" required></label>
+              <label>Início da vigência <input #from type="date" value="2027-10-01" required></label>
+              <label>Fim exclusivo da vigência <input #until type="date" value="2029-10-01" required></label>
+              <label>Origem <input #source value="SIMULAÇÃO · boletim de teste" required></label>
+              <label class="intake-check"><input #published type="checkbox"> Publicação simulada</label>
+              <button class="secondary" type="submit" [disabled]="busy()">Registrar candidato</button>
+            </form>
+          </details>
+        }
+      </details>
+    }
+
+    @if (runs().length) {
+      <div class="intake-card">
+        <label for="calculation-run">Execução proposta</label>
+        <select #runSelect id="calculation-run" [value]="selectedId() ?? ''" (change)="selectedId.set(runSelect.value)">
+          @for (run of runs(); track run.id) {
+            <option [value]="run.id">{{ run.period }} · {{ label(run.state) }} · {{ run.id.slice(0, 8) }}</option>
+          }
+        </select>
+        @if (selected(); as run) {
+          <div class="section-heading intake-details">
+            <h3>{{ run.period }} · {{ label(run.state) }}</h3>
+            <span class="note">Ficha v{{ run.configurationVersion }} · PREP {{ run.proposedBy }}
+              @if (run.reviewedBy) { · REV {{ run.reviewedBy }} }
+            </span>
+          </div>
+          <div class="inline-fields">
+            <a class="resource-link" [href]="runUrl(run, '/inputs')">Entradas fixadas em JSON</a>
+            <a class="resource-link" [href]="selectionUrl(run)">Retrato ED/EC utilizado</a>
+            @if (run.snapshotSha256) { <a class="resource-link" [href]="runUrl(run, '/snapshot')">Baixar snapshot</a> }
+          </div>
+          @if (canReview() && run.proposedBy !== actor() && (run.state === 'PROPOSTA' || run.state === 'FALHA_RECUPERAVEL')) {
+            <form class="intake-form" (submit)="review($event, run, reason.value)">
+              <label>Motivo da revisão <input #reason required maxlength="600"></label>
+              <button class="primary" type="submit" [disabled]="busy()">{{ run.state === 'PROPOSTA' ? 'Confirmar e calcular' : 'Retomar cálculo' }}</button>
+            </form>
+          }
+          @if (run.proposedBy === actor() && run.state === 'PROPOSTA') {
+            <p class="note">A proposta aguarda um REV distinto do autor.</p>
+          }
+          @if (run.result; as result) {
+            <p class="note intake-details">EF-SYN-v1 · {{ number(result.factorPerMwh) }} tCO₂/MWh ÷ 1.000 =
+              {{ number(result.factorPerKwh) }} tCO₂/kWh · {{ result.evrTotal }} BEVs · AFEC {{ number(result.afec) }} kWh/100 mi · MPG {{ number(result.mpg) }} mi/gal US · Dy {{ number(result.dy) }}</p>
+            <div class="table-scroll" tabindex="0" role="region" aria-label="Memória por vintage">
+              <table aria-label="Cálculo das leituras">
+                <thead><tr><th scope="col">Recorte</th><th scope="col">ED kWh</th><th scope="col">EC kWh</th>
+                  <th scope="col">BE</th><th scope="col">PE</th><th scope="col">LE</th><th scope="col">ER (tCO₂e)</th></tr></thead>
+                <tbody>
+                  @for (cut of result.cuts; track cut.start) {
+                    <tr><th scope="row">{{ cut.vintage }} · {{ cut.start }} a {{ cut.endExclusive }} (fim exclusivo)</th>
+                      <td>{{ number(cut.inputs.edKwh, 'Ausente') }}</td><td>{{ number(cut.inputs.ecKwh, 'Ausente') }}</td>
+                      <td>{{ number(cut.emissions.be) }}</td><td>{{ number(cut.emissions.pe) }}</td>
+                      <td>{{ number(cut.emissions.le) }}</td><td>{{ number(cut.emissions.er) }}</td>
+                    </tr>
+                  }
+                </tbody>
+                <tfoot><tr><th scope="row">Total</th><td>—</td><td>—</td><td>{{ number(result.totals.be) }}</td>
+                  <td>{{ number(result.totals.pe) }}</td><td>{{ number(result.totals.le) }}</td><td>{{ number(result.totals.er) }}</td></tr></tfoot>
+              </table>
+            </div>
+            <p class="note">Estimativa de referência {{ number(result.comparison.estimate) }} tCO₂e · Diferença {{ number(result.comparison.difference) }} tCO₂e
+              @if (result.comparison.percent !== null) { · {{ number(result.comparison.percent) }}% }
+            </p>
+            <p class="note">Confira a cobertura integral em Períodos de monitoramento.</p>
+            @if (canPrepare() || canReview()) {
+              <button class="secondary intake-action" type="button" (click)="reexecute(run)" [disabled]="busy()">Reexecutar snapshot</button>
+            }
+          }
+        }
+      </div>
+    } @else if (!busy()) {
+      <p class="empty">Nenhum cálculo proposto para as leituras admitidas.</p>
+    }
+  </section>
+}

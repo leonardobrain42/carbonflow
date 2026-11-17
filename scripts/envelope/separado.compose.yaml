@@ -1,0 +1,9 @@
+services:
+  app:
+    cpus: 2.00
+    mem_limit: 1280m
+    environment:
+      JAVA_TOOL_OPTIONS: "-Xms96m -Xmx640m -XX:ActiveProcessorCount=2"
+  db:
+    cpus: 1.00
+    mem_limit: 1536m

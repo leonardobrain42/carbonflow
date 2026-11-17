@@ -1,0 +1,180 @@
+@if (enabled()) {
+  <section class="panel" aria-labelledby="dossiers-title">
+    <div class="section-heading">
+      <h2 id="dossiers-title">Dossiês PD e MR</h2>
+      <button class="secondary" type="button" (click)="refresh()" [disabled]="busy()">Atualizar dossiês</button>
+    </div>
+    <p class="note">Modelo de referência 5.0B · documentos em inglês · exportação e recibos de simulação</p>
+    @if (canPrepare() && !drafting()) {
+      <button class="primary intake-action" type="button" (click)="begin(null)" [disabled]="busy()">Preparar dossiê</button>
+    }
+    @if (drafting() && checklist()) {
+      <form class="intake-form intake-card" (submit)="create($event, effective.value, validatedPd.value, reason.value, privateNote.value)">
+        <h3>{{ predecessor() ? 'Preparar revisão sucessora' : 'Novo rascunho' }}</h3>
+        <div>
+          <label for="dossier-act">Ato do dossiê</label>
+          <select id="dossier-act" #actInput [value]="act()" (change)="change(actInput.value, period())" [disabled]="busy() || !!predecessor()">
+            @for (item of acts; track item.key) { <option [value]="item.key">{{ item.label }}</option> }
+          </select>
+        </div>
+        <div [hidden]="act() !== 'VERIFICACAO'">
+          <label for="dossier-period">Período do MR</label>
+          <select id="dossier-period" #periodInput [value]="period()" (change)="change(act(), periodInput.value)"
+            [disabled]="busy() || !!predecessor()">
+            <option value="M1">M1</option><option value="M2">M2</option>
+          </select>
+          @if (currentClosure(); as closure) { <p class="note">Fechamento {{ closure.id }} · revisão {{ closure.revision }}</p> }
+          @else if (act() === 'VERIFICACAO') { <p class="note">Selecione um período com fechamento vigente.</p> }
+          <label for="dossier-pd">PD de registro congelado</label>
+          <select id="dossier-pd" #validatedPd>
+            <option value="">Selecione a versão do PD</option>
+            @for (item of registrar(); track identity(item)) {
+              <option [value]="identity(item)" [selected]="predecessor()?.command?.validatedPd?.id === item.id &&
+                predecessor()?.command?.validatedPd?.revision === item.revision">{{ display(item) }}</option>
+            }
+          </select>
+        </div>
+        <div><label for="dossier-date">Data simulada do ato</label><input id="dossier-date" type="date" #effective required
+          [value]="predecessor()?.command?.actDate ?? date()"></div>
+        @if (checklist(); as list) {
+          <fieldset>
+            <legend>Peças do {{ list.rule }}</legend>
+            @for (piece of list.pieces; track piece.item) {
+              <label class="field-row"><input type="checkbox" #enabledPiece [checked]="selectedPieces().includes(piece.item)"
+                (change)="mark(piece.item, enabledPiece.checked)"> {{ piece.title }} · {{ piece.issuer }}</label>
+            }
+          </fieldset>
+          @for (item of list.conditions; track item) {
+            <fieldset>
+              <legend>{{ item === 'COMUNICACAO' ? 'Acordo de comunicação' : item === 'TRADUCAO' ? 'Prova de tradução' :
+                item === 'GEODADOS_MR' ? 'Reapresentação do mapa' : 'Representação de listagem' }}</legend>
+              <label [for]="'incidence-' + item">Incidência</label>
+              <select [id]="'incidence-' + item" #selection [value]="incidences()[item]?.incidence ?? 'INCERTO'"
+                (change)="incidence(item, selection.value, why.value)">
+                <option value="INCERTO">Pendente</option><option value="INCIDE">Incide</option><option value="NAO_INCIDE">Não incide</option>
+              </select>
+              <label [for]="'reason-' + item">Justificativa da incidência</label>
+              <input [id]="'reason-' + item" #why maxlength="600" [value]="incidences()[item]?.reason ?? ''"
+                (input)="incidence(item, selection.value, why.value)">
+            </fieldset>
+          }
+        }
+        <div [hidden]="!predecessor()"><label for="dossier-successor-reason">Motivo da sucessão</label>
+          <input id="dossier-successor-reason" #reason maxlength="600" [required]="!!predecessor()"></div>
+        <div><label for="dossier-private-note">Nota reservada (opcional)</label>
+          <textarea id="dossier-private-note" #privateNote rows="2" maxlength="2400" [value]="predecessor()?.command?.privateNote ?? ''"></textarea></div>
+        <div class="inline-fields">
+          <button class="primary" type="submit" [disabled]="busy() || act() === 'VERIFICACAO' && !currentClosure()">Salvar rascunho</button>
+          <button class="secondary" type="button" (click)="drafting.set(false)" [disabled]="busy()">Fechar edição</button>
+        </div>
+      </form>
+    }
+    @if (dossiers().length) {
+      <div class="intake-form">
+        <div><label for="dossier-current">Versão do dossiê</label>
+          <select id="dossier-current" #currentChoice [value]="current() ? identity(current()!) : ''"
+            (change)="select(currentChoice.value)" [disabled]="busy()">
+            @for (item of dossiers(); track identity(item)) {
+              <option [value]="identity(item)">{{ label(item.command.act) }} · {{ display(item) }} · {{ item.state }}</option>
+            }
+          </select>
+        </div>
+      </div>
+    }
+    @if (current(); as dossier) {
+      <article class="intake-card">
+        <h3>{{ label(dossier.command.act) }} · {{ dossier.state }}</h3>
+        <p class="note">{{ display(dossier) }} · {{ dossier.command.actDate }} · {{ dossier.preparedBy }}</p>
+        @if (dossier.review; as review) { <p>{{ review.actor }} · {{ review.reason }} @if (review.expectedCorrection) { · {{ review.expectedCorrection }} }</p> }
+        @if (dossier.findings.length) {
+          <ul>@for (finding of dossier.findings; track $index) { <li>{{ finding.item }} · {{ finding.message }}</li> }</ul>
+        }
+        <div class="inline-fields">
+          <button class="secondary" type="button" (click)="preview(dossier, 'PUBLICA')" [disabled]="busy()">Ver prévia pública</button>
+          <button class="secondary" type="button" (click)="preview(dossier, 'RESERVADA')" [disabled]="busy()">Ver prévia reservada</button>
+          @if (canPrepare() && newest(dossier) && !drafting() &&
+            (dossier.state === 'CONGELADO' || dossier.state === 'DEVOLVIDO' || dossier.state === 'RASCUNHO' && dossier.preparedBy === actor())) {
+            <button class="secondary" type="button" (click)="begin(dossier)" [disabled]="busy()">Preparar sucessora</button>
+          }
+        </div>
+        @if (sections(); as preview) {
+          <section class="preview-card" aria-label="Prévia do dossiê">
+            <div class="section-heading"><h4>Prévia {{ exposure() === 'PUBLICA' ? 'pública' : 'reservada' }}</h4>
+              <button type="button" class="secondary" (click)="sections.set(null)">Fechar prévia</button></div>
+            @for (section of preview; track section.key) {
+              <h5>{{ section.heading }}</h5><p>{{ section.text }}</p>
+              @if (section.table.length) {
+                <div class="table-scroll"><table>
+                  <thead><tr>@for (cell of section.table[0]; track $index) { <th scope="col">{{ cell }}</th> }</tr></thead>
+                  <tbody>@for (row of section.table.slice(1); track $index) {
+                    <tr>@for (cell of row; track $index) { <td>{{ cell }}</td> }</tr>
+                  }</tbody>
+                </table></div>
+              }
+            } @empty { <p class="note">A memória ainda precisa ser vinculada.</p> }
+          </section>
+        }
+        @if (newest(dossier) && (canPrepare() && dossier.state === 'RASCUNHO' && dossier.preparedBy === actor()
+            || canReview() && dossier.state === 'EM_REVISAO' && dossier.preparedBy !== actor())) {
+          <form class="intake-form" (submit)="action($event, dossier, decision.value, reviewReason.value, missing.value,
+            responsible.value, expected.value)">
+            <div><label for="dossier-review-action">Ação de revisão</label><select id="dossier-review-action" #decision (change)="reviewStep.set(decision.value)">
+              @if (dossier.state === 'RASCUNHO') { <option value="TX-E3-06">Enviar para revisão</option> }
+              @else { <option value="TX-E3-08">Congelar dossiê</option><option value="TX-E3-07">Devolver dossiê</option> }
+            </select></div>
+            <div><label for="dossier-review-reason">Justificativa da revisão</label>
+              <input id="dossier-review-reason" #reviewReason required maxlength="600"></div>
+            <fieldset [hidden]="reviewStep() !== 'TX-E3-07'">
+              <legend>Correção solicitada</legend>
+              <label for="dossier-review-item">Item</label><input id="dossier-review-item" #missing maxlength="600">
+              <label for="dossier-review-owner">Responsável</label><select id="dossier-review-owner" #responsible>
+                <option>PREP</option><option>PP</option><option>OP</option><option>VVB</option></select>
+              <label for="dossier-review-expected">Correção esperada</label><input id="dossier-review-expected" #expected maxlength="600">
+            </fieldset>
+            <button class="primary" type="submit" [disabled]="busy()">Registrar etapa do dossiê</button>
+          </form>
+        }
+        @if (dossier.variants.length) {
+          <details><summary>Manifestos de variantes</summary>
+            <ul>@for (variant of dossier.variants; track variant.artifactId) {
+              <li><a class="resource-link" [href]="manifestUrl(dossier, variant)">{{ variant.exposure }} · {{ variant.edition }}</a></li>
+            }</ul>
+          </details>
+        }
+        @if (canExport() && dossier.state === 'CONGELADO' && newest(dossier)) {
+          <form class="intake-form" (submit)="export($event, dossier, variant.value, destination.value)">
+            <div><label for="dossier-variant">Variante para exportação</label><select id="dossier-variant" #variant>
+              @for (item of dossier.variants; track item.artifactId) {
+                <option [value]="item.artifactId">{{ item.exposure }} · {{ item.edition }}</option>
+              }
+            </select></div>
+            <div><label for="dossier-destination">Destino simulado</label><select id="dossier-destination" #destination>
+              <option value="SIM-REGISTRY">Registro simulado</option><option value="SIM-HUB">Hub simulado</option><option value="SIM-VVB">VVB simulado</option></select></div>
+            <button class="primary" type="submit" [disabled]="busy()">Registrar exportação</button>
+          </form>
+        }
+        @if (exports().length) {
+          <h4>Exportações do dossiê</h4>
+          <ul>@for (item of exports(); track item.id) {
+            <li><a class="resource-link" [href]="downloadUrl(item)">Baixar ZIP · r{{ item.dossier.revision }} · {{ item.exposure }} · {{ item.edition }}</a>
+              <span> · {{ item.destination }}</span></li>
+          }</ul>
+          <form class="intake-form" (submit)="receipt($event, dossier, exportId.value, code.value, proof.value, receiptDate.value)">
+            <div><label for="dossier-export">Exportação do recibo</label><select id="dossier-export" #exportId>
+              @for (item of exports(); track item.id) {
+                <option [value]="item.id">r{{ item.dossier.revision }} · {{ item.exposure }} · {{ item.destination }} · {{ item.id.slice(0,8) }}</option>
+              }
+            </select></div>
+            <div><label for="dossier-receipt-code">Código do recibo simulado</label><input id="dossier-receipt-code" #code required placeholder="SIM-…"></div>
+            <div><label for="dossier-receipt-proof">Referência da prova simulada</label><input id="dossier-receipt-proof" #proof required placeholder="SIM-…"></div>
+            <div><label for="dossier-receipt-date">Recebimento em Brasília</label><input id="dossier-receipt-date" type="datetime-local"
+              #receiptDate required [value]="dossier.command.actDate + 'T12:00'"></div>
+            <button class="secondary" type="submit" [disabled]="busy()">Vincular recibo</button>
+          </form>
+          <ul>@for (item of receipts(); track item.input.exportId) { <li>{{ item.input.code }} · {{ item.issuer }}</li> }</ul>
+        }
+      </article>
+    }
+    @if (feedback()) { <p class="feedback" [class.error]="failed()" role="status">{{ feedback() }}</p> }
+  </section>
+}

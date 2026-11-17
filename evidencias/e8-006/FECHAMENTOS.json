@@ -1,0 +1,836 @@
+{
+  "sameBoundary" : [ {
+    "id" : "M1",
+    "revision" : 1,
+    "version" : 3,
+    "state" : "EM_CONFERENCIA",
+    "start" : "2027-10-01",
+    "endExclusive" : "2028-10-01",
+    "zone" : "America/Sao_Paulo",
+    "projectYear" : 1,
+    "effectiveAt" : "2028-10-01T00:00:00-03:00",
+    "actor" : "SIM-OP",
+    "reason" : "Conferência do período sintético",
+    "eventId" : "fff97518-7efc-4ec1-85df-ab0d66e39337",
+    "predecessor" : null,
+    "closureSha256" : null,
+    "coverage" : null,
+    "impact" : null
+  }, {
+    "id" : "M2",
+    "revision" : 1,
+    "version" : 2,
+    "state" : "COLETANDO",
+    "start" : "2028-10-01",
+    "endExclusive" : "2029-10-01",
+    "zone" : "America/Sao_Paulo",
+    "projectYear" : 2,
+    "effectiveAt" : "2028-10-01T00:00:00-03:00",
+    "actor" : "SIM-OP",
+    "reason" : "Conferência do período sintético",
+    "eventId" : "3ca69f86-be29-4330-9d37-3af9bd800271",
+    "predecessor" : null,
+    "closureSha256" : null,
+    "coverage" : null,
+    "impact" : null
+  } ],
+  "coverageGap" : {
+    "complete" : false,
+    "findings" : 1,
+    "examples" : [ {
+      "code" : "INTERVALO_AUSENTE",
+      "channel" : "SIM-EC-02",
+      "from" : "2028-01-01T03:00:00Z",
+      "until" : "2028-10-01T00:00:00-03:00",
+      "row" : null
+    } ],
+    "expectedChannels" : 4
+  },
+  "M1" : {
+    "window" : {
+      "start" : "2027-10-01",
+      "endExclusive" : "2028-10-01"
+    },
+    "format" : "e8-006@1",
+    "environment" : "SIMULACAO",
+    "revision" : 1,
+    "period" : "M1",
+    "effectiveAt" : "2028-10-02T00:00:00-03:00",
+    "coverage" : {
+      "complete" : true,
+      "findings" : 0,
+      "examples" : [ ],
+      "expectedChannels" : 4
+    },
+    "memory" : {
+      "dy" : "1",
+      "mpg" : "30",
+      "afec" : "20",
+      "cuts" : [ {
+        "start" : "2027-10-01",
+        "inputs" : {
+          "ecKwh" : "3000",
+          "edKwh" : "2700",
+          "start" : "2027-10-01",
+          "ecCount" : 2,
+          "edCount" : 2,
+          "endExclusive" : "2028-01-01"
+        },
+        "status" : "CALCULADA",
+        "vintage" : 2027,
+        "emissions" : {
+          "be" : "2.7",
+          "er" : "1.8",
+          "le" : "0",
+          "pe" : "0.9",
+          "erDisplay" : "1.80"
+        },
+        "comparison" : {
+          "note" : "Comparativo com a estimativa sintética do kit.",
+          "actual" : "1.8",
+          "percent" : "0",
+          "estimate" : "1.80",
+          "magnitude" : "0",
+          "difference" : "0"
+        },
+        "endExclusive" : "2028-01-01"
+      }, {
+        "start" : "2028-01-01",
+        "inputs" : {
+          "ecKwh" : "7000",
+          "edKwh" : "6300",
+          "start" : "2028-01-01",
+          "ecCount" : 3,
+          "edCount" : 2,
+          "endExclusive" : "2028-10-01"
+        },
+        "status" : "CALCULADA",
+        "vintage" : 2028,
+        "emissions" : {
+          "be" : "6.3",
+          "er" : "4.2",
+          "le" : "0",
+          "pe" : "2.1",
+          "erDisplay" : "4.20"
+        },
+        "comparison" : {
+          "note" : "Comparativo com a estimativa sintética do kit.",
+          "actual" : "4.2",
+          "percent" : "0",
+          "estimate" : "4.20",
+          "magnitude" : "0",
+          "difference" : "0"
+        },
+        "endExclusive" : "2028-10-01"
+      } ],
+      "rules" : "CAL-E2-01–07 e conversão CAL-E2-09; OM ex ante de referência sintética",
+      "status" : "CALCULADA",
+      "totals" : {
+        "be" : "9",
+        "er" : "6",
+        "le" : "0",
+        "pe" : "3",
+        "erDisplay" : "6.00"
+      },
+      "removal" : "0",
+      "evrTotal" : 20,
+      "comparison" : {
+        "note" : "Comparativo com a estimativa sintética do kit.",
+        "actual" : "6",
+        "percent" : "0",
+        "estimate" : "6.00",
+        "magnitude" : "0",
+        "difference" : "0"
+      },
+      "coverageNote" : "A seleção preserva as leituras admitidas. A cobertura integral e o fechamento pertencem à E8-006.",
+      "factorPerKwh" : "0.0003",
+      "factorPerMwh" : "0.30",
+      "emissionsUnit" : "tCO2e",
+      "readyForClosing" : false,
+      "factorConversion" : "EF tCO₂/MWh ÷ 1.000 = EF tCO₂/kWh"
+    },
+    "snapshotSha256" : "fd13fc997c74aaa6c725896e86a98baf26d457f204e1d8d666c839deec3111bb",
+    "reviewEvent" : "ad3b35a2-8df9-4bd1-bdd9-ddf6edbdc3c4",
+    "memoryEvent" : "b560a45c-fdce-4f44-8d0c-719c40812c98",
+    "reviewedBy" : "SIM-REV",
+    "run" : {
+      "id" : "c799cee7-0395-4dd0-87ac-bc3805d38a56",
+      "version" : 3
+    },
+    "zone" : "America/Sao_Paulo",
+    "operation" : {
+      "start" : "2027-10-01",
+      "creditStart" : "2027-10-01",
+      "creditEndInclusive" : "2032-09-30",
+      "evidence" : {
+        "id" : "SIM-COMISSIONAMENTO",
+        "version" : 1
+      },
+      "recordedBy" : "SIM-OP",
+      "meterRevisions" : [ "SIM-EC-01@1", "SIM-EC-02@1" ]
+    },
+    "selectionId" : "641f15d9-0000-41b9-a5f8-15e972cd4c54",
+    "reason" : "Conferência do período sintético",
+    "project" : "SIM-E8-004-13513685-498c-47ac-ac44-339951e374d6"
+  },
+  "M2" : {
+    "window" : {
+      "start" : "2028-10-01",
+      "endExclusive" : "2029-10-01"
+    },
+    "format" : "e8-006@1",
+    "environment" : "SIMULACAO",
+    "revision" : 1,
+    "period" : "M2",
+    "effectiveAt" : "2029-10-01T00:00:00-03:00",
+    "coverage" : {
+      "complete" : true,
+      "findings" : 0,
+      "examples" : [ ],
+      "expectedChannels" : 4
+    },
+    "memory" : {
+      "dy" : "1",
+      "mpg" : "30",
+      "afec" : "20",
+      "cuts" : [ {
+        "start" : "2028-10-01",
+        "inputs" : {
+          "ecKwh" : "2200",
+          "edKwh" : "1800",
+          "start" : "2028-10-01",
+          "ecCount" : 2,
+          "edCount" : 2,
+          "endExclusive" : "2029-01-01"
+        },
+        "status" : "CALCULADA",
+        "vintage" : 2028,
+        "emissions" : {
+          "be" : "1.8",
+          "er" : "1.14",
+          "le" : "0",
+          "pe" : "0.66",
+          "erDisplay" : "1.14"
+        },
+        "comparison" : {
+          "note" : "Comparativo com a estimativa sintética do kit.",
+          "actual" : "1.14",
+          "percent" : "0",
+          "estimate" : "1.14",
+          "magnitude" : "0",
+          "difference" : "0"
+        },
+        "endExclusive" : "2029-01-01"
+      }, {
+        "start" : "2029-01-01",
+        "inputs" : {
+          "ecKwh" : "6800",
+          "edKwh" : "6200",
+          "start" : "2029-01-01",
+          "ecCount" : 2,
+          "edCount" : 2,
+          "endExclusive" : "2029-10-01"
+        },
+        "status" : "CALCULADA",
+        "vintage" : 2029,
+        "emissions" : {
+          "be" : "6.2",
+          "er" : "4.16",
+          "le" : "0",
+          "pe" : "2.04",
+          "erDisplay" : "4.16"
+        },
+        "comparison" : {
+          "note" : "Comparativo com a estimativa sintética do kit.",
+          "actual" : "4.16",
+          "percent" : "0",
+          "estimate" : "4.16",
+          "magnitude" : "0",
+          "difference" : "0"
+        },
+        "endExclusive" : "2029-10-01"
+      } ],
+      "rules" : "CAL-E2-01–07 e conversão CAL-E2-09; OM ex ante de referência sintética",
+      "status" : "CALCULADA",
+      "totals" : {
+        "be" : "8",
+        "er" : "5.3",
+        "le" : "0",
+        "pe" : "2.7",
+        "erDisplay" : "5.30"
+      },
+      "removal" : "0",
+      "evrTotal" : 20,
+      "comparison" : {
+        "note" : "Comparativo com a estimativa sintética do kit.",
+        "actual" : "5.3",
+        "percent" : "0",
+        "estimate" : "5.30",
+        "magnitude" : "0",
+        "difference" : "0"
+      },
+      "coverageNote" : "A seleção preserva as leituras admitidas. A cobertura integral e o fechamento pertencem à E8-006.",
+      "factorPerKwh" : "0.0003",
+      "factorPerMwh" : "0.30",
+      "emissionsUnit" : "tCO2e",
+      "readyForClosing" : false,
+      "factorConversion" : "EF tCO₂/MWh ÷ 1.000 = EF tCO₂/kWh"
+    },
+    "snapshotSha256" : "ddcbe0ac4ef3d6b68dc00f6c34e23f6e9bd43c1b5f62aafb8f3b0076823666e2",
+    "reviewEvent" : "ad84b6d1-6031-4332-9b03-7d2a65142b1d",
+    "memoryEvent" : "a5af72ca-ed6b-405b-a0e7-219d72511b57",
+    "reviewedBy" : "SIM-REV",
+    "run" : {
+      "id" : "8507bca6-93d8-474e-84cb-e9a11ebd1922",
+      "version" : 3
+    },
+    "zone" : "America/Sao_Paulo",
+    "operation" : {
+      "start" : "2027-10-01",
+      "creditStart" : "2027-10-01",
+      "creditEndInclusive" : "2032-09-30",
+      "evidence" : {
+        "id" : "SIM-COMISSIONAMENTO",
+        "version" : 1
+      },
+      "recordedBy" : "SIM-OP",
+      "meterRevisions" : [ "SIM-EC-01@1", "SIM-EC-02@1" ]
+    },
+    "selectionId" : "44434ee8-796a-4ee7-ada0-37037f9d2eed",
+    "reason" : "Conferência do período sintético",
+    "project" : "SIM-E8-004-13513685-498c-47ac-ac44-339951e374d6"
+  },
+  "reopened" : {
+    "id" : "M1",
+    "revision" : 2,
+    "version" : 7,
+    "state" : "EM_CONFERENCIA",
+    "start" : "2027-10-01",
+    "endExclusive" : "2028-10-01",
+    "zone" : "America/Sao_Paulo",
+    "projectYear" : 1,
+    "effectiveAt" : "2028-10-15T00:00:00-03:00",
+    "actor" : "SIM-REV",
+    "reason" : "Conferência do período sintético",
+    "eventId" : "ce6b94dc-2685-43e3-b602-5558fe93d60b",
+    "predecessor" : 1,
+    "closureSha256" : null,
+    "coverage" : null,
+    "impact" : {
+      "affectedRevision" : 1,
+      "dependents" : [ {
+        "input" : {
+          "kind" : "ATO_EXTERNO",
+          "reference" : "SIM-V1",
+          "version" : 1,
+          "status" : "APROVADO",
+          "proof" : {
+            "id" : "SIM-APROVA-V1",
+            "version" : 1
+          }
+        },
+        "recordedBy" : "SIM-PP",
+        "event" : "c58986c8-6334-4aab-be1c-344933fa763a",
+        "sha256" : null
+      }, {
+        "input" : {
+          "kind" : "DECISAO",
+          "reference" : "SIM-I1",
+          "version" : 1,
+          "status" : "AGUARDANDO_DEPOSITO",
+          "proof" : null
+        },
+        "recordedBy" : "SIM-PP",
+        "event" : "a3a6f4b9-9b31-4c33-a313-491443257254",
+        "sha256" : null
+      }, {
+        "input" : {
+          "kind" : "DECISAO",
+          "reference" : "SIM-V1",
+          "version" : 1,
+          "status" : "EM_REVISAO",
+          "proof" : null
+        },
+        "recordedBy" : "SIM-PP",
+        "event" : "bec01e25-68cd-4b56-b08f-4da34b725dc8",
+        "sha256" : null
+      }, {
+        "input" : {
+          "kind" : "PACOTE",
+          "reference" : "4d70cba7-1fe2-418f-ac6a-e15aae662f8c",
+          "version" : 2,
+          "status" : "VINCULADO",
+          "proof" : null
+        },
+        "recordedBy" : "SIM-PP",
+        "event" : "fd04be39-0ac7-4ceb-90ea-b7603031c13f",
+        "sha256" : "09fd5ae3fc0dd21343203947ba38dbdc239966a4a8bb4dabb0827b5b272e0b4a"
+      } ],
+      "divergenceId" : "a11d003c-465b-4083-9f68-2774ef60c793",
+      "state" : "DIVERGENCIA_PENDENTE_E8_010"
+    }
+  },
+  "M1Successor" : {
+    "window" : {
+      "start" : "2027-10-01",
+      "endExclusive" : "2028-10-01"
+    },
+    "format" : "e8-006@1",
+    "environment" : "SIMULACAO",
+    "revision" : 2,
+    "period" : "M1",
+    "effectiveAt" : "2028-10-15T00:00:00-03:00",
+    "coverage" : {
+      "complete" : true,
+      "findings" : 0,
+      "examples" : [ ],
+      "expectedChannels" : 4
+    },
+    "memory" : {
+      "dy" : "1",
+      "mpg" : "30",
+      "afec" : "20",
+      "cuts" : [ {
+        "start" : "2027-10-01",
+        "inputs" : {
+          "ecKwh" : "3000",
+          "edKwh" : "2750",
+          "start" : "2027-10-01",
+          "ecCount" : 2,
+          "edCount" : 2,
+          "endExclusive" : "2028-01-01"
+        },
+        "status" : "CALCULADA",
+        "vintage" : 2027,
+        "emissions" : {
+          "be" : "2.75",
+          "er" : "1.85",
+          "le" : "0",
+          "pe" : "0.9",
+          "erDisplay" : "1.85"
+        },
+        "comparison" : {
+          "note" : "Comparativo com a estimativa sintética do kit.",
+          "actual" : "1.85",
+          "percent" : "2.777777777777777777777777777777778",
+          "estimate" : "1.80",
+          "magnitude" : "0.05",
+          "difference" : "0.05"
+        },
+        "endExclusive" : "2028-01-01"
+      }, {
+        "start" : "2028-01-01",
+        "inputs" : {
+          "ecKwh" : "7000",
+          "edKwh" : "6300",
+          "start" : "2028-01-01",
+          "ecCount" : 3,
+          "edCount" : 2,
+          "endExclusive" : "2028-10-01"
+        },
+        "status" : "CALCULADA",
+        "vintage" : 2028,
+        "emissions" : {
+          "be" : "6.3",
+          "er" : "4.2",
+          "le" : "0",
+          "pe" : "2.1",
+          "erDisplay" : "4.20"
+        },
+        "comparison" : {
+          "note" : "Comparativo com a estimativa sintética do kit.",
+          "actual" : "4.2",
+          "percent" : "0",
+          "estimate" : "4.20",
+          "magnitude" : "0",
+          "difference" : "0"
+        },
+        "endExclusive" : "2028-10-01"
+      } ],
+      "rules" : "CAL-E2-01–07 e conversão CAL-E2-09; OM ex ante de referência sintética",
+      "status" : "CALCULADA",
+      "totals" : {
+        "be" : "9.05",
+        "er" : "6.05",
+        "le" : "0",
+        "pe" : "3",
+        "erDisplay" : "6.05"
+      },
+      "removal" : "0",
+      "evrTotal" : 20,
+      "comparison" : {
+        "note" : "Comparativo com a estimativa sintética do kit.",
+        "actual" : "6.05",
+        "percent" : "0.8333333333333333333333333333333333",
+        "estimate" : "6.00",
+        "magnitude" : "0.05",
+        "difference" : "0.05"
+      },
+      "coverageNote" : "A seleção preserva as leituras admitidas. A cobertura integral e o fechamento pertencem à E8-006.",
+      "factorPerKwh" : "0.0003",
+      "factorPerMwh" : "0.30",
+      "emissionsUnit" : "tCO2e",
+      "readyForClosing" : false,
+      "factorConversion" : "EF tCO₂/MWh ÷ 1.000 = EF tCO₂/kWh"
+    },
+    "snapshotSha256" : "96352d76f560c94c2f4d16a33e3cb97622a1e77afbb3e0dcf5656e3869b2f1e9",
+    "reviewEvent" : "40623032-0c3e-4aad-9ddf-97ae8efde3a1",
+    "memoryEvent" : "523ee95d-4db4-4009-a945-931833d626d9",
+    "reviewedBy" : "SIM-REV",
+    "run" : {
+      "id" : "ea53f527-11b0-486a-85d7-ef51643fdd2a",
+      "version" : 3
+    },
+    "zone" : "America/Sao_Paulo",
+    "operation" : {
+      "start" : "2027-10-01",
+      "creditStart" : "2027-10-01",
+      "creditEndInclusive" : "2032-09-30",
+      "evidence" : {
+        "id" : "SIM-COMISSIONAMENTO",
+        "version" : 1
+      },
+      "recordedBy" : "SIM-OP",
+      "meterRevisions" : [ "SIM-EC-01@1", "SIM-EC-02@1" ]
+    },
+    "selectionId" : "7db1747d-492f-4f27-ad84-c770003b45b9",
+    "reason" : "Conferência do período sintético",
+    "project" : "SIM-E8-004-13513685-498c-47ac-ac44-339951e374d6"
+  },
+  "M1History" : [ {
+    "id" : "M1",
+    "revision" : 2,
+    "version" : 8,
+    "state" : "FECHADO",
+    "start" : "2027-10-01",
+    "endExclusive" : "2028-10-01",
+    "zone" : "America/Sao_Paulo",
+    "projectYear" : 1,
+    "effectiveAt" : "2028-10-15T03:00:00Z",
+    "actor" : "SIM-REV",
+    "reason" : "Conferência do período sintético",
+    "eventId" : "0ffe35fa-091c-45d9-b2b7-053298465d52",
+    "predecessor" : 1,
+    "closureSha256" : "621bc0851b0d9bf263180893771ef9bf3402185086de1be7822671b1bc5c5aac",
+    "coverage" : {
+      "complete" : true,
+      "findings" : 0,
+      "examples" : [ ],
+      "expectedChannels" : 4
+    },
+    "impact" : {
+      "affectedRevision" : 1,
+      "dependents" : [ {
+        "input" : {
+          "kind" : "ATO_EXTERNO",
+          "reference" : "SIM-V1",
+          "version" : 1,
+          "status" : "APROVADO",
+          "proof" : {
+            "id" : "SIM-APROVA-V1",
+            "version" : 1
+          }
+        },
+        "recordedBy" : "SIM-PP",
+        "event" : "c58986c8-6334-4aab-be1c-344933fa763a",
+        "sha256" : null
+      }, {
+        "input" : {
+          "kind" : "DECISAO",
+          "reference" : "SIM-I1",
+          "version" : 1,
+          "status" : "AGUARDANDO_DEPOSITO",
+          "proof" : null
+        },
+        "recordedBy" : "SIM-PP",
+        "event" : "a3a6f4b9-9b31-4c33-a313-491443257254",
+        "sha256" : null
+      }, {
+        "input" : {
+          "kind" : "DECISAO",
+          "reference" : "SIM-V1",
+          "version" : 1,
+          "status" : "EM_REVISAO",
+          "proof" : null
+        },
+        "recordedBy" : "SIM-PP",
+        "event" : "bec01e25-68cd-4b56-b08f-4da34b725dc8",
+        "sha256" : null
+      }, {
+        "input" : {
+          "kind" : "PACOTE",
+          "reference" : "4d70cba7-1fe2-418f-ac6a-e15aae662f8c",
+          "version" : 2,
+          "status" : "VINCULADO",
+          "proof" : null
+        },
+        "recordedBy" : "SIM-PP",
+        "event" : "fd04be39-0ac7-4ceb-90ea-b7603031c13f",
+        "sha256" : "09fd5ae3fc0dd21343203947ba38dbdc239966a4a8bb4dabb0827b5b272e0b4a"
+      } ],
+      "divergenceId" : "a11d003c-465b-4083-9f68-2774ef60c793",
+      "state" : "DIVERGENCIA_PENDENTE_E8_010"
+    }
+  }, {
+    "id" : "M1",
+    "revision" : 2,
+    "version" : 7,
+    "state" : "EM_CONFERENCIA",
+    "start" : "2027-10-01",
+    "endExclusive" : "2028-10-01",
+    "zone" : "America/Sao_Paulo",
+    "projectYear" : 1,
+    "effectiveAt" : "2028-10-15T03:00:00Z",
+    "actor" : "SIM-REV",
+    "reason" : "Conferência do período sintético",
+    "eventId" : "ce6b94dc-2685-43e3-b602-5558fe93d60b",
+    "predecessor" : 1,
+    "closureSha256" : null,
+    "coverage" : null,
+    "impact" : {
+      "affectedRevision" : 1,
+      "dependents" : [ {
+        "input" : {
+          "kind" : "ATO_EXTERNO",
+          "reference" : "SIM-V1",
+          "version" : 1,
+          "status" : "APROVADO",
+          "proof" : {
+            "id" : "SIM-APROVA-V1",
+            "version" : 1
+          }
+        },
+        "recordedBy" : "SIM-PP",
+        "event" : "c58986c8-6334-4aab-be1c-344933fa763a",
+        "sha256" : null
+      }, {
+        "input" : {
+          "kind" : "DECISAO",
+          "reference" : "SIM-I1",
+          "version" : 1,
+          "status" : "AGUARDANDO_DEPOSITO",
+          "proof" : null
+        },
+        "recordedBy" : "SIM-PP",
+        "event" : "a3a6f4b9-9b31-4c33-a313-491443257254",
+        "sha256" : null
+      }, {
+        "input" : {
+          "kind" : "DECISAO",
+          "reference" : "SIM-V1",
+          "version" : 1,
+          "status" : "EM_REVISAO",
+          "proof" : null
+        },
+        "recordedBy" : "SIM-PP",
+        "event" : "bec01e25-68cd-4b56-b08f-4da34b725dc8",
+        "sha256" : null
+      }, {
+        "input" : {
+          "kind" : "PACOTE",
+          "reference" : "4d70cba7-1fe2-418f-ac6a-e15aae662f8c",
+          "version" : 2,
+          "status" : "VINCULADO",
+          "proof" : null
+        },
+        "recordedBy" : "SIM-PP",
+        "event" : "fd04be39-0ac7-4ceb-90ea-b7603031c13f",
+        "sha256" : "09fd5ae3fc0dd21343203947ba38dbdc239966a4a8bb4dabb0827b5b272e0b4a"
+      } ],
+      "divergenceId" : "a11d003c-465b-4083-9f68-2774ef60c793",
+      "state" : "DIVERGENCIA_PENDENTE_E8_010"
+    }
+  }, {
+    "id" : "M1",
+    "revision" : 1,
+    "version" : 6,
+    "state" : "FECHADO",
+    "start" : "2027-10-01",
+    "endExclusive" : "2028-10-01",
+    "zone" : "America/Sao_Paulo",
+    "projectYear" : 1,
+    "effectiveAt" : "2028-10-02T03:00:00Z",
+    "actor" : "SIM-REV",
+    "reason" : "Conferência do período sintético",
+    "eventId" : "3a2df69e-6332-4e88-b667-32b9022e444e",
+    "predecessor" : null,
+    "closureSha256" : "9df516fa002d9ca7c35ec4e40820187d657c8df0f250f3020766f0b781ea5d73",
+    "coverage" : {
+      "complete" : true,
+      "findings" : 0,
+      "examples" : [ ],
+      "expectedChannels" : 4
+    },
+    "impact" : null
+  }, {
+    "id" : "M1",
+    "revision" : 1,
+    "version" : 5,
+    "state" : "EM_CONFERENCIA",
+    "start" : "2027-10-01",
+    "endExclusive" : "2028-10-01",
+    "zone" : "America/Sao_Paulo",
+    "projectYear" : 1,
+    "effectiveAt" : "2028-10-02T03:00:00Z",
+    "actor" : "SIM-PREP",
+    "reason" : "Conferência do período sintético",
+    "eventId" : "c3fa3b6e-2a36-4246-a577-8e4e889ed194",
+    "predecessor" : null,
+    "closureSha256" : null,
+    "coverage" : null,
+    "impact" : null
+  }, {
+    "id" : "M1",
+    "revision" : 1,
+    "version" : 4,
+    "state" : "COM_LACUNAS",
+    "start" : "2027-10-01",
+    "endExclusive" : "2028-10-01",
+    "zone" : "America/Sao_Paulo",
+    "projectYear" : 1,
+    "effectiveAt" : "2028-10-01T03:00:00Z",
+    "actor" : "SIM-REV",
+    "reason" : "Conferência do período sintético",
+    "eventId" : "958e956f-2396-4c15-8d70-6eab3f089e51",
+    "predecessor" : null,
+    "closureSha256" : null,
+    "coverage" : {
+      "complete" : false,
+      "findings" : 1,
+      "examples" : [ {
+        "code" : "INTERVALO_AUSENTE",
+        "channel" : "SIM-EC-02",
+        "from" : "2028-01-01T03:00:00Z",
+        "until" : "2028-10-01T03:00:00Z",
+        "row" : null
+      } ],
+      "expectedChannels" : 4
+    },
+    "impact" : null
+  }, {
+    "id" : "M1",
+    "revision" : 1,
+    "version" : 3,
+    "state" : "EM_CONFERENCIA",
+    "start" : "2027-10-01",
+    "endExclusive" : "2028-10-01",
+    "zone" : "America/Sao_Paulo",
+    "projectYear" : 1,
+    "effectiveAt" : "2028-10-01T03:00:00Z",
+    "actor" : "SIM-OP",
+    "reason" : "Conferência do período sintético",
+    "eventId" : "fff97518-7efc-4ec1-85df-ab0d66e39337",
+    "predecessor" : null,
+    "closureSha256" : null,
+    "coverage" : null,
+    "impact" : null
+  }, {
+    "id" : "M1",
+    "revision" : 1,
+    "version" : 2,
+    "state" : "COLETANDO",
+    "start" : "2027-10-01",
+    "endExclusive" : "2028-10-01",
+    "zone" : "America/Sao_Paulo",
+    "projectYear" : 1,
+    "effectiveAt" : "2027-10-01T03:00:00Z",
+    "actor" : "SIM-OP",
+    "reason" : "Conferência do período sintético",
+    "eventId" : "337106f0-6ef0-4fd3-9148-dac3a57aadd5",
+    "predecessor" : null,
+    "closureSha256" : null,
+    "coverage" : null,
+    "impact" : null
+  }, {
+    "id" : "M1",
+    "revision" : 1,
+    "version" : 1,
+    "state" : "PREVISTO",
+    "start" : "2027-10-01",
+    "endExclusive" : "2028-10-01",
+    "zone" : "America/Sao_Paulo",
+    "projectYear" : 1,
+    "effectiveAt" : null,
+    "actor" : "SIM-PREP",
+    "reason" : "Calendário do kit",
+    "eventId" : "ed1d7557-7de6-4508-bf4f-ba1d883a61c6",
+    "predecessor" : null,
+    "closureSha256" : null,
+    "coverage" : null,
+    "impact" : null
+  } ],
+  "M2History" : [ {
+    "id" : "M2",
+    "revision" : 1,
+    "version" : 4,
+    "state" : "FECHADO",
+    "start" : "2028-10-01",
+    "endExclusive" : "2029-10-01",
+    "zone" : "America/Sao_Paulo",
+    "projectYear" : 2,
+    "effectiveAt" : "2029-10-01T03:00:00Z",
+    "actor" : "SIM-REV",
+    "reason" : "Conferência do período sintético",
+    "eventId" : "52be75f6-6093-41a9-a356-cca54f673cdc",
+    "predecessor" : null,
+    "closureSha256" : "ac1a8f7c2ee878306ef01f1ca65a94980433f1d2b04414fe40ffd14d9580a6e9",
+    "coverage" : {
+      "complete" : true,
+      "findings" : 0,
+      "examples" : [ ],
+      "expectedChannels" : 4
+    },
+    "impact" : null
+  }, {
+    "id" : "M2",
+    "revision" : 1,
+    "version" : 3,
+    "state" : "EM_CONFERENCIA",
+    "start" : "2028-10-01",
+    "endExclusive" : "2029-10-01",
+    "zone" : "America/Sao_Paulo",
+    "projectYear" : 2,
+    "effectiveAt" : "2029-10-01T03:00:00Z",
+    "actor" : "SIM-OP",
+    "reason" : "Conferência do período sintético",
+    "eventId" : "83edc987-b8ba-4cf8-9ab7-c07d3993c048",
+    "predecessor" : null,
+    "closureSha256" : null,
+    "coverage" : null,
+    "impact" : null
+  }, {
+    "id" : "M2",
+    "revision" : 1,
+    "version" : 2,
+    "state" : "COLETANDO",
+    "start" : "2028-10-01",
+    "endExclusive" : "2029-10-01",
+    "zone" : "America/Sao_Paulo",
+    "projectYear" : 2,
+    "effectiveAt" : "2028-10-01T03:00:00Z",
+    "actor" : "SIM-OP",
+    "reason" : "Conferência do período sintético",
+    "eventId" : "3ca69f86-be29-4330-9d37-3af9bd800271",
+    "predecessor" : null,
+    "closureSha256" : null,
+    "coverage" : null,
+    "impact" : null
+  }, {
+    "id" : "M2",
+    "revision" : 1,
+    "version" : 1,
+    "state" : "PREVISTO",
+    "start" : "2028-10-01",
+    "endExclusive" : "2029-10-01",
+    "zone" : "America/Sao_Paulo",
+    "projectYear" : 2,
+    "effectiveAt" : null,
+    "actor" : "SIM-PP",
+    "reason" : "Calendário do kit",
+    "eventId" : "fb2fb721-4c9b-4d79-9cb1-73d98f974b0b",
+    "predecessor" : null,
+    "closureSha256" : null,
+    "coverage" : null,
+    "impact" : null
+  } ]
+}

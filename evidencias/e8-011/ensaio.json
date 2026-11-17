@@ -1,0 +1,393 @@
+{
+  "fixture": "SIM-E8-004-344377a9-68c1-4f7b-8636-e0236e45ff37",
+  "kit": "0.2.14",
+  "backup": {
+    "manifestSha256": "258f18af1f920d7cb53f649f84b56e153bbfc59935bb838519411d8961f309da",
+    "checkpoint": "2026-11-16T22:17:24.561739+00:00",
+    "objects": 188,
+    "tables": 51,
+    "effects": 184
+  },
+  "interval": {
+    "gapSha256": "acebd74c8db89d652a0e2c0275b3a9daade1ff59124e0b0665bacb026805e5be",
+    "observedThrough": "2026-11-16T22:17:26.490440+00:00",
+    "effects": 5
+  },
+  "isolatedTarget": {
+    "project": "carbonflow-recovery-e8-011-final",
+    "port": 18094,
+    "manifestSha256": "258f18af1f920d7cb53f649f84b56e153bbfc59935bb838519411d8961f309da",
+    "gapSha256": "acebd74c8db89d652a0e2c0275b3a9daade1ff59124e0b0665bacb026805e5be",
+    "inventory": {
+      "effects": 184,
+      "objects": 188,
+      "tables": 51
+    },
+    "schemaVersion": "11",
+    "rpoSeconds": 1.805528,
+    "status": "AGUARDANDO_CONFERENCIA"
+  },
+  "verifiedCalculations": {
+    "M1": {
+      "sha256": "027bd1619737bd95098f08348e6964ecca36b0dc27423ba421eba139cf92fac2",
+      "snapshotMatches": true,
+      "result": {
+        "status": "CALCULADA",
+        "factorPerMwh": "0.30",
+        "factorPerKwh": "0.0003",
+        "factorConversion": "EF tCO₂/MWh ÷ 1.000 = EF tCO₂/kWh",
+        "afec": "20",
+        "mpg": "30",
+        "evrTotal": 20,
+        "dy": "1",
+        "removal": "0",
+        "emissionsUnit": "tCO2e",
+        "rules": "CAL-E2-01–07 e conversão CAL-E2-09; OM ex ante de referência sintética",
+        "cuts": [
+          {
+            "start": "2027-10-01",
+            "endExclusive": "2028-01-01",
+            "vintage": 2027,
+            "inputs": {
+              "start": "2027-10-01",
+              "endExclusive": "2028-01-01",
+              "edKwh": "2700",
+              "ecKwh": "3000",
+              "edCount": 2,
+              "ecCount": 2
+            },
+            "emissions": {
+              "be": "2.7",
+              "pe": "0.9",
+              "le": "0",
+              "er": "1.8",
+              "erDisplay": "1.80"
+            },
+            "status": "CALCULADA",
+            "comparison": {
+              "estimate": "1.80",
+              "actual": "1.8",
+              "difference": "0",
+              "magnitude": "0",
+              "percent": "0",
+              "note": "Comparativo com a estimativa sintética do kit."
+            }
+          },
+          {
+            "start": "2028-01-01",
+            "endExclusive": "2028-10-01",
+            "vintage": 2028,
+            "inputs": {
+              "start": "2028-01-01",
+              "endExclusive": "2028-10-01",
+              "edKwh": "6300",
+              "ecKwh": "7000",
+              "edCount": 2,
+              "ecCount": 3
+            },
+            "emissions": {
+              "be": "6.3",
+              "pe": "2.1",
+              "le": "0",
+              "er": "4.2",
+              "erDisplay": "4.20"
+            },
+            "status": "CALCULADA",
+            "comparison": {
+              "estimate": "4.20",
+              "actual": "4.2",
+              "difference": "0",
+              "magnitude": "0",
+              "percent": "0",
+              "note": "Comparativo com a estimativa sintética do kit."
+            }
+          }
+        ],
+        "totals": {
+          "be": "9",
+          "pe": "3",
+          "le": "0",
+          "er": "6",
+          "erDisplay": "6.00"
+        },
+        "comparison": {
+          "estimate": "6.00",
+          "actual": "6",
+          "difference": "0",
+          "magnitude": "0",
+          "percent": "0",
+          "note": "Comparativo com a estimativa sintética do kit."
+        },
+        "readyForClosing": false,
+        "coverageNote": "A seleção preserva as leituras admitidas. A cobertura integral e o fechamento pertencem à E8-006."
+      }
+    },
+    "M2": {
+      "sha256": "1c36cfad3340c07faae59e64b97190a1bd02ed7ee8381ea5f533a793401c5b56",
+      "snapshotMatches": true,
+      "result": {
+        "status": "CALCULADA",
+        "factorPerMwh": "0.30",
+        "factorPerKwh": "0.0003",
+        "factorConversion": "EF tCO₂/MWh ÷ 1.000 = EF tCO₂/kWh",
+        "afec": "20",
+        "mpg": "30",
+        "evrTotal": 20,
+        "dy": "1",
+        "removal": "0",
+        "emissionsUnit": "tCO2e",
+        "rules": "CAL-E2-01–07 e conversão CAL-E2-09; OM ex ante de referência sintética",
+        "cuts": [
+          {
+            "start": "2028-10-01",
+            "endExclusive": "2029-01-01",
+            "vintage": 2028,
+            "inputs": {
+              "start": "2028-10-01",
+              "endExclusive": "2029-01-01",
+              "edKwh": "1800",
+              "ecKwh": "2200",
+              "edCount": 2,
+              "ecCount": 2
+            },
+            "emissions": {
+              "be": "1.8",
+              "pe": "0.66",
+              "le": "0",
+              "er": "1.14",
+              "erDisplay": "1.14"
+            },
+            "status": "CALCULADA",
+            "comparison": {
+              "estimate": "1.14",
+              "actual": "1.14",
+              "difference": "0",
+              "magnitude": "0",
+              "percent": "0",
+              "note": "Comparativo com a estimativa sintética do kit."
+            }
+          },
+          {
+            "start": "2029-01-01",
+            "endExclusive": "2029-10-01",
+            "vintage": 2029,
+            "inputs": {
+              "start": "2029-01-01",
+              "endExclusive": "2029-10-01",
+              "edKwh": "6200",
+              "ecKwh": "6800",
+              "edCount": 2,
+              "ecCount": 2
+            },
+            "emissions": {
+              "be": "6.2",
+              "pe": "2.04",
+              "le": "0",
+              "er": "4.16",
+              "erDisplay": "4.16"
+            },
+            "status": "CALCULADA",
+            "comparison": {
+              "estimate": "4.16",
+              "actual": "4.16",
+              "difference": "0",
+              "magnitude": "0",
+              "percent": "0",
+              "note": "Comparativo com a estimativa sintética do kit."
+            }
+          }
+        ],
+        "totals": {
+          "be": "8",
+          "pe": "2.7",
+          "le": "0",
+          "er": "5.3",
+          "erDisplay": "5.30"
+        },
+        "comparison": {
+          "estimate": "5.30",
+          "actual": "5.3",
+          "difference": "0",
+          "magnitude": "0",
+          "percent": "0",
+          "note": "Comparativo com a estimativa sintética do kit."
+        },
+        "readyForClosing": false,
+        "coverageNote": "A seleção preserva as leituras admitidas. A cobertura integral e o fechamento pertencem à E8-006."
+      }
+    }
+  },
+  "retainedRevocation": {
+    "contentSha256": "d3f1b3ea5fd4d72bc27ac4d3c8d54d8fabfa7cf422ceb09b165bdd0a8d00852f",
+    "afterRestoreStatus": 404
+  },
+  "activeGrantSha256": "2cc2a601668db2a07450f69e22845ea733fe64b62fcd618f18024fb772386c7b",
+  "idempotentJobId": "ddd8d39e-2366-456d-a21e-6f1695f1f5e5",
+  "recoveredFact": {
+    "id": "9992be5e-6735-44ef-8604-94bf3d1c3b65",
+    "version": 2
+  },
+  "recoveredProtocol": "631df18d-2913-4a8d-afae-9fab24dff585",
+  "reconciledDeposit": [
+    {
+      "vintage": {
+        "start": "2028-10-01",
+        "endExclusive": "2029-01-01"
+      },
+      "amount": 1
+    }
+  ],
+  "afterReleaseAvailable": 28,
+  "unavailableInventoryRejected": true,
+  "recovery": {
+    "recovery": {
+      "id": "4a713d88-8b3d-47bd-bf79-5309d29af451",
+      "manifestSha": "258f18af1f920d7cb53f649f84b56e153bbfc59935bb838519411d8961f309da",
+      "gapSha": "acebd74c8db89d652a0e2c0275b3a9daade1ff59124e0b0665bacb026805e5be",
+      "checkpoint": "2026-11-16T22:17:24.561739Z",
+      "observedThrough": "2026-11-16T22:17:26.49044Z",
+      "incidentAt": "2026-11-16T22:17:26.367267Z",
+      "openedAt": "2026-11-16T22:17:33.169805Z",
+      "checkedBy": "SIM-OP",
+      "checkEvent": "8245a5cb-232a-4934-a1cf-5693f5cb3bf3",
+      "releaseEvent": "5f04cef2-0e21-4115-94c4-4aac780d112c",
+      "releasedAt": "2026-11-16T22:17:42.914059Z"
+    },
+    "version": 3,
+    "runs": [
+      {
+        "id": "cdc84df6-45b4-4c6c-90a6-aa262bc04917",
+        "period": "M1",
+        "sha256": "027bd1619737bd95098f08348e6964ecca36b0dc27423ba421eba139cf92fac2",
+        "verified": true
+      },
+      {
+        "id": "ebf18224-9af8-462f-8e25-6a5105eb959a",
+        "period": "M2",
+        "sha256": "1c36cfad3340c07faae59e64b97190a1bd02ed7ee8381ea5f533a793401c5b56",
+        "verified": true
+      }
+    ],
+    "effects": [
+      {
+        "kind": "ATO_EXTERNO",
+        "source": "PP",
+        "namespace": "SIM-RECIBOS-EMISSAO",
+        "reference": "SIM-RECIBO-REC-5B70A675",
+        "status": "CONFERIDO",
+        "binding": {
+          "lines": [
+            {
+              "amount": 1,
+              "vintage": {
+                "start": "2028-10-01",
+                "endExclusive": "2029-01-01"
+              }
+            }
+          ],
+          "target": "SIM-EMISSAO-REC-5B70A675",
+          "account": "SIM-CONTA-02",
+          "attemptId": "631df18d-2913-4a8d-afae-9fab24dff585",
+          "predecessor": null,
+          "verification": "SIM-REGISTRY-V2-B8C40D9A"
+        }
+      },
+      {
+        "kind": "ATO_EXTERNO",
+        "source": "SIM-REGISTRY",
+        "namespace": "SIM-REGISTRY-POSICAO",
+        "reference": "SIM-REC-POS-5B70A675",
+        "status": "CONFERIDO",
+        "binding": null
+      },
+      {
+        "kind": "ATO_EXTERNO",
+        "source": "SIM-REGISTRY",
+        "namespace": "SIM-VERRA-AJUSTE",
+        "reference": "SIM-REC-AJUSTE-5B70A675",
+        "status": "CONFERIDO",
+        "binding": null
+      },
+      {
+        "kind": "BRUTO",
+        "source": "SIM-OP-01",
+        "namespace": "ED_EC",
+        "reference": "5ab4343c1ea522ee7a6f9ef4c11c585fc45d97448291d653485e71b90dea45e4",
+        "status": "CONFERIDO",
+        "binding": null
+      },
+      {
+        "kind": "FATO_ED_EC",
+        "source": "SIM-OP-01",
+        "namespace": "M1",
+        "reference": "5ab4343c1ea522ee7a6f9ef4c11c585fc45d97448291d653485e71b90dea45e4:SIM-CSV-UTF8-ED-EC:1:2:2",
+        "status": "CONFERIDO",
+        "binding": null
+      }
+    ],
+    "unsettledJobs": 0,
+    "rpoSeconds": 1,
+    "rtoSeconds": 16
+  },
+  "archive": {
+    "backupId": "4a713d88-8b3d-47bd-bf79-5309d29af451",
+    "checkpoint": "2026-11-16T22:17:24.561739+00:00",
+    "files": {
+      "database.dump": {
+        "bytes": 1081775,
+        "sha256": "90b62e607eb114c0a1f81b42190123680ce8c2c6edc55605bf4aa04c10497e97"
+      },
+      "inventory.jsonl": {
+        "bytes": 115687,
+        "sha256": "2b13c8730a69b68bc13c9b80eda0af15488e0fe8822581b01be4f4d3ebda8576"
+      }
+    },
+    "format": 1,
+    "imageId": "sha256:7b1b95f4f851872ded39b2177821e70068c21f9cb5a628a051bb7032cb2446ba",
+    "inventory": {
+      "effects": 184,
+      "objects": 188,
+      "tables": 51
+    },
+    "postgresVersionNum": "160016",
+    "schemaVersion": "11",
+    "source": "carbonflow-e8-011-test"
+  },
+  "verification": {
+    "java": {
+      "passed": 26
+    },
+    "chrome": {
+      "passed": 12,
+      "restoredPanel": {
+        "verifiedRuns": 2,
+        "reconciledEffects": 5,
+        "rpoRtoVisible": true
+      }
+    },
+    "rollbackV10": {
+      "versionAfterInjectedFailure": 10,
+      "versionAfterRetry": 11,
+      "legacyFingerprints": [
+        "fechamentos|7|428154bea6bda75e64c5b91f4b3a9d25",
+        "memorias|11|a5c87fd500df2229b50a60f768cd6f18",
+        "artefatos|82|2b5725a7115cdb9ef57fc23cb1a50e98",
+        "manifestos|54|a567699183b8e8281433f6bee629c3c2",
+        "concessoes|10|19a12e341132deecfa60d5a9c84d3314",
+        "chaves|591|9b9676d3d51be1805daaa3cd9eccaff7",
+        "posicoes|7|1af8165c54d1fb888677d519e95c4416",
+        "emissoes|4|9da7bb9adf5199b106b5553e6cb04a70"
+      ]
+    },
+    "tamperedArtifact": {
+      "backupRefused": true,
+      "restoreRefused": true,
+      "applicationNotStarted": true
+    },
+    "mainCompose": {
+      "schemaVersion": 11,
+      "readyStatus": 204,
+      "legacyFingerprintsUnchanged": true
+    }
+  }
+}

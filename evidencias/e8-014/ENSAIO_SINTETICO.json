@@ -1,0 +1,52 @@
+{
+  "purpose": "Preparação sintética do CT-E5-29",
+  "project": "PIL-SYN-BR-001",
+  "kitVersion": "0.2.14",
+  "environment": "SIMULACAO",
+  "composeProject": "carbonflow-e8-014-preparo",
+  "imageManifest": "sha256:d006634d61ad91d93346e07c418869855881acd674b777a1c33de3eabb97abe8",
+  "databaseMajor": 16,
+  "schemaVersion": 12,
+  "zone": "America/Sao_Paulo",
+  "endExclusive": true,
+  "period": "M1",
+  "range": [
+    "2027-12-17",
+    "2028-01-16"
+  ],
+  "mapping": {
+    "id": "SIM-CSV-UTF8-ED-EC",
+    "version": 1
+  },
+  "inventoryRevision": 16,
+  "artifact": "6adcb653-3820-42ba-90c9-75e7bcf3eef0",
+  "sha256": "7b518cccdc558e30d0bfd0a33e8337dcdc8f86b7a9f79fc5a468527f74d33966",
+  "job": "0a1f475c-d39f-4ce0-9ac5-f071303f9693",
+  "selection": "36142830-deda-4c2c-be53-f1596cde6232",
+  "classifiedLines": {
+    "CANDIDATA": 60,
+    "INVALIDA": 1
+  },
+  "rejectedRowReasons": [
+    {
+      "code": "FUSO_OU_DATA_INVALIDA",
+      "message": "Início e fim exigem deslocamento de fuso explícito."
+    }
+  ],
+  "admitted": 60,
+  "totalsKwh": {
+    "2027 EC": "225",
+    "2027 ED": "180",
+    "2028 EC": "255",
+    "2028 ED": "210"
+  },
+  "replaySameJob": true,
+  "invalidFile": {
+    "id": "afd65216-7b06-45cb-8f72-2e7242d663d5",
+    "state": "RECUSADO",
+    "total": 1,
+    "processed": 1,
+    "message": "Use o cabeçalho do mapeamento v1 e inclua pelo menos uma linha de dados."
+  },
+  "invalidFileSha256": "5ef19e518d3fa4df7df8bed8eb037f7b32197a6310258288cfb3635b4a3c3175"
+}

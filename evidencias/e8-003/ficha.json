@@ -1,0 +1,551 @@
+{
+  "projectId": "PIL-SYN-BR-001",
+  "snapshot": {
+    "version": 16,
+    "environment": "SIMULACAO",
+    "intake": {
+      "candidate": {
+        "profile": {
+          "country": "BR",
+          "state": "DF",
+          "locality": "Planaltina",
+          "design": "INDIVIDUAL",
+          "closedNetwork": true,
+          "privateAccess": true,
+          "vehicleClass": "LDV",
+          "propulsion": "BEV",
+          "charger": "DCFC",
+          "grid": "SIN",
+          "additionalInfrastructure": false,
+          "ecRoute": "MEDIDA_SEGREGADA"
+        },
+        "inventory": {
+          "sites": [
+            "SIM-PATIO-01"
+          ],
+          "stations": [
+            {
+              "id": "SIM-DCFC-01",
+              "site": "SIM-PATIO-01",
+              "model": "DCFC SYN 50",
+              "powerKw": "50"
+            },
+            {
+              "id": "SIM-DCFC-02",
+              "site": "SIM-PATIO-01",
+              "model": "DCFC SYN 50",
+              "powerKw": "50"
+            }
+          ],
+          "models": [
+            {
+              "id": "SIM-MODELO-01",
+              "bev": "BEV sintético 1",
+              "comparable": "Comparável leve sintético 1"
+            },
+            {
+              "id": "SIM-MODELO-02",
+              "bev": "BEV sintético 2",
+              "comparable": "Comparável leve sintético 2"
+            }
+          ],
+          "vehicles": [
+            {
+              "id": "SIM-BEV-01",
+              "model": "SIM-MODELO-01"
+            },
+            {
+              "id": "SIM-BEV-02",
+              "model": "SIM-MODELO-01"
+            },
+            {
+              "id": "SIM-BEV-03",
+              "model": "SIM-MODELO-01"
+            },
+            {
+              "id": "SIM-BEV-04",
+              "model": "SIM-MODELO-01"
+            },
+            {
+              "id": "SIM-BEV-05",
+              "model": "SIM-MODELO-01"
+            },
+            {
+              "id": "SIM-BEV-06",
+              "model": "SIM-MODELO-01"
+            },
+            {
+              "id": "SIM-BEV-07",
+              "model": "SIM-MODELO-01"
+            },
+            {
+              "id": "SIM-BEV-08",
+              "model": "SIM-MODELO-01"
+            },
+            {
+              "id": "SIM-BEV-09",
+              "model": "SIM-MODELO-01"
+            },
+            {
+              "id": "SIM-BEV-10",
+              "model": "SIM-MODELO-01"
+            },
+            {
+              "id": "SIM-BEV-11",
+              "model": "SIM-MODELO-01"
+            },
+            {
+              "id": "SIM-BEV-12",
+              "model": "SIM-MODELO-01"
+            },
+            {
+              "id": "SIM-BEV-13",
+              "model": "SIM-MODELO-02"
+            },
+            {
+              "id": "SIM-BEV-14",
+              "model": "SIM-MODELO-02"
+            },
+            {
+              "id": "SIM-BEV-15",
+              "model": "SIM-MODELO-02"
+            },
+            {
+              "id": "SIM-BEV-16",
+              "model": "SIM-MODELO-02"
+            },
+            {
+              "id": "SIM-BEV-17",
+              "model": "SIM-MODELO-02"
+            },
+            {
+              "id": "SIM-BEV-18",
+              "model": "SIM-MODELO-02"
+            },
+            {
+              "id": "SIM-BEV-19",
+              "model": "SIM-MODELO-02"
+            },
+            {
+              "id": "SIM-BEV-20",
+              "model": "SIM-MODELO-02"
+            }
+          ],
+          "ecCircuits": [
+            {
+              "id": "SIM-EC-01",
+              "station": "SIM-DCFC-01"
+            },
+            {
+              "id": "SIM-EC-02",
+              "station": "SIM-DCFC-02"
+            }
+          ]
+        },
+        "referenceActDate": "2028-03-01",
+        "evidence": {
+          "id": "SIM-ESCOPO",
+          "version": 1
+        }
+      },
+      "state": "ENQUADRADO",
+      "preparedBy": "SIM-PREP",
+      "reviewedBy": "SIM-REV",
+      "reviewEvidence": {
+        "id": "SIM-PARECER-ESCOPO",
+        "version": 1
+      },
+      "selection": {
+        "kit": "0.2.14",
+        "sourceCutoff": "2026-11-13",
+        "referenceActDate": "2028-03-01",
+        "matrix": "02_fontes/MATRIZ_DE_VIGENCIA.md · SIM-MATRIZ-VIGENCIA@1",
+        "program": "VCS v5.0",
+        "packageEdition": "PD/MR 5.0B",
+        "methodology": "VM0038 v1.1",
+        "additionality": "VMD0049 v1.1 · BR/LDV/DCFC",
+        "gridRoute": "VT0011 v1.0 + TOOL07 v7.0"
+      },
+      "reasons": [],
+      "reviewedRecords": [
+        "5a514bf2-9c83-4164-a103-97b5c01c6776",
+        "4b42c08f-11fa-4a78-aaaa-464aad08c4b5",
+        "ff0e1502-5e2a-4844-a0af-b3f3b9a5c9d1"
+      ]
+    },
+    "records": [
+      {
+        "id": "968196b4-aa2f-408b-ab80-d8751156157b",
+        "version": 1,
+        "recordedBy": "SIM-PREP",
+        "input": {
+          "type": "ENGAJAMENTO",
+          "status": "COMPROVADO_SIMULACAO",
+          "effectiveDate": "2027-06-30",
+          "justification": "Consulta inicial e plano SEP sintéticos",
+          "evidence": {
+            "id": "SIM-ENGAJAMENTO",
+            "version": 1
+          }
+        }
+      },
+      {
+        "id": "8d3bb464-85db-4e9c-9aa0-26d3aea0306a",
+        "version": 1,
+        "recordedBy": "SIM-PREP",
+        "input": {
+          "type": "MECANISMO",
+          "status": "COMPROVADO_SIMULACAO",
+          "effectiveDate": "2027-06-30",
+          "justification": "Canal fictício para reclamações e registro de resposta",
+          "evidence": {
+            "id": "SIM-MECANISMO",
+            "version": 1
+          }
+        }
+      },
+      {
+        "id": "c176e260-b32c-486b-aa5b-13f121e66ba0",
+        "version": 1,
+        "recordedBy": "SIM-PREP",
+        "input": {
+          "type": "ESG",
+          "status": "COMPROVADO_SIMULACAO",
+          "effectiveDate": "2027-06-30",
+          "justification": "Avaliação sintética de riscos e mitigação",
+          "evidence": {
+            "id": "SIM-ESG",
+            "version": 1
+          }
+        }
+      },
+      {
+        "id": "7ad24680-5129-4c7b-ab11-e024ecb83d73",
+        "version": 1,
+        "recordedBy": "SIM-PREP",
+        "input": {
+          "type": "FPIC",
+          "status": "NAO_APLICAVEL_JUSTIFICADO",
+          "effectiveDate": "2027-06-30",
+          "justification": "Pátio existente sintético, sem grupo ou território afetado identificado",
+          "evidence": {
+            "id": "SIM-FPIC",
+            "version": 1
+          }
+        }
+      },
+      {
+        "id": "0bd36abb-f474-43a3-a7ce-dcf0e10e6d9f",
+        "version": 1,
+        "recordedBy": "SIM-PREP",
+        "input": {
+          "type": "REPARTICAO",
+          "status": "NAO_APLICAVEL_JUSTIFICADO",
+          "effectiveDate": "2027-06-30",
+          "justification": "Nenhum beneficiário ou direito coletivo identificado na hipótese",
+          "evidence": {
+            "id": "SIM-REPARTICAO",
+            "version": 1
+          }
+        }
+      },
+      {
+        "id": "5a514bf2-9c83-4164-a103-97b5c01c6776",
+        "version": 1,
+        "recordedBy": "SIM-PP",
+        "input": {
+          "type": "DIREITOS",
+          "status": "COMPROVADO_SIMULACAO",
+          "effectiveDate": "2027-06-30",
+          "justification": "ORG-SYN-001 · Operação do pátio e titularidade das reduções da frota · 2032-10-01",
+          "evidence": {
+            "id": "SIM-DIREITOS",
+            "version": 1
+          }
+        }
+      },
+      {
+        "id": "4b42c08f-11fa-4a78-aaaa-464aad08c4b5",
+        "version": 1,
+        "recordedBy": "SIM-PP",
+        "input": {
+          "type": "EXCEDENTE",
+          "status": "COMPROVADO_SIMULACAO",
+          "effectiveDate": "2027-06-30",
+          "justification": "BR/DF · Hipótese de ausência de obrigação regulatória no cenário sintético",
+          "evidence": {
+            "id": "SIM-EXCEDENTE",
+            "version": 1
+          }
+        }
+      },
+      {
+        "id": "ff0e1502-5e2a-4844-a0af-b3f3b9a5c9d1",
+        "version": 1,
+        "recordedBy": "SIM-PP",
+        "input": {
+          "type": "SOBREPOSICAO",
+          "status": "COMPROVADO_SIMULACAO",
+          "effectiveDate": "2027-06-30",
+          "justification": "Pesquisa fictícia por pátio, carregadores e frota; sem sobreposição no cenário",
+          "evidence": {
+            "id": "SIM-SOBREPOSICAO",
+            "version": 1
+          }
+        }
+      }
+    ],
+    "commitment": {
+      "date": "2027-07-15",
+      "evidence": {
+        "id": "SIM-COMPRA-DCFC",
+        "version": 1
+      },
+      "recordedBy": "SIM-PP",
+      "priorRecords": [
+        "968196b4-aa2f-408b-ab80-d8751156157b",
+        "8d3bb464-85db-4e9c-9aa0-26d3aea0306a",
+        "c176e260-b32c-486b-aa5b-13f121e66ba0",
+        "7ad24680-5129-4c7b-ab11-e024ecb83d73",
+        "0bd36abb-f474-43a3-a7ce-dcf0e10e6d9f"
+      ]
+    },
+    "operation": {
+      "start": "2027-10-01",
+      "creditStart": "2027-10-01",
+      "creditEndInclusive": "2032-09-30",
+      "evidence": {
+        "id": "SIM-COMISSIONAMENTO",
+        "version": 1
+      },
+      "recordedBy": "SIM-OP",
+      "meterRevisions": [
+        "SIM-EC-01@1",
+        "SIM-EC-02@1"
+      ]
+    },
+    "meters": [
+      {
+        "circuit": "SIM-EC-01",
+        "revision": 1,
+        "predecessor": null,
+        "recordedBy": "SIM-OP",
+        "details": {
+          "meterId": "SIM-MED-01",
+          "effectiveFrom": "2027-10-01T03:00:00Z",
+          "upstream": true,
+          "exclusive": true,
+          "installation": {
+            "id": "SIM-MED-01-INSTALACAO",
+            "version": 1
+          },
+          "diagram": {
+            "id": "SIM-MED-01-DIAGRAMA",
+            "version": 1
+          },
+          "calibration": {
+            "id": "SIM-MED-01-CALIBRACAO",
+            "version": 1
+          }
+        },
+        "calibratedFrom": "2027-09-01T03:00:00Z",
+        "calibratedUntil": "2028-04-02T03:00:00Z"
+      },
+      {
+        "circuit": "SIM-EC-02",
+        "revision": 1,
+        "predecessor": null,
+        "recordedBy": "SIM-OP",
+        "details": {
+          "meterId": "SIM-MED-02",
+          "effectiveFrom": "2027-10-01T03:00:00Z",
+          "upstream": true,
+          "exclusive": true,
+          "installation": {
+            "id": "SIM-MED-02-INSTALACAO",
+            "version": 1
+          },
+          "diagram": {
+            "id": "SIM-MED-02-DIAGRAMA",
+            "version": 1
+          },
+          "calibration": {
+            "id": "SIM-MED-02-CALIBRACAO",
+            "version": 1
+          }
+        },
+        "calibratedFrom": "2027-09-01T03:00:00Z",
+        "calibratedUntil": "2029-10-01T03:00:00Z"
+      },
+      {
+        "circuit": "SIM-EC-01",
+        "revision": 2,
+        "predecessor": 1,
+        "recordedBy": "SIM-OP",
+        "details": {
+          "meterId": "SIM-MED-03",
+          "effectiveFrom": "2028-04-01T03:00:00Z",
+          "upstream": true,
+          "exclusive": true,
+          "installation": {
+            "id": "SIM-MED-03-INSTALACAO",
+            "version": 1
+          },
+          "diagram": {
+            "id": "SIM-MED-03-DIAGRAMA",
+            "version": 1
+          },
+          "calibration": {
+            "id": "SIM-MED-03-CALIBRACAO",
+            "version": 1
+          }
+        },
+        "calibratedFrom": "2028-03-28T03:00:00Z",
+        "calibratedUntil": "2028-10-01T03:00:00Z"
+      }
+    ]
+  },
+  "meterWindows": [
+    {
+      "revision": {
+        "circuit": "SIM-EC-01",
+        "revision": 1,
+        "predecessor": null,
+        "recordedBy": "SIM-OP",
+        "details": {
+          "meterId": "SIM-MED-01",
+          "effectiveFrom": "2027-10-01T03:00:00Z",
+          "upstream": true,
+          "exclusive": true,
+          "installation": {
+            "id": "SIM-MED-01-INSTALACAO",
+            "version": 1
+          },
+          "diagram": {
+            "id": "SIM-MED-01-DIAGRAMA",
+            "version": 1
+          },
+          "calibration": {
+            "id": "SIM-MED-01-CALIBRACAO",
+            "version": 1
+          }
+        },
+        "calibratedFrom": "2027-09-01T03:00:00Z",
+        "calibratedUntil": "2028-04-02T03:00:00Z"
+      },
+      "effectiveUntilExclusive": "2028-04-01T03:00:00Z"
+    },
+    {
+      "revision": {
+        "circuit": "SIM-EC-02",
+        "revision": 1,
+        "predecessor": null,
+        "recordedBy": "SIM-OP",
+        "details": {
+          "meterId": "SIM-MED-02",
+          "effectiveFrom": "2027-10-01T03:00:00Z",
+          "upstream": true,
+          "exclusive": true,
+          "installation": {
+            "id": "SIM-MED-02-INSTALACAO",
+            "version": 1
+          },
+          "diagram": {
+            "id": "SIM-MED-02-DIAGRAMA",
+            "version": 1
+          },
+          "calibration": {
+            "id": "SIM-MED-02-CALIBRACAO",
+            "version": 1
+          }
+        },
+        "calibratedFrom": "2027-09-01T03:00:00Z",
+        "calibratedUntil": "2029-10-01T03:00:00Z"
+      },
+      "effectiveUntilExclusive": null
+    },
+    {
+      "revision": {
+        "circuit": "SIM-EC-01",
+        "revision": 2,
+        "predecessor": 1,
+        "recordedBy": "SIM-OP",
+        "details": {
+          "meterId": "SIM-MED-03",
+          "effectiveFrom": "2028-04-01T03:00:00Z",
+          "upstream": true,
+          "exclusive": true,
+          "installation": {
+            "id": "SIM-MED-03-INSTALACAO",
+            "version": 1
+          },
+          "diagram": {
+            "id": "SIM-MED-03-DIAGRAMA",
+            "version": 1
+          },
+          "calibration": {
+            "id": "SIM-MED-03-CALIBRACAO",
+            "version": 1
+          }
+        },
+        "calibratedFrom": "2028-03-28T03:00:00Z",
+        "calibratedUntil": "2028-10-01T03:00:00Z"
+      },
+      "effectiveUntilExclusive": null
+    }
+  ],
+  "readings": [
+    {
+      "raw": {
+        "originId": "SIM-LEITURA-85FB2960-CBDD-485D-9238-B69347C17EF1",
+        "circuit": "SIM-EC-01",
+        "meterId": "SIM-MED-01",
+        "start": "2028-03-31T23:30:00-03:00",
+        "endExclusive": "2028-04-01T00:30:00-03:00",
+        "kwh": "12.50",
+        "evidence": {
+          "id": "SIM-MED-01-LEITURA",
+          "version": 1
+        }
+      },
+      "state": "PENDENTE",
+      "reasons": [
+        {
+          "code": "REVISAO_SEM_COBERTURA",
+          "rule": "CAM-E4-0303",
+          "message": "O medidor e sua revisão não cobrem todo o intervalo. Confira a troca ou a origem."
+        }
+      ],
+      "configurationVersion": 16,
+      "meterRevision": null,
+      "eventId": "73574683-f80b-441f-9514-b6f609e51c2c"
+    }
+  ],
+  "realUseBlockers": [
+    {
+      "code": "PEN-002/012",
+      "rule": "CAM-E4-0208",
+      "message": "Revalidar edição, datas, canal e dados reais por ato e vintage."
+    },
+    {
+      "code": "PEN-003/005",
+      "rule": "REG-E2-07/11",
+      "message": "Validar linha de base, OM/EF, amostra ED/EC autorizada, metrologia e cobertura."
+    },
+    {
+      "code": "PEN-004",
+      "rule": "REG-E2-04",
+      "message": "Comprovar titularidade e excluir sobreposição de direitos e créditos."
+    },
+    {
+      "code": "PEN-010",
+      "rule": "REG-E2-03",
+      "message": "Comprovar excedente regulatório, licenças e condições locais."
+    },
+    {
+      "code": "PEN-011",
+      "rule": "REG-E2-20",
+      "message": "Confirmar representação, geodados, V5#89, VVB, ramos, frações e posição aplicáveis."
+    }
+  ]
+}

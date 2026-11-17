@@ -1,0 +1,883 @@
+{
+  "reference": {
+    "M1": {
+      "run": {
+        "id": "82350bea-f879-42ef-817f-65439184a04e",
+        "version": 3,
+        "state": "CALCULADA",
+        "period": "M1",
+        "selectionId": "fe0a1ab6-7818-436e-bedd-720dfd56c6a0",
+        "configurationVersion": 1,
+        "proposedBy": "SIM-PREP",
+        "proposedAt": "2026-11-16T04:38:54.402222Z",
+        "proposeEvent": "20b5bf09-49ed-4f62-ace1-da200f8f4f1d",
+        "reviewedBy": "SIM-REV",
+        "reviewEvent": "c060e4d8-a884-463d-a17b-f775876f74c3",
+        "snapshotSha256": "c87d4a30684ef6d3eccb14bc60c796a9af2780fb1ec0a4883b61bd53cf83f5a4",
+        "result": {
+          "status": "CALCULADA",
+          "factorPerMwh": "0.30",
+          "factorPerKwh": "0.0003",
+          "factorConversion": "EF tCO₂/MWh ÷ 1.000 = EF tCO₂/kWh",
+          "afec": "20",
+          "mpg": "30",
+          "evrTotal": 20,
+          "dy": "1",
+          "removal": "0",
+          "emissionsUnit": "tCO2e",
+          "rules": "CAL-E2-01–07 e conversão CAL-E2-09; OM ex ante de referência sintética",
+          "cuts": [
+            {
+              "start": "2027-10-01",
+              "endExclusive": "2028-01-01",
+              "vintage": 2027,
+              "inputs": {
+                "start": "2027-10-01",
+                "endExclusive": "2028-01-01",
+                "edKwh": "2700",
+                "ecKwh": "3000",
+                "edCount": 1,
+                "ecCount": 1
+              },
+              "emissions": {
+                "be": "2.7",
+                "pe": "0.9",
+                "le": "0",
+                "er": "1.8",
+                "erDisplay": "1.80"
+              },
+              "status": "CALCULADA",
+              "comparison": {
+                "estimate": "1.80",
+                "actual": "1.8",
+                "difference": "0",
+                "magnitude": "0",
+                "percent": "0",
+                "note": "Comparativo com a estimativa sintética do kit."
+              }
+            },
+            {
+              "start": "2028-01-01",
+              "endExclusive": "2028-10-01",
+              "vintage": 2028,
+              "inputs": {
+                "start": "2028-01-01",
+                "endExclusive": "2028-10-01",
+                "edKwh": "6300",
+                "ecKwh": "7000",
+                "edCount": 1,
+                "ecCount": 1
+              },
+              "emissions": {
+                "be": "6.3",
+                "pe": "2.1",
+                "le": "0",
+                "er": "4.2",
+                "erDisplay": "4.20"
+              },
+              "status": "CALCULADA",
+              "comparison": {
+                "estimate": "4.20",
+                "actual": "4.2",
+                "difference": "0",
+                "magnitude": "0",
+                "percent": "0",
+                "note": "Comparativo com a estimativa sintética do kit."
+              }
+            }
+          ],
+          "totals": {
+            "be": "9",
+            "pe": "3",
+            "le": "0",
+            "er": "6",
+            "erDisplay": "6.00"
+          },
+          "comparison": {
+            "estimate": "6.00",
+            "actual": "6",
+            "difference": "0",
+            "magnitude": "0",
+            "percent": "0",
+            "note": "Comparativo com a estimativa sintética do kit."
+          },
+          "readyForClosing": false,
+          "coverageNote": "A seleção preserva as leituras admitidas. A cobertura integral e o fechamento pertencem à E8-006."
+        },
+        "resultEvent": "074ae6ab-eef7-4df1-aca1-760ef37cb000"
+      },
+      "snapshot": {
+        "format": "e8-005@1",
+        "engine": "vm0038-piloto-selecao@1",
+        "inputs": {
+          "environment": "SIMULACAO",
+          "project": "SIM-E8-004-c2d6942a-1056-47b7-9ba0-c14d047b7c2d",
+          "proposal": {
+            "period": "M1",
+            "selection": {
+              "id": "fe0a1ab6-7818-436e-bedd-720dfd56c6a0",
+              "version": 1
+            },
+            "baseline": {
+              "id": "BASE-SYN-LDV",
+              "version": 1
+            },
+            "factor": {
+              "id": "EF-SYN-v1",
+              "version": 1
+            },
+            "dy": {
+              "id": "SIM-DY-REDE-01",
+              "version": 1
+            }
+          },
+          "configurationVersion": 1,
+          "configurationEvent": "8e560037-7029-4bba-a2a7-628f9db5c415",
+          "selectionEvent": "88294e66-0750-41df-83d8-cddade70f9ed",
+          "tzdbVersion": "2026e",
+          "zone": "America/Sao_Paulo",
+          "provenance": {
+            "reference": {
+              "id": "E6-EXEMPLOS",
+              "version": 1
+            },
+            "kitVersion": "0.2.14",
+            "source": "03_especificacao/e6/exemplos.json",
+            "sourceSha256": "cd1dd2b7d9e72a989fc26fbfbf7682f6238ff47701524c25b3aa42d1cdb1e19b",
+            "variation": "ORIGINAL"
+          },
+          "method": {
+            "program": "VCS",
+            "ruleSet": "5.0",
+            "documentModel": "PD/MR 5.0B",
+            "package": "VM0038@1.1",
+            "dependencies": [
+              "VMD0049@1.1",
+              "VT0011@1.0",
+              "TOOL07@7.0"
+            ],
+            "profile": "BR-BEV-LDV-DCFC-FECHADO-SIN",
+            "discountProof": "SIM-DY-REDE-01"
+          },
+          "baseline": {
+            "reference": {
+              "id": "BASE-SYN-LDV",
+              "version": 1
+            },
+            "service": "Recarga de frota leve para serviço equivalente em Planaltina/DF",
+            "models": [
+              {
+                "inventoryModel": "SIM-MODELO-01",
+                "bev": "BEV sintético 1",
+                "comparable": "Comparável leve sintético 1",
+                "values": {
+                  "count": 12,
+                  "evKwhPer100Mi": "18",
+                  "mpg": "32"
+                }
+              },
+              {
+                "inventoryModel": "SIM-MODELO-02",
+                "bev": "BEV sintético 2",
+                "comparable": "Comparável leve sintético 2",
+                "values": {
+                  "count": 8,
+                  "evKwhPer100Mi": "23",
+                  "mpg": "27"
+                }
+              }
+            ],
+            "fossilFactorTco2PerUsGal": "0.006",
+            "ir": "1",
+            "fossilFuel": "Gasolina comercial sintética · um combustível",
+            "source": "03_especificacao/e6/exemplos.json"
+          },
+          "factor": {
+            "reference": {
+              "id": "EF-SYN-v1",
+              "version": 1
+            },
+            "value": "0.30",
+            "unit": "tCO2/MWh",
+            "grid": "SIN",
+            "sourceYears": [],
+            "sourceYearsNote": "O valor fixado na E6 é sintético e não deriva de séries anuais.",
+            "validFrom": "2027-10-01",
+            "validUntilExclusive": "2029-10-01",
+            "source": "03_especificacao/e6/exemplos.json",
+            "published": false,
+            "state": "FIXADO",
+            "reason": "Hipótese ex ante de referência do kit 0.2.14."
+          },
+          "discount": {
+            "reference": {
+              "id": "SIM-DY-REDE-01",
+              "version": 1
+            },
+            "branch": "EXCECAO_REDE_PRIVADA_FECHADA",
+            "dy": "1",
+            "reviewedCaseRecord": "02fa2594-6c3b-43e0-80d0-cb95afe5bb08",
+            "evidence": {
+              "id": "SIM-SOBREPOSICAO",
+              "version": 1
+            },
+            "source": "03_especificacao/e6/exemplos.json"
+          },
+          "estimate": {
+            "id": "M1",
+            "year": 1,
+            "start": "2027-10-01",
+            "endExclusive": "2028-10-01",
+            "endInclusive": "2028-09-30",
+            "cuts": [
+              {
+                "vintage": 2027,
+                "start": "2027-10-01",
+                "endExclusive": "2028-01-01",
+                "endInclusive": "2027-12-31",
+                "edKwh": "2700",
+                "ecKwh": "3000",
+                "emissions": {
+                  "be": "2.7",
+                  "pe": "0.9",
+                  "le": "0",
+                  "er": "1.8",
+                  "erDisplay": "1.80"
+                }
+              },
+              {
+                "vintage": 2028,
+                "start": "2028-01-01",
+                "endExclusive": "2028-10-01",
+                "endInclusive": "2028-09-30",
+                "edKwh": "6300",
+                "ecKwh": "7000",
+                "emissions": {
+                  "be": "6.3",
+                  "pe": "2.1",
+                  "le": "0",
+                  "er": "4.2",
+                  "erDisplay": "4.20"
+                }
+              }
+            ],
+            "emissions": {
+              "be": "9",
+              "pe": "3",
+              "le": "0",
+              "er": "6",
+              "erDisplay": "6.00"
+            }
+          }
+        },
+        "observations": 4,
+        "observationsSha256": "ae171d14d7c39523b234ba42d0323b26a8869d1bd1dc2feff8c684043fe2fa59",
+        "cuts": [
+          {
+            "start": "2027-10-01",
+            "endExclusive": "2028-01-01",
+            "edKwh": "2700",
+            "ecKwh": "3000",
+            "edCount": 1,
+            "ecCount": 1
+          },
+          {
+            "start": "2028-01-01",
+            "endExclusive": "2028-10-01",
+            "edKwh": "6300",
+            "ecKwh": "7000",
+            "edCount": 1,
+            "ecCount": 1
+          }
+        ]
+      },
+      "reexecution": {
+        "snapshotSha256": "c87d4a30684ef6d3eccb14bc60c796a9af2780fb1ec0a4883b61bd53cf83f5a4",
+        "matches": true,
+        "result": {
+          "status": "CALCULADA",
+          "factorPerMwh": "0.30",
+          "factorPerKwh": "0.0003",
+          "factorConversion": "EF tCO₂/MWh ÷ 1.000 = EF tCO₂/kWh",
+          "afec": "20",
+          "mpg": "30",
+          "evrTotal": 20,
+          "dy": "1",
+          "removal": "0",
+          "emissionsUnit": "tCO2e",
+          "rules": "CAL-E2-01–07 e conversão CAL-E2-09; OM ex ante de referência sintética",
+          "cuts": [
+            {
+              "start": "2027-10-01",
+              "endExclusive": "2028-01-01",
+              "vintage": 2027,
+              "inputs": {
+                "start": "2027-10-01",
+                "endExclusive": "2028-01-01",
+                "edKwh": "2700",
+                "ecKwh": "3000",
+                "edCount": 1,
+                "ecCount": 1
+              },
+              "emissions": {
+                "be": "2.7",
+                "pe": "0.9",
+                "le": "0",
+                "er": "1.8",
+                "erDisplay": "1.80"
+              },
+              "status": "CALCULADA",
+              "comparison": {
+                "estimate": "1.80",
+                "actual": "1.8",
+                "difference": "0",
+                "magnitude": "0",
+                "percent": "0",
+                "note": "Comparativo com a estimativa sintética do kit."
+              }
+            },
+            {
+              "start": "2028-01-01",
+              "endExclusive": "2028-10-01",
+              "vintage": 2028,
+              "inputs": {
+                "start": "2028-01-01",
+                "endExclusive": "2028-10-01",
+                "edKwh": "6300",
+                "ecKwh": "7000",
+                "edCount": 1,
+                "ecCount": 1
+              },
+              "emissions": {
+                "be": "6.3",
+                "pe": "2.1",
+                "le": "0",
+                "er": "4.2",
+                "erDisplay": "4.20"
+              },
+              "status": "CALCULADA",
+              "comparison": {
+                "estimate": "4.20",
+                "actual": "4.2",
+                "difference": "0",
+                "magnitude": "0",
+                "percent": "0",
+                "note": "Comparativo com a estimativa sintética do kit."
+              }
+            }
+          ],
+          "totals": {
+            "be": "9",
+            "pe": "3",
+            "le": "0",
+            "er": "6",
+            "erDisplay": "6.00"
+          },
+          "comparison": {
+            "estimate": "6.00",
+            "actual": "6",
+            "difference": "0",
+            "magnitude": "0",
+            "percent": "0",
+            "note": "Comparativo com a estimativa sintética do kit."
+          },
+          "readyForClosing": false,
+          "coverageNote": "A seleção preserva as leituras admitidas. A cobertura integral e o fechamento pertencem à E8-006."
+        },
+        "eventId": "2a1c269f-05bb-47c4-b110-061f339cf611"
+      }
+    },
+    "M2": {
+      "run": {
+        "id": "4dd659c2-4070-4b68-98c6-d574210e7f2c",
+        "version": 3,
+        "state": "CALCULADA",
+        "period": "M2",
+        "selectionId": "6ee1d135-979b-4d39-95a2-01faee3c4f3f",
+        "configurationVersion": 1,
+        "proposedBy": "SIM-PREP",
+        "proposedAt": "2026-11-16T04:38:55.424039Z",
+        "proposeEvent": "c165949f-a80a-4815-b7ed-512f1737db03",
+        "reviewedBy": "SIM-REV",
+        "reviewEvent": "fa46d21b-73b5-40ca-8d1b-cba7becd1723",
+        "snapshotSha256": "be8116857a2003d7ac62e8cba5009d737aa939f3980fd602670d9912b36f7c1f",
+        "result": {
+          "status": "CALCULADA",
+          "factorPerMwh": "0.30",
+          "factorPerKwh": "0.0003",
+          "factorConversion": "EF tCO₂/MWh ÷ 1.000 = EF tCO₂/kWh",
+          "afec": "20",
+          "mpg": "30",
+          "evrTotal": 20,
+          "dy": "1",
+          "removal": "0",
+          "emissionsUnit": "tCO2e",
+          "rules": "CAL-E2-01–07 e conversão CAL-E2-09; OM ex ante de referência sintética",
+          "cuts": [
+            {
+              "start": "2028-10-01",
+              "endExclusive": "2029-01-01",
+              "vintage": 2028,
+              "inputs": {
+                "start": "2028-10-01",
+                "endExclusive": "2029-01-01",
+                "edKwh": "1800",
+                "ecKwh": "2200",
+                "edCount": 1,
+                "ecCount": 1
+              },
+              "emissions": {
+                "be": "1.8",
+                "pe": "0.66",
+                "le": "0",
+                "er": "1.14",
+                "erDisplay": "1.14"
+              },
+              "status": "CALCULADA",
+              "comparison": {
+                "estimate": "1.14",
+                "actual": "1.14",
+                "difference": "0",
+                "magnitude": "0",
+                "percent": "0",
+                "note": "Comparativo com a estimativa sintética do kit."
+              }
+            },
+            {
+              "start": "2029-01-01",
+              "endExclusive": "2029-10-01",
+              "vintage": 2029,
+              "inputs": {
+                "start": "2029-01-01",
+                "endExclusive": "2029-10-01",
+                "edKwh": "6200",
+                "ecKwh": "6800",
+                "edCount": 1,
+                "ecCount": 1
+              },
+              "emissions": {
+                "be": "6.2",
+                "pe": "2.04",
+                "le": "0",
+                "er": "4.16",
+                "erDisplay": "4.16"
+              },
+              "status": "CALCULADA",
+              "comparison": {
+                "estimate": "4.16",
+                "actual": "4.16",
+                "difference": "0",
+                "magnitude": "0",
+                "percent": "0",
+                "note": "Comparativo com a estimativa sintética do kit."
+              }
+            }
+          ],
+          "totals": {
+            "be": "8",
+            "pe": "2.7",
+            "le": "0",
+            "er": "5.3",
+            "erDisplay": "5.30"
+          },
+          "comparison": {
+            "estimate": "5.30",
+            "actual": "5.3",
+            "difference": "0",
+            "magnitude": "0",
+            "percent": "0",
+            "note": "Comparativo com a estimativa sintética do kit."
+          },
+          "readyForClosing": false,
+          "coverageNote": "A seleção preserva as leituras admitidas. A cobertura integral e o fechamento pertencem à E8-006."
+        },
+        "resultEvent": "df8aa5a5-e439-4a82-b2c7-c5f9fdd10687"
+      },
+      "snapshot": {
+        "format": "e8-005@1",
+        "engine": "vm0038-piloto-selecao@1",
+        "inputs": {
+          "environment": "SIMULACAO",
+          "project": "SIM-E8-004-c2d6942a-1056-47b7-9ba0-c14d047b7c2d",
+          "proposal": {
+            "period": "M2",
+            "selection": {
+              "id": "6ee1d135-979b-4d39-95a2-01faee3c4f3f",
+              "version": 1
+            },
+            "baseline": {
+              "id": "BASE-SYN-LDV",
+              "version": 1
+            },
+            "factor": {
+              "id": "EF-SYN-v1",
+              "version": 1
+            },
+            "dy": {
+              "id": "SIM-DY-REDE-01",
+              "version": 1
+            }
+          },
+          "configurationVersion": 1,
+          "configurationEvent": "8e560037-7029-4bba-a2a7-628f9db5c415",
+          "selectionEvent": "073eb084-e0a8-48cb-9550-4fdf712d5680",
+          "tzdbVersion": "2026e",
+          "zone": "America/Sao_Paulo",
+          "provenance": {
+            "reference": {
+              "id": "E6-EXEMPLOS",
+              "version": 1
+            },
+            "kitVersion": "0.2.14",
+            "source": "03_especificacao/e6/exemplos.json",
+            "sourceSha256": "cd1dd2b7d9e72a989fc26fbfbf7682f6238ff47701524c25b3aa42d1cdb1e19b",
+            "variation": "ORIGINAL"
+          },
+          "method": {
+            "program": "VCS",
+            "ruleSet": "5.0",
+            "documentModel": "PD/MR 5.0B",
+            "package": "VM0038@1.1",
+            "dependencies": [
+              "VMD0049@1.1",
+              "VT0011@1.0",
+              "TOOL07@7.0"
+            ],
+            "profile": "BR-BEV-LDV-DCFC-FECHADO-SIN",
+            "discountProof": "SIM-DY-REDE-01"
+          },
+          "baseline": {
+            "reference": {
+              "id": "BASE-SYN-LDV",
+              "version": 1
+            },
+            "service": "Recarga de frota leve para serviço equivalente em Planaltina/DF",
+            "models": [
+              {
+                "inventoryModel": "SIM-MODELO-01",
+                "bev": "BEV sintético 1",
+                "comparable": "Comparável leve sintético 1",
+                "values": {
+                  "count": 12,
+                  "evKwhPer100Mi": "18",
+                  "mpg": "32"
+                }
+              },
+              {
+                "inventoryModel": "SIM-MODELO-02",
+                "bev": "BEV sintético 2",
+                "comparable": "Comparável leve sintético 2",
+                "values": {
+                  "count": 8,
+                  "evKwhPer100Mi": "23",
+                  "mpg": "27"
+                }
+              }
+            ],
+            "fossilFactorTco2PerUsGal": "0.006",
+            "ir": "1",
+            "fossilFuel": "Gasolina comercial sintética · um combustível",
+            "source": "03_especificacao/e6/exemplos.json"
+          },
+          "factor": {
+            "reference": {
+              "id": "EF-SYN-v1",
+              "version": 1
+            },
+            "value": "0.30",
+            "unit": "tCO2/MWh",
+            "grid": "SIN",
+            "sourceYears": [],
+            "sourceYearsNote": "O valor fixado na E6 é sintético e não deriva de séries anuais.",
+            "validFrom": "2027-10-01",
+            "validUntilExclusive": "2029-10-01",
+            "source": "03_especificacao/e6/exemplos.json",
+            "published": false,
+            "state": "FIXADO",
+            "reason": "Hipótese ex ante de referência do kit 0.2.14."
+          },
+          "discount": {
+            "reference": {
+              "id": "SIM-DY-REDE-01",
+              "version": 1
+            },
+            "branch": "EXCECAO_REDE_PRIVADA_FECHADA",
+            "dy": "1",
+            "reviewedCaseRecord": "02fa2594-6c3b-43e0-80d0-cb95afe5bb08",
+            "evidence": {
+              "id": "SIM-SOBREPOSICAO",
+              "version": 1
+            },
+            "source": "03_especificacao/e6/exemplos.json"
+          },
+          "estimate": {
+            "id": "M2",
+            "year": 2,
+            "start": "2028-10-01",
+            "endExclusive": "2029-10-01",
+            "endInclusive": "2029-09-30",
+            "cuts": [
+              {
+                "vintage": 2028,
+                "start": "2028-10-01",
+                "endExclusive": "2029-01-01",
+                "endInclusive": "2028-12-31",
+                "edKwh": "1800",
+                "ecKwh": "2200",
+                "emissions": {
+                  "be": "1.8",
+                  "pe": "0.66",
+                  "le": "0",
+                  "er": "1.14",
+                  "erDisplay": "1.14"
+                }
+              },
+              {
+                "vintage": 2029,
+                "start": "2029-01-01",
+                "endExclusive": "2029-10-01",
+                "endInclusive": "2029-09-30",
+                "edKwh": "6200",
+                "ecKwh": "6800",
+                "emissions": {
+                  "be": "6.2",
+                  "pe": "2.04",
+                  "le": "0",
+                  "er": "4.16",
+                  "erDisplay": "4.16"
+                }
+              }
+            ],
+            "emissions": {
+              "be": "8",
+              "pe": "2.7",
+              "le": "0",
+              "er": "5.3",
+              "erDisplay": "5.30"
+            }
+          }
+        },
+        "observations": 4,
+        "observationsSha256": "2bc60ef156739d171f08c55985f0f2009371dedc5ee1cd2ce2583b265ac8a08c",
+        "cuts": [
+          {
+            "start": "2028-10-01",
+            "endExclusive": "2029-01-01",
+            "edKwh": "1800",
+            "ecKwh": "2200",
+            "edCount": 1,
+            "ecCount": 1
+          },
+          {
+            "start": "2029-01-01",
+            "endExclusive": "2029-10-01",
+            "edKwh": "6200",
+            "ecKwh": "6800",
+            "edCount": 1,
+            "ecCount": 1
+          }
+        ]
+      },
+      "reexecution": {
+        "snapshotSha256": "be8116857a2003d7ac62e8cba5009d737aa939f3980fd602670d9912b36f7c1f",
+        "matches": true,
+        "result": {
+          "status": "CALCULADA",
+          "factorPerMwh": "0.30",
+          "factorPerKwh": "0.0003",
+          "factorConversion": "EF tCO₂/MWh ÷ 1.000 = EF tCO₂/kWh",
+          "afec": "20",
+          "mpg": "30",
+          "evrTotal": 20,
+          "dy": "1",
+          "removal": "0",
+          "emissionsUnit": "tCO2e",
+          "rules": "CAL-E2-01–07 e conversão CAL-E2-09; OM ex ante de referência sintética",
+          "cuts": [
+            {
+              "start": "2028-10-01",
+              "endExclusive": "2029-01-01",
+              "vintage": 2028,
+              "inputs": {
+                "start": "2028-10-01",
+                "endExclusive": "2029-01-01",
+                "edKwh": "1800",
+                "ecKwh": "2200",
+                "edCount": 1,
+                "ecCount": 1
+              },
+              "emissions": {
+                "be": "1.8",
+                "pe": "0.66",
+                "le": "0",
+                "er": "1.14",
+                "erDisplay": "1.14"
+              },
+              "status": "CALCULADA",
+              "comparison": {
+                "estimate": "1.14",
+                "actual": "1.14",
+                "difference": "0",
+                "magnitude": "0",
+                "percent": "0",
+                "note": "Comparativo com a estimativa sintética do kit."
+              }
+            },
+            {
+              "start": "2029-01-01",
+              "endExclusive": "2029-10-01",
+              "vintage": 2029,
+              "inputs": {
+                "start": "2029-01-01",
+                "endExclusive": "2029-10-01",
+                "edKwh": "6200",
+                "ecKwh": "6800",
+                "edCount": 1,
+                "ecCount": 1
+              },
+              "emissions": {
+                "be": "6.2",
+                "pe": "2.04",
+                "le": "0",
+                "er": "4.16",
+                "erDisplay": "4.16"
+              },
+              "status": "CALCULADA",
+              "comparison": {
+                "estimate": "4.16",
+                "actual": "4.16",
+                "difference": "0",
+                "magnitude": "0",
+                "percent": "0",
+                "note": "Comparativo com a estimativa sintética do kit."
+              }
+            }
+          ],
+          "totals": {
+            "be": "8",
+            "pe": "2.7",
+            "le": "0",
+            "er": "5.3",
+            "erDisplay": "5.30"
+          },
+          "comparison": {
+            "estimate": "5.30",
+            "actual": "5.3",
+            "difference": "0",
+            "magnitude": "0",
+            "percent": "0",
+            "note": "Comparativo com a estimativa sintética do kit."
+          },
+          "readyForClosing": false,
+          "coverageNote": "A seleção preserva as leituras admitidas. A cobertura integral e o fechamento pertencem à E8-006."
+        },
+        "eventId": "aa6d96f7-aab1-4748-8af8-623affd1af0c"
+      }
+    }
+  },
+  "partialBrowserRun": {
+    "id": "b5fb64ac-5cc5-4460-a653-da36e2ea9aac",
+    "version": 3,
+    "state": "COM_LACUNAS",
+    "period": "M1",
+    "selectionId": "783088e5-18e7-4017-9cf9-43b166845a9e",
+    "configurationVersion": 16,
+    "proposedBy": "SIM-PREP",
+    "proposedAt": "2026-11-16T04:39:41.990067Z",
+    "proposeEvent": "e82b8538-d60a-46cf-bb15-fd52662f39d1",
+    "reviewedBy": "SIM-REV",
+    "reviewEvent": "e8d86c7c-9f55-4304-8c6d-e85a6ad93001",
+    "snapshotSha256": "f7c662fd2833017ebceceb0a49035ac21712881b584882aa4564381aeb6f503a",
+    "result": {
+      "status": "COM_LACUNAS",
+      "factorPerMwh": "0.30",
+      "factorPerKwh": "0.0003",
+      "factorConversion": "EF tCO₂/MWh ÷ 1.000 = EF tCO₂/kWh",
+      "afec": "20",
+      "mpg": "30",
+      "evrTotal": 20,
+      "dy": "1",
+      "removal": "0",
+      "emissionsUnit": "tCO2e",
+      "rules": "CAL-E2-01–07 e conversão CAL-E2-09; OM ex ante de referência sintética",
+      "cuts": [
+        {
+          "start": "2027-10-01",
+          "endExclusive": "2028-01-01",
+          "vintage": 2027,
+          "inputs": {
+            "start": "2027-10-01",
+            "endExclusive": "2028-01-01",
+            "edKwh": null,
+            "ecKwh": null,
+            "edCount": 0,
+            "ecCount": 0
+          },
+          "emissions": {
+            "be": null,
+            "pe": null,
+            "le": "0",
+            "er": null,
+            "erDisplay": null
+          },
+          "status": "COM_LACUNAS",
+          "comparison": {
+            "estimate": "1.80",
+            "actual": null,
+            "difference": null,
+            "magnitude": null,
+            "percent": null,
+            "note": "Recorte sem ED ou EC suficiente para comparar."
+          }
+        },
+        {
+          "start": "2028-01-01",
+          "endExclusive": "2028-10-01",
+          "vintage": 2028,
+          "inputs": {
+            "start": "2028-01-01",
+            "endExclusive": "2028-10-01",
+            "edKwh": null,
+            "ecKwh": "30",
+            "edCount": 0,
+            "ecCount": 1
+          },
+          "emissions": {
+            "be": null,
+            "pe": "0.009",
+            "le": "0",
+            "er": null,
+            "erDisplay": null
+          },
+          "status": "COM_LACUNAS",
+          "comparison": {
+            "estimate": "4.20",
+            "actual": null,
+            "difference": null,
+            "magnitude": null,
+            "percent": null,
+            "note": "Recorte sem ED ou EC suficiente para comparar."
+          }
+        }
+      ],
+      "totals": {
+        "be": null,
+        "pe": null,
+        "le": "0",
+        "er": null,
+        "erDisplay": null
+      },
+      "comparison": {
+        "estimate": "6.00",
+        "actual": null,
+        "difference": null,
+        "magnitude": null,
+        "percent": null,
+        "note": "Recorte sem ED ou EC suficiente para comparar."
+      },
+      "readyForClosing": false,
+      "coverageNote": "A seleção preserva as leituras admitidas. A cobertura integral e o fechamento pertencem à E8-006."
+    },
+    "resultEvent": "ffa8d577-5803-4d4b-8567-450b83ece3ab"
+  }
+}

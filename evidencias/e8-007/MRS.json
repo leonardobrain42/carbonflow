@@ -1,0 +1,323 @@
+[ {
+  "format" : "e8-007@1",
+  "environment" : "SIMULACAO",
+  "externalUse" : "BLOCKED",
+  "project" : "SIM-E8-004-65c24e9a-7994-4cc6-aafa-dd89be6e9773",
+  "dossier" : {
+    "id" : "8c2780bc-ef90-4ce7-a211-35a7e7b230fd",
+    "revision" : 1
+  },
+  "predecessor" : null,
+  "act" : "VERIFICACAO",
+  "actDate" : "2028-12-01",
+  "checklist" : "PKG-E4-04",
+  "exposure" : "RESERVADA",
+  "edition" : "LIMPA",
+  "language" : "en",
+  "template" : {
+    "sourceSha256" : "2ae00a038045938bc83787048b6a5376ee4609ed778951955bbe2fc30b50911d",
+    "source" : "SRC-007_MR_v5.0B.docx",
+    "edition" : "5.0B"
+  },
+  "retentionFloor" : "2034-09-30",
+  "preparedBy" : "SIM-PREP",
+  "reviewedBy" : "SIM-REV",
+  "reviewedAt" : "2026-11-16T15:47:26.196205073Z",
+  "forecast" : {
+    "reference" : {
+      "id" : "E6-EXEMPLOS",
+      "version" : 1
+    },
+    "kitVersion" : "0.2.14",
+    "source" : "03_especificacao/e6/exemplos.json",
+    "sourceSha256" : "cd1dd2b7d9e72a989fc26fbfbf7682f6238ff47701524c25b3aa42d1cdb1e19b",
+    "variation" : "ORIGINAL"
+  },
+  "closure" : {
+    "period" : "M1",
+    "revision" : 1
+  },
+  "publicOmissions" : "Contact, rights and evidence details, signatures, review notes and operational records belong in reserved evidence.",
+  "review" : {
+    "actor" : "SIM-REV",
+    "at" : "2026-11-16T15:47:26.196205073Z",
+    "reason" : "Revisão sintética segregada",
+    "item" : "Mapa",
+    "responsible" : "PREP",
+    "expectedCorrection" : "Conferir o mapa da rodada.",
+    "event" : "711dc2fa-dfc5-4e0c-8deb-a8436cdcf2d8"
+  },
+  "configuration" : 3,
+  "configurationEvent" : "34bc6096-e477-4fa1-a250-38e435630f58",
+  "conditions" : [ {
+    "item" : "COMUNICACAO",
+    "reason" : "Checklist aplicável neste ensaio.",
+    "incidence" : "INCIDE",
+    "configuration" : 3,
+    "rule" : "PKG-E4-04"
+  }, {
+    "item" : "TRADUCAO",
+    "reason" : "Checklist aplicável neste ensaio.",
+    "incidence" : "INCIDE",
+    "configuration" : 3,
+    "rule" : "PKG-E4-04"
+  }, {
+    "item" : "GEODADOS_MR",
+    "reason" : "Checklist aplicável neste ensaio.",
+    "incidence" : "INCIDE",
+    "configuration" : 3,
+    "rule" : "PKG-E4-04"
+  } ],
+  "closureSha256" : "413fa504933f9726bd04b7bf1995c41522391ec315b0cff24b6ba11b4b1523ce",
+  "validatedPd" : {
+    "id" : "bd092fa7-945e-45df-9266-e25bc7f7a219",
+    "revision" : 1
+  },
+  "validatedPdSha256" : "889b6110e59c69c7e66e59fa7e1ae25b33b55b36d4f87710d160ab6e60dea0b3",
+  "files" : [ {
+    "filename" : "boundary.kml",
+    "mediaType" : "application/vnd.google-earth.kml+xml",
+    "language" : "en",
+    "exposure" : "RESERVADA",
+    "bytes" : 476,
+    "sha256" : "25c906074aa17b0d95dfa142946f47e237103b29d54b33715d0748eefa1fc288"
+  }, {
+    "filename" : "document.docx",
+    "mediaType" : "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "language" : "en",
+    "exposure" : "RESERVADA",
+    "bytes" : 3172,
+    "sha256" : "44c00f2dc91276b5f9b676962fa5598d3e4b5f9805960ea5de7927bd7e8f53dd"
+  }, {
+    "filename" : "evidence/calculation-snapshot.json",
+    "mediaType" : "application/json",
+    "language" : "en",
+    "exposure" : "RESERVADA",
+    "bytes" : 3217,
+    "sha256" : "4e5e8eaba0e272121e12ed2c2861e79703490acda42ade9199bd40c592bec681"
+  }, {
+    "filename" : "evidence/communications_agreement.json",
+    "mediaType" : "application/json",
+    "language" : "en",
+    "exposure" : "RESERVADA",
+    "bytes" : 315,
+    "sha256" : "da9cca511a4af4ab23506fc98e9b9aecbbabe86803f05d021973faf6658ed611"
+  }, {
+    "filename" : "evidence/esg_monitoring.json",
+    "mediaType" : "application/json",
+    "language" : "en",
+    "exposure" : "RESERVADA",
+    "bytes" : 298,
+    "sha256" : "65ae5918714aef36ed2e9cef79d3d61f4767147887f3c74e1e6b66d21384dbbc"
+  }, {
+    "filename" : "evidence/intake-records.json",
+    "mediaType" : "application/json",
+    "language" : "pt-BR",
+    "exposure" : "RESERVADA",
+    "bytes" : 2431,
+    "sha256" : "57e02ab170c41c33ac8f2d866cd991da24c2cf5c795bd35e0dffc76d80099d40"
+  }, {
+    "filename" : "evidence/issuance_representation.json",
+    "mediaType" : "application/json",
+    "language" : "en",
+    "exposure" : "RESERVADA",
+    "bytes" : 316,
+    "sha256" : "13e5f0359c011a03c63d8ba67817052c9612885c3e6a248019a02d08b14ba2b2"
+  }, {
+    "filename" : "evidence/monitoring-closure.json",
+    "mediaType" : "application/json",
+    "language" : "en",
+    "exposure" : "RESERVADA",
+    "bytes" : 2465,
+    "sha256" : "413fa504933f9726bd04b7bf1995c41522391ec315b0cff24b6ba11b4b1523ce"
+  }, {
+    "filename" : "evidence/translation_proof.json",
+    "mediaType" : "application/json",
+    "language" : "en",
+    "exposure" : "RESERVADA",
+    "bytes" : 301,
+    "sha256" : "ac6c885bafaba0b117ae6fb8e664ace42c8d3ee741bd8c7a347f0c09289a2f6b"
+  }, {
+    "filename" : "evidence/verification_report.json",
+    "mediaType" : "application/json",
+    "language" : "en",
+    "exposure" : "RESERVADA",
+    "bytes" : 315,
+    "sha256" : "3c6804c07f91e820aeb0b42786c96ab3078a1ea0b2bd98cacfa97f33c58b871d"
+  }, {
+    "filename" : "evidence/verification_representation.json",
+    "mediaType" : "application/json",
+    "language" : "en",
+    "exposure" : "RESERVADA",
+    "bytes" : 331,
+    "sha256" : "a760c3d785ba57317fa42201b0d153cc0106057494a014477fd1e9652a3b95f4"
+  }, {
+    "filename" : "evidence/visita.json",
+    "mediaType" : "application/json",
+    "language" : "en",
+    "exposure" : "RESERVADA",
+    "bytes" : 289,
+    "sha256" : "ee7e201f2b777058109920b5b73d163f7df553db882dde7e1a84f93d4f18c81e"
+  } ]
+}, {
+  "format" : "e8-007@1",
+  "environment" : "SIMULACAO",
+  "externalUse" : "BLOCKED",
+  "project" : "SIM-E8-004-65c24e9a-7994-4cc6-aafa-dd89be6e9773",
+  "dossier" : {
+    "id" : "48c911f0-f30d-4c6e-9dd5-6374ffba94f1",
+    "revision" : 1
+  },
+  "predecessor" : null,
+  "act" : "VERIFICACAO",
+  "actDate" : "2029-12-01",
+  "checklist" : "PKG-E4-04",
+  "exposure" : "RESERVADA",
+  "edition" : "LIMPA",
+  "language" : "en",
+  "template" : {
+    "sourceSha256" : "2ae00a038045938bc83787048b6a5376ee4609ed778951955bbe2fc30b50911d",
+    "source" : "SRC-007_MR_v5.0B.docx",
+    "edition" : "5.0B"
+  },
+  "retentionFloor" : "2034-09-30",
+  "preparedBy" : "SIM-PREP",
+  "reviewedBy" : "SIM-REV",
+  "reviewedAt" : "2026-11-16T15:47:26.962369593Z",
+  "forecast" : {
+    "reference" : {
+      "id" : "E6-EXEMPLOS",
+      "version" : 1
+    },
+    "kitVersion" : "0.2.14",
+    "source" : "03_especificacao/e6/exemplos.json",
+    "sourceSha256" : "cd1dd2b7d9e72a989fc26fbfbf7682f6238ff47701524c25b3aa42d1cdb1e19b",
+    "variation" : "ORIGINAL"
+  },
+  "closure" : {
+    "period" : "M2",
+    "revision" : 1
+  },
+  "publicOmissions" : "Contact, rights and evidence details, signatures, review notes and operational records belong in reserved evidence.",
+  "review" : {
+    "actor" : "SIM-REV",
+    "at" : "2026-11-16T15:47:26.962369593Z",
+    "reason" : "Revisão sintética segregada",
+    "item" : "Mapa",
+    "responsible" : "PREP",
+    "expectedCorrection" : "Conferir o mapa da rodada.",
+    "event" : "8606df32-e0d5-485d-91eb-9d20fb995ca3"
+  },
+  "configuration" : 3,
+  "configurationEvent" : "34bc6096-e477-4fa1-a250-38e435630f58",
+  "conditions" : [ {
+    "item" : "COMUNICACAO",
+    "reason" : "Checklist aplicável neste ensaio.",
+    "incidence" : "INCIDE",
+    "configuration" : 3,
+    "rule" : "PKG-E4-04"
+  }, {
+    "item" : "TRADUCAO",
+    "reason" : "Checklist aplicável neste ensaio.",
+    "incidence" : "INCIDE",
+    "configuration" : 3,
+    "rule" : "PKG-E4-04"
+  }, {
+    "item" : "GEODADOS_MR",
+    "reason" : "Checklist aplicável neste ensaio.",
+    "incidence" : "INCIDE",
+    "configuration" : 3,
+    "rule" : "PKG-E4-04"
+  } ],
+  "closureSha256" : "1d428c43bf9e61de9d6ee6101e3dafbdd7b115775a3ddb1d52e1411e757676d9",
+  "validatedPd" : {
+    "id" : "bd092fa7-945e-45df-9266-e25bc7f7a219",
+    "revision" : 1
+  },
+  "validatedPdSha256" : "889b6110e59c69c7e66e59fa7e1ae25b33b55b36d4f87710d160ab6e60dea0b3",
+  "files" : [ {
+    "filename" : "boundary.kml",
+    "mediaType" : "application/vnd.google-earth.kml+xml",
+    "language" : "en",
+    "exposure" : "RESERVADA",
+    "bytes" : 476,
+    "sha256" : "25c906074aa17b0d95dfa142946f47e237103b29d54b33715d0748eefa1fc288"
+  }, {
+    "filename" : "document.docx",
+    "mediaType" : "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "language" : "en",
+    "exposure" : "RESERVADA",
+    "bytes" : 3188,
+    "sha256" : "1372c5dce8ca39631eabeab025272651f43e95c3a055e66857263e1f30df1673"
+  }, {
+    "filename" : "evidence/calculation-snapshot.json",
+    "mediaType" : "application/json",
+    "language" : "en",
+    "exposure" : "RESERVADA",
+    "bytes" : 3225,
+    "sha256" : "9bc280e334dc242aa3dc11db2cdffaa99908672d272ce59bf6fda2a72c53cab1"
+  }, {
+    "filename" : "evidence/communications_agreement.json",
+    "mediaType" : "application/json",
+    "language" : "en",
+    "exposure" : "RESERVADA",
+    "bytes" : 315,
+    "sha256" : "f0982886b48fdeec5ef5dd81285a473db82c9922fe00d38707df9a897b31220e"
+  }, {
+    "filename" : "evidence/esg_monitoring.json",
+    "mediaType" : "application/json",
+    "language" : "en",
+    "exposure" : "RESERVADA",
+    "bytes" : 298,
+    "sha256" : "d024d3dec71a1ac171edbed3cb210fa3c0da9f60bae61138bfa5b7d3dd9f5133"
+  }, {
+    "filename" : "evidence/intake-records.json",
+    "mediaType" : "application/json",
+    "language" : "pt-BR",
+    "exposure" : "RESERVADA",
+    "bytes" : 2431,
+    "sha256" : "57e02ab170c41c33ac8f2d866cd991da24c2cf5c795bd35e0dffc76d80099d40"
+  }, {
+    "filename" : "evidence/issuance_representation.json",
+    "mediaType" : "application/json",
+    "language" : "en",
+    "exposure" : "RESERVADA",
+    "bytes" : 316,
+    "sha256" : "9faecc1e2a71111a15b57fa9bddd108843155e7c92381334d6332edd70b31d4f"
+  }, {
+    "filename" : "evidence/monitoring-closure.json",
+    "mediaType" : "application/json",
+    "language" : "en",
+    "exposure" : "RESERVADA",
+    "bytes" : 2477,
+    "sha256" : "1d428c43bf9e61de9d6ee6101e3dafbdd7b115775a3ddb1d52e1411e757676d9"
+  }, {
+    "filename" : "evidence/translation_proof.json",
+    "mediaType" : "application/json",
+    "language" : "en",
+    "exposure" : "RESERVADA",
+    "bytes" : 301,
+    "sha256" : "e2c6e6bea48715f42f69d09e2cbbc2abba39d1b0e1bb457fb7984c42a08808a4"
+  }, {
+    "filename" : "evidence/verification_report.json",
+    "mediaType" : "application/json",
+    "language" : "en",
+    "exposure" : "RESERVADA",
+    "bytes" : 315,
+    "sha256" : "7fedef25a066d9106ee5a8a5f3783118cb67213f3ac3b36448e28fb6069bc0a3"
+  }, {
+    "filename" : "evidence/verification_representation.json",
+    "mediaType" : "application/json",
+    "language" : "en",
+    "exposure" : "RESERVADA",
+    "bytes" : 331,
+    "sha256" : "53ed06d00ac8140ac60e583908fabd327a20af561128b1a6de4d9dc907123ec7"
+  }, {
+    "filename" : "evidence/visita.json",
+    "mediaType" : "application/json",
+    "language" : "en",
+    "exposure" : "RESERVADA",
+    "bytes" : 289,
+    "sha256" : "2ed2ac608616e7f94bcec523baf99d15e8aeb06d802e171718c23ee1ccf343cc"
+  } ]
+} ]

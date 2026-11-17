@@ -1,0 +1,17 @@
+**
+!Dockerfile
+!frontend/
+!frontend/package.json
+!frontend/package-lock.json
+!frontend/angular.json
+!frontend/tsconfig.json
+!frontend/src/
+!frontend/src/**
+!backend/
+!backend/mvnw
+!backend/.mvn/
+!backend/.mvn/**
+!backend/pom.xml
+!backend/src/
+!backend/src/main/
+!backend/src/main/**

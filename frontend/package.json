@@ -1,0 +1,24 @@
+{
+  "name": "carbonflow-piloto",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {"node": "^24.0.0"},
+  "scripts": {
+    "build": "ng build",
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "@angular/common": "21.2.26",
+    "@angular/compiler": "21.2.26",
+    "@angular/core": "21.2.26",
+    "@angular/platform-browser": "21.2.26",
+    "rxjs": "7.8.2"
+  },
+  "devDependencies": {
+    "@angular/build": "21.2.30",
+    "@angular/cli": "21.2.30",
+    "@angular/compiler-cli": "21.2.26",
+    "playwright-core": "1.58.2",
+    "typescript": "5.9.3"
+  }
+}

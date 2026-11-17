@@ -1,0 +1,124 @@
+<section aria-labelledby="access-heading" class="access-panel">
+  <div class="section-heading"><h2 id="access-heading">Acesso a artefatos</h2></div>
+  @if (enabled()) {
+    <div class="access-tools">
+      <form (submit)="$event.preventDefault(); search(searchBox.value)">
+        <label for="artifact-search">Buscar por título</label>
+        <div class="inline-fields">
+          <input id="artifact-search" #searchBox type="search" maxlength="150">
+          <button type="submit" class="secondary" [disabled]="busy()">Buscar</button>
+        </div>
+      </form>
+      <div class="actions">
+        @if (canPrepare()) {
+          <button type="button" class="secondary" (click)="prepare(); searchBox.value = ''" [disabled]="busy()">Preparar amostra</button>
+        }
+        @if (hasHistory()) {
+          <button type="button" class="secondary" aria-controls="artifact-list" [attr.aria-expanded]="showHistory()"
+                  (click)="toggleHistory()" [disabled]="busy()">
+            {{ showHistory() ? 'Mostrar só a mais recente' : 'Ver amostras anteriores' }}
+          </button>
+        }
+        @if (canReview() || canGrant()) {
+          <button type="button" class="secondary" (click)="showTrail()" [disabled]="busy()">Consultar trilha</button>
+        }
+      </div>
+    </div>
+    @if (problem()) {
+      <p #notice class="feedback error" role="alert" tabindex="-1">{{ problem() }}</p>
+    } @else if (feedback()) {
+      <p #notice class="feedback" role="status" tabindex="-1">{{ feedback() }}</p>
+    }
+    @if (canGrant()) {
+      <div class="expiry-field">
+        <label for="grant-recipient">Equipe destinatária</label>
+        <select id="grant-recipient" #recipientInput [value]="recipient()" (change)="recipient.set(recipientInput.value)">
+          <option value="SIM-VVB">VVB A · SIM-VVB</option><option value="SIM-VVB-B">VVB B · SIM-VVB-B</option>
+        </select>
+        <label for="expiry">Fim da concessão para SIM-VVB (horário local)</label>
+        <input #expiryInput id="expiry" type="datetime-local" [value]="expiry()" (input)="expiry.set(expiryInput.value)">
+      </div>
+    }
+      <div id="artifact-list" class="access-list" aria-label="Versões disponíveis">
+        @for (item of visibleArtifacts(); track item.id + ':' + item.version) {
+          @let current = preview();
+          @let expanded = current?.artifact?.id === item.id && current?.artifact?.version === item.version;
+          <article class="access-item" [attr.aria-label]="item.title + ', versão ' + item.version">
+            <div>
+              <h3>{{ item.title }}</h3>
+              <p class="note">Versão {{ item.version }} · {{ item.variant === 'PUBLICA' ? 'Variante pública' : 'Variante reservada' }} · {{ item.state === 'APROVADO' ? 'Aprovada' : 'Em revisão' }}</p>
+              @if (item.author) {
+                <p class="note">Preparação {{ item.author }} @if (item.approvedBy) { · Revisão {{ item.approvedBy }} }</p>
+              }
+            </div>
+            <div class="inline-fields">
+              <button #previewButton type="button" class="secondary" [attr.aria-expanded]="expanded"
+                      [attr.aria-controls]="expanded ? 'artifact-preview' : null"
+                      (click)="expanded ? closePreview(previewButton) : openPreview(item)" [disabled]="busy()">
+                {{ expanded ? 'Ocultar prévia' : 'Ver prévia' }}
+              </button>
+              @if (item.mediaType !== 'application/zip' || isVvb()) {
+                <a class="resource-link" [href]="artifactUrl(item) + '/content'">Baixar</a>
+              }
+              @if (canReview() && item.author !== actor() && item.state === 'EM_REVISAO') {
+                <button type="button" class="primary" (click)="approve(item)" [disabled]="busy()">Aprovar versão</button>
+              }
+              @if (canGrant() && item.state === 'APROVADO') {
+                <button type="button" class="primary" (click)="share(item, expiry())" [disabled]="busy()">Conceder acesso</button>
+              }
+            </div>
+            @if (expanded && current) {
+              <section id="artifact-preview" class="preview-card" aria-labelledby="artifact-preview-title">
+                <h4 #previewTitle id="artifact-preview-title" tabindex="-1">{{ current.artifact.title }} · versão {{ current.artifact.version }}</h4>
+                <p class="preview-text">{{ current.text }}</p>
+                <button type="button" class="secondary" (click)="closePreview(previewButton)">Fechar prévia</button>
+              </section>
+            }
+          </article>
+        } @empty {
+          @if (!busy()) { <p class="empty">Nenhum artefato disponível.</p> }
+        }
+      </div>
+
+    @if (canGrant()) {
+      <h3 class="access-subheading">Concessões a VVB</h3>
+      <div class="access-list" aria-label="Concessões a VVB">
+        @for (grant of grants(); track grant.id) {
+          <article class="access-item grant">
+            <div>
+              <p><strong>{{ grant.recipient }}</strong> · {{ grantState(grant) }} · Artefato v{{ grant.artifact.version }}</p>
+              <p class="note">Até {{ date(grant.expiresAt) }} · {{ grant.artifact.id }}</p>
+              <p class="note">Concessão <code>{{ grant.id }}</code></p>
+              @if (grant.receipt; as receipt) {
+                <p class="note">Emitente {{ receipt.issuer }} · Captura {{ receipt.capturedBy }}</p>
+              }
+            </div>
+            <div class="inline-fields">
+              @if (!grant.receipt && grantState(grant) === 'Vigente') {
+                <button type="button" class="secondary" (click)="actOnGrant(grant, 'receipts')" [disabled]="busy()">Capturar recibo simulado</button>
+              }
+              @if (!grant.revokedAt) {
+                <button type="button" class="secondary" (click)="actOnGrant(grant, 'revoke')" [disabled]="busy()">Revogar acesso</button>
+              }
+            </div>
+          </article>
+        } @empty {
+          <p class="empty">Nenhuma concessão registrada.</p>
+        }
+      </div>
+    }
+
+    @if (trail(); as events) {
+      <h3 class="access-subheading">Trilha de acesso</h3>
+      <ul class="event-list">
+        @for (event of events; track event.id) {
+          <li><strong>{{ event.outcome }}</strong> · {{ event.action }} · {{ event.actor ?? 'Identidade restrita' }} · {{ date(event.occurredAt) }}</li>
+        } @empty {
+          <li>Nenhum evento registrado.</li>
+        }
+      </ul>
+    }
+  } @else {
+    <p class="empty">Seu papel é de operação. Os artefatos de revisão ficam disponíveis às equipes autorizadas.</p>
+  }
+</section>

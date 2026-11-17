@@ -1,0 +1,13 @@
+{
+    "status": 422,
+    "code": "LACUNA_OBRIGATORIA",
+    "requestId": "1750cd40-fd50-40f0-b77f-82fea31f1717",
+    "message": "O valor obrigatório está ausente.",
+    "issues": [
+        {
+            "path": "calculation.M1.cuts[0].ecKwh",
+            "ruleId": "REG-E2-08/11",
+            "reason": "O valor obrigatório está ausente."
+        }
+    ]
+}

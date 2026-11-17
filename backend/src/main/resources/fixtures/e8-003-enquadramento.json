@@ -1,0 +1,610 @@
+{
+  "version": "E8-003@1",
+  "candidate": {
+    "profile": {
+      "country": "BR",
+      "state": "DF",
+      "locality": "Planaltina",
+      "design": "INDIVIDUAL",
+      "closedNetwork": true,
+      "privateAccess": true,
+      "vehicleClass": "LDV",
+      "propulsion": "BEV",
+      "charger": "DCFC",
+      "grid": "SIN",
+      "additionalInfrastructure": false,
+      "ecRoute": "MEDIDA_SEGREGADA"
+    },
+    "inventory": {
+      "sites": [
+        "SIM-PATIO-01"
+      ],
+      "stations": [
+        {
+          "id": "SIM-DCFC-01",
+          "site": "SIM-PATIO-01",
+          "model": "DCFC SYN 50",
+          "powerKw": "50"
+        },
+        {
+          "id": "SIM-DCFC-02",
+          "site": "SIM-PATIO-01",
+          "model": "DCFC SYN 50",
+          "powerKw": "50"
+        }
+      ],
+      "models": [
+        {
+          "id": "SIM-MODELO-01",
+          "bev": "BEV sintético 1",
+          "comparable": "Comparável leve sintético 1"
+        },
+        {
+          "id": "SIM-MODELO-02",
+          "bev": "BEV sintético 2",
+          "comparable": "Comparável leve sintético 2"
+        }
+      ],
+      "vehicles": [
+        {
+          "id": "SIM-BEV-01",
+          "model": "SIM-MODELO-01"
+        },
+        {
+          "id": "SIM-BEV-02",
+          "model": "SIM-MODELO-01"
+        },
+        {
+          "id": "SIM-BEV-03",
+          "model": "SIM-MODELO-01"
+        },
+        {
+          "id": "SIM-BEV-04",
+          "model": "SIM-MODELO-01"
+        },
+        {
+          "id": "SIM-BEV-05",
+          "model": "SIM-MODELO-01"
+        },
+        {
+          "id": "SIM-BEV-06",
+          "model": "SIM-MODELO-01"
+        },
+        {
+          "id": "SIM-BEV-07",
+          "model": "SIM-MODELO-01"
+        },
+        {
+          "id": "SIM-BEV-08",
+          "model": "SIM-MODELO-01"
+        },
+        {
+          "id": "SIM-BEV-09",
+          "model": "SIM-MODELO-01"
+        },
+        {
+          "id": "SIM-BEV-10",
+          "model": "SIM-MODELO-01"
+        },
+        {
+          "id": "SIM-BEV-11",
+          "model": "SIM-MODELO-01"
+        },
+        {
+          "id": "SIM-BEV-12",
+          "model": "SIM-MODELO-01"
+        },
+        {
+          "id": "SIM-BEV-13",
+          "model": "SIM-MODELO-02"
+        },
+        {
+          "id": "SIM-BEV-14",
+          "model": "SIM-MODELO-02"
+        },
+        {
+          "id": "SIM-BEV-15",
+          "model": "SIM-MODELO-02"
+        },
+        {
+          "id": "SIM-BEV-16",
+          "model": "SIM-MODELO-02"
+        },
+        {
+          "id": "SIM-BEV-17",
+          "model": "SIM-MODELO-02"
+        },
+        {
+          "id": "SIM-BEV-18",
+          "model": "SIM-MODELO-02"
+        },
+        {
+          "id": "SIM-BEV-19",
+          "model": "SIM-MODELO-02"
+        },
+        {
+          "id": "SIM-BEV-20",
+          "model": "SIM-MODELO-02"
+        }
+      ],
+      "ecCircuits": [
+        {
+          "id": "SIM-EC-01",
+          "station": "SIM-DCFC-01"
+        },
+        {
+          "id": "SIM-EC-02",
+          "station": "SIM-DCFC-02"
+        }
+      ]
+    },
+    "referenceActDate": "2028-03-01",
+    "evidence": {
+      "id": "SIM-ESCOPO",
+      "version": 1
+    }
+  },
+  "evidence": [
+    {
+      "ref": {
+        "id": "SIM-ESCOPO",
+        "version": 1
+      },
+      "kind": "ESCOPO",
+      "source": "SIMULAÇÃO · Kit 0.2.14 · 03_especificacao/01_ESCOPO_E_CASO_PILOTO.md",
+      "date": "2027-06-25",
+      "details": {
+        "fronteira": "Pátio existente em Planaltina, dois DCFC, frota identificada, SIN exclusivo",
+        "baseline": "Comparáveis sintéticos de categoria, capacidade e serviço equivalentes",
+        "operador": "ORG-SYN-001"
+      }
+    },
+    {
+      "ref": {
+        "id": "SIM-PARECER-ESCOPO",
+        "version": 1
+      },
+      "kind": "REVISAO",
+      "source": "SIMULAÇÃO · Kit 0.2.14 · 03_especificacao/01_ESCOPO_E_CASO_PILOTO.md",
+      "date": "2027-06-30",
+      "details": {
+        "escopo": "DEC-010/011, análise interna sintética"
+      }
+    },
+    {
+      "ref": {
+        "id": "SIM-MATRIZ-VIGENCIA",
+        "version": 1
+      },
+      "kind": "VIGENCIA",
+      "source": "SIMULAÇÃO · Kit 0.2.14 · 03_especificacao/01_ESCOPO_E_CASO_PILOTO.md",
+      "date": "2026-11-13",
+      "details": {
+        "origem": "02_fontes/MATRIZ_DE_VIGENCIA.md",
+        "aplicacao": "Registro inicial esperado em 01/03/2028"
+      }
+    },
+    {
+      "ref": {
+        "id": "SIM-DIREITOS",
+        "version": 1
+      },
+      "kind": "DIREITOS",
+      "source": "SIMULAÇÃO · Kit 0.2.14 · 03_especificacao/e4/DICIONARIO.md",
+      "date": "2027-06-30",
+      "details": {
+        "titular": "ORG-SYN-001",
+        "objeto": "Operação do pátio e titularidade das reduções da frota",
+        "validUntilExclusive": "2032-10-01"
+      }
+    },
+    {
+      "ref": {
+        "id": "SIM-EXCEDENTE",
+        "version": 1
+      },
+      "kind": "EXCEDENTE",
+      "source": "SIMULAÇÃO · Kit 0.2.14 · 03_especificacao/e4/DICIONARIO.md",
+      "date": "2027-06-30",
+      "details": {
+        "jurisdicao": "BR/DF",
+        "analise": "Hipótese de ausência de obrigação regulatória no cenário sintético"
+      }
+    },
+    {
+      "ref": {
+        "id": "SIM-SOBREPOSICAO",
+        "version": 1
+      },
+      "kind": "SOBREPOSICAO",
+      "source": "SIMULAÇÃO · Kit 0.2.14 · 03_especificacao/e4/DICIONARIO.md",
+      "date": "2027-06-30",
+      "details": {
+        "checagem": "Pesquisa fictícia por pátio, carregadores e frota; sem sobreposição no cenário"
+      }
+    },
+    {
+      "ref": {
+        "id": "SIM-ENGAJAMENTO",
+        "version": 1
+      },
+      "kind": "ENGAJAMENTO",
+      "source": "SIMULAÇÃO · Kit 0.2.14 · 03_especificacao/e4/DICIONARIO.md",
+      "date": "2027-06-30",
+      "details": {
+        "acao": "Consulta inicial e plano SEP sintéticos"
+      }
+    },
+    {
+      "ref": {
+        "id": "SIM-MECANISMO",
+        "version": 1
+      },
+      "kind": "MECANISMO",
+      "source": "SIMULAÇÃO · Kit 0.2.14 · 03_especificacao/e4/DICIONARIO.md",
+      "date": "2027-06-30",
+      "details": {
+        "acao": "Canal fictício para reclamações e registro de resposta"
+      }
+    },
+    {
+      "ref": {
+        "id": "SIM-ESG",
+        "version": 1
+      },
+      "kind": "ESG",
+      "source": "SIMULAÇÃO · Kit 0.2.14 · 03_especificacao/e4/DICIONARIO.md",
+      "date": "2027-06-30",
+      "details": {
+        "acao": "Avaliação sintética de riscos e mitigação"
+      }
+    },
+    {
+      "ref": {
+        "id": "SIM-RECLAMACAO",
+        "version": 1
+      },
+      "kind": "RECLAMACAO",
+      "source": "SIMULAÇÃO · Kit 0.2.14 · 03_especificacao/e4/DICIONARIO.md",
+      "date": "2027-06-30",
+      "details": {
+        "acao": "Registro ilustrativo sem dados pessoais"
+      }
+    },
+    {
+      "ref": {
+        "id": "SIM-ODS",
+        "version": 1
+      },
+      "kind": "ODS",
+      "source": "SIMULAÇÃO · Kit 0.2.14 · 03_especificacao/e4/DICIONARIO.md",
+      "date": "2027-06-30",
+      "details": {
+        "acao": "Rastreio sintético de contribuição, ODS 13"
+      }
+    },
+    {
+      "ref": {
+        "id": "SIM-FPIC",
+        "version": 1
+      },
+      "kind": "FPIC",
+      "source": "SIMULAÇÃO · Kit 0.2.14 · 03_especificacao/e4/DICIONARIO.md",
+      "date": "2027-06-30",
+      "details": {
+        "incidencia": "Pátio existente sintético, sem grupo ou território afetado identificado"
+      }
+    },
+    {
+      "ref": {
+        "id": "SIM-REPARTICAO",
+        "version": 1
+      },
+      "kind": "REPARTICAO",
+      "source": "SIMULAÇÃO · Kit 0.2.14 · 03_especificacao/e4/DICIONARIO.md",
+      "date": "2027-06-30",
+      "details": {
+        "incidencia": "Nenhum beneficiário ou direito coletivo identificado na hipótese"
+      }
+    },
+    {
+      "ref": {
+        "id": "SIM-ENGAJAMENTO-TARDIO",
+        "version": 1
+      },
+      "kind": "ENGAJAMENTO",
+      "source": "SIMULAÇÃO · Kit 0.2.14 · 03_especificacao/e4/DICIONARIO.md",
+      "date": "2027-07-16",
+      "details": {
+        "acao": "Massa negativa para a guarda de anterioridade"
+      }
+    },
+    {
+      "ref": {
+        "id": "SIM-MECANISMO-TARDIO",
+        "version": 1
+      },
+      "kind": "MECANISMO",
+      "source": "SIMULAÇÃO · Kit 0.2.14 · 03_especificacao/e4/DICIONARIO.md",
+      "date": "2027-07-16",
+      "details": {
+        "acao": "Massa negativa para a guarda de anterioridade"
+      }
+    },
+    {
+      "ref": {
+        "id": "SIM-ESG-TARDIO",
+        "version": 1
+      },
+      "kind": "ESG",
+      "source": "SIMULAÇÃO · Kit 0.2.14 · 03_especificacao/e4/DICIONARIO.md",
+      "date": "2027-07-16",
+      "details": {
+        "acao": "Massa negativa para a guarda de anterioridade"
+      }
+    },
+    {
+      "ref": {
+        "id": "SIM-COMPRA-DCFC",
+        "version": 1
+      },
+      "kind": "COMPROMISSO",
+      "source": "SIMULAÇÃO · Kit 0.2.14 · 03_especificacao/01_ESCOPO_E_CASO_PILOTO.md",
+      "date": "2027-07-15",
+      "details": {
+        "documento": "Contrato fictício de compra dos carregadores"
+      }
+    },
+    {
+      "ref": {
+        "id": "SIM-COMISSIONAMENTO",
+        "version": 1
+      },
+      "kind": "OPERACAO",
+      "source": "SIMULAÇÃO · Kit 0.2.14 · 03_especificacao/01_ESCOPO_E_CASO_PILOTO.md",
+      "date": "2027-10-01",
+      "details": {
+        "documento": "Termo de comissionamento dos dois DCFC e controles da frota simulada"
+      }
+    },
+    {
+      "ref": {
+        "id": "SIM-MED-01-INSTALACAO",
+        "version": 1
+      },
+      "kind": "INSTALACAO",
+      "source": "SIMULAÇÃO · Kit 0.2.14 · 03_especificacao/e4/DICIONARIO.md",
+      "date": "2027-10-01",
+      "details": {
+        "circuit": "SIM-EC-01",
+        "meter": "SIM-MED-01"
+      }
+    },
+    {
+      "ref": {
+        "id": "SIM-MED-01-DIAGRAMA",
+        "version": 1
+      },
+      "kind": "DIAGRAMA",
+      "source": "SIMULAÇÃO · Kit 0.2.14 · 03_especificacao/e4/DICIONARIO.md",
+      "date": "2027-10-01",
+      "details": {
+        "circuit": "SIM-EC-01",
+        "meter": "SIM-MED-01",
+        "upstream": "true",
+        "exclusive": "true"
+      }
+    },
+    {
+      "ref": {
+        "id": "SIM-MED-01-CALIBRACAO",
+        "version": 1
+      },
+      "kind": "CALIBRACAO",
+      "source": "SIMULAÇÃO · Kit 0.2.14 · 03_especificacao/e4/DICIONARIO.md",
+      "date": "2027-09-01",
+      "details": {
+        "circuit": "SIM-EC-01",
+        "meter": "SIM-MED-01",
+        "from_": "2027-09-01T00:00:00-03:00",
+        "untilExclusive": "2028-04-02T00:00:00-03:00",
+        "procedimento": "Verificação metrológica simulada"
+      }
+    },
+    {
+      "ref": {
+        "id": "SIM-MED-01-LEITURA",
+        "version": 1
+      },
+      "kind": "LEITURA",
+      "source": "SIMULAÇÃO · Kit 0.2.14 · 03_especificacao/e4/DICIONARIO.md",
+      "date": "2027-10-01",
+      "details": {
+        "circuit": "SIM-EC-01",
+        "meter": "SIM-MED-01",
+        "unidade": "kWh"
+      }
+    },
+    {
+      "ref": {
+        "id": "SIM-MED-02-INSTALACAO",
+        "version": 1
+      },
+      "kind": "INSTALACAO",
+      "source": "SIMULAÇÃO · Kit 0.2.14 · 03_especificacao/e4/DICIONARIO.md",
+      "date": "2027-10-01",
+      "details": {
+        "circuit": "SIM-EC-02",
+        "meter": "SIM-MED-02"
+      }
+    },
+    {
+      "ref": {
+        "id": "SIM-MED-02-DIAGRAMA",
+        "version": 1
+      },
+      "kind": "DIAGRAMA",
+      "source": "SIMULAÇÃO · Kit 0.2.14 · 03_especificacao/e4/DICIONARIO.md",
+      "date": "2027-10-01",
+      "details": {
+        "circuit": "SIM-EC-02",
+        "meter": "SIM-MED-02",
+        "upstream": "true",
+        "exclusive": "true"
+      }
+    },
+    {
+      "ref": {
+        "id": "SIM-MED-02-CALIBRACAO",
+        "version": 1
+      },
+      "kind": "CALIBRACAO",
+      "source": "SIMULAÇÃO · Kit 0.2.14 · 03_especificacao/e4/DICIONARIO.md",
+      "date": "2027-09-01",
+      "details": {
+        "circuit": "SIM-EC-02",
+        "meter": "SIM-MED-02",
+        "from_": "2027-09-01T00:00:00-03:00",
+        "untilExclusive": "2029-10-01T00:00:00-03:00",
+        "procedimento": "Verificação metrológica simulada"
+      }
+    },
+    {
+      "ref": {
+        "id": "SIM-MED-02-LEITURA",
+        "version": 1
+      },
+      "kind": "LEITURA",
+      "source": "SIMULAÇÃO · Kit 0.2.14 · 03_especificacao/e4/DICIONARIO.md",
+      "date": "2027-10-01",
+      "details": {
+        "circuit": "SIM-EC-02",
+        "meter": "SIM-MED-02",
+        "unidade": "kWh"
+      }
+    },
+    {
+      "ref": {
+        "id": "SIM-MED-03-INSTALACAO",
+        "version": 1
+      },
+      "kind": "INSTALACAO",
+      "source": "SIMULAÇÃO · Kit 0.2.14 · 03_especificacao/e4/DICIONARIO.md",
+      "date": "2028-04-01",
+      "details": {
+        "circuit": "SIM-EC-01",
+        "meter": "SIM-MED-03"
+      }
+    },
+    {
+      "ref": {
+        "id": "SIM-MED-03-DIAGRAMA",
+        "version": 1
+      },
+      "kind": "DIAGRAMA",
+      "source": "SIMULAÇÃO · Kit 0.2.14 · 03_especificacao/e4/DICIONARIO.md",
+      "date": "2028-04-01",
+      "details": {
+        "circuit": "SIM-EC-01",
+        "meter": "SIM-MED-03",
+        "upstream": "true",
+        "exclusive": "true"
+      }
+    },
+    {
+      "ref": {
+        "id": "SIM-MED-03-CALIBRACAO",
+        "version": 1
+      },
+      "kind": "CALIBRACAO",
+      "source": "SIMULAÇÃO · Kit 0.2.14 · 03_especificacao/e4/DICIONARIO.md",
+      "date": "2028-03-28",
+      "details": {
+        "circuit": "SIM-EC-01",
+        "meter": "SIM-MED-03",
+        "from_": "2028-03-28T00:00:00-03:00",
+        "untilExclusive": "2028-10-01T00:00:00-03:00",
+        "procedimento": "Verificação metrológica simulada"
+      }
+    },
+    {
+      "ref": {
+        "id": "SIM-MED-03-LEITURA",
+        "version": 1
+      },
+      "kind": "LEITURA",
+      "source": "SIMULAÇÃO · Kit 0.2.14 · 03_especificacao/e4/DICIONARIO.md",
+      "date": "2028-04-01",
+      "details": {
+        "circuit": "SIM-EC-01",
+        "meter": "SIM-MED-03",
+        "unidade": "kWh"
+      }
+    }
+  ],
+  "meters": [
+    {
+      "circuit": "SIM-EC-01",
+      "details": {
+        "meterId": "SIM-MED-01",
+        "effectiveFrom": "2027-10-01T00:00:00-03:00",
+        "upstream": true,
+        "exclusive": true,
+        "installation": {
+          "id": "SIM-MED-01-INSTALACAO",
+          "version": 1
+        },
+        "diagram": {
+          "id": "SIM-MED-01-DIAGRAMA",
+          "version": 1
+        },
+        "calibration": {
+          "id": "SIM-MED-01-CALIBRACAO",
+          "version": 1
+        }
+      }
+    },
+    {
+      "circuit": "SIM-EC-02",
+      "details": {
+        "meterId": "SIM-MED-02",
+        "effectiveFrom": "2027-10-01T00:00:00-03:00",
+        "upstream": true,
+        "exclusive": true,
+        "installation": {
+          "id": "SIM-MED-02-INSTALACAO",
+          "version": 1
+        },
+        "diagram": {
+          "id": "SIM-MED-02-DIAGRAMA",
+          "version": 1
+        },
+        "calibration": {
+          "id": "SIM-MED-02-CALIBRACAO",
+          "version": 1
+        }
+      }
+    },
+    {
+      "circuit": "SIM-EC-01",
+      "details": {
+        "meterId": "SIM-MED-03",
+        "effectiveFrom": "2028-04-01T00:00:00-03:00",
+        "upstream": true,
+        "exclusive": true,
+        "installation": {
+          "id": "SIM-MED-03-INSTALACAO",
+          "version": 1
+        },
+        "diagram": {
+          "id": "SIM-MED-03-DIAGRAMA",
+          "version": 1
+        },
+        "calibration": {
+          "id": "SIM-MED-03-CALIBRACAO",
+          "version": 1
+        }
+      }
+    }
+  ]
+}

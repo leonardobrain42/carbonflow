@@ -1,0 +1,147 @@
+@if (enabled()) {
+  <section class="access-panel" aria-labelledby="imports-heading">
+    <div class="section-heading">
+      <h2 id="imports-heading">Importação ED/EC</h2>
+      <a class="resource-link" [href]="sampleUrl()">Baixar amostra CSV</a>
+    </div>
+    @if (canUpload() && options()) {
+      <div class="intake-card">
+        <p class="note">Comissionamento da E8-003 exigido · até 10.000 linhas e 10 MB · CSV UTF-8</p>
+        <div class="intake-form">
+          <div>
+            <label for="energy-period">Período do lote</label>
+            <select id="energy-period" #chosenPeriod (change)="period.set(chosenPeriod.value)">
+              <option>M1</option><option>M2</option>
+            </select>
+          </div>
+          <div>
+            <label for="energy-file">Arquivo ED/EC</label>
+            <input id="energy-file" type="file" accept=".csv,text/csv" (change)="choose($event)">
+          </div>
+          <button class="primary" type="button" (click)="sendFile()" [disabled]="busy() || !chosenFile()">Importar CSV</button>
+          <button class="secondary" type="button" (click)="sendSample()" [disabled]="busy()">Importar amostra em M1/M2</button>
+        </div>
+        @if (received(); as raw) {
+          <p class="note">Bruto recebido · {{ raw.originalName }}</p>
+          <button type="button" class="secondary" (click)="enqueueReceived()" [disabled]="busy()">Processar bruto recebido</button>
+        }
+      </div>
+    }
+
+    @if (feedback()) {
+      <p #notice class="feedback" tabindex="-1" [class.error]="failed()" [attr.role]="failed() ? 'alert' : 'status'">{{ feedback() }}</p>
+    }
+
+    <details class="intake-card">
+      <summary>Lotes recentes ({{ jobs().length }})</summary>
+      <ul class="intake-entries">
+        @for (job of jobs(); track job.id) {
+          <li>
+            <button class="secondary" type="button" (click)="open(job.id)" [disabled]="busy()">
+              {{ job.period }} · {{ label(job.state) }} · {{ job.id.slice(0, 8) }}
+            </button>
+          </li>
+        } @empty { <li>Nenhum lote registrado.</li> }
+      </ul>
+    </details>
+
+    @if (report(); as current) {
+      <div class="intake-card">
+        <div class="section-heading">
+          <h3>{{ current.artifact.originalName }} · {{ current.period }}</h3>
+          <a class="resource-link" [href]="rawUrl(current)">Baixar bruto</a>
+        </div>
+        <p class="note">{{ label(current.state) }} · {{ current.processed }} de {{ current.total }} linhas · Ficha v{{ current.configurationVersion }}</p>
+        <details><summary>Identidade do bruto</summary><code class="energy-hash">{{ current.artifact.id }} · SHA-256 {{ current.artifact.sha256 }}</code></details>
+        @if (current.message) { <p class="feedback error">{{ current.message }}</p> }
+        @if (current.state === 'FALHA_RECUPERAVEL' && canUpload()) {
+          <button class="secondary intake-action" type="button" (click)="resume()" [disabled]="busy()">Retomar lote</button>
+        }
+        @if (counts(current).length) {
+          <ul class="energy-counts">
+            @for (count of counts(current); track count[0]) {
+              <li>{{ label(count[0]) }} <strong>{{ count[1] }}</strong></li>
+            }
+          </ul>
+        }
+        @if (page(); as preview) {
+          @if (preview.lines.length) {
+            <div class="table-scroll" tabindex="0" role="region" aria-label="Prévia por linha">
+              <table aria-label="Linhas do CSV">
+                <thead><tr><th scope="col">Linha</th><th scope="col">Classe / energia</th><th scope="col">Prévia</th><th scope="col">Revisão</th><th scope="col">Ação</th></tr></thead>
+                <tbody>
+                  @for (row of preview.lines; track row.id) {
+                    <tr>
+                      <th scope="row">{{ row.line }}
+                        <details><summary>Original</summary><code class="energy-original">{{ row.original }}</code><code class="energy-hash">{{ row.id }}@{{ row.version }}</code></details>
+                      </th>
+                      <td>{{ row.fact?.kind ?? '—' }} · {{ row.fact?.kwh === null || !row.fact ? 'Sem valor' : row.fact.kwh + ' kWh' }}</td>
+                      <td>{{ label(row.classification) }}
+                        @for (reason of row.reasons; track reason.code) { <p class="note">{{ reason.message }}</p> }
+                      </td>
+                      <td>
+                        {{ label(row.decision) }}
+                        @if (row.resolution?.observation; as ref) {
+                          <a class="resource-link" [href]="observationUrl(ref)">v{{ ref.version }} em JSON</a>
+                        }
+                      </td>
+                      <td>
+                        @if (current.state === 'CONCLUIDO' && (row.decision === 'EM_PREVIA' || row.decision === 'PROPOSTA') && (has('PREP') || has('REV'))) {
+                          <button class="secondary" type="button" (click)="beginReview(row)" [disabled]="busy()">Revisar linha {{ row.line }}</button>
+                        }
+                      </td>
+                    </tr>
+                    @if (reviewing()?.id === row.id) {
+                      <tr><td colspan="5">
+          <form class="intake-form energy-review" (submit)="decide($event, decision.value, reason.value, previous.value)">
+            <h4>Linha {{ row.line }} · {{ label(row.classification) }}</h4>
+            <div><label for="energy-decision">Decisão</label>
+              <select #decision id="energy-decision">
+                @if (has('PREP')) { <option value="PROPOR">Propor admissão</option> }
+                @if (has('REV')) {
+                  @if (row.proposal && row.proposal.preparedBy !== actor()) { <option value="ADMITIR">Admitir proposta</option> }
+                  <option value="REJEITAR">Rejeitar linha</option>
+                }
+              </select>
+            </div>
+            <div><label for="energy-review-reason">Motivo</label><input #reason id="energy-review-reason" required maxlength="600"></div>
+            <div><label for="energy-predecessor">Predecessora (somente correção)</label>
+              <input #previous id="energy-predecessor" list="energy-active-facts" [disabled]="!has('PREP')" placeholder="ID@versão">
+              <datalist id="energy-active-facts">
+                @for (item of active(); track item.ref.id) {
+                  <option [value]="item.ref.id + '@' + item.ref.version">{{ item.fact.sourceFactId ?? item.ref.id }} · {{ item.fact.kwh }} kWh</option>
+                }
+              </datalist>
+            </div>
+            <button class="primary" type="submit" [disabled]="busy()">Registrar decisão</button>
+            <button class="secondary" type="button" (click)="reviewing.set(null)">Fechar revisão</button>
+          </form>
+                      </td></tr>
+                    }
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+          @if (cursor()) { <button class="secondary intake-action" type="button" (click)="next()" [disabled]="busy()">Primeiras linhas</button> }
+          @if (preview.nextCursor) { <button class="secondary intake-action" type="button" (click)="next(preview.nextCursor)" [disabled]="busy()">Próximas linhas</button> }
+        }
+
+      </div>
+
+      <div class="intake-card">
+        <div class="section-heading"><h3>Retratos da seleção · {{ current.period }}</h3>
+          @if (has('REV')) {
+            <button class="secondary" type="button" (click)="freeze()" [disabled]="busy()">Guardar seleção atual</button>
+          }
+        </div>
+        <p class="note">Cada retrato guarda as versões admitidas naquele momento. Feche a janela em Períodos de monitoramento.</p>
+        <ul class="intake-entries">
+          @for (snapshot of selections(); track snapshot.id) {
+            <li><a class="resource-link" [href]="snapshotUrl(snapshot)">Seleção {{ snapshot.id.slice(0, 8) }} · {{ snapshot.observations }} observações</a></li>
+          } @empty { <li>Nenhum retrato salvo.</li> }
+        </ul>
+      </div>
+    }
+  </section>
+}

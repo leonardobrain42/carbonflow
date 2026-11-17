@@ -1,0 +1,71 @@
+{
+  "evidence": [
+    {
+      "ref": {
+        "id": "SIM-MED-04-INSTALACAO",
+        "version": 1
+      },
+      "kind": "INSTALACAO",
+      "source": "SIMULAÇÃO · Kit 0.2.14 · E8-006 · Certificados simulados para a operação em M2",
+      "date": "2028-10-01",
+      "details": {
+        "circuit": "SIM-EC-01",
+        "meter": "SIM-MED-04"
+      }
+    },
+    {
+      "ref": {
+        "id": "SIM-MED-04-DIAGRAMA",
+        "version": 1
+      },
+      "kind": "DIAGRAMA",
+      "source": "SIMULAÇÃO · Kit 0.2.14 · E8-006 · Certificados simulados para a operação em M2",
+      "date": "2028-10-01",
+      "details": {
+        "circuit": "SIM-EC-01",
+        "meter": "SIM-MED-04",
+        "upstream": "true",
+        "exclusive": "true"
+      }
+    },
+    {
+      "ref": {
+        "id": "SIM-MED-04-CALIBRACAO",
+        "version": 1
+      },
+      "kind": "CALIBRACAO",
+      "source": "SIMULAÇÃO · Kit 0.2.14 · E8-006 · Certificados simulados para a operação em M2",
+      "date": "2028-09-28",
+      "details": {
+        "circuit": "SIM-EC-01",
+        "meter": "SIM-MED-04",
+        "from_": "2028-09-28T00:00:00-03:00",
+        "untilExclusive": "2029-10-01T00:00:00-03:00",
+        "procedimento": "Verificação metrológica simulada"
+      }
+    }
+  ],
+  "meters": [
+    {
+      "circuit": "SIM-EC-01",
+      "details": {
+        "meterId": "SIM-MED-04",
+        "effectiveFrom": "2028-10-01T00:00:00-03:00",
+        "upstream": true,
+        "exclusive": true,
+        "installation": {
+          "id": "SIM-MED-04-INSTALACAO",
+          "version": 1
+        },
+        "diagram": {
+          "id": "SIM-MED-04-DIAGRAMA",
+          "version": 1
+        },
+        "calibration": {
+          "id": "SIM-MED-04-CALIBRACAO",
+          "version": 1
+        }
+      }
+    }
+  ]
+}

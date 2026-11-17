@@ -1,0 +1,115 @@
+@if (enabled()) {
+  <section class="panel" aria-labelledby="operations-title">
+    <div class="section-heading">
+      <h2 id="operations-title">Trabalhos, retenção e recuperação</h2>
+      <button type="button" class="secondary" (click)="refresh()" [disabled]="busy()">Atualizar operações</button>
+    </div>
+    @if (feedback()) { <p [attr.role]="failed() ? 'alert' : 'status'">{{ feedback() }}</p> }
+    @if (recovery(); as state) {
+      <article class="intake-card">
+        <h3>{{ state.version === 3 ? 'Recuperação conferida' : 'Recuperação em conferência' }}</h3>
+        @if (state.version < 3) { <p role="status">Novos pedidos de emissão estão bloqueados até a liberação pelo REV.</p> }
+        <p>Ponto íntegro {{ instant(state.recovery.checkpoint) }} · Intervalo conferido até {{ instant(state.recovery.observedThrough) }}</p>
+        <p>RPO {{ number(state.rpoSeconds) }} s
+          @if (state.rtoSeconds !== null) { · RTO {{ number(state.rtoSeconds) }} s }
+        </p>
+        @if (state.runs.length) {
+          <h4>Memórias dos períodos fechados</h4>
+          <ul>@for (run of state.runs; track run.id) {
+            <li>{{ run.period }} · <code>{{ run.id }}</code> · {{ run.verified ? 'Conferida' : 'A reexecutar' }}
+              @if (canReplay() && !run.verified) {
+                <button type="button" class="secondary" [disabled]="busy()" (click)="replay(run)">Reexecutar {{ run.period }}</button>
+              }
+            </li>
+          }</ul>
+        }
+        @if (state.unsettledJobs > 0) { <p>{{ state.unsettledJobs }} trabalho(s) aguardam execução ou retomada.</p> }
+        <h4>Efeitos posteriores à cópia</h4>
+        <ul>@for (effect of state.effects; track effect.kind + effect.source + effect.namespace + effect.reference) {
+          <li>{{ label(effect.kind) }} · {{ effect.source }} · <code>{{ effect.reference }}</code> · {{ label(effect.status) }}
+            @if (effect.binding; as binding) {
+              <div>{{ binding.verification }} · {{ binding.target }} · {{ binding.account }}</div>
+              @for (line of binding.lines; track line.vintage.start) {
+                <div>{{ date(line.vintage.start) }} a {{ date(line.vintage.endExclusive) }} (fim exclusivo) · {{ line.amount }} unidades fictícias</div>
+              }
+            }
+          </li>
+        } @empty { <li>O inventário do intervalo está vazio.</li> }</ul>
+        @if ((canOperate() && state.version === 1) || (canReview() && state.version === 2)) {
+          <form class="intake-form" (submit)="check($event, state, review.value, state.version === 2)">
+            <div><label for="recovery-reason">Fundamentação da conferência</label>
+              <input id="recovery-reason" #review required maxlength="600"></div>
+            <label><input type="checkbox" required> Conferi o ponto restaurado e as provas do intervalo.</label>
+            <button type="submit" class="primary" [disabled]="busy()">
+              {{ state.version === 2 ? 'Liberar recuperação' : 'Atestar conferência como OP' }}
+            </button>
+          </form>
+        }
+      </article>
+    }
+    <details>
+      <summary>Trabalhos duráveis</summary>
+      <div class="intake-form">
+        <div><label for="operations-period">Período do trabalho</label>
+          <select id="operations-period" #filter [value]="period()" (change)="filterJobs(filter.value)" [disabled]="busy()">
+            <option value="">Todos</option><option>M1</option><option>M2</option>
+          </select></div>
+        <button type="button" class="secondary" (click)="filterJobs(filter.value)" [disabled]="busy()">Consultar trabalhos</button>
+      </div>
+      @if (jobs(); as entries) {
+        <ul>@for (job of entries; track job.id) {
+          <li>
+            {{ label(job.kind) }} · {{ job.period }} · {{ label(job.state) }} · versão {{ job.version }}
+            @if (job.total) { · {{ number(job.processed) }}/{{ number(job.total) }} }
+            <div><code>{{ job.id }}</code>
+              <button type="button" class="secondary" (click)="openAttempts(job)" [disabled]="busy()">Ver tentativas</button>
+              @if (canRetry(job)) {
+                <button type="button" class="secondary" (click)="retry(job)" [disabled]="busy()">Retomar trabalho</button>
+              }
+            </div>
+            @if (job.reason) { <p>{{ job.reason }}</p> }
+          </li>
+        } @empty { <li>Nenhum trabalho neste período.</li> }</ul>
+      }
+      @if (attempts(); as history) {
+        <h4>Tentativas de <code>{{ history.job.id }}</code></h4>
+        <ul>@for (attempt of history.values; track attempt.generation) {
+          <li>Geração {{ attempt.generation }} · versão {{ attempt.jobVersion }} · {{ label(attempt.state) }}
+            · Início {{ instant(attempt.claimedAt) }} · Vencimento {{ instant(attempt.expiresAt) }}
+            @if (attempt.reason) { · {{ attempt.reason }} }
+          </li>
+        } @empty { <li>Nenhuma geração registrada para este trabalho.</li> }</ul>
+      }
+    </details>
+    @if (retention(); as policy) {
+      <details>
+        <summary>Retenção e cota de evidências</summary>
+        <p>Fim de crédito {{ date(policy.creditEnd.date) }} · {{ label(policy.creditEnd.source) }} · versão {{ policy.creditEnd.version }}</p>
+        <p>Brutos, variantes e manifestos ocupam {{ number(policy.storage.usedBytes) }} de {{ number(policy.storage.limitBytes) }} bytes.</p>
+        <ul>@for (category of policy.categories; track category.name) {
+          <li>{{ label(category.name) }} · {{ label(category.status) }}
+            @if (category.floorInclusive) { · Guarda até {{ date(category.floorInclusive) }}, inclusive }
+          </li>
+        }</ul>
+        @if (policy.holds.length) {
+          <p>Pendências de guarda @for (hold of policy.holds; track hold) { · {{ label(hold) }} }</p>
+        }
+        <form class="intake-form" (submit)="filterRetention($event, clock.value)">
+          <div><label for="operations-clock">Conferir guarda em uma data de ensaio</label>
+            <input id="operations-clock" #clock type="date" [value]="policy.asOf" required></div>
+          <button type="submit" class="secondary" [disabled]="busy()">Consultar retenção</button>
+        </form>
+        @if (canReview() && policy.creditEnd.source !== 'MASSA_SINTETICA') {
+          <form class="intake-form" (submit)="correct($event, policy, revisedEnd.value, revisionReason.value)">
+            <div><label for="operations-credit-end">Fim inclusivo do último período de crédito</label>
+              <input id="operations-credit-end" #revisedEnd type="date" [value]="policy.creditEnd.date" required></div>
+            <div><label for="operations-revision-reason">Motivo da correção do fim de crédito</label>
+              <input id="operations-revision-reason" #revisionReason required maxlength="600"></div>
+            <label><input type="checkbox" required> Vincular prova sintética SIM-FIM-CREDITO v1</label>
+            <button type="submit" class="secondary" [disabled]="busy()">Revisar fim de crédito</button>
+          </form>
+        }
+      </details>
+    }
+  </section>
+}

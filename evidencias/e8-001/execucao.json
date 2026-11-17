@@ -1,0 +1,203 @@
+{
+    "id": "5225e4d6-8e9e-4e06-aa9c-60058b0bf281",
+    "zone": "America/Sao_Paulo",
+    "actor": "SIM-ENG-LOCAL",
+    "factor": {
+        "id": "EF-SYN-v1",
+        "unit": "tCO2/MWh",
+        "value": "0.30"
+    },
+    "method": {
+        "package": "VM0038@1.1",
+        "profile": "BR-BEV-LDV-DCFC-FECHADO-SIN",
+        "program": "VCS",
+        "ruleSet": "5.0",
+        "dependencies": [
+            "VMD0049@1.1",
+            "VT0011@1.0",
+            "TOOL07@7.0"
+        ],
+        "discountProof": "SIM-DY-REDE-01",
+        "documentModel": "PD/MR 5.0B"
+    },
+    "eventId": "5225e4d6-8e9e-4e06-aa9c-60058b0bf281",
+    "results": {
+        "dy": "1",
+        "mpg": "30",
+        "periods": [
+            {
+                "id": "M1",
+                "cuts": [
+                    {
+                        "ecKwh": "3000",
+                        "edKwh": "2700",
+                        "start": "2027-10-01",
+                        "vintage": 2027,
+                        "emissions": {
+                            "be": "2.7",
+                            "er": "1.8",
+                            "le": "0",
+                            "pe": "0.9",
+                            "erDisplay": "1.80"
+                        },
+                        "endExclusive": "2028-01-01",
+                        "endInclusive": "2027-12-31"
+                    },
+                    {
+                        "ecKwh": "7000",
+                        "edKwh": "6300",
+                        "start": "2028-01-01",
+                        "vintage": 2028,
+                        "emissions": {
+                            "be": "6.3",
+                            "er": "4.2",
+                            "le": "0",
+                            "pe": "2.1",
+                            "erDisplay": "4.20"
+                        },
+                        "endExclusive": "2028-10-01",
+                        "endInclusive": "2028-09-30"
+                    }
+                ],
+                "year": 1,
+                "start": "2027-10-01",
+                "emissions": {
+                    "be": "9",
+                    "er": "6",
+                    "le": "0",
+                    "pe": "3",
+                    "erDisplay": "6.00"
+                },
+                "endExclusive": "2028-10-01",
+                "endInclusive": "2028-09-30"
+            },
+            {
+                "id": "M2",
+                "cuts": [
+                    {
+                        "ecKwh": "2200",
+                        "edKwh": "1800",
+                        "start": "2028-10-01",
+                        "vintage": 2028,
+                        "emissions": {
+                            "be": "1.8",
+                            "er": "1.14",
+                            "le": "0",
+                            "pe": "0.66",
+                            "erDisplay": "1.14"
+                        },
+                        "endExclusive": "2029-01-01",
+                        "endInclusive": "2028-12-31"
+                    },
+                    {
+                        "ecKwh": "6800",
+                        "edKwh": "6200",
+                        "start": "2029-01-01",
+                        "vintage": 2029,
+                        "emissions": {
+                            "be": "6.2",
+                            "er": "4.16",
+                            "le": "0",
+                            "pe": "2.04",
+                            "erDisplay": "4.16"
+                        },
+                        "endExclusive": "2029-10-01",
+                        "endInclusive": "2029-09-30"
+                    }
+                ],
+                "year": 2,
+                "start": "2028-10-01",
+                "emissions": {
+                    "be": "8",
+                    "er": "5.3",
+                    "le": "0",
+                    "pe": "2.7",
+                    "erDisplay": "5.30"
+                },
+                "endExclusive": "2029-10-01",
+                "endInclusive": "2029-09-30"
+            }
+        ],
+        "energyUnit": "kWh",
+        "emissionsUnit": "tCO2e",
+        "afecKwhPer100Mi": "20",
+        "electricityFactorTco2PerKwh": "0.0003"
+    },
+    "version": 1,
+    "createdAt": "2026-11-16T00:39:26.160867Z",
+    "projectId": "PIL-SYN-BR-001",
+    "provenance": {
+        "source": "03_especificacao/e6/exemplos.json",
+        "reference": {
+            "id": "E6-EXEMPLOS",
+            "version": 1
+        },
+        "variation": "ORIGINAL",
+        "kitVersion": "0.2.14",
+        "sourceSha256": "cd1dd2b7d9e72a989fc26fbfbf7682f6238ff47701524c25b3aa42d1cdb1e19b"
+    },
+    "checkpoints": [
+        {
+            "i1": "NOVO",
+            "m1": "EM_CONFERENCIA",
+            "m2": "COLETANDO",
+            "v1": "NOVO",
+            "effectiveAt": "2028-10-01T00:00:00-03:00",
+            "simulatedEvidence": [
+                {
+                    "id": "SIM-OPERACAO-M2",
+                    "version": 1
+                }
+            ]
+        },
+        {
+            "i1": "NOVO",
+            "m1": "FECHADO",
+            "m2": "COLETANDO",
+            "v1": "EM_REVISAO",
+            "effectiveAt": "2028-10-02T00:00:00-03:00",
+            "simulatedEvidence": [
+                {
+                    "id": "SIM-REV-M1",
+                    "version": 1
+                },
+                {
+                    "id": "SIM-OPERACAO-M2",
+                    "version": 1
+                }
+            ]
+        },
+        {
+            "i1": "AGUARDANDO_DEPOSITO",
+            "m1": "FECHADO",
+            "m2": "COLETANDO",
+            "v1": "APROVADO",
+            "effectiveAt": "2028-10-11T00:00:00-03:00",
+            "simulatedEvidence": [
+                {
+                    "id": "SIM-REV-M1",
+                    "version": 1
+                },
+                {
+                    "id": "SIM-OPERACAO-M2",
+                    "version": 1
+                },
+                {
+                    "id": "SIM-APROVA-V1",
+                    "version": 1
+                },
+                {
+                    "id": "SIM-ATIVA-V1",
+                    "version": 1
+                },
+                {
+                    "id": "SIM-QUITACAO-I1",
+                    "version": 1
+                }
+            ]
+        }
+    ],
+    "environment": "SIMULACAO",
+    "engineVersion": "vm0038-piloto@1",
+    "snapshotSha256": "daafb0bcb39003125ddeafac5b9c058ff0eb66798b8e193c88c94542527e91ee"
+}

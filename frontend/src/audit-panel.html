@@ -1,0 +1,220 @@
+@if (enabled()) {
+  <section class="panel" aria-labelledby="audit-title">
+    <div class="section-heading"><h2 id="audit-title">Auditorias e pedidos REG, V1 e V2</h2>
+      <button type="button" class="secondary" (click)="refresh()" [disabled]="busy()">Atualizar auditorias e pedidos</button></div>
+    <p class="note">Simulação · vincule o pacote congelado, a concessão reservada e a prova de cada etapa.</p>
+    @if (pp()) {
+      <details><summary>Contratar VVB</summary>
+        <form class="intake-form" (submit)="contract($event,workPack.value,team.value,consult.value,scope.value,contracted.value,accredited.value)">
+          <div><label for="audit-kind">Auditoria</label><select id="audit-kind" #kind [value]="auditKind()" (change)="auditKind.set(kind.value)">
+            <option value="VAL">Validação</option><option>M1</option><option>M2</option></select></div>
+          <div><label for="audit-pack">Pacote congelado da auditoria</label><select id="audit-pack" #workPack required>
+            <option value="">Selecione o pacote</option>
+            @for (item of packOptions(auditKind()); track address(item)) { <option [value]="address(item)">{{ short(item) }} · {{ item.command.actDate }}</option> }
+          </select></div>
+          <div [hidden]="auditKind()!=='VAL'"><label for="audit-consult">Consulta da validação</label>
+            <select id="audit-consult" #consult [required]="auditKind()==='VAL'"><option value="">Selecione a consulta</option>
+              @for (item of consultations(); track item.attempt.consultationId) {
+                <option [value]="item.attempt.consultationId">{{ item.attempt.target }}</option>
+              }
+            </select></div>
+          <div><label for="audit-team">Equipe VVB</label><select id="audit-team" #team><option value="SIM-VVB">VVB A</option>
+            <option value="SIM-VVB-B">VVB B</option></select></div>
+          <div><label for="audit-scope">Escopo contratado</label><input id="audit-scope" #scope required maxlength="600"></div>
+          <div><label for="audit-contract-at">Data de contratação em Brasília</label>
+            <input id="audit-contract-at" #contracted type="datetime-local" required value="2027-12-01T09:00"></div>
+          <div><label for="audit-accredited-until">Fim exclusivo da acreditação simulada</label>
+            <input id="audit-accredited-until" #accredited type="datetime-local" required value="2031-01-01T00:00"></div>
+          <p class="note">Evidências vinculadas · SIM-CONTRATO e SIM-ACREDITACAO.</p>
+          <button class="primary" type="submit" [disabled]="busy()">Registrar contratação</button>
+        </form>
+      </details>
+    }
+    @if (audits().length) {
+      <div class="intake-form"><div><label for="audit-current">Auditoria registrada</label>
+        <select id="audit-current" #auditChoice [value]="chosenAudit()" (change)="chooseAudit(auditChoice.value)">
+          @for (item of audits(); track item.audit.id) {
+            <option [value]="item.audit.id">{{ item.audit.contract.kind }} · {{ item.audit.issuer }} · {{ item.audit.state }}</option>
+          }
+        </select></div></div>
+    }
+    @if (currentAudit(); as work) {
+      @let a=work.audit;
+      <article class="intake-card">
+        <h3>{{ a.contract.kind }} · {{ a.state }}</h3>
+        <p>{{ a.issuer }} · {{ a.contract.scope }}</p>
+        <p>Pacote {{ short(a.pack.pack.reference) }} · <code>{{ address(a.pack.pack.reference) }}</code></p>
+        @if (a.grantId) { <p>Concessão <code>{{ a.grantId }}</code></p> }
+        @else { <p class="note">Vincule uma concessão vigente da variante reservada limpa, com recibo, em Acesso a artefatos.</p> }
+        @if (a.visit) { <p>Visita comprovada · {{ date(a.visit.capture.effectiveAt) }}</p> }
+        @if (a.risk) { <p>Risco avaliado · {{ a.risk.waived?'Dispensa fundamentada':'Visita prevista' }} · {{ a.risk.reason }}</p> }
+        @if (a.findings.length) {
+          <ul>@for (finding of a.findings; track finding.id) { <li>{{ finding.state }} · {{ finding.criterion }} · {{ finding.reason }}</li> }</ul>
+        }
+        @if (a.opinions.length) {
+          <ul>@for (opinion of a.opinions; track opinion.capture.proof.officialId) {
+            <li>{{ opinion.capture.authority }} · {{ opinion.result }} · {{ short(opinion.dossier) }} · {{ opinion.vintages.join(' / ') }}</li>
+          }</ul>
+        }
+        @if (availableAudit(a).length) {
+          @let step=selectedAudit(a).id;
+          <form class="intake-form" (submit)="auditAction($event,work,step,{date:workDate.value,pack:actionPack.value,
+            official:workProof.value,grant:grant.value,reason:reason.value,finding:finding.value,criterion:criterion.value,
+            mandatory:mandatory.checked,waive:waive.checked,prior:priorGrant.value,coverage:coverage.value,receipt:workReceipt.value,accepted:accepted.checked})">
+            <div><label for="audit-step">Ação da auditoria</label><select id="audit-step" #auditActionInput [value]="step"
+              (change)="auditStep.set(auditActionInput.value)">
+              @for (action of availableAudit(a); track action.id) { <option [value]="action.id">{{ action.label }}</option> }
+            </select></div>
+            <div><label for="audit-action-date">Data efetiva da auditoria</label><input id="audit-action-date" #workDate type="datetime-local" required
+              [value]="a.lastAt ? date(a.lastAt) : a.pack.pack.actDate+'T10:00'"></div>
+            <div><label for="audit-action-pack">Pacote desta ação (ID@revisão)</label><input id="audit-action-pack" #actionPack required
+              [value]="auditRef(a,step)" [readOnly]="!isAuditSuccessor(step)"></div>
+            <div [hidden]="!options()?.auditSources?.[step]"><label for="audit-proof">Identificador do ato do VVB</label>
+              <input id="audit-proof" #workProof placeholder="SIM-…" [required]="!!options()?.auditSources?.[step]">
+              <p class="note">{{ options()?.auditSources?.[step] }}</p></div>
+            <div [hidden]="!auditGrantNeeded(step)"><label for="audit-grant">ID da concessão da variante reservada</label>
+              <input id="audit-grant" #grant [value]="isAuditSuccessor(step)?'':a.grantId??''" [required]="auditGrantNeeded(step)"></div>
+            <div [hidden]="!['TX-E3-28','TX-E3-29'].includes(step)"><label for="audit-finding">Achado da rodada</label>
+              <select id="audit-finding" #finding>
+                @for (item of a.findings; track item.id) {
+                  @if (item.state==='ABERTO' && step==='TX-E3-28' || item.state==='RESPONDIDO' && step==='TX-E3-29') {
+                    <option [value]="item.id">{{ item.criterion }}</option>
+                  }
+                }
+              </select></div>
+            <div [hidden]="step!=='TX-E3-27'"><label for="audit-criterion">Critério do achado</label>
+              <input id="audit-criterion" #criterion maxlength="600" [required]="step==='TX-E3-27'"></div>
+            <div [hidden]="step!=='TX-E3-28'"><label for="audit-work-receipt">ID da exportação reservada com recibo do VVB</label>
+              <input id="audit-work-receipt" #workReceipt [required]="step==='TX-E3-28'"></div>
+            <label [hidden]="step!=='TX-E3-29'" class="field-row"><input #accepted type="checkbox"> Resposta atende ao achado</label>
+            <fieldset [hidden]="step!=='RISCO'">
+              <legend>Risco e conhecimento de M1</legend>
+              <label for="audit-prior-grant">ID da concessão de M1 ao VVB de M2</label><input id="audit-prior-grant" #priorGrant [required]="step==='RISCO'">
+              <label class="field-row"><input type="checkbox" #mandatory> Visita obrigatória pela avaliação</label>
+              <label class="field-row"><input type="checkbox" #waive> Dispensar visita com justificativa</label>
+            </fieldset>
+            <div [hidden]="step!=='COBERTURA'"><label for="audit-coverage">SHA-256 do fechamento</label>
+              <input id="audit-coverage" #coverage [required]="step==='COBERTURA'"></div>
+            <div><label for="audit-reason">Justificativa ou descrição da prova</label>
+              <input id="audit-reason" #reason maxlength="600"></div>
+            <button type="submit" class="primary" [disabled]="busy()">Registrar etapa da auditoria</button>
+          </form>
+        }
+        @if (!vvb()) { <button class="secondary" type="button" (click)="inspect('/audits/'+a.id)" [disabled]="busy()">Consultar trilha da auditoria</button> }
+      </article>
+    }
+    @if (pp()) {
+      <details><summary>Preparar pedido REG, V1 ou V2</summary>
+        <form class="intake-form" (submit)="prepareRequest($event,linkedAudit.value,antecedent.value,applicationReason.value)">
+          <div><label for="request-audit">Auditoria com parecer positivo</label>
+            <select id="request-audit" #linkedAudit required><option value="">Selecione a auditoria</option>
+              @for (item of audits(); track item.audit.id) {
+                @if (item.audit.state==='PARECER_POSITIVO') {
+                  <option [value]="item.audit.id">{{ requestKind(item.audit.contract.kind) }} · {{ item.audit.issuer }}</option>
+                }
+              }
+            </select></div>
+          <div><label for="request-predecessor">Tentativa anterior, quando houver</label>
+            <select id="request-predecessor" #antecedent><option value="">Primeiro pedido</option>
+              @for (item of requests(); track item.request.id) {
+                @if (['DEVOLVIDO','REJEITADO'].includes(item.request.state)) {
+                  <option [value]="item.request.id">{{ item.request.kind }} · {{ item.request.target }}</option>
+                }
+              }
+            </select></div>
+          <div><label for="request-prepare-reason">Motivo da nova tentativa</label><input id="request-prepare-reason" #applicationReason maxlength="600"></div>
+          <button class="primary" type="submit" [disabled]="busy()">Preparar pedido</button>
+        </form>
+      </details>
+    }
+    @if (requests().length) {
+      <div class="intake-form"><div><label for="request-current">Tentativa do pedido</label>
+        <select id="request-current" #requestChoice [value]="chosenRequest()" (change)="chooseRequest(requestChoice.value)">
+          @for (item of requests(); track item.request.id) {
+            <option [value]="item.request.id">{{ item.request.kind }} · {{ item.request.state }} · {{ item.request.target ?? item.request.id.slice(0,8) }}</option>
+          }
+        </select></div></div>
+    }
+    @if (currentRequest(); as view) {
+      @let r=view.request;
+      <article class="intake-card">
+        <h3>{{ r.kind }} · {{ r.state }}</h3>
+        <p>Pacote <code>{{ address(r.pack.pack.reference) }}</code></p>
+        @if (r.submission) { <p>Recibo {{ r.submission.receipt }} · <code class="energy-hash">{{ r.submission.sha256 }}</code></p> }
+        @if (r.decision) { <p>{{ r.decision.authority }} · {{ r.decision.proof.officialId }} · Captura {{ r.decision.capturedBy }}</p> }
+        @if (r.registration) { <p>Registro efetivo comprovado · {{ r.registration.proof.officialId }}</p> }
+        @if (r.state==='APROVADO' && r.kind!=='REG') { <p>Consulte a ativação desta verificação em Emissão e conciliação.</p> }
+        @if (view.reuseUntil) { <p>Prazo de 180 dias para avaliar reaproveitamento · {{ date(view.reuseUntil) }}</p> }
+        @if (view.responseDue) {
+          <p>Prazo da rodada · {{ date(view.responseDue) }} @if (view.overdue) { · Prazo nominal vencido, conferir ato da Verra }</p>
+          <div class="inline-fields"><label for="request-as-of">Consultar situação na data</label>
+            <input id="request-as-of" #asOfInput type="datetime-local" [value]="date(view.responseDue)">
+            <button type="button" class="secondary" (click)="asOf(asOfInput.value)" [disabled]="busy()">Conferir prazo</button></div>
+        }
+        @if (r.rounds.length) { <ul>@for (round of r.rounds; track round.number) {
+          <li>Rodada {{ round.number }} · {{ round.finding }} · {{ round.response ? 'Resposta de '+round.response.authority : 'Aguardando resposta' }}</li>
+        }</ul> }
+        @if (pp() && (r.state==='NOVO' || r.state==='COM_ACHADO')) {
+          <details><summary>Conferir canal do pedido</summary>
+            <form class="intake-form" (submit)="check($event,r,channel.value,checkPack.value,checkAt.value,until.value,power.checked)">
+              <div><label for="request-channel">Canal do pedido</label><select id="request-channel" #channel [value]="r.check?.input?.channel??'ARQUIVO'">
+                <option value="ARQUIVO">Arquivo · Registry</option><option value="DIGITAL_HUMANO">Preenchimento humano · Hub</option>
+                <option value="INDETERMINADO">Indeterminado</option></select></div>
+              <div><label for="request-check-pack">Pacote conferido (ID@revisão)</label>
+                <input id="request-check-pack" #checkPack required [value]="address(r.check?.input?.dossier??r.pack.pack.reference)"></div>
+              <div><label for="request-check-date">Data da conferência do pedido</label>
+                <input id="request-check-date" #checkAt type="datetime-local" required [value]="r.pack.pack.actDate+'T09:00'"></div>
+              <label class="field-row"><input type="checkbox" #power> Poder simulado vigente</label>
+              <div><label for="request-power-end">Fim exclusivo do poder do pedido</label>
+                <input id="request-power-end" #until type="datetime-local" value="2031-01-01T00:00"></div>
+              <button class="primary" type="submit" [disabled]="busy()">Salvar conferência do pedido</button>
+            </form>
+          </details>
+        }
+        @if (availableRequest(r).length) {
+          @let step=selectedRequest(r).id;
+          <form class="intake-form" (submit)="requestAction($event,r,step,{date:requestDate.value,target:external.value,official:requestProof.value,
+            receipt:receiptId.value,grant:roundGrant.value,reason:requestReason.value,fee:fee.checked,reuse:reuse.checked,admission:admission.checked})">
+            <div><label for="request-step">Ação do pedido</label><select id="request-step" #requestSelection [value]="step"
+              (change)="requestStep.set(requestSelection.value)">
+              @for (action of availableRequest(r); track action.id) { <option [value]="action.id">{{ action.label }}</option> }
+            </select></div>
+            <div><label for="request-date">Data efetiva do pedido</label><input id="request-date" #requestDate type="datetime-local" required
+              [value]="r.lastAt ? date(r.lastAt) : r.pack.pack.actDate+'T13:00'"></div>
+            <div [hidden]="!!r.target"><label for="request-target">Identificador externo do pedido</label>
+              <input id="request-target" #external placeholder="SIM-…" [required]="!r.target"></div>
+            <div [hidden]="!options()?.requestSources?.[step]"><label for="request-proof">Identificador do ato comprovado</label>
+              <input id="request-proof" #requestProof placeholder="SIM-…" [required]="!!options()?.requestSources?.[step]"></div>
+            <div [hidden]="!hasRequestReceipt(step)"><label for="request-receipt">ID da exportação com recibo</label>
+              <input id="request-receipt" #receiptId [required]="hasRequestReceipt(step)"></div>
+            <div [hidden]="step!=='TX-E3-36'"><label for="request-round-grant">Concessão da revisão ao VVB</label>
+              <input id="request-round-grant" #roundGrant [required]="step==='TX-E3-36'"></div>
+            <fieldset [hidden]="step!=='TX-E3-33' && step!=='TX-E3-40'">
+              <legend>Provas do protocolo simulado</legend>
+              <label class="field-row"><input type="checkbox" #fee> Taxa aplicável comprovada</label>
+              <label [hidden]="!r.predecessor" class="field-row"><input type="checkbox" #reuse> Reaproveitamento admitido no prazo</label>
+              <label [hidden]="!r.predecessor" class="field-row"><input type="checkbox" #admission> Admissão após rejeição comprovada</label>
+            </fieldset>
+            <div><label for="request-reason">Motivo ou conteúdo comprovado</label><input id="request-reason" #requestReason maxlength="600"></div>
+            <button type="submit" class="primary" [disabled]="busy()">Registrar etapa do pedido</button>
+          </form>
+        }
+        @if (exports().length) {
+          <details><summary>Exportações e recibos do dossiê</summary><ul>
+            @for (item of exports(); track item.id) {
+              <li><a [href]="download(item)">Baixar ZIP · r{{ item.dossier.revision }} · {{ item.exposure }}</a>
+                · {{ item.destination }} · <code>{{ item.id }}</code></li>
+            }
+          </ul></details>
+        }
+        @if (!vvb()) { <button type="button" class="secondary" (click)="inspect('/requests/'+r.id)" [disabled]="busy()">Consultar trilha do pedido</button> }
+      </article>
+    }
+    @if (events().length) {
+      <ul aria-label="Trilha de auditoria ou pedido">@for (event of events(); track event.id) {
+        <li>{{ event.action }} · {{ event.actor }} · {{ event.outcome }}</li>
+      }</ul>
+    }
+    @if (feedback()) { <p class="feedback" [class.error]="failed()" role="status">{{ feedback() }}</p> }
+  </section>
+}

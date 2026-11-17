@@ -1,0 +1,691 @@
+{
+  "development" : {
+    "attempt" : {
+      "id" : "d52fa028-d54e-483c-99d6-c9b9a1d3e09d",
+      "version" : 9,
+      "kind" : "DESENVOLVIMENTO",
+      "pack" : {
+        "reference" : {
+          "id" : "2f032c5a-6890-4963-81c8-fdeecf3b3d8f",
+          "revision" : 1
+        },
+        "purpose" : "DESENVOLVIMENTO",
+        "actDate" : "2027-08-02",
+        "sha256" : "b3289541b50a1e84f0b3291051984beee1f687d760ed521e04831ee3de4cbf83",
+        "reservedSha256" : "8015b8b4112833a55dc3d813a4b188f8278d3bb2141db3844815bf45fd79f4ab"
+      },
+      "predecessor" : null,
+      "state" : "PUBLICADO",
+      "target" : "SIM-DEV-7B8246F7",
+      "check" : {
+        "input" : {
+          "dossier" : {
+            "id" : "2f032c5a-6890-4963-81c8-fdeecf3b3d8f",
+            "revision" : 1
+          },
+          "channel" : "ARQUIVO",
+          "documentEdition" : "5.0B",
+          "methodologyEdition" : "VM0038 v1.1",
+          "checkedAt" : "2027-08-02T12:00:00Z",
+          "powerUntilExclusive" : "2030-01-01T03:00:00Z",
+          "source" : {
+            "id" : "SIM-CANAL-ARQUIVO",
+            "version" : 1
+          },
+          "power" : {
+            "id" : "SIM-PODER-LISTAGEM",
+            "version" : 1
+          }
+        },
+        "responsible" : "SIM-PP",
+        "fixture" : "Kit 0.2.14 · E6/exemplos.json · channelCheck e publicationCapture",
+        "eventId" : "ac1f3bc9-b6c7-42bf-a889-4b5f0c538a1a"
+      },
+      "uncertain" : false,
+      "fees" : {
+        "invoice" : {
+          "authority" : "VERRA",
+          "namespace" : "SIM-VERRA-LISTAGEM",
+          "proof" : {
+            "officialId" : "SIM-FEE-89AC8761",
+            "target" : "SIM-DEV-7B8246F7",
+            "evidence" : {
+              "id" : "SIM-PROVA-BOLETO",
+              "version" : 1
+            }
+          },
+          "effectiveAt" : "2027-08-02T14:00:00Z",
+          "capturedBy" : "SIM-PP",
+          "eventId" : "14b4e85e-2a62-4f33-92bf-29b9ccc4fc43"
+        },
+        "settlement" : {
+          "authority" : "SIM-INSTITUICAO-PAGADORA",
+          "namespace" : "SIM-VERRA-LISTAGEM",
+          "proof" : {
+            "officialId" : "SIM-PAID-919E833C",
+            "target" : "SIM-DEV-7B8246F7",
+            "evidence" : {
+              "id" : "SIM-PROVA-QUITACAO-LISTAGEM",
+              "version" : 1
+            }
+          },
+          "effectiveAt" : "2027-08-02T15:00:00Z",
+          "capturedBy" : "SIM-PP",
+          "eventId" : "f0ccc292-57b1-494c-95b4-f64019ec2704"
+        }
+      },
+      "submission" : {
+        "exportId" : "d576be63-1aaf-4e4e-9459-1be3f4c0c0da",
+        "receipt" : "SIM-RECIBO-C95D040B",
+        "dossier" : {
+          "id" : "2f032c5a-6890-4963-81c8-fdeecf3b3d8f",
+          "revision" : 1
+        },
+        "sha256" : "b3289541b50a1e84f0b3291051984beee1f687d760ed521e04831ee3de4cbf83",
+        "destination" : "SIM-REGISTRY"
+      },
+      "publication" : {
+        "authority" : "VERRA",
+        "namespace" : "SIM-VERRA-LISTAGEM",
+        "proof" : {
+          "officialId" : "SIM-PUB-DEV-84056A3B",
+          "target" : "SIM-DEV-7B8246F7",
+          "evidence" : {
+            "id" : "SIM-PROVA-PUBLICACAO-01",
+            "version" : 1
+          }
+        },
+        "effectiveAt" : "2027-08-03T12:00:00-03:00",
+        "capturedBy" : "SIM-PP",
+        "eventId" : "cda7826e-c9db-4369-9310-ea17b966f1bc"
+      },
+      "consultationId" : null,
+      "demandAt" : null,
+      "inactiveAt" : null,
+      "lastAt" : "2027-08-03T12:00:00-03:00",
+      "eventId" : "cda7826e-c9db-4369-9310-ea17b966f1bc"
+    },
+    "responseDue" : null,
+    "rejectionReviewAt" : null,
+    "lateResponse" : false,
+    "channelStatus" : "CONFERIDO_SIMULACAO",
+    "nextStep" : "Registre o próximo ato comprovado na trilha da tentativa.",
+    "realSubmissionAllowed" : false
+  },
+  "validation" : {
+    "attempt" : {
+      "id" : "378780c1-2953-4ee8-b5d5-c99ba77a0343",
+      "version" : 4,
+      "kind" : "LISTAGEM_VALIDACAO",
+      "pack" : {
+        "reference" : {
+          "id" : "3266fb60-0a19-4e6a-887e-21f0d4fae6c8",
+          "revision" : 1
+        },
+        "purpose" : "LISTAGEM_VALIDACAO",
+        "actDate" : "2027-12-01",
+        "sha256" : "836704ef92891f0855828a907d54db1f7b14db951614737b6d6a70b16f2a9b66",
+        "reservedSha256" : "96942c5a63c2988ec9ad274e32ac3223501584aa072ac7a3f342bfbaae6ad160"
+      },
+      "predecessor" : null,
+      "state" : "PUBLICADO",
+      "target" : "SIM-VAL-74F7603C",
+      "check" : {
+        "input" : {
+          "dossier" : {
+            "id" : "3266fb60-0a19-4e6a-887e-21f0d4fae6c8",
+            "revision" : 1
+          },
+          "channel" : "DIGITAL_HUMANO",
+          "documentEdition" : "5.0B",
+          "methodologyEdition" : "VM0038 v1.1",
+          "checkedAt" : "2027-12-01T12:00:00Z",
+          "powerUntilExclusive" : "2030-01-01T03:00:00Z",
+          "source" : {
+            "id" : "SIM-CANAL-DIGITAL-HUMANO",
+            "version" : 1
+          },
+          "power" : {
+            "id" : "SIM-PODER-LISTAGEM",
+            "version" : 1
+          }
+        },
+        "responsible" : "SIM-PP",
+        "fixture" : "Kit 0.2.14 · E6/exemplos.json · channelCheck e publicationCapture",
+        "eventId" : "d703d16a-c05e-442b-882b-c2c49005f36c"
+      },
+      "uncertain" : false,
+      "fees" : null,
+      "submission" : {
+        "exportId" : "4977b2ce-b763-4608-b356-31a76bfe0f74",
+        "receipt" : "SIM-RECIBO-623A94CF",
+        "dossier" : {
+          "id" : "3266fb60-0a19-4e6a-887e-21f0d4fae6c8",
+          "revision" : 1
+        },
+        "sha256" : "836704ef92891f0855828a907d54db1f7b14db951614737b6d6a70b16f2a9b66",
+        "destination" : "SIM-HUB"
+      },
+      "publication" : {
+        "authority" : "VERRA",
+        "namespace" : "SIM-VERRA-LISTAGEM",
+        "proof" : {
+          "officialId" : "SIM-PUB-VAL-7DCD1E95",
+          "target" : "SIM-VAL-74F7603C",
+          "evidence" : {
+            "id" : "SIM-PROVA-PUBLICACAO-01",
+            "version" : 1
+          }
+        },
+        "effectiveAt" : "2027-12-05T10:00:00-03:00",
+        "capturedBy" : "SIM-PP",
+        "eventId" : "3804c50a-f830-4ebe-9df0-30bdd59ab169"
+      },
+      "consultationId" : "7f61eb46-b661-4261-8b69-20e635f239ab",
+      "demandAt" : null,
+      "inactiveAt" : null,
+      "lastAt" : "2027-12-05T10:00:00-03:00",
+      "eventId" : "3804c50a-f830-4ebe-9df0-30bdd59ab169"
+    },
+    "responseDue" : null,
+    "rejectionReviewAt" : null,
+    "lateResponse" : false,
+    "channelStatus" : "CONFERIDO_SIMULACAO",
+    "nextStep" : "Registre o próximo ato comprovado na trilha da tentativa.",
+    "realSubmissionAllowed" : false
+  },
+  "afterProtocolNoPublication" : {
+    "attempt" : {
+      "id" : "378780c1-2953-4ee8-b5d5-c99ba77a0343",
+      "version" : 3,
+      "kind" : "LISTAGEM_VALIDACAO",
+      "pack" : {
+        "reference" : {
+          "id" : "3266fb60-0a19-4e6a-887e-21f0d4fae6c8",
+          "revision" : 1
+        },
+        "purpose" : "LISTAGEM_VALIDACAO",
+        "actDate" : "2027-12-01",
+        "sha256" : "836704ef92891f0855828a907d54db1f7b14db951614737b6d6a70b16f2a9b66",
+        "reservedSha256" : "96942c5a63c2988ec9ad274e32ac3223501584aa072ac7a3f342bfbaae6ad160"
+      },
+      "predecessor" : null,
+      "state" : "PROTOCOLADO",
+      "target" : "SIM-VAL-74F7603C",
+      "check" : {
+        "input" : {
+          "dossier" : {
+            "id" : "3266fb60-0a19-4e6a-887e-21f0d4fae6c8",
+            "revision" : 1
+          },
+          "channel" : "DIGITAL_HUMANO",
+          "documentEdition" : "5.0B",
+          "methodologyEdition" : "VM0038 v1.1",
+          "checkedAt" : "2027-12-01T12:00:00Z",
+          "powerUntilExclusive" : "2030-01-01T03:00:00Z",
+          "source" : {
+            "id" : "SIM-CANAL-DIGITAL-HUMANO",
+            "version" : 1
+          },
+          "power" : {
+            "id" : "SIM-PODER-LISTAGEM",
+            "version" : 1
+          }
+        },
+        "responsible" : "SIM-PP",
+        "fixture" : "Kit 0.2.14 · E6/exemplos.json · channelCheck e publicationCapture",
+        "eventId" : "d703d16a-c05e-442b-882b-c2c49005f36c"
+      },
+      "uncertain" : false,
+      "fees" : null,
+      "submission" : {
+        "exportId" : "4977b2ce-b763-4608-b356-31a76bfe0f74",
+        "receipt" : "SIM-RECIBO-623A94CF",
+        "dossier" : {
+          "id" : "3266fb60-0a19-4e6a-887e-21f0d4fae6c8",
+          "revision" : 1
+        },
+        "sha256" : "836704ef92891f0855828a907d54db1f7b14db951614737b6d6a70b16f2a9b66",
+        "destination" : "SIM-HUB"
+      },
+      "publication" : null,
+      "consultationId" : null,
+      "demandAt" : null,
+      "inactiveAt" : null,
+      "lastAt" : "2027-12-01T13:00:00Z",
+      "eventId" : "37ebd05c-b105-46c5-a31e-69ef04de9002"
+    },
+    "responseDue" : null,
+    "rejectionReviewAt" : null,
+    "lateResponse" : false,
+    "channelStatus" : "CONFERIDO_SIMULACAO",
+    "nextStep" : "Registre o próximo ato comprovado na trilha da tentativa.",
+    "realSubmissionAllowed" : false
+  },
+  "publication" : {
+    "id" : "7f61eb46-b661-4261-8b69-20e635f239ab",
+    "version" : 1,
+    "listing" : "378780c1-2953-4ee8-b5d5-c99ba77a0343",
+    "target" : "SIM-VAL-74F7603C",
+    "page" : "https://registry.example.invalid/listagens/SIM-VAL-74F7603C",
+    "state" : "ABERTA",
+    "opening" : "2027-12-05T13:00:00Z",
+    "endExclusive" : "2028-01-04T13:00:00Z",
+    "publication" : {
+      "authority" : "VERRA",
+      "namespace" : "SIM-VERRA-LISTAGEM",
+      "proof" : {
+        "officialId" : "SIM-PUB-VAL-7DCD1E95",
+        "target" : "SIM-VAL-74F7603C",
+        "evidence" : {
+          "id" : "SIM-PROVA-PUBLICACAO-01",
+          "version" : 1
+        }
+      },
+      "effectiveAt" : "2027-12-05T13:00:00Z",
+      "capturedBy" : "SIM-PP",
+      "eventId" : "3804c50a-f830-4ebe-9df0-30bdd59ab169"
+    },
+    "closure" : null,
+    "noInWindowComments" : false
+  },
+  "closed" : {
+    "id" : "7f61eb46-b661-4261-8b69-20e635f239ab",
+    "version" : 2,
+    "listing" : "378780c1-2953-4ee8-b5d5-c99ba77a0343",
+    "target" : "SIM-VAL-74F7603C",
+    "page" : "https://registry.example.invalid/listagens/SIM-VAL-74F7603C",
+    "state" : "ENCERRADA",
+    "opening" : "2027-12-05T13:00:00Z",
+    "endExclusive" : "2028-01-04T13:00:00Z",
+    "publication" : {
+      "authority" : "VERRA",
+      "namespace" : "SIM-VERRA-LISTAGEM",
+      "proof" : {
+        "officialId" : "SIM-PUB-VAL-7DCD1E95",
+        "target" : "SIM-VAL-74F7603C",
+        "evidence" : {
+          "id" : "SIM-PROVA-PUBLICACAO-01",
+          "version" : 1
+        }
+      },
+      "effectiveAt" : "2027-12-05T13:00:00Z",
+      "capturedBy" : "SIM-PP",
+      "eventId" : "3804c50a-f830-4ebe-9df0-30bdd59ab169"
+    },
+    "closure" : {
+      "authority" : "VERRA",
+      "namespace" : "SIM-VERRA-CONSULTA",
+      "proof" : {
+        "officialId" : "SIM-END-BAA65D24",
+        "target" : "SIM-VAL-74F7603C",
+        "evidence" : {
+          "id" : "SIM-PROVA-FIM-CONSULTA",
+          "version" : 1
+        }
+      },
+      "effectiveAt" : "2028-01-04T10:00:00-03:00",
+      "capturedBy" : "SIM-PP",
+      "eventId" : "ce68d1dc-36d9-4ff4-98c7-039375a73b1c"
+    },
+    "noInWindowComments" : false
+  },
+  "forwarding" : {
+    "id" : "7f19f615-2204-4b78-b66d-17f30dcbe084",
+    "version" : 2,
+    "consultation" : "7f61eb46-b661-4261-8b69-20e635f239ab",
+    "target" : "SIM-HUB-EF1BB256",
+    "state" : "ENCAMINHADO",
+    "topic" : "SEGURANCA",
+    "body" : "Pergunta de ensaio da vizinhança",
+    "window" : "NA_JANELA",
+    "responseDue" : null,
+    "received" : {
+      "authority" : "PUB",
+      "namespace" : "SIM-HUB-CONSULTA",
+      "proof" : {
+        "officialId" : "SIM-HUB-EF1BB256",
+        "target" : "SIM-VAL-74F7603C",
+        "evidence" : {
+          "id" : "SIM-PROVA-RECEBIMENTO-HUB",
+          "version" : 1
+        }
+      },
+      "effectiveAt" : "2027-12-06T13:00:00Z",
+      "capturedBy" : "SIM-PP",
+      "eventId" : "395d9202-28a4-4845-a493-99514c20a697"
+    },
+    "forwarded" : {
+      "authority" : "VERRA",
+      "namespace" : "SIM-VERRA-CONSULTA",
+      "proof" : {
+        "officialId" : "SIM-FWD-E87EA6CF",
+        "target" : "SIM-HUB-EF1BB256",
+        "evidence" : {
+          "id" : "SIM-PROVA-ENCAMINHAMENTO",
+          "version" : 1
+        }
+      },
+      "effectiveAt" : "2028-01-04T10:30:00-03:00",
+      "capturedBy" : "SIM-PP",
+      "eventId" : "da218c77-e6ed-4f0a-ae81-3e53581801b7"
+    },
+    "vvb" : "SIM-VVB",
+    "responses" : [ ],
+    "evaluations" : [ ],
+    "eventId" : "da218c77-e6ed-4f0a-ae81-3e53581801b7"
+  },
+  "response" : {
+    "id" : "7f19f615-2204-4b78-b66d-17f30dcbe084",
+    "version" : 3,
+    "consultation" : "7f61eb46-b661-4261-8b69-20e635f239ab",
+    "target" : "SIM-HUB-EF1BB256",
+    "state" : "RESPONDIDO",
+    "topic" : "SEGURANCA",
+    "body" : "Pergunta de ensaio da vizinhança",
+    "window" : "NA_JANELA",
+    "responseDue" : null,
+    "received" : {
+      "authority" : "PUB",
+      "namespace" : "SIM-HUB-CONSULTA",
+      "proof" : {
+        "officialId" : "SIM-HUB-EF1BB256",
+        "target" : "SIM-VAL-74F7603C",
+        "evidence" : {
+          "id" : "SIM-PROVA-RECEBIMENTO-HUB",
+          "version" : 1
+        }
+      },
+      "effectiveAt" : "2027-12-06T13:00:00Z",
+      "capturedBy" : "SIM-PP",
+      "eventId" : "395d9202-28a4-4845-a493-99514c20a697"
+    },
+    "forwarded" : {
+      "authority" : "VERRA",
+      "namespace" : "SIM-VERRA-CONSULTA",
+      "proof" : {
+        "officialId" : "SIM-FWD-E87EA6CF",
+        "target" : "SIM-HUB-EF1BB256",
+        "evidence" : {
+          "id" : "SIM-PROVA-ENCAMINHAMENTO",
+          "version" : 1
+        }
+      },
+      "effectiveAt" : "2028-01-04T13:30:00Z",
+      "capturedBy" : "SIM-PP",
+      "eventId" : "da218c77-e6ed-4f0a-ae81-3e53581801b7"
+    },
+    "vvb" : "SIM-VVB",
+    "responses" : [ {
+      "version" : 1,
+      "body" : "Resposta documentada do proponente",
+      "effectiveAt" : "2028-01-05T10:00:00-03:00",
+      "actor" : "SIM-PP",
+      "late" : false,
+      "source" : {
+        "id" : "SIM-PROVA-RESPOSTA-CONSULTA",
+        "version" : 1
+      }
+    } ],
+    "evaluations" : [ ],
+    "eventId" : "2e440f23-81ed-49b3-bfdb-439f54f06fa2"
+  },
+  "assessment" : {
+    "id" : "7f19f615-2204-4b78-b66d-17f30dcbe084",
+    "version" : 6,
+    "consultation" : "7f61eb46-b661-4261-8b69-20e635f239ab",
+    "target" : "SIM-HUB-EF1BB256",
+    "state" : "AVALIADO",
+    "topic" : "SEGURANCA",
+    "body" : "Pergunta de ensaio da vizinhança",
+    "window" : "NA_JANELA",
+    "responseDue" : null,
+    "received" : {
+      "authority" : "PUB",
+      "namespace" : "SIM-HUB-CONSULTA",
+      "proof" : {
+        "officialId" : "SIM-HUB-EF1BB256",
+        "target" : "SIM-VAL-74F7603C",
+        "evidence" : {
+          "id" : "SIM-PROVA-RECEBIMENTO-HUB",
+          "version" : 1
+        }
+      },
+      "effectiveAt" : "2027-12-06T13:00:00Z",
+      "capturedBy" : "SIM-PP",
+      "eventId" : "395d9202-28a4-4845-a493-99514c20a697"
+    },
+    "forwarded" : {
+      "authority" : "VERRA",
+      "namespace" : "SIM-VERRA-CONSULTA",
+      "proof" : {
+        "officialId" : "SIM-FWD-E87EA6CF",
+        "target" : "SIM-HUB-EF1BB256",
+        "evidence" : {
+          "id" : "SIM-PROVA-ENCAMINHAMENTO",
+          "version" : 1
+        }
+      },
+      "effectiveAt" : "2028-01-04T13:30:00Z",
+      "capturedBy" : "SIM-PP",
+      "eventId" : "da218c77-e6ed-4f0a-ae81-3e53581801b7"
+    },
+    "vvb" : "SIM-VVB",
+    "responses" : [ {
+      "version" : 1,
+      "body" : "Resposta documentada do proponente",
+      "effectiveAt" : "2028-01-05T13:00:00Z",
+      "actor" : "SIM-PP",
+      "late" : false,
+      "source" : {
+        "id" : "SIM-PROVA-RESPOSTA-CONSULTA",
+        "version" : 1
+      }
+    }, {
+      "version" : 2,
+      "body" : "Resposta documentada do proponente",
+      "effectiveAt" : "2028-01-07T13:00:00Z",
+      "actor" : "SIM-PP",
+      "late" : false,
+      "source" : {
+        "id" : "SIM-PROVA-RESPOSTA-CONSULTA",
+        "version" : 1
+      }
+    } ],
+    "evaluations" : [ {
+      "result" : "ACHADO",
+      "reason" : "Resposta revisada de forma independente",
+      "responseVersion" : 1,
+      "capture" : {
+        "authority" : "SIM-VVB-A",
+        "namespace" : "SIM-VVB-CONSULTA",
+        "proof" : {
+          "officialId" : "SIM-ASSESS-2C0E61FE",
+          "target" : "SIM-HUB-EF1BB256",
+          "evidence" : {
+            "id" : "SIM-PROVA-AVALIACAO-VVB",
+            "version" : 1
+          }
+        },
+        "effectiveAt" : "2028-01-06T13:00:00Z",
+        "capturedBy" : "SIM-VVB",
+        "eventId" : "a4b5f960-caf2-4b6c-bd0e-4fc6bab692b9"
+      }
+    }, {
+      "result" : "SUFICIENTE",
+      "reason" : "Complementação suficiente",
+      "responseVersion" : 2,
+      "capture" : {
+        "authority" : "SIM-VVB-A",
+        "namespace" : "SIM-VVB-CONSULTA",
+        "proof" : {
+          "officialId" : "SIM-ASSESS-FINAL-00C68322",
+          "target" : "SIM-HUB-EF1BB256",
+          "evidence" : {
+            "id" : "SIM-PROVA-AVALIACAO-VVB",
+            "version" : 1
+          }
+        },
+        "effectiveAt" : "2028-01-08T10:00:00-03:00",
+        "capturedBy" : "SIM-VVB",
+        "eventId" : "55efa159-2c17-49d8-b895-16c2750fbf86"
+      }
+    } ],
+    "eventId" : "55efa159-2c17-49d8-b895-16c2750fbf86"
+  },
+  "publicSummary" : {
+    "id" : "7f61eb46-b661-4261-8b69-20e635f239ab",
+    "environment" : "SIMULACAO",
+    "state" : "ENCERRADA",
+    "publishedAt" : "2027-12-05T13:00:00Z",
+    "endExclusive" : "2028-01-04T13:00:00Z",
+    "closedAt" : "2028-01-04T13:00:00Z",
+    "inWindow" : 1,
+    "afterWindow" : 1,
+    "openIssues" : 1
+  },
+  "listingHistory" : [ {
+    "id" : "17fcce3f-4388-44f6-ba3b-6f428de19b5d",
+    "actor" : "SIM-PP",
+    "action" : "TX-E3-14",
+    "outcome" : "NEGADO",
+    "target" : "378780c1-2953-4ee8-b5d5-c99ba77a0343",
+    "occurredAt" : "2026-11-16T16:16:48.178212Z",
+    "details" : {
+      "code" : "ATO_CONFLITANTE"
+    }
+  }, {
+    "id" : "3804c50a-f830-4ebe-9df0-30bdd59ab169",
+    "actor" : "SIM-PP",
+    "action" : "TX-E3-14",
+    "outcome" : "PERMITIDO",
+    "target" : "378780c1-2953-4ee8-b5d5-c99ba77a0343",
+    "occurredAt" : "2026-11-16T16:16:48.156913Z",
+    "details" : {
+      "to" : "PUBLICADO",
+      "from" : "PROTOCOLADO",
+      "sha256" : "836704ef92891f0855828a907d54db1f7b14db951614737b6d6a70b16f2a9b66",
+      "command" : {
+        "mode" : "SIMULACAO",
+        "page" : "https://registry.example.invalid/listagens/SIM-VAL-74F7603C",
+        "proof" : {
+          "target" : "SIM-VAL-74F7603C",
+          "evidence" : {
+            "id" : "SIM-PROVA-PUBLICACAO-01",
+            "version" : 1
+          },
+          "officialId" : "SIM-PUB-VAL-7DCD1E95"
+        },
+        "reason" : null,
+        "target" : null,
+        "dossier" : null,
+        "support" : null,
+        "exportId" : null,
+        "effectiveAt" : "2027-12-05T13:00:00Z",
+        "transitionId" : "TX-E3-14",
+        "captureChannel" : null
+      },
+      "package" : {
+        "id" : "3266fb60-0a19-4e6a-887e-21f0d4fae6c8",
+        "revision" : 1
+      },
+      "authority" : "VERRA",
+      "effectiveAt" : "2027-12-05T10:00:00-03:00"
+    }
+  }, {
+    "id" : "21432748-2eb4-4948-8d7f-36260ad51ec4",
+    "actor" : "SIM-PP",
+    "action" : "TX-E3-14",
+    "outcome" : "NEGADO",
+    "target" : "378780c1-2953-4ee8-b5d5-c99ba77a0343",
+    "occurredAt" : "2026-11-16T16:16:48.14876Z",
+    "details" : {
+      "code" : "PUBLICACAO_SEM_PAGINA"
+    }
+  }, {
+    "id" : "37ebd05c-b105-46c5-a31e-69ef04de9002",
+    "actor" : "SIM-PP",
+    "action" : "TX-E3-18",
+    "outcome" : "PERMITIDO",
+    "target" : "378780c1-2953-4ee8-b5d5-c99ba77a0343",
+    "occurredAt" : "2026-11-16T16:16:48.131959Z",
+    "details" : {
+      "to" : "PROTOCOLADO",
+      "from" : "NOVO",
+      "sha256" : "836704ef92891f0855828a907d54db1f7b14db951614737b6d6a70b16f2a9b66",
+      "command" : {
+        "mode" : "SIMULACAO",
+        "page" : null,
+        "proof" : null,
+        "reason" : null,
+        "target" : "SIM-VAL-74F7603C",
+        "dossier" : {
+          "id" : "3266fb60-0a19-4e6a-887e-21f0d4fae6c8",
+          "revision" : 1
+        },
+        "support" : null,
+        "exportId" : "4977b2ce-b763-4608-b356-31a76bfe0f74",
+        "effectiveAt" : "2027-12-01T13:00:00Z",
+        "transitionId" : "TX-E3-18",
+        "captureChannel" : null
+      },
+      "package" : {
+        "id" : "3266fb60-0a19-4e6a-887e-21f0d4fae6c8",
+        "revision" : 1
+      },
+      "effectiveAt" : "2027-12-01T10:00:00-03:00"
+    }
+  }, {
+    "id" : "d4d339fa-dd89-4743-891d-84bd8d283ac9",
+    "actor" : "SIM-PP",
+    "action" : "TX-E3-18",
+    "outcome" : "NEGADO",
+    "target" : "378780c1-2953-4ee8-b5d5-c99ba77a0343",
+    "occurredAt" : "2026-11-16T16:16:48.060505Z",
+    "details" : {
+      "code" : "DESENVOLVIMENTO_PENDENTE"
+    }
+  }, {
+    "id" : "d703d16a-c05e-442b-882b-c2c49005f36c",
+    "actor" : "SIM-PP",
+    "action" : "CONFERIR_CANAL_LISTAGEM",
+    "outcome" : "PERMITIDO",
+    "target" : "378780c1-2953-4ee8-b5d5-c99ba77a0343",
+    "occurredAt" : "2026-11-16T16:16:48.047574Z",
+    "details" : {
+      "power" : {
+        "id" : "SIM-PODER-LISTAGEM",
+        "version" : 1
+      },
+      "source" : {
+        "id" : "SIM-CANAL-DIGITAL-HUMANO",
+        "version" : 1
+      },
+      "channel" : "DIGITAL_HUMANO",
+      "dossier" : {
+        "id" : "3266fb60-0a19-4e6a-887e-21f0d4fae6c8",
+        "revision" : 1
+      },
+      "checkedAt" : "2027-12-01T12:00:00Z",
+      "documentEdition" : "5.0B",
+      "methodologyEdition" : "VM0038 v1.1",
+      "powerUntilExclusive" : "2030-01-01T03:00:00Z"
+    }
+  }, {
+    "id" : "dd9b0683-9c78-4fb1-a7e6-6046116fae68",
+    "actor" : "SIM-PP",
+    "action" : "PREPARAR_LISTAGEM",
+    "outcome" : "PERMITIDO",
+    "target" : "378780c1-2953-4ee8-b5d5-c99ba77a0343",
+    "occurredAt" : "2026-11-16T16:16:47.844049Z",
+    "details" : {
+      "kind" : "LISTAGEM_VALIDACAO",
+      "dossier" : {
+        "id" : "3266fb60-0a19-4e6a-887e-21f0d4fae6c8",
+        "revision" : 1
+      },
+      "admission" : null,
+      "predecessor" : null
+    }
+  } ]
+}

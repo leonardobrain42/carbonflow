@@ -1,0 +1,1409 @@
+{
+  "kit" : "0.2.14",
+  "project" : "SIM-E8-004-69d2a04a-14f2-425e-b0c0-ca29be42be53",
+  "fixture" : "PIL-SYN-BR-001 / E8-010 / synth",
+  "v1InitialPosition" : {
+    "position" : {
+      "id" : "45bb22ec-62c2-4993-8f1a-92b0531533db",
+      "verification" : "13d33ac5-d423-4880-b13f-b2bcb36a54f3",
+      "vintage" : {
+        "start" : "2028-01-01",
+        "endExclusive" : "2028-10-01"
+      },
+      "official" : 10.0,
+      "pending" : [ {
+        "reference" : "SIM-PENDENCIA-01",
+        "issuance" : null,
+        "amount" : 2,
+        "status" : "NAO_REFLETIDA"
+      } ],
+      "asOf" : "2028-12-06T15:00:00Z",
+      "order" : null,
+      "capture" : {
+        "authority" : "SIM-REGISTRY",
+        "namespace" : "SIM-REGISTRY-POSICAO",
+        "proof" : {
+          "officialId" : "SIM-POS-V1-D766F421",
+          "target" : "SIM-REGISTRY-V1-39966087",
+          "evidence" : {
+            "id" : "SIM-PROVA-POSICAO",
+            "version" : 1
+          }
+        },
+        "effectiveAt" : "2028-12-06T15:00:00Z",
+        "capturedBy" : "SIM-PP",
+        "eventId" : "60e6c5db-ba6c-4b8e-afc3-8349819a5aab"
+      },
+      "historical" : false
+    },
+    "balance" : {
+      "position" : {
+        "id" : "45bb22ec-62c2-4993-8f1a-92b0531533db",
+        "verification" : "13d33ac5-d423-4880-b13f-b2bcb36a54f3",
+        "vintage" : {
+          "start" : "2028-01-01",
+          "endExclusive" : "2028-10-01"
+        },
+        "official" : 10,
+        "pending" : [ {
+          "reference" : "SIM-PENDENCIA-01",
+          "issuance" : null,
+          "amount" : 2,
+          "status" : "NAO_REFLETIDA"
+        } ],
+        "asOf" : "2028-12-06T15:00:00Z",
+        "order" : null,
+        "capture" : {
+          "authority" : "SIM-REGISTRY",
+          "namespace" : "SIM-REGISTRY-POSICAO",
+          "proof" : {
+            "officialId" : "SIM-POS-V1-D766F421",
+            "target" : "SIM-REGISTRY-V1-39966087",
+            "evidence" : {
+              "id" : "SIM-PROVA-POSICAO",
+              "version" : 1
+            }
+          },
+          "effectiveAt" : "2028-12-06T15:00:00Z",
+          "capturedBy" : "SIM-PP",
+          "eventId" : "60e6c5db-ba6c-4b8e-afc3-8349819a5aab"
+        },
+        "historical" : false
+      },
+      "unreflected" : 2,
+      "available" : 8,
+      "hold" : null
+    },
+    "conflict" : null
+  },
+  "concurrentAttemptRejected" : {
+    "status" : 409,
+    "code" : "SALDO_INSUFICIENTE",
+    "requestId" : "4ebf0177-b48e-4da2-b903-a58083c4e918",
+    "message" : "A quantidade excede o saldo compartilhado deste recorte.",
+    "issues" : [ {
+      "path" : "issuance",
+      "ruleId" : "OP-E6-12",
+      "reason" : "A quantidade excede o saldo compartilhado deste recorte."
+    } ]
+  },
+  "v1Waiting" : {
+    "attempt" : {
+      "id" : "f09b38f6-e79f-41c2-a633-82bbc5de2c21",
+      "version" : 5,
+      "verification" : "13d33ac5-d423-4880-b13f-b2bcb36a54f3",
+      "state" : "AGUARDANDO_DEPOSITO",
+      "externalTarget" : "SIM-EMISSAO-CAD25EC5",
+      "account" : "SIM-CONTA-02",
+      "predecessor" : null,
+      "lines" : [ {
+        "vintage" : {
+          "start" : "2028-01-01",
+          "endExclusive" : "2028-10-01"
+        },
+        "position" : "45bb22ec-62c2-4993-8f1a-92b0531533db",
+        "amount" : 8
+      } ],
+      "check" : {
+        "input" : {
+          "route" : "ARQUIVO",
+          "checkedAt" : "2028-12-07T13:00:00Z",
+          "powerUntilExclusive" : "2031-01-01T03:00:00Z",
+          "source" : {
+            "id" : "SIM-CANAL-ARQUIVO",
+            "version" : 1
+          },
+          "power" : {
+            "id" : "SIM-PODER-EMISSAO",
+            "version" : 1
+          }
+        },
+        "eventId" : "4993860d-affa-4dd6-b8f7-9a1a9007d556"
+      },
+      "protocol" : {
+        "authority" : "PP",
+        "namespace" : "SIM-RECIBOS-EMISSAO",
+        "proof" : {
+          "officialId" : "SIM-RECIBO-3314D20B",
+          "target" : "SIM-EMISSAO-CAD25EC5",
+          "evidence" : {
+            "id" : "SIM-RECIBO-EMISSAO",
+            "version" : 1
+          }
+        },
+        "effectiveAt" : "2028-12-07T14:00:00Z",
+        "capturedBy" : "SIM-PP",
+        "eventId" : "c317234c-86ae-47d8-9987-0ab5591c1d6e"
+      },
+      "invoice" : {
+        "capture" : {
+          "authority" : "VERRA",
+          "namespace" : "SIM-VERRA-EMISSAO",
+          "proof" : {
+            "officialId" : "SIM-COBRANCA-9894CD75",
+            "target" : "SIM-EMISSAO-CAD25EC5",
+            "evidence" : {
+              "id" : "SIM-PROVA-COBRANCA-EMISSAO",
+              "version" : 1
+            }
+          },
+          "effectiveAt" : "2028-12-07T15:00:00Z",
+          "capturedBy" : "SIM-PP",
+          "eventId" : "cfc14d75-09d1-4982-ad8f-58cdd5f60eb3"
+        },
+        "amount" : 80,
+        "currency" : "BRL"
+      },
+      "payment" : {
+        "authority" : "SIM-INSTITUICAO-PAGADORA",
+        "namespace" : "SIM-VERRA-EMISSAO",
+        "proof" : {
+          "officialId" : "SIM-QUITA-D6A2A34E",
+          "target" : "SIM-EMISSAO-CAD25EC5",
+          "evidence" : {
+            "id" : "SIM-PROVA-QUITACAO-EMISSAO",
+            "version" : 1
+          }
+        },
+        "effectiveAt" : "2028-12-07T16:00:00Z",
+        "capturedBy" : "SIM-PP",
+        "eventId" : "1dfbeac4-d6a0-459b-9558-f7b960bca482"
+      },
+      "deposits" : [ ],
+      "adjustments" : [ ],
+      "releasedAt" : null,
+      "incidents" : [ ],
+      "comparison" : null,
+      "reviewEvent" : null,
+      "lastAt" : "2028-12-07T16:00:00Z",
+      "eventId" : "1dfbeac4-d6a0-459b-9558-f7b960bca482"
+    },
+    "netDeposited" : [ {
+      "vintage" : {
+        "start" : "2028-01-01",
+        "endExclusive" : "2028-10-01"
+      },
+      "amount" : 0
+    } ],
+    "unit" : "UNIDADE_FICTICIA",
+    "conflict" : null
+  },
+  "v2InitialPosition" : {
+    "position" : {
+      "id" : "2a58a4a0-3faf-4802-a1b9-dcba9b9c424f",
+      "verification" : "6cc8483a-84b4-4003-98a7-3f1b868bd688",
+      "vintage" : {
+        "start" : "2028-10-01",
+        "endExclusive" : "2029-01-01"
+      },
+      "official" : 30.0,
+      "pending" : [ ],
+      "asOf" : "2029-12-05T14:00:00Z",
+      "order" : null,
+      "capture" : {
+        "authority" : "SIM-REGISTRY",
+        "namespace" : "SIM-REGISTRY-POSICAO",
+        "proof" : {
+          "officialId" : "SIM-POS-FAD0EEC1",
+          "target" : "SIM-REGISTRY-V2-1DA797EE",
+          "evidence" : {
+            "id" : "SIM-PROVA-POSICAO",
+            "version" : 1
+          }
+        },
+        "effectiveAt" : "2029-12-05T14:00:00Z",
+        "capturedBy" : "SIM-PP",
+        "eventId" : "71f47adb-1327-4f2d-aed0-da0ae091c95c"
+      },
+      "historical" : false
+    },
+    "balance" : {
+      "position" : {
+        "id" : "2a58a4a0-3faf-4802-a1b9-dcba9b9c424f",
+        "verification" : "6cc8483a-84b4-4003-98a7-3f1b868bd688",
+        "vintage" : {
+          "start" : "2028-10-01",
+          "endExclusive" : "2029-01-01"
+        },
+        "official" : 30,
+        "pending" : [ ],
+        "asOf" : "2029-12-05T14:00:00Z",
+        "order" : null,
+        "capture" : {
+          "authority" : "SIM-REGISTRY",
+          "namespace" : "SIM-REGISTRY-POSICAO",
+          "proof" : {
+            "officialId" : "SIM-POS-FAD0EEC1",
+            "target" : "SIM-REGISTRY-V2-1DA797EE",
+            "evidence" : {
+              "id" : "SIM-PROVA-POSICAO",
+              "version" : 1
+            }
+          },
+          "effectiveAt" : "2029-12-05T14:00:00Z",
+          "capturedBy" : "SIM-PP",
+          "eventId" : "71f47adb-1327-4f2d-aed0-da0ae091c95c"
+        },
+        "historical" : false
+      },
+      "unreflected" : 0,
+      "available" : 30,
+      "hold" : null
+    },
+    "conflict" : null
+  },
+  "v1Partial" : {
+    "attempt" : {
+      "id" : "f09b38f6-e79f-41c2-a633-82bbc5de2c21",
+      "version" : 6,
+      "verification" : "13d33ac5-d423-4880-b13f-b2bcb36a54f3",
+      "state" : "DEPOSITO_REGISTRADO",
+      "externalTarget" : "SIM-EMISSAO-CAD25EC5",
+      "account" : "SIM-CONTA-02",
+      "predecessor" : null,
+      "lines" : [ {
+        "vintage" : {
+          "start" : "2028-01-01",
+          "endExclusive" : "2028-10-01"
+        },
+        "position" : "45bb22ec-62c2-4993-8f1a-92b0531533db",
+        "amount" : 8
+      } ],
+      "check" : {
+        "input" : {
+          "route" : "ARQUIVO",
+          "checkedAt" : "2028-12-07T13:00:00Z",
+          "powerUntilExclusive" : "2031-01-01T03:00:00Z",
+          "source" : {
+            "id" : "SIM-CANAL-ARQUIVO",
+            "version" : 1
+          },
+          "power" : {
+            "id" : "SIM-PODER-EMISSAO",
+            "version" : 1
+          }
+        },
+        "eventId" : "4993860d-affa-4dd6-b8f7-9a1a9007d556"
+      },
+      "protocol" : {
+        "authority" : "PP",
+        "namespace" : "SIM-RECIBOS-EMISSAO",
+        "proof" : {
+          "officialId" : "SIM-RECIBO-3314D20B",
+          "target" : "SIM-EMISSAO-CAD25EC5",
+          "evidence" : {
+            "id" : "SIM-RECIBO-EMISSAO",
+            "version" : 1
+          }
+        },
+        "effectiveAt" : "2028-12-07T14:00:00Z",
+        "capturedBy" : "SIM-PP",
+        "eventId" : "c317234c-86ae-47d8-9987-0ab5591c1d6e"
+      },
+      "invoice" : {
+        "capture" : {
+          "authority" : "VERRA",
+          "namespace" : "SIM-VERRA-EMISSAO",
+          "proof" : {
+            "officialId" : "SIM-COBRANCA-9894CD75",
+            "target" : "SIM-EMISSAO-CAD25EC5",
+            "evidence" : {
+              "id" : "SIM-PROVA-COBRANCA-EMISSAO",
+              "version" : 1
+            }
+          },
+          "effectiveAt" : "2028-12-07T15:00:00Z",
+          "capturedBy" : "SIM-PP",
+          "eventId" : "cfc14d75-09d1-4982-ad8f-58cdd5f60eb3"
+        },
+        "amount" : 80,
+        "currency" : "BRL"
+      },
+      "payment" : {
+        "authority" : "SIM-INSTITUICAO-PAGADORA",
+        "namespace" : "SIM-VERRA-EMISSAO",
+        "proof" : {
+          "officialId" : "SIM-QUITA-D6A2A34E",
+          "target" : "SIM-EMISSAO-CAD25EC5",
+          "evidence" : {
+            "id" : "SIM-PROVA-QUITACAO-EMISSAO",
+            "version" : 1
+          }
+        },
+        "effectiveAt" : "2028-12-07T16:00:00Z",
+        "capturedBy" : "SIM-PP",
+        "eventId" : "1dfbeac4-d6a0-459b-9558-f7b960bca482"
+      },
+      "deposits" : [ {
+        "capture" : {
+          "authority" : "SIM-REGISTRY",
+          "namespace" : "SIM-VERRA-DEPOSITO",
+          "proof" : {
+            "officialId" : "SIM-DEPOSITO-E01D54DA",
+            "target" : "SIM-EMISSAO-CAD25EC5",
+            "evidence" : {
+              "id" : "SIM-DEPOSITO-01",
+              "version" : 1
+            }
+          },
+          "effectiveAt" : "2028-12-08T14:00:00Z",
+          "capturedBy" : "SIM-PP",
+          "eventId" : "00eafe6e-c8d5-4cbd-950d-2d922626c67a"
+        },
+        "lines" : [ {
+          "vintage" : {
+            "start" : "2028-01-01",
+            "endExclusive" : "2028-10-01"
+          },
+          "amount" : 5
+        } ]
+      } ],
+      "adjustments" : [ ],
+      "releasedAt" : null,
+      "incidents" : [ ],
+      "comparison" : null,
+      "reviewEvent" : null,
+      "lastAt" : "2028-12-08T14:00:00Z",
+      "eventId" : "00eafe6e-c8d5-4cbd-950d-2d922626c67a"
+    },
+    "netDeposited" : [ {
+      "vintage" : {
+        "start" : "2028-01-01",
+        "endExclusive" : "2028-10-01"
+      },
+      "amount" : 5
+    } ],
+    "unit" : "UNIDADE_FICTICIA",
+    "conflict" : null
+  },
+  "v1Adjusted" : {
+    "attempt" : {
+      "id" : "f09b38f6-e79f-41c2-a633-82bbc5de2c21",
+      "version" : 9,
+      "verification" : "13d33ac5-d423-4880-b13f-b2bcb36a54f3",
+      "state" : "COM_DIVERGENCIA",
+      "externalTarget" : "SIM-EMISSAO-CAD25EC5",
+      "account" : "SIM-CONTA-02",
+      "predecessor" : null,
+      "lines" : [ {
+        "vintage" : {
+          "start" : "2028-01-01",
+          "endExclusive" : "2028-10-01"
+        },
+        "position" : "45bb22ec-62c2-4993-8f1a-92b0531533db",
+        "amount" : 8
+      } ],
+      "check" : {
+        "input" : {
+          "route" : "ARQUIVO",
+          "checkedAt" : "2028-12-07T13:00:00Z",
+          "powerUntilExclusive" : "2031-01-01T03:00:00Z",
+          "source" : {
+            "id" : "SIM-CANAL-ARQUIVO",
+            "version" : 1
+          },
+          "power" : {
+            "id" : "SIM-PODER-EMISSAO",
+            "version" : 1
+          }
+        },
+        "eventId" : "4993860d-affa-4dd6-b8f7-9a1a9007d556"
+      },
+      "protocol" : {
+        "authority" : "PP",
+        "namespace" : "SIM-RECIBOS-EMISSAO",
+        "proof" : {
+          "officialId" : "SIM-RECIBO-3314D20B",
+          "target" : "SIM-EMISSAO-CAD25EC5",
+          "evidence" : {
+            "id" : "SIM-RECIBO-EMISSAO",
+            "version" : 1
+          }
+        },
+        "effectiveAt" : "2028-12-07T14:00:00Z",
+        "capturedBy" : "SIM-PP",
+        "eventId" : "c317234c-86ae-47d8-9987-0ab5591c1d6e"
+      },
+      "invoice" : {
+        "capture" : {
+          "authority" : "VERRA",
+          "namespace" : "SIM-VERRA-EMISSAO",
+          "proof" : {
+            "officialId" : "SIM-COBRANCA-9894CD75",
+            "target" : "SIM-EMISSAO-CAD25EC5",
+            "evidence" : {
+              "id" : "SIM-PROVA-COBRANCA-EMISSAO",
+              "version" : 1
+            }
+          },
+          "effectiveAt" : "2028-12-07T15:00:00Z",
+          "capturedBy" : "SIM-PP",
+          "eventId" : "cfc14d75-09d1-4982-ad8f-58cdd5f60eb3"
+        },
+        "amount" : 80,
+        "currency" : "BRL"
+      },
+      "payment" : {
+        "authority" : "SIM-INSTITUICAO-PAGADORA",
+        "namespace" : "SIM-VERRA-EMISSAO",
+        "proof" : {
+          "officialId" : "SIM-QUITA-D6A2A34E",
+          "target" : "SIM-EMISSAO-CAD25EC5",
+          "evidence" : {
+            "id" : "SIM-PROVA-QUITACAO-EMISSAO",
+            "version" : 1
+          }
+        },
+        "effectiveAt" : "2028-12-07T16:00:00Z",
+        "capturedBy" : "SIM-PP",
+        "eventId" : "1dfbeac4-d6a0-459b-9558-f7b960bca482"
+      },
+      "deposits" : [ {
+        "capture" : {
+          "authority" : "SIM-REGISTRY",
+          "namespace" : "SIM-VERRA-DEPOSITO",
+          "proof" : {
+            "officialId" : "SIM-DEPOSITO-E01D54DA",
+            "target" : "SIM-EMISSAO-CAD25EC5",
+            "evidence" : {
+              "id" : "SIM-DEPOSITO-01",
+              "version" : 1
+            }
+          },
+          "effectiveAt" : "2028-12-08T14:00:00Z",
+          "capturedBy" : "SIM-PP",
+          "eventId" : "00eafe6e-c8d5-4cbd-950d-2d922626c67a"
+        },
+        "lines" : [ {
+          "vintage" : {
+            "start" : "2028-01-01",
+            "endExclusive" : "2028-10-01"
+          },
+          "amount" : 5
+        } ]
+      } ],
+      "adjustments" : [ {
+        "capture" : {
+          "authority" : "SIM-REGISTRY",
+          "namespace" : "SIM-VERRA-AJUSTE",
+          "proof" : {
+            "officialId" : "SIM-AJUSTE-C6D75AB4",
+            "target" : "SIM-EMISSAO-CAD25EC5",
+            "evidence" : {
+              "id" : "SIM-PROVA-AJUSTE-01",
+              "version" : 1
+            }
+          },
+          "effectiveAt" : "2028-12-09T14:00:00Z",
+          "capturedBy" : "SIM-PP",
+          "eventId" : "04fda7a0-b951-40e6-b855-a0cbf71e8325"
+        },
+        "corrects" : "SIM-DEPOSITO-E01D54DA",
+        "line" : {
+          "vintage" : {
+            "start" : "2028-01-01",
+            "endExclusive" : "2028-10-01"
+          },
+          "amount" : -1
+        },
+        "newPosition" : "35b9b26b-f105-48a6-a605-a31e742fba51"
+      } ],
+      "releasedAt" : "2028-12-09T13:00:00Z",
+      "incidents" : [ {
+        "id" : "e29f6ee0-f09c-4c69-aa67-e9f181892261",
+        "code" : "ATO_CONFLITANTE",
+        "reason" : "A identidade do ato já tem outro alvo ou conteúdo.",
+        "fingerprint" : "8fe76b987b4304dc6d9fc73260716060988e3110cd618fc782d2f32aa7484c3e",
+        "reopen" : null,
+        "responsible" : "PP",
+        "eventId" : "0251fb73-7fe2-4287-93e8-6999f389c3a8",
+        "resolutionEvent" : null
+      } ],
+      "comparison" : null,
+      "reviewEvent" : null,
+      "lastAt" : "2028-12-09T14:00:00Z",
+      "eventId" : "04fda7a0-b951-40e6-b855-a0cbf71e8325"
+    },
+    "netDeposited" : [ {
+      "vintage" : {
+        "start" : "2028-01-01",
+        "endExclusive" : "2028-10-01"
+      },
+      "amount" : 4
+    } ],
+    "unit" : "UNIDADE_FICTICIA",
+    "conflict" : null
+  },
+  "stalePosition" : {
+    "position" : {
+      "id" : "4b501f26-d703-4f98-afce-d8630401e1f2",
+      "verification" : "13d33ac5-d423-4880-b13f-b2bcb36a54f3",
+      "vintage" : {
+        "start" : "2028-01-01",
+        "endExclusive" : "2028-10-01"
+      },
+      "official" : 13,
+      "pending" : [ ],
+      "asOf" : "2028-12-09T13:30:00Z",
+      "order" : null,
+      "capture" : {
+        "authority" : "SIM-REGISTRY",
+        "namespace" : "SIM-REGISTRY-POSICAO",
+        "proof" : {
+          "officialId" : "SIM-POS-DAFA5BC1",
+          "target" : "SIM-REGISTRY-V1-39966087",
+          "evidence" : {
+            "id" : "SIM-PROVA-POSICAO",
+            "version" : 1
+          }
+        },
+        "effectiveAt" : "2028-12-09T13:30:00Z",
+        "capturedBy" : "SIM-PP",
+        "eventId" : "4e321d7b-136e-4dfe-b43c-d0d077d33650"
+      },
+      "historical" : true
+    },
+    "balance" : {
+      "position" : {
+        "id" : "35b9b26b-f105-48a6-a605-a31e742fba51",
+        "verification" : "13d33ac5-d423-4880-b13f-b2bcb36a54f3",
+        "vintage" : {
+          "start" : "2028-01-01",
+          "endExclusive" : "2028-10-01"
+        },
+        "official" : 4,
+        "pending" : [ {
+          "reference" : null,
+          "issuance" : "f09b38f6-e79f-41c2-a633-82bbc5de2c21",
+          "amount" : 4,
+          "status" : "REFLETIDA"
+        } ],
+        "asOf" : "2028-12-09T14:00:00Z",
+        "order" : null,
+        "capture" : {
+          "authority" : "SIM-REGISTRY",
+          "namespace" : "SIM-REGISTRY-POSICAO",
+          "proof" : {
+            "officialId" : "SIM-POS-94DBB8F3",
+            "target" : "SIM-REGISTRY-V1-39966087",
+            "evidence" : {
+              "id" : "SIM-PROVA-POSICAO",
+              "version" : 1
+            }
+          },
+          "effectiveAt" : "2028-12-09T14:00:00Z",
+          "capturedBy" : "SIM-PP",
+          "eventId" : "b0050223-ef62-4355-9695-cf5a81f6e6a8"
+        },
+        "historical" : false
+      },
+      "unreflected" : 0,
+      "available" : null,
+      "hold" : "DIVERGENCIA_PENDENTE"
+    },
+    "conflict" : null
+  },
+  "positionConflict" : {
+    "position" : null,
+    "balance" : {
+      "position" : {
+        "id" : "35b9b26b-f105-48a6-a605-a31e742fba51",
+        "verification" : "13d33ac5-d423-4880-b13f-b2bcb36a54f3",
+        "vintage" : {
+          "start" : "2028-01-01",
+          "endExclusive" : "2028-10-01"
+        },
+        "official" : 4,
+        "pending" : [ {
+          "reference" : null,
+          "issuance" : "f09b38f6-e79f-41c2-a633-82bbc5de2c21",
+          "amount" : 4,
+          "status" : "REFLETIDA"
+        } ],
+        "asOf" : "2028-12-09T14:00:00Z",
+        "order" : null,
+        "capture" : {
+          "authority" : "SIM-REGISTRY",
+          "namespace" : "SIM-REGISTRY-POSICAO",
+          "proof" : {
+            "officialId" : "SIM-POS-94DBB8F3",
+            "target" : "SIM-REGISTRY-V1-39966087",
+            "evidence" : {
+              "id" : "SIM-PROVA-POSICAO",
+              "version" : 1
+            }
+          },
+          "effectiveAt" : "2028-12-09T14:00:00Z",
+          "capturedBy" : "SIM-PP",
+          "eventId" : "b0050223-ef62-4355-9695-cf5a81f6e6a8"
+        },
+        "historical" : false
+      },
+      "unreflected" : 0,
+      "available" : null,
+      "hold" : "DIVERGENCIA_PENDENTE"
+    },
+    "conflict" : "ORDEM_POSICAO_INDETERMINADA"
+  },
+  "v1Reconciled" : {
+    "attempt" : {
+      "id" : "f09b38f6-e79f-41c2-a633-82bbc5de2c21",
+      "version" : 11,
+      "verification" : "13d33ac5-d423-4880-b13f-b2bcb36a54f3",
+      "state" : "CONCILIADO",
+      "externalTarget" : "SIM-EMISSAO-CAD25EC5",
+      "account" : "SIM-CONTA-02",
+      "predecessor" : null,
+      "lines" : [ {
+        "vintage" : {
+          "start" : "2028-01-01",
+          "endExclusive" : "2028-10-01"
+        },
+        "position" : "45bb22ec-62c2-4993-8f1a-92b0531533db",
+        "amount" : 8
+      } ],
+      "check" : {
+        "input" : {
+          "route" : "ARQUIVO",
+          "checkedAt" : "2028-12-07T13:00:00Z",
+          "powerUntilExclusive" : "2031-01-01T03:00:00Z",
+          "source" : {
+            "id" : "SIM-CANAL-ARQUIVO",
+            "version" : 1
+          },
+          "power" : {
+            "id" : "SIM-PODER-EMISSAO",
+            "version" : 1
+          }
+        },
+        "eventId" : "4993860d-affa-4dd6-b8f7-9a1a9007d556"
+      },
+      "protocol" : {
+        "authority" : "PP",
+        "namespace" : "SIM-RECIBOS-EMISSAO",
+        "proof" : {
+          "officialId" : "SIM-RECIBO-3314D20B",
+          "target" : "SIM-EMISSAO-CAD25EC5",
+          "evidence" : {
+            "id" : "SIM-RECIBO-EMISSAO",
+            "version" : 1
+          }
+        },
+        "effectiveAt" : "2028-12-07T14:00:00Z",
+        "capturedBy" : "SIM-PP",
+        "eventId" : "c317234c-86ae-47d8-9987-0ab5591c1d6e"
+      },
+      "invoice" : {
+        "capture" : {
+          "authority" : "VERRA",
+          "namespace" : "SIM-VERRA-EMISSAO",
+          "proof" : {
+            "officialId" : "SIM-COBRANCA-9894CD75",
+            "target" : "SIM-EMISSAO-CAD25EC5",
+            "evidence" : {
+              "id" : "SIM-PROVA-COBRANCA-EMISSAO",
+              "version" : 1
+            }
+          },
+          "effectiveAt" : "2028-12-07T15:00:00Z",
+          "capturedBy" : "SIM-PP",
+          "eventId" : "cfc14d75-09d1-4982-ad8f-58cdd5f60eb3"
+        },
+        "amount" : 80,
+        "currency" : "BRL"
+      },
+      "payment" : {
+        "authority" : "SIM-INSTITUICAO-PAGADORA",
+        "namespace" : "SIM-VERRA-EMISSAO",
+        "proof" : {
+          "officialId" : "SIM-QUITA-D6A2A34E",
+          "target" : "SIM-EMISSAO-CAD25EC5",
+          "evidence" : {
+            "id" : "SIM-PROVA-QUITACAO-EMISSAO",
+            "version" : 1
+          }
+        },
+        "effectiveAt" : "2028-12-07T16:00:00Z",
+        "capturedBy" : "SIM-PP",
+        "eventId" : "1dfbeac4-d6a0-459b-9558-f7b960bca482"
+      },
+      "deposits" : [ {
+        "capture" : {
+          "authority" : "SIM-REGISTRY",
+          "namespace" : "SIM-VERRA-DEPOSITO",
+          "proof" : {
+            "officialId" : "SIM-DEPOSITO-E01D54DA",
+            "target" : "SIM-EMISSAO-CAD25EC5",
+            "evidence" : {
+              "id" : "SIM-DEPOSITO-01",
+              "version" : 1
+            }
+          },
+          "effectiveAt" : "2028-12-08T14:00:00Z",
+          "capturedBy" : "SIM-PP",
+          "eventId" : "00eafe6e-c8d5-4cbd-950d-2d922626c67a"
+        },
+        "lines" : [ {
+          "vintage" : {
+            "start" : "2028-01-01",
+            "endExclusive" : "2028-10-01"
+          },
+          "amount" : 5
+        } ]
+      } ],
+      "adjustments" : [ {
+        "capture" : {
+          "authority" : "SIM-REGISTRY",
+          "namespace" : "SIM-VERRA-AJUSTE",
+          "proof" : {
+            "officialId" : "SIM-AJUSTE-C6D75AB4",
+            "target" : "SIM-EMISSAO-CAD25EC5",
+            "evidence" : {
+              "id" : "SIM-PROVA-AJUSTE-01",
+              "version" : 1
+            }
+          },
+          "effectiveAt" : "2028-12-09T14:00:00Z",
+          "capturedBy" : "SIM-PP",
+          "eventId" : "04fda7a0-b951-40e6-b855-a0cbf71e8325"
+        },
+        "corrects" : "SIM-DEPOSITO-E01D54DA",
+        "line" : {
+          "vintage" : {
+            "start" : "2028-01-01",
+            "endExclusive" : "2028-10-01"
+          },
+          "amount" : -1
+        },
+        "newPosition" : "35b9b26b-f105-48a6-a605-a31e742fba51"
+      } ],
+      "releasedAt" : "2028-12-09T13:00:00Z",
+      "incidents" : [ {
+        "id" : "e29f6ee0-f09c-4c69-aa67-e9f181892261",
+        "code" : "ATO_CONFLITANTE",
+        "reason" : "A identidade do ato já tem outro alvo ou conteúdo.",
+        "fingerprint" : "8fe76b987b4304dc6d9fc73260716060988e3110cd618fc782d2f32aa7484c3e",
+        "reopen" : null,
+        "responsible" : "PP",
+        "eventId" : "0251fb73-7fe2-4287-93e8-6999f389c3a8",
+        "resolutionEvent" : "46dd5006-00db-4faf-b92f-0916c75985a0"
+      } ],
+      "comparison" : {
+        "id" : "42fcc554-a33b-4e21-83d4-3b3a47175c1a",
+        "issuanceVersion" : 10,
+        "preparedBy" : "SIM-PREP",
+        "eventId" : "6231d958-f05f-4293-9cf9-7b85656ebe4a",
+        "effectiveAt" : "2028-12-09T16:00:00Z",
+        "lines" : [ {
+          "vintage" : {
+            "start" : "2028-01-01",
+            "endExclusive" : "2028-10-01"
+          },
+          "position" : "0c5a11cd-752c-474a-bc65-fddca25d6ad7",
+          "requested" : 8,
+          "deposited" : 4,
+          "reserved" : 0,
+          "official" : 4,
+          "available" : 4
+        } ],
+        "resolution" : {
+          "id" : "SIM-PROVA-RESOLUCAO-EMISSAO",
+          "version" : 1
+        }
+      },
+      "reviewEvent" : "46dd5006-00db-4faf-b92f-0916c75985a0",
+      "lastAt" : "2028-12-09T17:00:00Z",
+      "eventId" : "46dd5006-00db-4faf-b92f-0916c75985a0"
+    },
+    "netDeposited" : [ {
+      "vintage" : {
+        "start" : "2028-01-01",
+        "endExclusive" : "2028-10-01"
+      },
+      "amount" : 4
+    } ],
+    "unit" : "UNIDADE_FICTICIA",
+    "conflict" : null
+  },
+  "reissue" : {
+    "attempt" : {
+      "id" : "b6992fd6-77d3-41b1-92cc-aa6a8084fe45",
+      "version" : 1,
+      "verification" : "13d33ac5-d423-4880-b13f-b2bcb36a54f3",
+      "state" : "EM_PREPARO",
+      "externalTarget" : null,
+      "account" : "SIM-CONTA-02",
+      "predecessor" : "f09b38f6-e79f-41c2-a633-82bbc5de2c21",
+      "lines" : [ {
+        "vintage" : {
+          "start" : "2028-01-01",
+          "endExclusive" : "2028-10-01"
+        },
+        "position" : "0c5a11cd-752c-474a-bc65-fddca25d6ad7",
+        "amount" : 1
+      } ],
+      "check" : null,
+      "protocol" : null,
+      "invoice" : null,
+      "payment" : null,
+      "deposits" : [ ],
+      "adjustments" : [ ],
+      "releasedAt" : null,
+      "incidents" : [ ],
+      "comparison" : null,
+      "reviewEvent" : null,
+      "lastAt" : "2028-12-10T13:00:00Z",
+      "eventId" : "2d89a3ab-6069-432d-a9aa-750576d0c31d"
+    },
+    "netDeposited" : [ {
+      "vintage" : {
+        "start" : "2028-01-01",
+        "endExclusive" : "2028-10-01"
+      },
+      "amount" : 0
+    } ],
+    "unit" : "UNIDADE_FICTICIA",
+    "conflict" : null
+  },
+  "crossAttemptConflict" : {
+    "attempt" : {
+      "id" : "623a951a-e260-4623-8137-44c5be41c1b6",
+      "version" : 5,
+      "verification" : "6cc8483a-84b4-4003-98a7-3f1b868bd688",
+      "state" : "COM_DIVERGENCIA",
+      "externalTarget" : "SIM-EMISSAO-6F8EB8D3",
+      "account" : "SIM-CONTA-02",
+      "predecessor" : null,
+      "lines" : [ {
+        "vintage" : {
+          "start" : "2028-10-01",
+          "endExclusive" : "2029-01-01"
+        },
+        "position" : "2a58a4a0-3faf-4802-a1b9-dcba9b9c424f",
+        "amount" : 2
+      } ],
+      "check" : {
+        "input" : {
+          "route" : "ARQUIVO",
+          "checkedAt" : "2029-12-06T13:00:00Z",
+          "powerUntilExclusive" : "2031-01-01T03:00:00Z",
+          "source" : {
+            "id" : "SIM-CANAL-ARQUIVO",
+            "version" : 1
+          },
+          "power" : {
+            "id" : "SIM-PODER-EMISSAO",
+            "version" : 1
+          }
+        },
+        "eventId" : "2156b0dd-71ea-484c-b958-e9da58f64a37"
+      },
+      "protocol" : {
+        "authority" : "PP",
+        "namespace" : "SIM-RECIBOS-EMISSAO",
+        "proof" : {
+          "officialId" : "SIM-RECIBO-9BB86666",
+          "target" : "SIM-EMISSAO-6F8EB8D3",
+          "evidence" : {
+            "id" : "SIM-RECIBO-EMISSAO",
+            "version" : 1
+          }
+        },
+        "effectiveAt" : "2029-12-06T14:00:00Z",
+        "capturedBy" : "SIM-PP",
+        "eventId" : "88647cf7-0ac7-4e2d-b071-dcfecfe5f6d0"
+      },
+      "invoice" : null,
+      "payment" : {
+        "authority" : "VERRA",
+        "namespace" : "SIM-VERRA-EMISSAO",
+        "proof" : {
+          "officialId" : "SIM-SEM-PAGAMENTO-903294ED",
+          "target" : "SIM-EMISSAO-6F8EB8D3",
+          "evidence" : {
+            "id" : "SIM-PROVA-QUITACAO-OFICIAL",
+            "version" : 1
+          }
+        },
+        "effectiveAt" : "2029-12-06T15:00:00Z",
+        "capturedBy" : "SIM-PP",
+        "eventId" : "314324e4-f8c0-4da6-b305-9938d33e113b"
+      },
+      "deposits" : [ ],
+      "adjustments" : [ ],
+      "releasedAt" : null,
+      "incidents" : [ {
+        "id" : "e14634bc-c566-4823-91fe-187f9fb36cf5",
+        "code" : "ATO_CONFLITANTE",
+        "reason" : "A identidade do ato já tem outro alvo ou conteúdo.",
+        "fingerprint" : "bee44f097ab34d15fecedbe2e29642d1d71e6692e3b67f7fc9dca8e6c24babad",
+        "reopen" : null,
+        "responsible" : "PP",
+        "eventId" : "f52e93b1-6f96-434f-9547-908ef5e78396",
+        "resolutionEvent" : null
+      } ],
+      "comparison" : null,
+      "reviewEvent" : null,
+      "lastAt" : "2029-12-06T15:00:00Z",
+      "eventId" : "f52e93b1-6f96-434f-9547-908ef5e78396"
+    },
+    "netDeposited" : [ {
+      "vintage" : {
+        "start" : "2028-10-01",
+        "endExclusive" : "2029-01-01"
+      },
+      "amount" : 0
+    } ],
+    "unit" : "UNIDADE_FICTICIA",
+    "conflict" : "ATO_CONFLITANTE"
+  },
+  "v2Reconciled" : {
+    "attempt" : {
+      "id" : "623a951a-e260-4623-8137-44c5be41c1b6",
+      "version" : 8,
+      "verification" : "6cc8483a-84b4-4003-98a7-3f1b868bd688",
+      "state" : "CONCILIADO",
+      "externalTarget" : "SIM-EMISSAO-6F8EB8D3",
+      "account" : "SIM-CONTA-02",
+      "predecessor" : null,
+      "lines" : [ {
+        "vintage" : {
+          "start" : "2028-10-01",
+          "endExclusive" : "2029-01-01"
+        },
+        "position" : "2a58a4a0-3faf-4802-a1b9-dcba9b9c424f",
+        "amount" : 2
+      } ],
+      "check" : {
+        "input" : {
+          "route" : "ARQUIVO",
+          "checkedAt" : "2029-12-06T13:00:00Z",
+          "powerUntilExclusive" : "2031-01-01T03:00:00Z",
+          "source" : {
+            "id" : "SIM-CANAL-ARQUIVO",
+            "version" : 1
+          },
+          "power" : {
+            "id" : "SIM-PODER-EMISSAO",
+            "version" : 1
+          }
+        },
+        "eventId" : "2156b0dd-71ea-484c-b958-e9da58f64a37"
+      },
+      "protocol" : {
+        "authority" : "PP",
+        "namespace" : "SIM-RECIBOS-EMISSAO",
+        "proof" : {
+          "officialId" : "SIM-RECIBO-9BB86666",
+          "target" : "SIM-EMISSAO-6F8EB8D3",
+          "evidence" : {
+            "id" : "SIM-RECIBO-EMISSAO",
+            "version" : 1
+          }
+        },
+        "effectiveAt" : "2029-12-06T14:00:00Z",
+        "capturedBy" : "SIM-PP",
+        "eventId" : "88647cf7-0ac7-4e2d-b071-dcfecfe5f6d0"
+      },
+      "invoice" : null,
+      "payment" : {
+        "authority" : "VERRA",
+        "namespace" : "SIM-VERRA-EMISSAO",
+        "proof" : {
+          "officialId" : "SIM-SEM-PAGAMENTO-903294ED",
+          "target" : "SIM-EMISSAO-6F8EB8D3",
+          "evidence" : {
+            "id" : "SIM-PROVA-QUITACAO-OFICIAL",
+            "version" : 1
+          }
+        },
+        "effectiveAt" : "2029-12-06T15:00:00Z",
+        "capturedBy" : "SIM-PP",
+        "eventId" : "314324e4-f8c0-4da6-b305-9938d33e113b"
+      },
+      "deposits" : [ {
+        "capture" : {
+          "authority" : "SIM-REGISTRY",
+          "namespace" : "SIM-VERRA-DEPOSITO",
+          "proof" : {
+            "officialId" : "SIM-DEPOSITO-V2-5A73A182",
+            "target" : "SIM-EMISSAO-6F8EB8D3",
+            "evidence" : {
+              "id" : "SIM-DEPOSITO-01",
+              "version" : 1
+            }
+          },
+          "effectiveAt" : "2029-12-06T17:00:00Z",
+          "capturedBy" : "SIM-PP",
+          "eventId" : "e125acc7-bd26-4c6d-8607-4882c0d6f5fa"
+        },
+        "lines" : [ {
+          "vintage" : {
+            "start" : "2028-10-01",
+            "endExclusive" : "2029-01-01"
+          },
+          "amount" : 2
+        } ]
+      } ],
+      "adjustments" : [ ],
+      "releasedAt" : "2029-12-06T17:00:00Z",
+      "incidents" : [ {
+        "id" : "e14634bc-c566-4823-91fe-187f9fb36cf5",
+        "code" : "ATO_CONFLITANTE",
+        "reason" : "A identidade do ato já tem outro alvo ou conteúdo.",
+        "fingerprint" : "bee44f097ab34d15fecedbe2e29642d1d71e6692e3b67f7fc9dca8e6c24babad",
+        "reopen" : null,
+        "responsible" : "PP",
+        "eventId" : "f52e93b1-6f96-434f-9547-908ef5e78396",
+        "resolutionEvent" : "5c98f879-9641-4301-8dda-e564ea23ceeb"
+      } ],
+      "comparison" : {
+        "id" : "22b2c889-94be-4018-b501-e4a0af5105a7",
+        "issuanceVersion" : 7,
+        "preparedBy" : "SIM-PREP",
+        "eventId" : "8f00ebb7-c6b1-4f73-b42e-15ea11b1811e",
+        "effectiveAt" : "2029-12-06T19:00:00Z",
+        "lines" : [ {
+          "vintage" : {
+            "start" : "2028-10-01",
+            "endExclusive" : "2029-01-01"
+          },
+          "position" : "4ca132ff-aea7-4f23-b4f0-b610b3e7d969",
+          "requested" : 2,
+          "deposited" : 2,
+          "reserved" : 0,
+          "official" : 28,
+          "available" : 28
+        } ],
+        "resolution" : {
+          "id" : "SIM-PROVA-RESOLUCAO-EMISSAO",
+          "version" : 1
+        }
+      },
+      "reviewEvent" : "5c98f879-9641-4301-8dda-e564ea23ceeb",
+      "lastAt" : "2029-12-06T20:00:00Z",
+      "eventId" : "5c98f879-9641-4301-8dda-e564ea23ceeb"
+    },
+    "netDeposited" : [ {
+      "vintage" : {
+        "start" : "2028-10-01",
+        "endExclusive" : "2029-01-01"
+      },
+      "amount" : 2
+    } ],
+    "unit" : "UNIDADE_FICTICIA",
+    "conflict" : null
+  },
+  "m1Reopened" : {
+    "id" : "M1",
+    "revision" : 2,
+    "version" : 5,
+    "state" : "EM_CONFERENCIA",
+    "start" : "2027-10-01",
+    "endExclusive" : "2028-10-01",
+    "zone" : "America/Sao_Paulo",
+    "projectYear" : 1,
+    "effectiveAt" : "2029-12-07T00:00:00-03:00",
+    "actor" : "SIM-REV",
+    "reason" : "Conferência do período sintético",
+    "eventId" : "a8b2cacf-1739-4318-8e11-f81a4699822f",
+    "predecessor" : 1,
+    "closureSha256" : null,
+    "coverage" : null,
+    "impact" : {
+      "affectedRevision" : 1,
+      "dependents" : [ {
+        "input" : {
+          "kind" : "ATO_EXTERNO",
+          "reference" : "SIM-EMISSAO-CAD25EC5",
+          "version" : 1,
+          "status" : "DEPOSITO_REGISTRADO",
+          "proof" : {
+            "id" : "SIM-DEPOSITO-01",
+            "version" : 1
+          }
+        },
+        "recordedBy" : "SIM-PP",
+        "event" : "00eafe6e-c8d5-4cbd-950d-2d922626c67a",
+        "sha256" : "e30ef80ccbd3d2b3c34ca5551472c673cab13532a77341c869b8afbe1698e7e2"
+      }, {
+        "input" : {
+          "kind" : "ATO_EXTERNO",
+          "reference" : "SIM-V1-862C2172",
+          "version" : 1,
+          "status" : "APROVADO",
+          "proof" : {
+            "id" : "SIM-PROVA-ATO-EXTERNO",
+            "version" : 1
+          }
+        },
+        "recordedBy" : "SIM-PP",
+        "event" : "9d20fc22-2bb4-48d5-b77d-f443fa9961c5",
+        "sha256" : "55107bc85288c756c518d5350936b8d44b9d939a07a9d4e43d6151bd3b21f265"
+      }, {
+        "input" : {
+          "kind" : "DECISAO",
+          "reference" : "SIM-EMISSAO-CAD25EC5",
+          "version" : 1,
+          "status" : "PROTOCOLADO",
+          "proof" : {
+            "id" : "SIM-RECIBO-EMISSAO",
+            "version" : 1
+          }
+        },
+        "recordedBy" : "SIM-PP",
+        "event" : "c317234c-86ae-47d8-9987-0ab5591c1d6e",
+        "sha256" : "e30ef80ccbd3d2b3c34ca5551472c673cab13532a77341c869b8afbe1698e7e2"
+      }, {
+        "input" : {
+          "kind" : "DECISAO",
+          "reference" : "SIM-V1-862C2172",
+          "version" : 1,
+          "status" : "PROTOCOLADO",
+          "proof" : {
+            "id" : "SIM-PROVA-DECISAO",
+            "version" : 1
+          }
+        },
+        "recordedBy" : "SIM-PP",
+        "event" : "3bedea32-6782-48a1-8294-ba37f5a3e9c0",
+        "sha256" : "d49882ac6fcaabefa9ef46f943d1301a62ddf3f8bcd50533e6f6cfd4396d2f77"
+      }, {
+        "input" : {
+          "kind" : "PACOTE",
+          "reference" : "1e9c9942-40fc-45ce-a708-2d459297fb0c",
+          "version" : 2,
+          "status" : "VINCULADO",
+          "proof" : null
+        },
+        "recordedBy" : "SIM-REV",
+        "event" : "de3448cd-8e96-4651-98fa-144201090c93",
+        "sha256" : "20e6a12a3c8c71b9af11f6c7a7c6604be82b216a1316da658bf323a0b14f11c8"
+      }, {
+        "input" : {
+          "kind" : "PACOTE",
+          "reference" : "2067ac23-9bda-4688-8390-3bf4887d76f5",
+          "version" : 1,
+          "status" : "VINCULADO",
+          "proof" : null
+        },
+        "recordedBy" : "SIM-REV",
+        "event" : "b9dcb189-35be-4514-b49a-2a469016fd42",
+        "sha256" : "227bb96aa114940d3f48b60f69218126c991c080396c2a884d255399a8281f0e"
+      }, {
+        "input" : {
+          "kind" : "PACOTE",
+          "reference" : "69afbdd3-53e1-4b9f-a600-82aeaddc0f35",
+          "version" : 1,
+          "status" : "VINCULADO",
+          "proof" : null
+        },
+        "recordedBy" : "SIM-REV",
+        "event" : "b9dcb189-35be-4514-b49a-2a469016fd42",
+        "sha256" : "d49882ac6fcaabefa9ef46f943d1301a62ddf3f8bcd50533e6f6cfd4396d2f77"
+      }, {
+        "input" : {
+          "kind" : "PACOTE",
+          "reference" : "79efc6f8-6e44-437c-9def-b3f5295946d8",
+          "version" : 2,
+          "status" : "VINCULADO",
+          "proof" : null
+        },
+        "recordedBy" : "SIM-REV",
+        "event" : "de3448cd-8e96-4651-98fa-144201090c93",
+        "sha256" : "55107bc85288c756c518d5350936b8d44b9d939a07a9d4e43d6151bd3b21f265"
+      }, {
+        "input" : {
+          "kind" : "PACOTE",
+          "reference" : "990e2256-b9b7-4979-8e72-55730b6b50fb",
+          "version" : 2,
+          "status" : "VINCULADO",
+          "proof" : null
+        },
+        "recordedBy" : "SIM-REV",
+        "event" : "de3448cd-8e96-4651-98fa-144201090c93",
+        "sha256" : "a5e626c147e89ff441537936565a3df5ebd553f847dfc32b07cb16dc556e7c94"
+      }, {
+        "input" : {
+          "kind" : "PACOTE",
+          "reference" : "b2dcb9d2-84a4-4a57-b1c6-626a754d5297",
+          "version" : 2,
+          "status" : "VINCULADO",
+          "proof" : null
+        },
+        "recordedBy" : "SIM-REV",
+        "event" : "de3448cd-8e96-4651-98fa-144201090c93",
+        "sha256" : "bf4d5d76bf4950f389e5a49bf33a419ed3820e33bd30b154b2ba00e3fb3fa662"
+      } ],
+      "divergenceId" : "f7cf86eb-f5fd-4dcb-a2da-089dce1d8f61",
+      "state" : "DIVERGENCIA_PENDENTE_E8_010"
+    }
+  },
+  "v1AfterReopen" : {
+    "attempt" : {
+      "id" : "f09b38f6-e79f-41c2-a633-82bbc5de2c21",
+      "version" : 12,
+      "verification" : "13d33ac5-d423-4880-b13f-b2bcb36a54f3",
+      "state" : "COM_DIVERGENCIA",
+      "externalTarget" : "SIM-EMISSAO-CAD25EC5",
+      "account" : "SIM-CONTA-02",
+      "predecessor" : null,
+      "lines" : [ {
+        "vintage" : {
+          "start" : "2028-01-01",
+          "endExclusive" : "2028-10-01"
+        },
+        "position" : "45bb22ec-62c2-4993-8f1a-92b0531533db",
+        "amount" : 8
+      } ],
+      "check" : {
+        "input" : {
+          "route" : "ARQUIVO",
+          "checkedAt" : "2028-12-07T13:00:00Z",
+          "powerUntilExclusive" : "2031-01-01T03:00:00Z",
+          "source" : {
+            "id" : "SIM-CANAL-ARQUIVO",
+            "version" : 1
+          },
+          "power" : {
+            "id" : "SIM-PODER-EMISSAO",
+            "version" : 1
+          }
+        },
+        "eventId" : "4993860d-affa-4dd6-b8f7-9a1a9007d556"
+      },
+      "protocol" : {
+        "authority" : "PP",
+        "namespace" : "SIM-RECIBOS-EMISSAO",
+        "proof" : {
+          "officialId" : "SIM-RECIBO-3314D20B",
+          "target" : "SIM-EMISSAO-CAD25EC5",
+          "evidence" : {
+            "id" : "SIM-RECIBO-EMISSAO",
+            "version" : 1
+          }
+        },
+        "effectiveAt" : "2028-12-07T14:00:00Z",
+        "capturedBy" : "SIM-PP",
+        "eventId" : "c317234c-86ae-47d8-9987-0ab5591c1d6e"
+      },
+      "invoice" : {
+        "capture" : {
+          "authority" : "VERRA",
+          "namespace" : "SIM-VERRA-EMISSAO",
+          "proof" : {
+            "officialId" : "SIM-COBRANCA-9894CD75",
+            "target" : "SIM-EMISSAO-CAD25EC5",
+            "evidence" : {
+              "id" : "SIM-PROVA-COBRANCA-EMISSAO",
+              "version" : 1
+            }
+          },
+          "effectiveAt" : "2028-12-07T15:00:00Z",
+          "capturedBy" : "SIM-PP",
+          "eventId" : "cfc14d75-09d1-4982-ad8f-58cdd5f60eb3"
+        },
+        "amount" : 80,
+        "currency" : "BRL"
+      },
+      "payment" : {
+        "authority" : "SIM-INSTITUICAO-PAGADORA",
+        "namespace" : "SIM-VERRA-EMISSAO",
+        "proof" : {
+          "officialId" : "SIM-QUITA-D6A2A34E",
+          "target" : "SIM-EMISSAO-CAD25EC5",
+          "evidence" : {
+            "id" : "SIM-PROVA-QUITACAO-EMISSAO",
+            "version" : 1
+          }
+        },
+        "effectiveAt" : "2028-12-07T16:00:00Z",
+        "capturedBy" : "SIM-PP",
+        "eventId" : "1dfbeac4-d6a0-459b-9558-f7b960bca482"
+      },
+      "deposits" : [ {
+        "capture" : {
+          "authority" : "SIM-REGISTRY",
+          "namespace" : "SIM-VERRA-DEPOSITO",
+          "proof" : {
+            "officialId" : "SIM-DEPOSITO-E01D54DA",
+            "target" : "SIM-EMISSAO-CAD25EC5",
+            "evidence" : {
+              "id" : "SIM-DEPOSITO-01",
+              "version" : 1
+            }
+          },
+          "effectiveAt" : "2028-12-08T14:00:00Z",
+          "capturedBy" : "SIM-PP",
+          "eventId" : "00eafe6e-c8d5-4cbd-950d-2d922626c67a"
+        },
+        "lines" : [ {
+          "vintage" : {
+            "start" : "2028-01-01",
+            "endExclusive" : "2028-10-01"
+          },
+          "amount" : 5
+        } ]
+      } ],
+      "adjustments" : [ {
+        "capture" : {
+          "authority" : "SIM-REGISTRY",
+          "namespace" : "SIM-VERRA-AJUSTE",
+          "proof" : {
+            "officialId" : "SIM-AJUSTE-C6D75AB4",
+            "target" : "SIM-EMISSAO-CAD25EC5",
+            "evidence" : {
+              "id" : "SIM-PROVA-AJUSTE-01",
+              "version" : 1
+            }
+          },
+          "effectiveAt" : "2028-12-09T14:00:00Z",
+          "capturedBy" : "SIM-PP",
+          "eventId" : "04fda7a0-b951-40e6-b855-a0cbf71e8325"
+        },
+        "corrects" : "SIM-DEPOSITO-E01D54DA",
+        "line" : {
+          "vintage" : {
+            "start" : "2028-01-01",
+            "endExclusive" : "2028-10-01"
+          },
+          "amount" : -1
+        },
+        "newPosition" : "35b9b26b-f105-48a6-a605-a31e742fba51"
+      } ],
+      "releasedAt" : "2028-12-09T13:00:00Z",
+      "incidents" : [ {
+        "id" : "e29f6ee0-f09c-4c69-aa67-e9f181892261",
+        "code" : "ATO_CONFLITANTE",
+        "reason" : "A identidade do ato já tem outro alvo ou conteúdo.",
+        "fingerprint" : "8fe76b987b4304dc6d9fc73260716060988e3110cd618fc782d2f32aa7484c3e",
+        "reopen" : null,
+        "responsible" : "PP",
+        "eventId" : "0251fb73-7fe2-4287-93e8-6999f389c3a8",
+        "resolutionEvent" : "46dd5006-00db-4faf-b92f-0916c75985a0"
+      }, {
+        "id" : "d7bcdf36-4c48-4640-9b15-6eb3be60b83e",
+        "code" : "FECHAMENTO_REABERTO",
+        "reason" : "Conferência do período sintético",
+        "fingerprint" : "f7cf86eb-f5fd-4dcb-a2da-089dce1d8f61",
+        "reopen" : "f7cf86eb-f5fd-4dcb-a2da-089dce1d8f61",
+        "responsible" : "PP",
+        "eventId" : "b81f129e-c145-4e38-9663-d629680841a7",
+        "resolutionEvent" : null
+      } ],
+      "comparison" : null,
+      "reviewEvent" : "46dd5006-00db-4faf-b92f-0916c75985a0",
+      "lastAt" : "2028-12-09T17:00:00Z",
+      "eventId" : "b81f129e-c145-4e38-9663-d629680841a7"
+    },
+    "netDeposited" : [ {
+      "vintage" : {
+        "start" : "2028-01-01",
+        "endExclusive" : "2028-10-01"
+      },
+      "amount" : 4
+    } ],
+    "unit" : "UNIDADE_FICTICIA",
+    "conflict" : null
+  }
+}

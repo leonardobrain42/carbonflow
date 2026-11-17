@@ -1,0 +1,356 @@
+{
+  "publicManifest" : {
+    "format" : "e8-007@1",
+    "environment" : "SIMULACAO",
+    "externalUse" : "BLOCKED",
+    "project" : "SIM-E8-004-517302b6-b389-47a2-9da4-9c6e71fb2a3c",
+    "dossier" : {
+      "id" : "b40059d4-3456-4bdf-a3c6-d313e4fe437d",
+      "revision" : 2
+    },
+    "predecessor" : {
+      "id" : "b40059d4-3456-4bdf-a3c6-d313e4fe437d",
+      "revision" : 1
+    },
+    "act" : "DESENVOLVIMENTO",
+    "actDate" : "2027-08-02",
+    "checklist" : "PKG-E4-01",
+    "exposure" : "PUBLICA",
+    "edition" : "LIMPA",
+    "language" : "en",
+    "template" : {
+      "sourceSha256" : "47922ad388188d628e415945d9977938cc12d2ed3d298a677a50bdaa980138cc",
+      "source" : "SRC-007_PD_v5.0B.docx",
+      "edition" : "5.0B"
+    },
+    "retentionFloor" : "2034-09-30",
+    "preparedBy" : "PREP",
+    "reviewedBy" : "REV",
+    "reviewedAt" : "2026-11-16T15:47:37.975639961Z",
+    "forecast" : {
+      "reference" : {
+        "id" : "E6-EXEMPLOS",
+        "version" : 1
+      },
+      "kitVersion" : "0.2.14",
+      "source" : "03_especificacao/e6/exemplos.json",
+      "sourceSha256" : "cd1dd2b7d9e72a989fc26fbfbf7682f6238ff47701524c25b3aa42d1cdb1e19b",
+      "variation" : "ORIGINAL"
+    },
+    "closure" : null,
+    "publicOmissions" : "Contact, rights and evidence details, signatures, review notes and operational records belong in reserved evidence.",
+    "files" : [ {
+      "filename" : "document.docx",
+      "mediaType" : "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "language" : "en",
+      "exposure" : "PUBLICA",
+      "bytes" : 2899,
+      "sha256" : "868ceca16a889bf9be29e1fa2d2977889ea28ed6420e35b3510ad6e9030910f0"
+    }, {
+      "filename" : "esg-assessment.docx",
+      "mediaType" : "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "language" : "en",
+      "exposure" : "PUBLICA",
+      "bytes" : 2285,
+      "sha256" : "5e8f3477c563df76bb721ecaa1eab66ae6a9f15c6af2909041fb1f873174ce8b"
+    }, {
+      "filename" : "stakeholder-engagement-plan.docx",
+      "mediaType" : "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "language" : "en",
+      "exposure" : "PUBLICA",
+      "bytes" : 2310,
+      "sha256" : "1bcb492c331577fba9cb70f258d64dd100639eae5b75cd85dfa79e7bdc4ee8ef"
+    } ]
+  },
+  "receipt" : {
+    "input" : {
+      "exportId" : "43ea866c-6525-48d0-bf1f-81025388294f",
+      "dossier" : {
+        "id" : "b40059d4-3456-4bdf-a3c6-d313e4fe437d",
+        "revision" : 2
+      },
+      "sha256" : "f5ee72c6d287a272d4054de0d7b6e0a781393e5811d91b397f409072bc976948",
+      "destination" : "SIM-REGISTRY",
+      "code" : "SIM-RECIBO-E8-007",
+      "proof" : "SIM-PROVA-E8-007",
+      "receivedAt" : "2027-08-03T15:00:00Z"
+    },
+    "issuer" : "SIM-REGISTRY",
+    "capturedBy" : "SIM-PP",
+    "eventId" : "a51ab27a-a8df-410c-abf1-34728d169d1b"
+  },
+  "successor" : {
+    "id" : "b40059d4-3456-4bdf-a3c6-d313e4fe437d",
+    "revision" : 3,
+    "version" : 3,
+    "state" : "CONGELADO",
+    "preparedBy" : "SIM-PREP",
+    "preparedAt" : "2026-11-16T15:47:38.135299Z",
+    "command" : {
+      "act" : "DESENVOLVIMENTO",
+      "actDate" : "2027-08-04",
+      "model" : "5.0B",
+      "language" : "en",
+      "closure" : null,
+      "validatedPd" : null,
+      "predecessor" : {
+        "id" : "b40059d4-3456-4bdf-a3c6-d313e4fe437d",
+        "revision" : 2
+      },
+      "reason" : "Correção de rodada na simulação",
+      "pieces" : [ {
+        "item" : "RESPOSTA_RODADA",
+        "reference" : {
+          "id" : "SIM-RESPOSTA-RODADA",
+          "version" : 1
+        }
+      }, {
+        "item" : "LISTING_REPRESENTATION",
+        "reference" : {
+          "id" : "SIM-LISTING-REPRESENTATION",
+          "version" : 1
+        }
+      }, {
+        "item" : "COMMUNICATIONS_AGREEMENT",
+        "reference" : {
+          "id" : "SIM-COMMUNICATIONS-AGREEMENT",
+          "version" : 1
+        }
+      }, {
+        "item" : "TRANSLATION_PROOF",
+        "reference" : {
+          "id" : "SIM-TRANSLATION-PROOF",
+          "version" : 1
+        }
+      } ],
+      "conditions" : [ {
+        "item" : "COMUNICACAO",
+        "incidence" : "INCIDE",
+        "reason" : "Checklist aplicável neste ensaio."
+      }, {
+        "item" : "TRADUCAO",
+        "incidence" : "INCIDE",
+        "reason" : "Checklist aplicável neste ensaio."
+      }, {
+        "item" : "REPRESENTACAO_LISTAGEM",
+        "incidence" : "INCIDE",
+        "reason" : "Checklist aplicável neste ensaio."
+      } ],
+      "privateNote" : "New reserved address new-private@example.invalid"
+    },
+    "findings" : [ ],
+    "review" : {
+      "actor" : "SIM-REV",
+      "at" : "2026-11-16T15:47:38.147616188Z",
+      "reason" : "Revisão sintética segregada",
+      "item" : "Mapa",
+      "responsible" : "PREP",
+      "expectedCorrection" : "Conferir o mapa da rodada.",
+      "event" : "d36a76a3-3c95-4c7a-9b57-88b2ce113ca9"
+    },
+    "variants" : [ {
+      "artifactId" : "335b55dc-914c-4bbd-a03a-18ef0a320b14",
+      "exposure" : "PUBLICA",
+      "edition" : "LIMPA",
+      "sha256" : "cc7c6ae7af2c979607bac62889f5195d852711e6256147cff21dc99cfa085f63",
+      "manifestSha256" : "c8b1cc122724b06a226576aec233293a9a0a84ef360c09d84f151642559ba52b"
+    }, {
+      "artifactId" : "9ea2dd04-275d-4efa-a307-9238ff0093dd",
+      "exposure" : "PUBLICA",
+      "edition" : "COMPARADA",
+      "sha256" : "20a5aaf6dae681bcacbb9a6bac8e5bd32814166ebb94fc7e08d1aad98ebb6a35",
+      "manifestSha256" : "b9b89e7dee8cfa886e6987e7e083a8659657baf5a28f0ae8a6da8fd3d840b29b"
+    }, {
+      "artifactId" : "8ade97e6-a6d6-45b1-8127-bf22e7833e04",
+      "exposure" : "RESERVADA",
+      "edition" : "LIMPA",
+      "sha256" : "3a682a6c30a0ba0ebbab894fa420b338ff7a85a14f4f8d6a9a977ed807d61923",
+      "manifestSha256" : "f920007af855c9c66299906ff7d63203651937c57a1bdb90396ec8a57e21cf6b"
+    }, {
+      "artifactId" : "4bd92712-ad24-4f9e-9dcc-8077890f1ca2",
+      "exposure" : "RESERVADA",
+      "edition" : "COMPARADA",
+      "sha256" : "b327022062d52653b7fb7df9178cac009c789e646fc56b3d3b39583ee30017ef",
+      "manifestSha256" : "2b2c9ae6b19facb33befd79d38de2405ee1afe9737b6e55b23761a8f651d9d6f"
+    } ],
+    "eventId" : "d36a76a3-3c95-4c7a-9b57-88b2ce113ca9"
+  },
+  "reopenedListing" : {
+    "id" : "c0f8c854-c638-4c4d-b5ba-ffccd5d5a083",
+    "revision" : 3,
+    "version" : 3,
+    "state" : "CONGELADO",
+    "preparedBy" : "SIM-PREP",
+    "preparedAt" : "2026-11-16T15:47:38.205992Z",
+    "command" : {
+      "act" : "LISTAGEM_VALIDACAO",
+      "actDate" : "2027-12-02",
+      "model" : "5.0B",
+      "language" : "en",
+      "closure" : null,
+      "validatedPd" : null,
+      "predecessor" : {
+        "id" : "c0f8c854-c638-4c4d-b5ba-ffccd5d5a083",
+        "revision" : 2
+      },
+      "reason" : "Correção de rodada na simulação",
+      "pieces" : [ {
+        "item" : "MAPA",
+        "reference" : {
+          "id" : "SIM-MAPA",
+          "version" : 1
+        }
+      }, {
+        "item" : "CONTRATO_VVB",
+        "reference" : {
+          "id" : "SIM-CONTRATO-VVB",
+          "version" : 1
+        }
+      }, {
+        "item" : "RESPOSTA_RODADA",
+        "reference" : {
+          "id" : "SIM-RESPOSTA-RODADA",
+          "version" : 1
+        }
+      }, {
+        "item" : "LISTING_REPRESENTATION",
+        "reference" : {
+          "id" : "SIM-LISTING-REPRESENTATION",
+          "version" : 1
+        }
+      }, {
+        "item" : "COMMUNICATIONS_AGREEMENT",
+        "reference" : {
+          "id" : "SIM-COMMUNICATIONS-AGREEMENT",
+          "version" : 1
+        }
+      }, {
+        "item" : "TRANSLATION_PROOF",
+        "reference" : {
+          "id" : "SIM-TRANSLATION-PROOF",
+          "version" : 1
+        }
+      } ],
+      "conditions" : [ {
+        "item" : "COMUNICACAO",
+        "incidence" : "INCIDE",
+        "reason" : "Checklist aplicável neste ensaio."
+      }, {
+        "item" : "TRADUCAO",
+        "incidence" : "INCIDE",
+        "reason" : "Checklist aplicável neste ensaio."
+      }, {
+        "item" : "REPRESENTACAO_LISTAGEM",
+        "incidence" : "INCIDE",
+        "reason" : "Checklist aplicável neste ensaio."
+      } ],
+      "privateNote" : null
+    },
+    "findings" : [ ],
+    "review" : {
+      "actor" : "SIM-REV",
+      "at" : "2026-11-16T15:47:38.218400183Z",
+      "reason" : "Revisão sintética segregada",
+      "item" : "Mapa",
+      "responsible" : "PREP",
+      "expectedCorrection" : "Conferir o mapa da rodada.",
+      "event" : "e4f64fb1-084a-4fe3-aa11-7945c936ae1f"
+    },
+    "variants" : [ {
+      "artifactId" : "9bdb1858-3d86-4b63-b203-8c7d7c754844",
+      "exposure" : "PUBLICA",
+      "edition" : "LIMPA",
+      "sha256" : "a26959f593fc00eabbbd1ec9acf84bc9ed4ee36803d55bee56a9ce155a20dad2",
+      "manifestSha256" : "6b778240dce93ab8957beaec99ee453b08854bcff1b1111d6ce141e03a080a4a"
+    }, {
+      "artifactId" : "24418c57-976e-43b4-a7ec-71fdb0b84bdd",
+      "exposure" : "PUBLICA",
+      "edition" : "COMPARADA",
+      "sha256" : "05b95a682f9138d92f342560f2b2f735fa34ab01b36d7c9e822962ed6703e150",
+      "manifestSha256" : "24a5ee6cc35b4cab27fa3b172b54300536796245301ce96079194357988ae377"
+    }, {
+      "artifactId" : "1f41e23a-bf0e-4809-a635-751bfa2a2f80",
+      "exposure" : "RESERVADA",
+      "edition" : "LIMPA",
+      "sha256" : "45d98669c19618a93ef5ad4875ef9db638b23c3f35649ed512fcfc1a89dd1b54",
+      "manifestSha256" : "583e5f865d064e29e79daddcdfca46cb36e9897e833dc1227d4f8026c86b0a95"
+    }, {
+      "artifactId" : "d3da8b31-2802-4f03-978b-2675a16c11c2",
+      "exposure" : "RESERVADA",
+      "edition" : "COMPARADA",
+      "sha256" : "4118c4c491857698acebb61adc10b1b0f72ba3f505e24c5244fc371b53c69d55",
+      "manifestSha256" : "4d3efda133ea43bd7854d019e7a10ff1c7b77f79440b057811bbb9c187fe33a5"
+    } ],
+    "eventId" : "e4f64fb1-084a-4fe3-aa11-7945c936ae1f"
+  },
+  "listingManifest" : {
+    "format" : "e8-007@1",
+    "environment" : "SIMULACAO",
+    "externalUse" : "BLOCKED",
+    "project" : "SIM-E8-004-517302b6-b389-47a2-9da4-9c6e71fb2a3c",
+    "dossier" : {
+      "id" : "c0f8c854-c638-4c4d-b5ba-ffccd5d5a083",
+      "revision" : 3
+    },
+    "predecessor" : {
+      "id" : "c0f8c854-c638-4c4d-b5ba-ffccd5d5a083",
+      "revision" : 2
+    },
+    "act" : "LISTAGEM_VALIDACAO",
+    "actDate" : "2027-12-02",
+    "checklist" : "PKG-E4-02",
+    "exposure" : "PUBLICA",
+    "edition" : "LIMPA",
+    "language" : "en",
+    "template" : {
+      "sourceSha256" : "47922ad388188d628e415945d9977938cc12d2ed3d298a677a50bdaa980138cc",
+      "source" : "SRC-007_PD_v5.0B.docx",
+      "edition" : "5.0B"
+    },
+    "retentionFloor" : "2034-09-30",
+    "preparedBy" : "PREP",
+    "reviewedBy" : "REV",
+    "reviewedAt" : "2026-11-16T15:47:38.218400183Z",
+    "forecast" : {
+      "reference" : {
+        "id" : "E6-EXEMPLOS",
+        "version" : 1
+      },
+      "kitVersion" : "0.2.14",
+      "source" : "03_especificacao/e6/exemplos.json",
+      "sourceSha256" : "cd1dd2b7d9e72a989fc26fbfbf7682f6238ff47701524c25b3aa42d1cdb1e19b",
+      "variation" : "ORIGINAL"
+    },
+    "closure" : null,
+    "publicOmissions" : "Contact, rights and evidence details, signatures, review notes and operational records belong in reserved evidence.",
+    "files" : [ {
+      "filename" : "boundary.kml",
+      "mediaType" : "application/vnd.google-earth.kml+xml",
+      "language" : "en",
+      "exposure" : "PUBLICA",
+      "bytes" : 476,
+      "sha256" : "25c906074aa17b0d95dfa142946f47e237103b29d54b33715d0748eefa1fc288"
+    }, {
+      "filename" : "document.docx",
+      "mediaType" : "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "language" : "en",
+      "exposure" : "PUBLICA",
+      "bytes" : 3840,
+      "sha256" : "fd7bbff6decd7280d458ed00758e0d78877e5ac63e9fa1c5013c8290aba52e31"
+    }, {
+      "filename" : "esg-assessment.docx",
+      "mediaType" : "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "language" : "en",
+      "exposure" : "PUBLICA",
+      "bytes" : 2283,
+      "sha256" : "ae13ad747e435b7e046755d004ec09a14a8289ad388785414574bea01c52b589"
+    }, {
+      "filename" : "stakeholder-engagement-plan.docx",
+      "mediaType" : "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "language" : "en",
+      "exposure" : "PUBLICA",
+      "bytes" : 2309,
+      "sha256" : "b9b8d638698e023f141b259824932cbadefaa53cae9c047b8f340d5b972ca349"
+    } ]
+  }
+}

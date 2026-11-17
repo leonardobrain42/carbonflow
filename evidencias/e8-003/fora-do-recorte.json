@@ -1,0 +1,171 @@
+{
+  "snapshot": {
+    "version": 1,
+    "environment": "SIMULACAO",
+    "intake": {
+      "candidate": {
+        "profile": {
+          "country": "BR",
+          "state": "DF",
+          "locality": "Planaltina",
+          "design": "INDIVIDUAL",
+          "closedNetwork": true,
+          "privateAccess": true,
+          "vehicleClass": "LDV",
+          "propulsion": "BEV",
+          "charger": "DCFC",
+          "grid": "SIN",
+          "additionalInfrastructure": false,
+          "ecRoute": "ESTIMADA_92_3"
+        },
+        "inventory": {
+          "sites": [
+            "SIM-PATIO-01"
+          ],
+          "stations": [
+            {
+              "id": "SIM-DCFC-01",
+              "site": "SIM-PATIO-01",
+              "model": "DCFC SYN 50",
+              "powerKw": "50"
+            },
+            {
+              "id": "SIM-DCFC-02",
+              "site": "SIM-PATIO-01",
+              "model": "DCFC SYN 50",
+              "powerKw": "50"
+            }
+          ],
+          "models": [
+            {
+              "id": "SIM-MODELO-01",
+              "bev": "BEV sintético 1",
+              "comparable": "Comparável leve sintético 1"
+            },
+            {
+              "id": "SIM-MODELO-02",
+              "bev": "BEV sintético 2",
+              "comparable": "Comparável leve sintético 2"
+            }
+          ],
+          "vehicles": [
+            {
+              "id": "SIM-BEV-01",
+              "model": "SIM-MODELO-01"
+            },
+            {
+              "id": "SIM-BEV-02",
+              "model": "SIM-MODELO-01"
+            },
+            {
+              "id": "SIM-BEV-03",
+              "model": "SIM-MODELO-01"
+            },
+            {
+              "id": "SIM-BEV-04",
+              "model": "SIM-MODELO-01"
+            },
+            {
+              "id": "SIM-BEV-05",
+              "model": "SIM-MODELO-01"
+            },
+            {
+              "id": "SIM-BEV-06",
+              "model": "SIM-MODELO-01"
+            },
+            {
+              "id": "SIM-BEV-07",
+              "model": "SIM-MODELO-01"
+            },
+            {
+              "id": "SIM-BEV-08",
+              "model": "SIM-MODELO-01"
+            },
+            {
+              "id": "SIM-BEV-09",
+              "model": "SIM-MODELO-01"
+            },
+            {
+              "id": "SIM-BEV-10",
+              "model": "SIM-MODELO-01"
+            },
+            {
+              "id": "SIM-BEV-11",
+              "model": "SIM-MODELO-01"
+            },
+            {
+              "id": "SIM-BEV-12",
+              "model": "SIM-MODELO-01"
+            },
+            {
+              "id": "SIM-BEV-13",
+              "model": "SIM-MODELO-02"
+            },
+            {
+              "id": "SIM-BEV-14",
+              "model": "SIM-MODELO-02"
+            },
+            {
+              "id": "SIM-BEV-15",
+              "model": "SIM-MODELO-02"
+            },
+            {
+              "id": "SIM-BEV-16",
+              "model": "SIM-MODELO-02"
+            },
+            {
+              "id": "SIM-BEV-17",
+              "model": "SIM-MODELO-02"
+            },
+            {
+              "id": "SIM-BEV-18",
+              "model": "SIM-MODELO-02"
+            },
+            {
+              "id": "SIM-BEV-19",
+              "model": "SIM-MODELO-02"
+            },
+            {
+              "id": "SIM-BEV-20",
+              "model": "SIM-MODELO-02"
+            }
+          ],
+          "ecCircuits": [
+            {
+              "id": "SIM-EC-01",
+              "station": "SIM-DCFC-01"
+            },
+            {
+              "id": "SIM-EC-02",
+              "station": "SIM-DCFC-02"
+            }
+          ]
+        },
+        "referenceActDate": "2028-03-01",
+        "evidence": {
+          "id": "SIM-ESCOPO",
+          "version": 1
+        }
+      },
+      "state": "FORA_DO_ESCOPO",
+      "preparedBy": "SIM-PREP",
+      "reviewedBy": null,
+      "reviewEvidence": null,
+      "selection": null,
+      "reasons": [
+        {
+          "code": "ROTA_EC_FORA_DO_RECORTE",
+          "rule": "REG-E2-11",
+          "message": "Use EC medida a montante em circuito exclusivo. A rota de 92,3% fica fora do piloto."
+        }
+      ],
+      "reviewedRecords": []
+    },
+    "records": [],
+    "commitment": null,
+    "operation": null,
+    "meters": []
+  },
+  "predecessor": null,
+  "eventId": "5c9e9efa-07a8-4c66-bb35-752d249a599e"
+}

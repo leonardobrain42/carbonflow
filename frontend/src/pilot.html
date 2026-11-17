@@ -1,0 +1,141 @@
+<header class="site-header">
+  <div class="shell header-content">
+    <a class="brand" href="/">Carbon<span>Flow</span></a>
+    @if (session(); as actor) {
+      <div class="session-controls">
+        <span class="project">{{ actor.identity.id }} · {{ project()?.project ?? actor.identity.organization }}</span>
+        <button type="button" class="sign-out" (click)="logout()">Sair</button>
+      </div>
+    }
+  </div>
+</header>
+
+<main class="shell">
+  @if (opening()) {
+    <p role="status">Consultando sessão…</p>
+  } @else if (!session()) {
+    <section class="login-card" aria-labelledby="login-title">
+      <span class="simulation">SIMULAÇÃO</span>
+      <h1 id="login-title">Entrar no piloto</h1>
+      <form (submit)="login($event, identity.value, password.value)">
+        <label for="identity">Identidade do piloto</label>
+        <input #identity id="identity" name="identity" required autocomplete="username">
+        <label for="password">Senha de demonstração</label>
+        <input #password id="password" name="password" required type="password" autocomplete="current-password">
+        <button class="primary" type="submit" [disabled]="signingIn()">Entrar</button>
+      </form>
+      @if (sessionError()) { <p class="feedback error" role="alert">{{ sessionError() }}</p> }
+    </section>
+  } @else {
+  <header class="intro">
+    @if (sessionError()) { <p class="feedback error" role="alert">{{ sessionError() }}</p> }
+    <span class="simulation">SIMULAÇÃO</span>
+    <h1 #mainHeading tabindex="-1">{{ canReadRun() ? "Monitoramento de emissões" : "Acesso ao piloto" }}</h1>
+    @if (canCalculate()) {
+      <p>Dois ciclos de recarga elétrica no piloto VM0038.</p>
+      <div class="actions">
+      <button type="button" class="primary" (click)="execute(referenceFixture)" [disabled]="busy()">Executar cenário</button>
+      <button type="button" class="secondary" (click)="execute(invalidFixture)" [disabled]="busy()">Testar massa sem EC</button>
+      </div>
+    }
+    @if (busy()) {
+      <p class="feedback" role="status">Processando…</p>
+    } @else if (status()) {
+      <p class="feedback" role="status">{{ status() }}</p>
+    }
+    @if (error()) {
+      <p class="feedback error" role="alert">{{ error() }}</p>
+    }
+  </header>
+
+  @if (run(); as report) {
+    <section aria-labelledby="results-heading">
+      <div class="section-heading">
+        <h2 id="results-heading">Redução por período</h2>
+        <span class="factor">{{ report.factor.id }} · {{ decimal(report.factor.value) }} tCO₂/MWh</span>
+      </div>
+      <div class="periods">
+        @for (period of report.results.periods; track period.id) {
+          <article class="period" [attr.aria-label]="period.id" [attr.data-period]="period.id">
+            <div class="period-head">
+              <h3>{{ period.id }}</h3>
+              <p>{{ date(period.start) }} a {{ date(period.endInclusive) }}</p>
+              <div class="amount"><strong>{{ decimal(period.emissions.erDisplay) }}</strong> <span>tCO₂e</span></div>
+            </div>
+            <ul class="cuts" aria-label="Recortes por vintage">
+              @for (cut of period.cuts; track cut.start) {
+                <li>
+                  <div><strong>{{ cut.vintage }}</strong><small>{{ date(cut.start) }} a {{ date(cut.endInclusive) }}</small></div>
+                  <span>{{ decimal(cut.emissions.erDisplay) }} tCO₂e</span>
+                </li>
+              }
+            </ul>
+          </article>
+        }
+      </div>
+    </section>
+
+    <section aria-labelledby="checkpoints-heading">
+      <div class="section-heading"><h2 id="checkpoints-heading">Coleta de M2 durante V1 e I1</h2></div>
+      <div class="checkpoints">
+        @for (checkpoint of report.checkpoints; track checkpoint.effectiveAt) {
+          <article class="checkpoint">
+            <time [attr.datetime]="checkpoint.effectiveAt">{{ instant(checkpoint.effectiveAt) }}</time>
+            <dl>
+              <div><dt>M1</dt><dd>{{ state(checkpoint.m1) }}</dd></div>
+              <div><dt>V1</dt><dd>{{ state(checkpoint.v1) }}</dd></div>
+              <div><dt>I1</dt><dd>{{ state(checkpoint.i1) }}</dd></div>
+              <div><dt>M2</dt><dd class="collecting">{{ state(checkpoint.m2) }}</dd></div>
+            </dl>
+          </article>
+        }
+      </div>
+      <p class="note">O total de M2 usa a janela completa da massa sintética. Nos marcos exibidos, M2 segue em coleta.</p>
+    </section>
+
+    <section aria-labelledby="memory-heading">
+      <div class="section-heading"><h2 id="memory-heading">Memória de cálculo</h2></div>
+      <p class="note">AFEC {{ decimal(report.results.afecKwhPer100Mi) }} kWh/100 mi · {{ decimal(report.results.mpg) }} mi/gal US · Dy {{ decimal(report.results.dy) }}</p>
+      <div class="table-scroll" tabindex="0" role="region" aria-labelledby="memory-heading">
+        <table aria-label="Entradas e emissões por recorte">
+          <thead>
+            <tr><th scope="col">Período / vintage</th><th scope="col">ED (kWh)</th><th scope="col">EC (kWh)</th><th scope="col">BE (tCO₂e)</th><th scope="col">PE (tCO₂e)</th><th scope="col">LE (tCO₂e)</th><th scope="col">ER (tCO₂e)</th></tr>
+          </thead>
+          <tbody>
+            @for (period of report.results.periods; track period.id) {
+              @for (cut of period.cuts; track cut.start) {
+                <tr>
+                  <th scope="row">{{ period.id }} · {{ cut.vintage }}</th>
+                  <td>{{ decimal(cut.edKwh) }}</td><td>{{ decimal(cut.ecKwh) }}</td>
+                  <td>{{ decimal(cut.emissions.be) }}</td><td>{{ decimal(cut.emissions.pe) }}</td>
+                  <td>{{ decimal(cut.emissions.le) }}</td><td>{{ decimal(cut.emissions.erDisplay) }}</td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+      <div class="source">
+        <span>Kit {{ report.provenance.kitVersion }} · {{ report.provenance.reference.id }} v{{ report.provenance.reference.version }} · {{ report.zone }}</span>
+        <a [href]="apiLink(report.id)">Consultar execução em JSON</a>
+      </div>
+    </section>
+  } @else if (!busy() && canReadRun()) {
+    <p class="empty">{{ canCalculate() ? "Execute o cenário para consultar os quatro recortes e o estado da coleta." : "Nenhuma execução disponível." }}</p>
+  }
+  @if (project(); as scope) {
+    <carbonflow-intake [project]="scope" [actor]="session()!.identity.id" />
+    <carbonflow-monitoring [project]="scope" />
+    <carbonflow-imports [project]="scope" [actor]="session()!.identity.id" />
+    <carbonflow-calculations [project]="scope" [actor]="session()!.identity.id" />
+    <carbonflow-dossiers [project]="scope" [actor]="session()!.identity.id" />
+    <carbonflow-listings [project]="scope" />
+    <carbonflow-audits [project]="scope" />
+    <carbonflow-issuance [project]="scope" />
+    <carbonflow-operations [project]="scope" />
+    <carbonflow-access [project]="scope" [actor]="session()!.identity.id" />
+  } @else {
+    <p class="empty">Nenhum vínculo de projeto vigente.</p>
+  }
+  }
+</main>
