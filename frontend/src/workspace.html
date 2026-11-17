@@ -150,7 +150,7 @@
                     <label for="cf-edit-title">Nome de trabalho do projeto</label>
                     <input #editTitle id="cf-edit-title" name="edit-title" [value]="details.title" maxlength="160" required />
                     <label for="cf-edit-description">Descrição inicial</label>
-                    <textarea #editDescription id="cf-edit-description" name="edit-description" rows="4" maxlength="2000">{{ details.description ?? '' }}</textarea>
+                    <textarea #editDescription id="cf-edit-description" name="edit-description" rows="4" maxlength="2000" [value]="details.description ?? ''"></textarea>
                     <button type="submit" class="cf-workspace-primary" [disabled]="busy()">Salvar alterações</button>
                   </form>
                   <p class="cf-workspace-helper">Rascunho versão {{ details.version }}. A triagem técnica será disponibilizada na CF-IMP-009.</p>
