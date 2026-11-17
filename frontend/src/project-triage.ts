@@ -195,7 +195,7 @@ export class ProjectTriageComponent {
       NAO_INICIADO: 'Ainda não iniciado',
       PENDENTE: 'Informações pendentes',
       PREENCHIDO: 'Respostas registradas',
-      NAO_APLICAVEL_A_ETAPA: 'Etapa não aplicável ao tipo declarado',
+      NAO_APLICAVEL_JUSTIFICADO: 'Não aplicável (com justificativa)',
       RESUMO_SEM_PARECER: 'Resumo sem parecer',
     };
     return names[value] ?? value;
