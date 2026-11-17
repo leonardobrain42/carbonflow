@@ -35,6 +35,7 @@ import org.junit.jupiter.api.Test;
 class AccountAccessTest {
     private static final String ACCOUNTS = "/v1/accounts";
     private static final String SESSIONS = "/v1/account-session";
+    private static final String ORGANIZATIONS = "/v1/organizations";
     private static final String PASSWORD = "Senha de ensaio 003";
     private static final String NEW_PASSWORD = "Senha recuperada 003";
 
@@ -168,6 +169,121 @@ class AccountAccessTest {
             assertEquals(429, response.statusCode());
             assertEquals("LIMITE_DE_TENTATIVAS", json.readTree(response.body()).path("code").asText());
         }
+    }
+
+    @Test
+    void limitsOrganizationBootstrapToARepeatablePrivateWorkspacePerVerifiedAccount() throws Exception {
+        try (var client = HttpClient.newHttpClient()) {
+            String owner = newAccountSession(client);
+            String other = newAccountSession(client);
+            assertEquals(0, json.readTree(get(client, SESSIONS, owner).body()).path("projects").size());
+            var input = Map.of("name", "  Espaço privado  ", "role", "ORG_ACCESS_ADMIN", "representation", "PP");
+            assertEquals(401, post(client, ORGANIZATIONS, input, key()).statusCode());
+            assertEquals(400, client.send(postRequest(ORGANIZATIONS, input, null).header("Cookie", owner).build(),
+                    HttpResponse.BodyHandlers.ofString()).statusCode());
+            var pilot = post(client, "/v1/session", Map.of("identity", "SIM-PREP", "password", "piloto-prep"), null);
+            assertEquals(204, pilot.statusCode());
+            assertEquals(401, createOrganization(client, cookie(pilot), input, key()).statusCode());
+            assertEquals(204, delete(client, "/v1/session", cookie(pilot)).statusCode());
+
+            String command = key();
+            var sameRequest = postRequest(ORGANIZATIONS, input, command).header("Cookie", owner).build();
+            var first = client.sendAsync(sameRequest, HttpResponse.BodyHandlers.ofString());
+            var second = client.sendAsync(sameRequest, HttpResponse.BodyHandlers.ofString());
+            var created = first.join();
+            var replayed = second.join();
+            assertEquals(201, created.statusCode(), created.body());
+            assertEquals(201, replayed.statusCode(), replayed.body());
+            assertEquals(created.body(), replayed.body());
+            var workspace = json.readTree(created.body());
+            var id = UUID.fromString(workspace.path("id").asText());
+            assertEquals("Espaço privado", workspace.path("name").asText());
+            assertEquals("DRAFT_OWNER", workspace.path("role").asText());
+            assertEquals("PRIVATE_DRAFT", workspace.path("status").asText());
+            assertEquals("SANDBOX", workspace.path("environment").asText());
+            assertEquals(1, workspace.path("version").asInt());
+            assertEquals("\"1\"", created.headers().firstValue("ETag").orElseThrow());
+            String access = ORGANIZATIONS + "/" + id + "/access";
+            assertTrue(created.headers().firstValue("Location").orElseThrow().endsWith(access));
+            assertEquals(workspace, json.readTree(get(client, access, owner).body()));
+            assertEquals(0, json.readTree(get(client, SESSIONS, owner).body()).path("projects").size());
+
+            var wrongCommand = createOrganization(client, owner, Map.of("name", "Outro nome"), command);
+            assertEquals(409, wrongCommand.statusCode());
+            assertEquals("CHAVE_REUSADA", json.readTree(wrongCommand.body()).path("code").asText());
+            var duplicate = createOrganization(client, owner, input, key());
+            assertEquals(409, duplicate.statusCode());
+            assertEquals("ORGANIZACAO_INICIAL_EXISTENTE", json.readTree(duplicate.body()).path("code").asText());
+
+            var anotherRequest = Map.of("name", "Outro espaço privado");
+            var differentCommands = List.of(
+                    postRequest(ORGANIZATIONS, anotherRequest, key()).header("Cookie", other).build(),
+                    postRequest(ORGANIZATIONS, anotherRequest, key()).header("Cookie", other).build());
+            var otherPending = differentCommands.stream()
+                    .map(request -> client.sendAsync(request, HttpResponse.BodyHandlers.ofString())).toList();
+            var otherResults = otherPending.stream()
+                    .map(CompletableFuture::join).map(HttpResponse::statusCode).sorted().toList();
+            assertEquals(List.of(201, 409), otherResults);
+            var foreignAccess = get(client, access, other);
+            assertEquals(404, foreignAccess.statusCode());
+            assertFalse(foreignAccess.body().contains("Espaço privado"));
+            assertEquals(1L, database.read(connection -> first(connection, """
+                    SELECT count(*) FROM app_organization_bootstrap WHERE organization_id = ?
+                    """, row -> row.getLong(1), id)).longValue());
+
+            database.transaction(connection -> update(connection, """
+                    UPDATE app_organization_membership SET revoked_at = statement_timestamp() WHERE organization_id = ?
+                    """, id));
+            assertEquals(404, get(client, access, owner).statusCode());
+            assertEquals(404, createOrganization(client, owner, input, command).statusCode());
+            assertEquals(204, delete(client, SESSIONS, owner).statusCode());
+            assertEquals(204, delete(client, SESSIONS, other).statusCode());
+        }
+    }
+
+    @Test
+    void retriesOrganizationBootstrapAfterItsAuditInsertRollsBackTheTransaction() throws Exception {
+        try (var client = HttpClient.newHttpClient()) {
+            String owner = newAccountSession(client);
+            var session = json.readTree(get(client, SESSIONS, owner).body());
+            UUID identity = UUID.fromString(session.at("/identity/id").asText());
+            String key = "cf-imp-004-rollback-proof";
+            String name = "Teste de rollback " + UUID.randomUUID();
+            database.transaction(connection -> update(connection, """
+                    ALTER TABLE app_organization_bootstrap ADD CONSTRAINT cf_imp_004_failure
+                    CHECK (command_key <> 'cf-imp-004-rollback-proof')
+                    """));
+            try {
+                assertEquals(500, createOrganization(client, owner, Map.of("name", name), key).statusCode());
+                assertEquals(0L, database.read(connection -> first(connection, """
+                        SELECT count(*) FROM app_organization WHERE display_name = ?
+                        """, row -> row.getLong(1), name)).longValue());
+                assertEquals(0L, database.read(connection -> first(connection, """
+                        SELECT count(*) FROM app_organization_membership WHERE identity_id = ?
+                        """, row -> row.getLong(1), identity)).longValue());
+            } finally {
+                database.transaction(connection -> update(connection, """
+                        ALTER TABLE app_organization_bootstrap DROP CONSTRAINT cf_imp_004_failure
+                        """));
+            }
+            assertEquals(201, createOrganization(client, owner, Map.of("name", name), key).statusCode());
+            assertEquals(204, delete(client, SESSIONS, owner).statusCode());
+        }
+    }
+
+    private String newAccountSession(HttpClient client) throws Exception {
+        String email = email();
+        assertEquals(202, post(client, ACCOUNTS, Map.of("email", email, "name", "Conta de teste"), key()).statusCode());
+        assertEquals(204, confirm(client, messages(email, "VERIFY_EMAIL").getFirst(), key()).statusCode());
+        var response = login(client, email, PASSWORD);
+        assertEquals(204, response.statusCode(), response.body());
+        return cookie(response);
+    }
+
+    private HttpResponse<String> createOrganization(HttpClient client, String cookie, Map<String, String> data,
+                                                     String key) throws Exception {
+        return client.send(postRequest(ORGANIZATIONS, data, key).header("Cookie", cookie).build(),
+                HttpResponse.BodyHandlers.ofString());
     }
 
     private CompletableFuture<HttpResponse<String>> logInAsync(HttpClient client, String email) throws IOException {
