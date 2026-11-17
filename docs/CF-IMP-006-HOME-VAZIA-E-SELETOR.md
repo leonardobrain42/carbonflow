@@ -46,3 +46,7 @@ CARBONFLOW_PORT=18087 docker compose -p cf-imp-006-test up --build -d --wait
 ```
 
 Acessar `http://127.0.0.1:18087/workspace` e autenticar com e-mail/senha da conta sandbox verificada. O piloto fica em `/pilot`.
+
+## Extensão: sandbox local provisionado
+
+A conta de demonstração pode ser criada com `python3 scripts/demo_sandbox.py start`. A senha é aleatória e privada, não há uma credencial padrão no código; o script realiza cadastro e confirmação reais e permite criar contas adicionais `.test`. A aplicação abre em `http://127.0.0.1:18088/workspace`, isolada do Docker Compose padrão. Testes adicionais incluem um job de inicialização/reencontro de contas, sem mock de autenticação. Consulte [CF-IMP-006-DEMO-SANDBOX.md](CF-IMP-006-DEMO-SANDBOX.md).
