@@ -1,0 +1,133 @@
+<a class="cf-skip-link" href="#technical-main">Pular para o conteúdo</a>
+<div class="cf-workspace-shell">
+  <aside class="cf-workspace-sidebar" aria-label="Navegação do espaço da conta">
+    <a routerLink="/workspace" class="cf-workspace-brand">Carbon<span>Flow</span></a>
+    <p class="cf-workspace-kicker">AMBIENTE DE TESTE · SANDBOX</p>
+    <nav aria-label="Áreas da conta" class="cf-workspace-nav">
+      <a routerLink="/workspace">Meus projetos</a>
+      <a routerLink="/workspace/projects/new">Novo projeto</a>
+      <a href="/pilot">Piloto sintético separado</a>
+    </nav>
+    <p class="cf-workspace-disclaimer">PREPARAÇÃO
+      <small>Esta área não executa cálculos, não confere elegibilidade e não concede poderes PP, REV ou VVB.</small>
+    </p>
+  </aside>
+
+  <div class="cf-workspace-stage">
+    <header class="cf-workspace-topbar">
+      <span>Projeto próprio · preparação técnica</span>
+      <a routerLink="/workspace" class="cf-workspace-link">Voltar aos meus projetos</a>
+    </header>
+    <main id="technical-main" class="cf-workspace-content">
+      @if (loading()) {
+        <p role="status">Verificando o acesso e carregando os dados do projeto…</p>
+      } @else if (project(); as current) {
+        <header class="cf-workspace-heading">
+          <span class="cf-workspace-chip">SANDBOX · RASCUNHO SEM AVALIAÇÃO</span>
+          <h1>Preparação técnica</h1>
+          <p><strong>{{ current.title }}</strong></p>
+          <p class="cf-workspace-helper">Projeto {{ current.projectId }} · {{ current.environment }} · {{ current.state }}</p>
+          <p>Registre as primeiras informações e obtenha uma estrutura preliminar de dossiê. O enquadramento metodológico e as evidências ainda exigem revisão técnica.</p>
+        </header>
+
+        @if (error()) { <div role="alert" class="cf-workspace-alert">{{ error() }}</div> }
+        @if (notice()) { <div role="status" class="cf-workspace-note">{{ notice() }}</div> }
+
+        @if (intake(); as saved) {
+          <section class="cf-workspace-card" aria-labelledby="cf-tech-intake-title">
+            <span class="cf-workspace-step">1 · INFORMAÇÕES TÉCNICAS</span>
+            <h2 id="cf-tech-intake-title">Descreva a atividade do projeto</h2>
+            <p>Revisão {{ saved.version }} · {{ saved.state }} · Análise: {{ saved.reviewState }}.</p>
+            <p class="cf-workspace-helper">Campos em branco permanecem desconhecidos, não são respostas negativas nem evidência de conformidade.</p>
+            <form (submit)="save($event, activity.value, country.value, state.value, locality.value, methodology.value, date.value, notes.value)">
+              <label for="cf-tech-activity">Atividade planejada</label>
+              <input #activity id="cf-tech-activity" name="activity" required maxlength="400"
+                placeholder="Ex.: operação de infraestrutura para recarga de veículos elétricos"
+                [value]="saved.data?.activity ?? ''" />
+              <label for="cf-tech-country">País (sigla de duas letras, se conhecido)</label>
+              <input #country id="cf-tech-country" name="country" maxlength="2"
+                placeholder="Ex.: BR" [value]="saved.data?.country ?? ''" />
+              <label for="cf-tech-state">Estado ou região (se conhecido)</label>
+              <input #state id="cf-tech-state" name="state" maxlength="80"
+                placeholder="Ex.: DF" [value]="saved.data?.state ?? ''" />
+              <label for="cf-tech-locality">Localidade (se conhecida)</label>
+              <input #locality id="cf-tech-locality" name="locality" maxlength="200"
+                placeholder="Ex.: Brasília" [value]="saved.data?.locality ?? ''" />
+              <label for="cf-tech-methodology">Metodologia candidata (opcional)</label>
+              <input #methodology id="cf-tech-methodology" name="candidateMethodology" maxlength="80"
+                placeholder="Ex.: VM0038" [value]="saved.data?.candidateMethodology ?? ''" />
+              <p class="cf-workspace-helper">Uma metodologia indicada pelo usuário é uma hipótese; não significa que a atividade esteja enquadrada nela.</p>
+              <label for="cf-tech-date">Data de referência da atividade (se conhecida)</label>
+              <input #date id="cf-tech-date" type="date" name="referenceActDate"
+                [value]="saved.data?.referenceActDate ?? ''" />
+              <label for="cf-tech-notes">Observações iniciais</label>
+              <textarea #notes id="cf-tech-notes" name="notes" rows="4" maxlength="2000"
+                [value]="saved.data?.notes ?? ''"></textarea>
+              <button class="cf-workspace-primary" type="submit" [disabled]="saving()">Salvar informações</button>
+            </form>
+          </section>
+
+          <section class="cf-workspace-card" aria-labelledby="cf-tech-gates-title">
+            <span class="cf-workspace-step">2 · REQUISITOS A COMPROVAR</span>
+            <h2 id="cf-tech-gates-title">Pendências para utilização técnica</h2>
+            <p>Esses bloqueios não são um diagnóstico de elegibilidade. Nenhum resultado de carbono foi calculado.</p>
+            <ul class="cf-tech-gates">
+              @for (item of saved.outstandingGates; track item.code) {
+                <li><strong>{{ item.code }}</strong> — {{ item.message }}
+                  <small>Referência de regra: {{ item.rule }}</small>
+                </li>
+              }
+            </ul>
+          </section>
+        }
+
+        <section class="cf-workspace-card" aria-labelledby="cf-tech-dossier-title">
+          <span class="cf-workspace-step">3 · DOSSIÊ PRELIMINAR</span>
+          <h2 id="cf-tech-dossier-title">Estrutura do dossiê</h2>
+          <p>Essa prévia é uma lista de seções e lacunas, não um PD ou MR homologado e não contém texto protegido de documentos normativos.</p>
+          @if (dossier(); as prepared) {
+            <div class="cf-workspace-info">
+              <strong>Prévia {{ prepared.revision }} · {{ prepared.state }}</strong>
+              <p>Baseada na revisão {{ prepared.intakeVersion }} das informações técnicas.</p>
+              <p>Referência de template: {{ prepared.sourceTemplate }} · edição: {{ prepared.sourceEdition }}</p>
+              <h3>Seções a desenvolver</h3>
+              <ul class="cf-tech-gates">
+                @for (section of prepared.sections; track section) { <li>{{ section }}</li> }
+              </ul>
+              <h3>Condições ainda não satisfeitas</h3>
+              <ul class="cf-tech-gates">
+                @for (item of prepared.blockers; track item.code) {
+                  <li><strong>{{ item.code }}</strong> — {{ item.message }}</li>
+                }
+              </ul>
+            </div>
+          } @else {
+            <p role="status">Ainda não há dossiê preliminar para este projeto.</p>
+          }
+          @if (dossier() && intake() && dossier()!.intakeVersion !== intake()!.version) {
+            <p class="cf-workspace-helper">A prévia anterior não reflete a revisão atual. É possível preparar outra revisão preservando o histórico.</p>
+          }
+          <button type="button" class="cf-workspace-primary" (click)="prepare()" [disabled]="saving() || !canPrepare()">
+            Preparar prévia da revisão atual
+          </button>
+        </section>
+
+        <section class="cf-workspace-card" aria-labelledby="cf-tech-next-title">
+          <h2 id="cf-tech-next-title">O que ainda não está habilitado?</h2>
+          <p>As interfaces de evidências, cálculo de BE/PE/LE/ER, monitoramento, PD/MR final e atos externos continuarão bloqueadas até que suas dependências técnicas e de autoridade estejam satisfeitas.</p>
+          @if (capabilities(); as cap) {
+            <dl class="cf-tech-capabilities">
+              @for (item of [{label:'Evidências', key:'evidence'}, {label:'Cálculo', key:'calculation'},
+                {label:'Monitoramento', key:'monitoring'}, {label:'Atos externos', key:'externalActs'}]; track item.key) {
+                <div><dt>{{ item.label }}</dt><dd>{{ cap.modules[item.key] }}</dd></div>
+              }
+            </dl>
+          }
+        </section>
+      } @else {
+        <div role="alert" class="cf-workspace-alert">{{ error() || 'Projeto não disponível para esta conta.' }}</div>
+        <a routerLink="/workspace" class="cf-workspace-link">Voltar ao espaço da conta</a>
+      }
+    </main>
+  </div>
+</div>
