@@ -1,0 +1,75 @@
+# CF-IMP-006 — Sandbox local pronto para entrar no /workspace
+
+Este é um **ambiente opt-in** para o desenvolvedor/dono do produto testar a home antes da CF-IMP-007. Não há credenciais pré-cadastradas no banco normal, tampouco usuários ou senhas fixos na imagem Java.
+
+## Início em um comando
+
+Pré-requisitos: Python 3.10+ e Docker Engine + Docker Compose. Na raiz do repositório, com a branch `feat/empty-workspace-project-selector` (ou após merge):
+
+```bash
+python3 scripts/demo_sandbox.py start
+```
+
+O comando inicia a aplicação em um Compose **isolado do piloto padrão**, escuta somente em `127.0.0.1:18088`, gera uma senha aleatória no seu computador, faz o cadastro, captura o token da caixa de testes **privada dentro do contêiner**, confirma o endereço fictício e testa login real. Ao terminar, imprime as credenciais locais e a URL.
+
+- **Endereço:** http://127.0.0.1:18088/workspace
+- **E-mail padrão:** `demo@carbonflow.test`
+- **Senha:** gerada aleatoriamente durante o comando e guardada em `.carbonflow-demo/accounts/<hash>.json` com permissão `0600`; **não consta no Git**.
+
+No primeiro acesso, a home mostra **Você ainda não tem projetos**. Clique em **Criar meu primeiro projeto** e informe o nome de trabalho da organização. A criação desse espaço é real, salva no PostgreSQL, mas os projetos serão criados somente a partir da CF-IMP-007.
+
+Para rever as credenciais, sem trocar a senha:
+
+```bash
+python3 scripts/demo_sandbox.py show
+```
+
+Para adicionar outra conta de teste (outra identidade, mesmo banco demo, sem pertencer à organização da primeira):
+
+```bash
+python3 scripts/demo_sandbox.py add-user --email demo2@carbonflow.test --name "Segundo usuário"
+python3 scripts/demo_sandbox.py show --email demo2@carbonflow.test
+```
+
+A primeira conta poderá criar **um** espaço inicial privado; a segunda também poderá criar o seu. As sessões e vínculos são isolados e os projetos alheios não devem aparecer.
+
+Para validar o ambiente usando **requisições HTTP reais** ao backend:
+
+```bash
+python3 scripts/demo_sandbox.py smoke
+```
+
+Para parar somente o ambiente demo, **preservando banco e credenciais**, execute:
+
+```bash
+python3 scripts/demo_sandbox.py stop
+```
+
+Para apagar **exclusivamente** os dados do demo (destrutivo; não executar sobre ambientes compartilhados), primeiro pare o ambiente e então:
+
+```bash
+docker compose -p carbonflow-demo -f compose.yaml -f compose.demo.yaml down -v --remove-orphans
+rm -rf .carbonflow-demo
+```
+
+O script aceita `CARBONFLOW_PORT=18089` para modificar a porta do demo e `CARBONFLOW_DEMO_PROJECT=carbonflow-demo-lab` para outro namespace, apenas com nomes que iniciem em `carbonflow-demo` ou `cf-demo`.
+
+## O que não é simulado
+
+O cadastro usa **as rotas reais** `POST /v1/accounts`, `POST /v1/accounts/email-verification`, `POST /v1/accounts/email-confirmations` e `POST /v1/account-session`, com senhas PBKDF2 gerenciadas pelo backend. A conta nasce `ACTIVE` após confirmação do token, com sessão HttpOnly e limite de tentativas da CF-IMP-003. Não há usuário administrativo especial, grants PP/REV/VVB nem permissão para aprovar documentos.
+
+O e-mail nunca é enviado para a internet: a caixa de teste é o `SandboxAccountMailbox` em um volume **tmpfs do contêiner** `/run/carbonflow-demo-inbox`, com permissão `0700` para o usuário da aplicação. Somente endereços fictícios `.test` podem ser provisionados pelo script. Tokens não são impressos nem gravados no repositório.
+
+O arquivo de senhas locais está no `.gitignore`. A execução `--quiet` não exibe senha no terminal (uso recomendado para CI). Nunca exponha a porta pela internet, suba em hospedagem pública ou reutilize esta configuração em produção; trata-se de ensaio **local**.
+
+## Homologação da entrega
+
+- `python3 -m unittest discover -s scripts -p 'test_demo_sandbox.py' -v`: emails fictícios, isolamento do namespace, segredo aleatório, arquivo 0600/0700, estabilidade em reinício.
+- Job `Demo sandbox / provisionamento real de contas` do GitHub Actions: provisiona primeira conta e segunda conta; usa API e cookies reais; repete o provisionamento sem mudar senha; destrói somente o Compose isolado.
+- Job `Quarkus / integration tests`: regressões de cadastro/confirmação/organização.
+- Job `Angular / browser journeys`: home vazia, criação da organização, troca de seleção e login da conta.
+- Modo padrão `docker compose up` continua com cadastro **desabilitado**. Para testar o piloto antigo, use `/pilot` e `SIM-PREP` / `piloto-prep` no ambiente padrão.
+
+## Limites atuais
+
+A CF-IMP-006 não adiciona formulário público de inscrição. A preparação local é feita pelo script. O cadastro de produção ainda necessita de provedor de e-mail, controles antiabuso e infraestrutura adequados. A CF-IMP-007 entregará a criação persistente do projeto e vinculação ao DRAFT_OWNER. A interface continua no sandbox com dados sintéticos para qualquer parte E8.
