@@ -31,9 +31,11 @@ test('CF-IMP-005: shell responsivo, navegação e controle de sessão no piloto'
     await page.getByRole('heading', {name: 'Entrar no piloto'}).waitFor();
     assert.equal(await sidebar.count(), 0);
 
-    await page.goto(base + '/uma-rota-inexistente');
+    await page.goto(base + '/');
     await page.getByRole('heading', {name: 'Entrar no piloto'}).waitFor();
     assert.ok(new URL(page.url()).pathname.endsWith('/pilot'));
+    const unknown = await page.request.get(base + '/rota-inexistente', {failOnStatusCode: false});
+    assert.equal(unknown.status(), 404);
   } finally {
     await browser.close();
   }
