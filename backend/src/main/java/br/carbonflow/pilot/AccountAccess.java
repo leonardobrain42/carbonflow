@@ -22,6 +22,12 @@ class AccountAccess {
     static final int SESSION_SECONDS = 8 * 60 * 60;
     private static final int SESSION_LIMIT = 2;
     private static final int HASH_ITERATIONS = 600_000;
+    private static final String ACTIVE_SESSION = """
+            SELECT i.id, i.email_normalized, i.display_name
+            FROM app_account_session s JOIN app_identity i ON i.id = s.identity_id
+            WHERE s.token_hash = ? AND s.expires_at > statement_timestamp()
+              AND i.status = 'ACTIVE' AND i.email_verified_at IS NOT NULL
+            """;
     private static final Pattern EMAIL = Pattern.compile(
             "[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+");
 
@@ -190,21 +196,33 @@ class AccountAccess {
     }
 
     Session session(String token) {
+        var identity = database.read(connection -> requireIdentity(connection, token));
+        return new Session(identity, projects.listDrafts(identity.id()));
+    }
+
+    Identity requireIdentity(Connection connection, String token) throws SQLException {
         mailbox.requireEnabled();
         if (!isToken(token)) {
             throw unauthenticated();
         }
-        Identity identity = database.read(connection -> first(connection, """
-                SELECT i.id, i.email_normalized, i.display_name
-                FROM app_account_session s JOIN app_identity i ON i.id = s.identity_id
-                WHERE s.token_hash = ? AND s.expires_at > statement_timestamp()
-                  AND i.status = 'ACTIVE' AND i.email_verified_at IS NOT NULL
-                """, row -> new Identity(row.getObject("id", UUID.class), row.getString("email_normalized"),
-                row.getString("display_name")), digest(token)));
+        return activeIdentity(connection, ACTIVE_SESSION, digest(token));
+    }
+
+    Identity lockIdentity(Connection connection, String token) throws SQLException {
+        var identity = requireIdentity(connection, token);
+        // Use the same lock order as credential changes: account first, session second.
+        first(connection, "SELECT id FROM app_identity WHERE id = ? FOR NO KEY UPDATE",
+                row -> row.getObject("id", UUID.class), identity.id());
+        return activeIdentity(connection, ACTIVE_SESSION + "FOR SHARE OF s", digest(token));
+    }
+
+    private static Identity activeIdentity(Connection connection, String sql, byte[] tokenHash) throws SQLException {
+        Identity identity = first(connection, sql, row -> new Identity(row.getObject("id", UUID.class),
+                row.getString("email_normalized"), row.getString("display_name")), tokenHash);
         if (identity == null) {
             throw unauthenticated();
         }
-        return new Session(identity, projects.listDrafts(identity.id()));
+        return identity;
     }
 
     void logout(String token) {
