@@ -15,6 +15,7 @@ import {IssuancePanel} from './issuance-panel';
 import {OperationsPanel} from './operations-panel';
 import {WorkspaceComponent} from './workspace';
 import {ProjectTechnicalComponent} from './project-technical';
+import {ProjectTriageComponent} from './project-triage';
 
 interface Memory {
   be: string;
@@ -253,6 +254,7 @@ const routes: Routes = [
   {path: 'workspace', component: WorkspaceComponent},
   {path: 'workspace/projects/new', component: WorkspaceComponent},
   {path: 'workspace/projects/:projectId/technical', component: ProjectTechnicalComponent},
+  {path: 'workspace/projects/:projectId/triage', component: ProjectTriageComponent},
   {path: '**', redirectTo: 'pilot'},
 ];
 
