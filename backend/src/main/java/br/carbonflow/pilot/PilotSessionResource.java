@@ -38,18 +38,18 @@ public class PilotSessionResource {
     public Response login(Credentials credentials, @Context UriInfo uri) {
         String token = access.login(credentials == null ? null : credentials.identity(),
                 credentials == null ? null : credentials.password());
-        return Response.noContent().header("Set-Cookie", cookie(token, PilotAccess.SESSION_SECONDS, uri)).build();
+        return Response.noContent().header("Set-Cookie", cookie(PilotAccess.COOKIE, token, PilotAccess.SESSION_SECONDS, uri)).build();
     }
 
     @DELETE
     public Response logout(@Context UriInfo uri) {
         access.logout();
-        return Response.noContent().header("Set-Cookie", cookie("", 0, uri)).build();
+        return Response.noContent().header("Set-Cookie", cookie(PilotAccess.COOKIE, "", 0, uri)).build();
     }
 
-    private String cookie(String token, int age, UriInfo uri) {
+    static String cookie(String name, String token, int age, UriInfo uri) {
         String secure = "https".equals(uri.getBaseUri().getScheme()) ? "; Secure" : "";
-        return PilotAccess.COOKIE + "=" + token + "; Path=/; Max-Age=" + age + "; HttpOnly; SameSite=Strict" + secure;
+        return name + "=" + token + "; Path=/; Max-Age=" + age + "; HttpOnly; SameSite=Strict" + secure;
     }
 }
 

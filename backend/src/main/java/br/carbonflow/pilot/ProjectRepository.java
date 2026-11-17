@@ -31,12 +31,16 @@ class ProjectRepository {
     }
 
     List<ProjectContext.Draft> listDrafts(UUID actorId, UUID organizationId) {
-        return drafts(actorId, organizationId, null);
+        return drafts(actorId, Objects.requireNonNull(organizationId), null);
+    }
+
+    List<ProjectContext.Draft> listDrafts(UUID actorId) {
+        return drafts(actorId, null, null);
     }
 
     Optional<ProjectContext.Draft> findDraft(UUID actorId, UUID organizationId, String projectId) {
         Objects.requireNonNull(projectId);
-        return drafts(actorId, organizationId, projectId).stream().findFirst();
+        return drafts(actorId, Objects.requireNonNull(organizationId), projectId).stream().findFirst();
     }
 
     private List<ProjectContext.Draft> drafts(UUID actorId, UUID organizationId, String projectId) {
@@ -46,7 +50,8 @@ class ProjectRepository {
                 JOIN app_organization_membership m
                     ON m.organization_id = p.organization_id AND m.identity_id = p.created_by
                 JOIN app_identity i ON i.id = m.identity_id
-                WHERE m.identity_id = ? AND m.organization_id = ? AND p.environment = 'SANDBOX'
+                WHERE m.identity_id = ? AND (CAST(? AS uuid) IS NULL OR m.organization_id = ?)
+                  AND p.environment = 'SANDBOX'
                   AND i.status = 'ACTIVE' AND m.role = 'DRAFT_OWNER' AND p.state = 'DRAFT'
                   AND m.revoked_at IS NULL AND m.valid_from <= statement_timestamp()
                   AND (m.valid_until IS NULL OR m.valid_until > statement_timestamp())
@@ -54,6 +59,6 @@ class ProjectRepository {
                 ORDER BY p.id
                 """, row -> new ProjectContext.Draft(row.getString("id"), row.getObject("organization_id", UUID.class),
                 row.getString("environment"), row.getString("state"), row.getInt("version")),
-                actorId, organizationId, projectId, projectId)));
+                actorId, organizationId, organizationId, projectId, projectId)));
     }
 }

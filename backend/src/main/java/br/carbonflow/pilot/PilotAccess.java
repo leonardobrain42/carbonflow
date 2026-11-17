@@ -1,16 +1,13 @@
 package br.carbonflow.pilot;
 
-import java.nio.charset.StandardCharsets;
+import static br.carbonflow.pilot.AccessSecrets.digest;
+import static br.carbonflow.pilot.AccessSecrets.passwordHash;
+
 import java.security.MessageDigest;
-import java.security.SecureRandom;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.Base64;
 import java.util.List;
 import java.util.Map;
-
-import javax.crypto.SecretKeyFactory;
-import javax.crypto.spec.PBEKeySpec;
 
 import io.vertx.ext.web.RoutingContext;
 import jakarta.enterprise.context.RequestScoped;
@@ -33,7 +30,6 @@ class PilotAccess {
     record Session(Identity identity, List<Scope> projects) {}
     private record Credentials(Identity identity, byte[] salt, byte[] hash) {}
 
-    private static final SecureRandom RANDOM = new SecureRandom();
     private final PilotDatabase database;
     private final ProjectRepository projects;
     private final PilotAudit audit;
@@ -53,14 +49,12 @@ class PilotAccess {
             throw unauthenticated();
         }
         var credentials = database.read(connection -> credentials(connection, id));
-        byte[] candidate = passwordHash(secret, credentials == null ? new byte[16] : credentials.salt());
+        byte[] candidate = passwordHash(secret, credentials == null ? new byte[16] : credentials.salt(), 210_000);
         if (credentials == null || !MessageDigest.isEqual(credentials.hash(), candidate)) {
             throw unauthenticated();
         }
 
-        var secretBytes = new byte[32];
-        RANDOM.nextBytes(secretBytes);
-        String token = Base64.getUrlEncoder().withoutPadding().encodeToString(secretBytes);
+        String token = AccessSecrets.newToken();
         String previous = token();
         database.transaction(connection -> {
             endSession(connection, previous);
@@ -170,7 +164,7 @@ class PilotAccess {
 
     private String token() {
         var cookie = routing.request().getCookie(COOKIE);
-        return cookie != null && cookie.getValue().matches("[A-Za-z0-9_-]{43}") ? cookie.getValue() : null;
+        return cookie != null && AccessSecrets.isToken(cookie.getValue()) ? cookie.getValue() : null;
     }
 
     private static void endSession(Connection connection, String token) throws SQLException {
@@ -182,22 +176,4 @@ class PilotAccess {
         }
     }
 
-    private static byte[] digest(String token) {
-        try {
-            return MessageDigest.getInstance("SHA-256").digest(token.getBytes(StandardCharsets.US_ASCII));
-        } catch (java.security.NoSuchAlgorithmException e) {
-            throw new IllegalStateException(e);
-        }
-    }
-
-    private static byte[] passwordHash(String password, byte[] salt) {
-        var spec = new PBEKeySpec(password.toCharArray(), salt, 210_000, 256);
-        try {
-            return SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec).getEncoded();
-        } catch (java.security.GeneralSecurityException e) {
-            throw new IllegalStateException(e);
-        } finally {
-            spec.clearPassword();
-        }
-    }
 }
