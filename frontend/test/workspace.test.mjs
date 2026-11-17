@@ -21,8 +21,8 @@ async function withBrowser(run) {
   }
 }
 
-function stubAccount(page, state) {
-  page.route('**/v1/account-session', async route => {
+async function stubAccount(page, state) {
+  await page.route('**/v1/account-session', async route => {
     if (route.request().method() === 'GET') {
       await route.fulfill(state.signedIn ? {status: 200, json: {identity, projects: state.projects}} : {status: 401, json: {code: 'SESSAO_NECESSARIA'}});
     } else if (route.request().method() === 'POST') {
@@ -35,7 +35,7 @@ function stubAccount(page, state) {
       await route.fulfill({status: 405});
     }
   });
-  page.route('**/v1/organizations', async route => {
+  await page.route('**/v1/organizations', async route => {
     if (route.request().method() === 'GET') {
       await route.fulfill({status: 200, json: state.organizations});
     } else if (route.request().method() === 'POST') {
@@ -52,7 +52,7 @@ function stubAccount(page, state) {
 test('CF-IMP-006: conta sem projeto inicia organização sem alegar criação de projeto', async () => {
   await withBrowser(async page => {
     const state = {signedIn: true, projects: [], organizations: []};
-    stubAccount(page, state);
+    await stubAccount(page, state);
     await page.goto(base + '/workspace');
     await page.getByRole('heading', {name: 'Você ainda não tem projetos'}).waitFor();
     assert.equal(await page.getByText('SIM-PREP', {exact: true}).count(), 0);
@@ -79,7 +79,7 @@ test('CF-IMP-006: projeto precisa ser selecionado e pode ser retirado pela sess�
       {projectId: 'DRAFT-ONE', organizationId: organization.id, environment: 'SANDBOX', state: 'DRAFT', version: 1},
       {projectId: 'DRAFT-TWO', organizationId: organization.id, environment: 'SANDBOX', state: 'DRAFT', version: 2},
     ]};
-    stubAccount(page, state);
+    await stubAccount(page, state);
     await page.goto(base + '/workspace');
     const selector = page.getByLabel('Projetos disponíveis nesta conta');
     await selector.waitFor();
@@ -102,7 +102,7 @@ test('CF-IMP-006: projeto precisa ser selecionado e pode ser retirado pela sess�
 test('CF-IMP-006: login da conta não reutiliza credenciais ou cookies SIM-*', async () => {
   await withBrowser(async page => {
     const state = {signedIn: false, projects: [], organizations: []};
-    stubAccount(page, state);
+    await stubAccount(page, state);
     await page.goto(base + '/workspace');
     await page.getByRole('heading', {name: 'Entre na sua conta'}).waitFor();
     await page.getByLabel('E-mail da conta').fill('conta@example.test');
