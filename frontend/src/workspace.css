@@ -1,0 +1,55 @@
+/* CF-IMP-006: tenant-safe account workspace, visually isolated from the legacy E8 pilot. */
+.cf-workspace-shell { display: grid; grid-template-columns: 254px minmax(0,1fr); min-height: 100vh; background: #0b1114; color: #ecf7f1; }
+.cf-workspace-sidebar { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; gap: 1.2rem; border-right: 1px solid #2c3c37; padding: 1.6rem 1rem; background: #0d1718; }
+.cf-workspace-brand { display: block; font-size: 1.45rem; font-weight: 800; text-decoration: none; letter-spacing: -.05em; padding: .25rem .7rem; color: #f1faf4; }
+.cf-workspace-brand span { color: #39b475; }
+.cf-workspace-kicker { margin: 0; padding: 0 .7rem; font-size: .72rem; font-weight: 800; letter-spacing: .08em; color: #94afa2; }
+.cf-workspace-nav { display: grid; gap: .35rem; }
+.cf-workspace-nav a { padding: .65rem .7rem; border-radius: .65rem; text-decoration: none; color: #bfd0c6; }
+.cf-workspace-nav a:hover, .cf-workspace-nav a:focus-visible { background: #1d3829; color: #a2e5bf; }
+.cf-workspace-disclaimer { margin: auto 0 0; border: 1px solid #365543; border-radius: .8rem; background: #152921; padding: .9rem; color: #8adaad; font-size: .73rem; font-weight: 800; }
+.cf-workspace-disclaimer small { display: block; color: #a7c0b2; font-weight: 400; font-size: .73rem; line-height: 1.5; margin-top: .3rem; }
+.cf-workspace-stage { min-width: 0; }
+.cf-workspace-topbar { min-height: 72px; border-bottom: 1px solid #263a32; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem clamp(1rem,3vw,3rem); color: #bfd1c8; }
+.cf-workspace-account { display: flex; align-items: center; flex-wrap: wrap; gap: .9rem; font-size: .85rem; }
+.cf-workspace-content { width: min(1020px, calc(100% - 3rem)); margin: 0 auto; padding: 2rem 0 4rem; }
+.cf-workspace-heading { margin-bottom: 2rem; }
+.cf-workspace-heading h1, .cf-workspace-login h1 { font-size: clamp(2rem,4vw,3rem); margin: .7rem 0; color: #f5fff8; }
+.cf-workspace-heading p, .cf-workspace-card > p { color: #b9cfc0; line-height: 1.6; }
+.cf-workspace-card { padding: clamp(1.2rem,3vw,2rem); border: 1px solid #294337; border-radius: 1.15rem; background: #142220; margin: 0 0 1.15rem; }
+.cf-workspace-card h2 { font-size: clamp(1.25rem,2.8vw,1.65rem); margin: 0 0 .75rem; color: #f2f9f4; }
+.cf-workspace-card h3 { color: #e9f6ec; margin-bottom: .7rem; }
+.cf-workspace-chip { display: inline-block; color: #9de3b8; border: 1px solid #3b6d50; background: #183628; padding: .25rem .65rem; border-radius: 1rem; font-size: .72rem; font-weight: 800; letter-spacing: .05em; }
+.cf-workspace-step { display: inline-block; color: #8ce3b5; margin-bottom: .8rem; font-size: .75rem; font-weight: 800; letter-spacing: .09em; }
+.cf-workspace-card label { display: block; margin: 1.1rem 0 .35rem; color: #dceee1; font-weight: 680; }
+.cf-workspace-card input, .cf-workspace-card select { display: block; width: 100%; max-width: 640px; border: 1px solid #456758; background: #0c1917; color: #f3fff6; border-radius: .65rem; padding: .85rem .9rem; font: inherit; }
+.cf-workspace-card form .cf-workspace-primary { margin-top: 1.3rem; }
+.cf-workspace-primary { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; text-decoration: none; padding: .78rem 1.2rem; border: 1px solid #37a56b; border-radius: .7rem; background: #2c945e; color: #fff; font: inherit; font-weight: 750; cursor: pointer; }
+.cf-workspace-primary:hover { background: #36a76c; color: #fff; }
+.cf-workspace-primary:disabled, .cf-workspace-outline:disabled { opacity: .56; cursor: wait; }
+.cf-workspace-outline { border: 1px solid #518364; border-radius: .6rem; background: #1d3529; color: #e0f7e8; padding: .55rem 1rem; cursor: pointer; font: inherit; }
+.cf-workspace-outline:hover { background: #284e3a; }
+.cf-workspace-link { text-decoration: none; color: #98e5b9; }
+.cf-workspace-helper { font-size: .85rem; color: #aac1b2; margin-top: 1rem; line-height: 1.6; }
+.cf-workspace-login { max-width: 590px; margin: 3rem auto; }
+.cf-workspace-empty { max-width: 740px; padding: 2.5rem; }
+.cf-workspace-empty-icon { width: 3.7rem; height: 3.7rem; display: grid; place-items: center; background: #1c5337; border-radius: .85rem; color: #a4eabd; font-size: 2.2rem; margin-bottom: 1.2rem; }
+.cf-workspace-empty .cf-workspace-primary { margin: 1.3rem 0 .2rem; }
+.cf-workspace-info { margin-top: 1.5rem; padding: 1rem; border: 1px solid #40664d; background: #1a3628; border-radius: .8rem; }
+.cf-workspace-info p { margin: .45rem 0; color: #c5dcce; overflow-wrap: anywhere; }
+.cf-workspace-alert { padding: .85rem 1rem; margin: 1rem 0; border: 1px solid #a6634c; background: #3d2622; color: #ffcbbe; border-radius: .65rem; }
+.cf-workspace-note { padding: .85rem 1rem; margin: 1rem 0; border: 1px solid #4a855d; background: #1c3728; color: #b4efc8; border-radius: .65rem; }
+.cf-workspace-project-list { padding: 0; list-style: none; display: grid; gap: .6rem; margin: 1rem 0; }
+.cf-workspace-project-list li { border: 1px solid #2e4739; background: #10201b; border-radius: .65rem; padding: .8rem; display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem; overflow-wrap: anywhere; }
+.cf-workspace-project-list span { color: #a9c4b2; }
+.cf-workspace-shell :focus-visible { outline: 3px solid #87dbac; outline-offset: 3px; }
+@media(max-width:740px) {
+  .cf-workspace-shell { display: block; }
+  .cf-workspace-sidebar { position: static; height: auto; padding: .8rem 1rem; gap: .55rem; }
+  .cf-workspace-kicker, .cf-workspace-disclaimer { display: none; }
+  .cf-workspace-brand { font-size: 1.2rem; }
+  .cf-workspace-nav { display: flex; flex-wrap: wrap; gap: .2rem; }
+  .cf-workspace-nav a { font-size: .85rem; }
+  .cf-workspace-content { width: calc(100% - 2rem); padding-top: 1.25rem; }
+  .cf-workspace-empty { padding: 1.25rem; }
+}
