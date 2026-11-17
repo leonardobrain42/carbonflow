@@ -10,7 +10,7 @@ test('CF-IMP-005: shell responsivo, navegação e controle de sessão no piloto'
   try {
     const page = await browser.newPage({viewport: {width: 1440, height: 900}});
     await page.goto(base + '/pilot');
-    assert.equal(await page.getByRole('heading', {name: 'Entrar no piloto'}).count(), 1);
+    await page.getByRole('heading', {name: 'Entrar no piloto'}).waitFor();
     assert.equal(await page.getByRole('complementary', {name: 'Navegação lateral da demonstração'}).count(), 0);
 
     await page.getByLabel('Identidade do piloto').fill('SIM-PREP');
