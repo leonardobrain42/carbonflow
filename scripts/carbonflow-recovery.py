@@ -154,7 +154,9 @@ def backup(args):
         with source.snapshot() as (snapshot, checkpoint, pg_version):
             with (staging / FILES[0]).open('wb') as dump:
                 subprocess.run(source.database_command('pg_dump', '-Fc', '--no-owner',
-                               '--exclude-table-data=public.pilot_session', '--snapshot=' + snapshot),
+                               '--exclude-table-data=public.pilot_session',
+                               '--exclude-table-data=public.app_account_session',
+                               '--exclude-table-data=public.app_account_challenge', '--snapshot=' + snapshot),
                                stdout=dump, env=source.environment, check=True)
             with (staging / FILES[1]).open('w') as inventory:
                 source.query_at(SQL / 'inventory.sql', snapshot, inventory)
