@@ -117,3 +117,30 @@ jobs:
       - name: Destroy only the CI Compose environment
         if: always()
         run: docker compose down -v --remove-orphans
+
+  demo-sandbox:
+    name: Demo sandbox / provisionamento real de contas
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      CARBONFLOW_PORT: '18088'
+      CARBONFLOW_DEMO_PROJECT: carbonflow-demo-ci-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate local credential safety without Docker
+        run: python3 -m unittest discover -s scripts -p 'test_demo_sandbox.py' -v
+      - name: Start isolated sandbox and provision account
+        run: python3 scripts/demo_sandbox.py start --quiet
+      - name: Add a second account using the real confirmation API
+        run: python3 scripts/demo_sandbox.py add-user --email segunda@carbonflow.test --name "Segunda conta demo" --quiet
+      - name: Verify accounts and distinct sessions
+        run: python3 scripts/demo_sandbox.py smoke
+      - name: Rerun provisioning to prove repeatability without resetting passwords
+        run: |
+          python3 scripts/demo_sandbox.py start --quiet
+          python3 scripts/demo_sandbox.py smoke
+      - name: Destroy only the disposable demo environment
+        if: always()
+        run: |
+          docker compose -p "$CARBONFLOW_DEMO_PROJECT" -f compose.yaml -f compose.demo.yaml down -v --remove-orphans
+          rm -rf .carbonflow-demo
