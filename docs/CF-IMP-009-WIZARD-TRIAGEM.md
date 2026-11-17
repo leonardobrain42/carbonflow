@@ -8,7 +8,7 @@ Após criar um projeto sandbox, o usuário escolhe **Iniciar triagem guiada** (o
 
 1. **Planejamento:** objetivo, tipo de atividade e metodologia *candidata* (facultativa).
 2. **Atividade:** descrição operacional, cenário atual de referência e benefício esperado (qualitativo).
-3. **Frota e recarga:** quantidade de veículos, tipo de propulsão, tecnologia de recarga, carregadores e fonte de eletricidade. A etapa pode não se aplicar a outras atividades, mas as perguntas são mantidas visíveis.
+3. **Frota e recarga:** quantidade de veículos, tipo de propulsão, tecnologia de recarga, carregadores e fonte de eletricidade. Se o projeto não for de mobilidade, o usuário pode registrar **justificativa explícita** para não aplicabilidade; a etapa permanece pendente até essa justificativa, sem preencher os campos de veículos por suposição.
 4. **Local, dados e direitos:** país/estado/localidade, data de referência, disponibilidade *declarada* de dados e situação *declarada* de direitos. Não aplicável exige justificativa; nunca se torna uma certificação.
 5. **Resumo da triagem:** transcrição de respostas e pendências, com estado **NAO_AVALIADO** e indicação de análise posterior na CF-IMP-010.
 
