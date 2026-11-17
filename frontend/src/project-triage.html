@@ -119,6 +119,10 @@
                     <input id="cf-wz-energy" maxlength="400" [value]="field(3,'electricitySource')"
                       placeholder="Ex.: rede SIN, geração local, desconhecida"
                       (input)="input(3,'electricitySource',$event)"/>
+                    <label for="cf-wz-na">Justificativa, se a etapa não se aplicar à sua atividade</label>
+                    <textarea id="cf-wz-na" rows="2" maxlength="400" [value]="field(3,'notApplicableReason')"
+                      placeholder="Ex.: o projeto não envolve veículos ou infraestrutura de recarga"
+                      (input)="input(3,'notApplicableReason',$event)"></textarea>
                   }
                   @case (4) {
                     <label for="cf-wz-country">País (código de duas letras)</label>
@@ -190,7 +194,7 @@
                       @for (item of (stage.number === 1
                         ? ['objective','activityType','methodologyCandidate']
                         : stage.number === 2 ? ['activityDescription','baselinePractice','expectedBenefit']
-                        : stage.number === 3 ? ['vehicleCount','propulsion','chargerType','chargerCount','electricitySource']
+                        : stage.number === 3 ? ['vehicleCount','propulsion','chargerType','chargerCount','electricitySource','notApplicableReason']
                         : ['country','state','locality','referenceDate','evidenceStatus','rightsStatus','rightsJustification']); track item) {
                         <div>
                           <dt>{{ item }}</dt>
