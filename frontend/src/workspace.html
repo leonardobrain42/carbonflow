@@ -24,6 +24,9 @@
       }
     </header>
     <main id="workspace-main" class="cf-workspace-content">
+      @if (!loading() && error() && !session()) {
+        <div role="alert" class="cf-workspace-alert">{{ error() }}</div>
+      }
       @if (loading()) {
         <p role="status">Carregando seu espaço…</p>
       } @else if (!session()) {
