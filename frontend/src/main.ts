@@ -13,6 +13,7 @@ import {ListingPanel} from './listing-panel';
 import {AuditPanel} from './audit-panel';
 import {IssuancePanel} from './issuance-panel';
 import {OperationsPanel} from './operations-panel';
+import {WorkspaceComponent} from './workspace';
 
 interface Memory {
   be: string;
@@ -248,6 +249,8 @@ class CarbonFlowRoot {}
 const routes: Routes = [
   {path: '', pathMatch: 'full', redirectTo: 'pilot'},
   {path: 'pilot', component: PilotComponent},
+  {path: 'workspace', component: WorkspaceComponent},
+  {path: 'workspace/projects/new', component: WorkspaceComponent},
   {path: '**', redirectTo: 'pilot'},
 ];
 
