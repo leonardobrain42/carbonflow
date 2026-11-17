@@ -53,3 +53,13 @@
   .cf-workspace-content { width: calc(100% - 2rem); padding-top: 1.25rem; }
   .cf-workspace-empty { padding: 1.25rem; }
 }
+
+/* CF-IMP-008: scoped preparatory technical workbench; shared shell stays unchanged. */
+.cf-tech-gates { padding-inline-start: 1.3rem; line-height: 1.55; }
+.cf-tech-gates li { margin: .5rem 0; overflow-wrap: anywhere; }
+.cf-tech-gates small { display: block; color: #b9cebd; }
+.cf-tech-capabilities { display: grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap: .8rem; }
+.cf-tech-capabilities div { padding: .75rem; border: 1px solid #3b5c49; border-radius: .6rem; }
+.cf-tech-capabilities dt { color: #accab8; margin-bottom: .4rem; }
+.cf-tech-capabilities dd { margin: 0; font-weight: 700; overflow-wrap: anywhere; }
+.cf-workspace-card textarea { resize: vertical; }
