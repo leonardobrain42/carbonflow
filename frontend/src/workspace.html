@@ -153,11 +153,12 @@
                     <textarea #editDescription id="cf-edit-description" name="edit-description" rows="4" maxlength="2000" [value]="details.description ?? ''"></textarea>
                     <button type="submit" class="cf-workspace-primary" [disabled]="busy()">Salvar alterações</button>
                   </form>
-                  <p class="cf-workspace-helper">Rascunho versão {{ details.version }}. A triagem técnica será disponibilizada na CF-IMP-009.</p>
+                  <p class="cf-workspace-helper">Rascunho versão {{ details.version }}. A triagem guiada será disponibilizada na CF-IMP-009.</p>
+                  <a class="cf-workspace-primary cf-workspace-link" [routerLink]="['/workspace/projects', selected.projectId, 'technical']">Preparar informações técnicas</a>
                 } @else {
                   <p role="status">Consultando metadados autorizados do rascunho…</p>
                 }
-                <p>As ferramentas técnicas serão liberadas conforme o vínculo e a generalização E8, sem herdar poderes do piloto.</p>
+                <p>O acesso à preparação técnica não concede poderes de proponente, revisor ou VVB. As demais ferramentas permanecem bloqueadas por escopo.</p>
               </div>
             } @else {
               <p role="status" class="cf-workspace-helper">Nenhum projeto selecionado.</p>
