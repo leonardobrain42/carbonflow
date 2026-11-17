@@ -35,6 +35,44 @@ async function stubAccount(page, state) {
       await route.fulfill({status: 405});
     }
   });
+
+  await page.route('**/v1/projects', async route => {
+    if (route.request().method() !== 'POST') {
+      await route.fulfill({status: 405});
+      return;
+    }
+    assert.ok(route.request().headers()['idempotency-key']);
+    const body = JSON.parse(route.request().postData());
+    assert.equal(body.organizationId, organization.id);
+    const projectId = '10000000-0000-4000-8000-0000000000' + String(state.projects.length + 10);
+    const project = {
+      projectId, organizationId: organization.id, environment: 'SANDBOX',
+      state: 'DRAFT', version: 1, title: body.title, description: body.description,
+    };
+    state.projects.push(project);
+    await route.fulfill({status: 201, headers: {ETag: '"1"'}, json: project});
+  });
+  await page.route('**/v1/projects/*/metadata', async route => {
+    const parts = new URL(route.request().url()).pathname.split('/');
+    const project = state.projects.find(p => p.projectId === parts[3]);
+    if (!project) {
+      await route.fulfill({status: 404, json: {code: 'RECURSO_NAO_VISIVEL'}});
+      return;
+    }
+    if (route.request().method() === 'GET') {
+      await route.fulfill({status: 200, headers: {ETag: '"' + project.version + '"'}, json: {
+        ...project, title: project.title ?? project.projectId, description: project.description ?? null,
+      }});
+    } else if (route.request().method() === 'PATCH') {
+      assert.ok(route.request().headers()['idempotency-key']);
+      assert.equal(route.request().headers()['if-match'], '"' + project.version + '"');
+      Object.assign(project, JSON.parse(route.request().postData()));
+      project.version++;
+      await route.fulfill({status: 200, headers: {ETag: '"' + project.version + '"'}, json: project});
+    } else {
+      await route.fulfill({status: 405});
+    }
+  });
   await page.route('**/v1/organizations', async route => {
     if (route.request().method() === 'GET') {
       await route.fulfill({status: 200, json: state.organizations});
@@ -63,13 +101,13 @@ test('CF-IMP-006: conta sem projeto inicia organização sem alegar criação de
     await page.getByLabel('Nome de trabalho da organização').fill('Organização teste');
     await page.getByRole('button', {name: 'Criar espaço privado'}).click();
     await page.getByRole('heading', {name: 'Espaço organizacional criado'}).waitFor();
-    await page.getByText('A criação do projeto será habilitada na CF-IMP-007.', {exact: false}).waitFor();
+    await page.getByRole('heading', {name: 'Descreva seu projeto'}).waitFor();
     assert.equal(state.organizations.length, 1);
     assert.equal(state.projects.length, 0);
     await page.setViewportSize({width: 390, height: 844});
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth), false);
     await page.reload();
-    await page.getByRole('heading', {name: 'Espaço organizacional criado'}).waitFor();
+    await page.getByRole('heading', {name: 'Descreva seu projeto'}).waitFor();
   });
 });
 
@@ -112,5 +150,38 @@ test('CF-IMP-006: login da conta não reutiliza credenciais ou cookies SIM-*', a
     await page.getByRole('button', {name: 'Sair'}).click();
     await page.getByRole('heading', {name: 'Entre na sua conta'}).waitFor();
     assert.equal(state.signedIn, false);
+  });
+});
+
+test('CF-IMP-007: conta cria rascunho persistente e atualiza metadados sem calcular ER', async () => {
+  await withBrowser(async page => {
+    const state = {signedIn: true, projects: [], organizations: [organization]};
+    await stubAccount(page, state);
+    await page.goto(base + '/workspace/projects/new');
+    await page.getByRole('heading', {name: 'Descreva seu projeto'}).waitFor();
+    await page.getByLabel('Nome de trabalho do projeto').fill('Infraestrutura de recarga DF');
+    await page.getByLabel('Descrição inicial (opcional)').fill('Rascunho para estudo');
+    await page.getByRole('button', {name: 'Salvar rascunho'}).click();
+    await page.getByRole('heading', {name: 'Projeto criado no sandbox'}).waitFor();
+    assert.equal(state.projects.length, 1);
+    await page.getByText('Rascunho para estudo', {exact: false}).count();
+    assert.equal(await page.getByText('VCUs emitidas', {exact: false}).count(), 0);
+    await page.getByRole('link', {name: 'Ver meus projetos'}).click();
+    const selector = page.getByLabel('Projetos disponíveis nesta conta');
+    await selector.waitFor();
+    await selector.selectOption(state.projects[0].projectId);
+    await page.getByRole('heading', {name: 'Infraestrutura de recarga DF'}).waitFor();
+    await page.getByLabel('Nome de trabalho do projeto').fill('Recarga DF — revisão');
+    await page.getByRole('button', {name: 'Salvar alterações'}).click();
+    await page.getByText('Metadados do rascunho atualizados (versão 2).').waitFor();
+    assert.equal(state.projects[0].version, 2);
+    await page.reload();
+    const second = page.getByLabel('Projetos disponíveis nesta conta');
+    await second.waitFor();
+    assert.equal(await second.inputValue(), '');
+    await second.selectOption(state.projects[0].projectId);
+    await page.getByRole('heading', {name: 'Recarga DF — revisão'}).waitFor();
+    await page.setViewportSize({width: 390, height: 844});
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth), false);
   });
 });
