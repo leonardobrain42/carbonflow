@@ -63,3 +63,14 @@
 .cf-tech-capabilities dt { color: #accab8; margin-bottom: .4rem; }
 .cf-tech-capabilities dd { margin: 0; font-weight: 700; overflow-wrap: anywhere; }
 .cf-workspace-card textarea { resize: vertical; }
+
+/* Keep long UUIDs, technical codes and evidence references inside mobile cards. */
+.cf-workspace-topbar { flex-wrap: wrap; }
+.cf-workspace-stage,
+.cf-workspace-content,
+.cf-workspace-heading,
+.cf-workspace-card,
+.cf-workspace-info { min-width: 0; overflow-wrap: anywhere; }
+.cf-workspace-card input,
+.cf-workspace-card select,
+.cf-workspace-card textarea { box-sizing: border-box; min-width: 0; }
