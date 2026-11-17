@@ -1,5 +1,7 @@
 # CF-UX-ACOMP — Contrato funcional da experiência de acompanhamento
 
+**Atualização de implementação do backlog (17/11/2026):** a cobertura RF-1..RF-9 e as correções das premissas originais foram distribuídas para issues proprietárias; consultar a [matriz de rastreabilidade](./CF-UX-ACOMP-RASTREABILIDADE-ISSUES.md) antes de codificar. Esta especificação não substitui as fontes canônicas E8/ECA.
+
 **Tipo:** especificação transversal de UX, produto e integração; **status:** proposta; **data:** 17/11/2026. A implementação é distribuída entre issues existentes, conforme [mapa de integração](./CF-UX-ACOMP-INTEGRACAO-JORNADA.md).
 
 ## 1. Problema e resultado esperado
