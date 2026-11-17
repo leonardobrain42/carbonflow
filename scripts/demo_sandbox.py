@@ -44,9 +44,13 @@ def compose(*args: str, capture: bool = False) -> str:
         "-f", str(ROOT / "compose.yaml"),
         "-f", str(ROOT / "compose.demo.yaml"), *args,
     ]
+    # Keep Docker's published host port and the HTTP client on the same port.
+    # Without this override, Compose falls back to 8080 while this script
+    # connects to its own default of 18088 (connection refused on first run).
     result = subprocess.run(
         command, cwd=ROOT, check=True,
         capture_output=capture, text=True,
+        env={**os.environ, "CARBONFLOW_PORT": PORT},
     )
     return result.stdout if capture else ""
 
