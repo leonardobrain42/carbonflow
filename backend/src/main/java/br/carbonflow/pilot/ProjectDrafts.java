@@ -1,7 +1,6 @@
 package br.carbonflow.pilot;
 
 import static br.carbonflow.pilot.PilotSql.first;
-import static br.carbonflow.pilot.PilotSql.update;
 
 import java.security.MessageDigest;
 import java.sql.Connection;
@@ -69,7 +68,7 @@ class ProjectDrafts {
 
             requireOrganization(connection, actor.id(), organization);
             String projectId = UUID.randomUUID().toString();
-            update(connection, """
+            PilotSql.update(connection, """
                     INSERT INTO app_project (id, organization_id, environment, title, description, created_by)
                     VALUES (?, ?, 'SANDBOX', ?, ?, ?)
                     """, projectId, organization, title, description, actor.id());
@@ -109,7 +108,7 @@ class ProjectDrafts {
             String nextDescription = normalized.has("description")
                     ? (normalized.get("description").isNull() ? null : normalized.get("description").asText())
                     : current.description();
-            update(connection, """
+            PilotSql.update(connection, """
                     UPDATE app_project SET title = ?, description = ?, version = version + 1,
                         updated_at = statement_timestamp() WHERE id = ?
                     """, nextTitle, nextDescription, projectId);
@@ -175,7 +174,7 @@ class ProjectDrafts {
 
     private static void remember(Connection connection, UUID actor, String key, String action, String projectId,
                                  byte[] fingerprint, JsonNode response) throws SQLException {
-        update(connection, """
+        PilotSql.update(connection, """
                 INSERT INTO app_project_command
                   (identity_id, command_key, action, project_id, request_fingerprint, response)
                 VALUES (?, ?, ?, ?, ?, ?::jsonb)
@@ -184,7 +183,7 @@ class ProjectDrafts {
 
     private static void event(Connection connection, String projectId, UUID actor, String action, int version)
             throws SQLException {
-        update(connection, """
+        PilotSql.update(connection, """
                 INSERT INTO app_project_event (id, project_id, identity_id, action, version)
                 VALUES (?, ?, ?, ?, ?)
                 """, UUID.randomUUID(), projectId, actor, action, version);
