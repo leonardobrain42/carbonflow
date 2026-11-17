@@ -107,7 +107,7 @@ test('CF-IMP-008: rascunho da conta cruza intake e prévia sem adquirir autorida
     assert.ok(page.url().includes('/workspace/projects/' + projectId + '/technical'));
     await page.getByRole('heading', {name: 'Preparação técnica'}).waitFor();
     await page.getByText('NAO_INICIADO', {exact: false}).waitFor();
-    assert.equal(await page.getByText('créditos emitidos', {exact: false}).count() > 0, true);
+    await page.getByText('Nenhum resultado de carbono foi calculado.', {exact: false}).waitFor();
 
     await page.getByLabel('Atividade planejada').fill('Recarga elétrica em ambiente urbano');
     await page.getByLabel('País (sigla de duas letras, se conhecido)').fill('br');
