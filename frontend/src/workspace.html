@@ -91,7 +91,8 @@
                 <p>Estado: Rascunho · Ambiente: SANDBOX · Versão: {{ created.version }}</p>
                 <div class="cf-workspace-info">
                   <strong>Próximo passo: preencher as informações técnicas</strong>
-                  <p>A triagem guiada ainda será implementada na CF-IMP-009. Este rascunho permanece salvo e poderá ser retomado pela sua conta.</p>
+                  <p>Seu rascunho foi salvo. Inicie a triagem guiada e responda às cinco etapas no seu ritmo.</p>
+                  <a [routerLink]="['/workspace/projects', created.projectId, 'triage']" class="cf-workspace-primary cf-workspace-link">Iniciar triagem guiada</a>
                 </div>
                 <a routerLink="/workspace" class="cf-workspace-primary cf-workspace-link">Ver meus projetos</a>
               </section>
@@ -153,7 +154,8 @@
                     <textarea #editDescription id="cf-edit-description" name="edit-description" rows="4" maxlength="2000" [value]="details.description ?? ''"></textarea>
                     <button type="submit" class="cf-workspace-primary" [disabled]="busy()">Salvar alterações</button>
                   </form>
-                  <p class="cf-workspace-helper">Rascunho versão {{ details.version }}. A triagem guiada será disponibilizada na CF-IMP-009.</p>
+                  <p class="cf-workspace-helper">Rascunho versão {{ details.version }}. Suas respostas de triagem ficam salvas neste projeto.</p>
+                  <a class="cf-workspace-primary cf-workspace-link" [routerLink]="['/workspace/projects',selected.projectId,'triage']">Iniciar ou retomar triagem</a>
                   <a class="cf-workspace-primary cf-workspace-link" [routerLink]="['/workspace/projects', selected.projectId, 'technical']">Preparar informações técnicas</a>
                 } @else {
                   <p role="status">Consultando metadados autorizados do rascunho…</p>
