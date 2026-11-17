@@ -218,6 +218,7 @@ export class WorkspaceComponent {
     }
     this.busy.set(true);
     this.error.set('');
+    let saved = false;
     try {
       const updated = await firstValueFrom(this.http.patch<DraftMetadata>(
         '/v1/projects/' + encodeURIComponent(current.projectId) + '/metadata', body, {
@@ -227,7 +228,7 @@ export class WorkspaceComponent {
       this.editKey = '';
       this.editPayload = '';
       this.notice.set('Metadados do rascunho atualizados (versão ' + updated.version + ').');
-      await this.refreshSession();
+      saved = true;
     } catch (reason: unknown) {
       this.error.set(this.errorMessage(reason, 'Não foi possível salvar. Recarregue a versão atual.'));
       if (reason instanceof HttpErrorResponse && reason.status >= 400 && reason.status < 500) {
@@ -237,6 +238,7 @@ export class WorkspaceComponent {
     } finally {
       this.busy.set(false);
     }
+    if (saved) await this.refreshSession();
   }
 
   async createOrganization(event: Event, value: string) {
