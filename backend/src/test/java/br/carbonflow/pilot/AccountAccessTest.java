@@ -177,6 +177,10 @@ class AccountAccessTest {
             String owner = newAccountSession(client);
             String other = newAccountSession(client);
             assertEquals(0, json.readTree(get(client, SESSIONS, owner).body()).path("projects").size());
+            assertEquals(401, get(client, ORGANIZATIONS, cookie(
+                    post(client, "/v1/session", Map.of("identity", "SIM-PREP", "password", "piloto-prep"), null))).statusCode());
+            assertEquals(json.readTree("[]"), json.readTree(get(client, ORGANIZATIONS, owner).body()));
+            assertEquals(json.readTree("[]"), json.readTree(get(client, ORGANIZATIONS, other).body()));
             var input = Map.of("name", "  Espaço privado  ", "role", "ORG_ACCESS_ADMIN", "representation", "PP");
             assertEquals(401, post(client, ORGANIZATIONS, input, key()).statusCode());
             assertEquals(400, client.send(postRequest(ORGANIZATIONS, input, null).header("Cookie", owner).build(),
@@ -199,6 +203,11 @@ class AccountAccessTest {
             var id = UUID.fromString(workspace.path("id").asText());
             assertEquals("Espaço privado", workspace.path("name").asText());
             assertEquals("DRAFT_OWNER", workspace.path("role").asText());
+            var ownedList = get(client, ORGANIZATIONS, owner);
+            assertEquals(200, ownedList.statusCode());
+            assertEquals(1, json.readTree(ownedList.body()).size());
+            assertEquals(workspace, json.readTree(ownedList.body()).get(0));
+            assertEquals(json.readTree("[]"), json.readTree(get(client, ORGANIZATIONS, other).body()));
             assertEquals("PRIVATE_DRAFT", workspace.path("status").asText());
             assertEquals("SANDBOX", workspace.path("environment").asText());
             assertEquals(1, workspace.path("version").asInt());
@@ -224,6 +233,10 @@ class AccountAccessTest {
             var otherResults = otherPending.stream()
                     .map(CompletableFuture::join).map(HttpResponse::statusCode).sorted().toList();
             assertEquals(List.of(201, 409), otherResults);
+            var anotherList = json.readTree(get(client, ORGANIZATIONS, other).body());
+            assertEquals(1, anotherList.size());
+            assertNotEquals(id.toString(), anotherList.get(0).path("id").asText());
+            assertEquals(1, json.readTree(get(client, ORGANIZATIONS, owner).body()).size());
             var foreignAccess = get(client, access, other);
             assertEquals(404, foreignAccess.statusCode());
             assertFalse(foreignAccess.body().contains("Espaço privado"));
@@ -235,6 +248,7 @@ class AccountAccessTest {
                     UPDATE app_organization_membership SET revoked_at = statement_timestamp() WHERE organization_id = ?
                     """, id));
             assertEquals(404, get(client, access, owner).statusCode());
+            assertEquals(json.readTree("[]"), json.readTree(get(client, ORGANIZATIONS, owner).body()));
             assertEquals(404, createOrganization(client, owner, input, command).statusCode());
             assertEquals(204, delete(client, SESSIONS, owner).statusCode());
             assertEquals(204, delete(client, SESSIONS, other).statusCode());
