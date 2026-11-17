@@ -120,9 +120,9 @@ class ProjectDraftResourceTest {
             assertEquals(404, get(path, other.cookie()).statusCode());
             assertEquals(404, post("/v1/projects", other.cookie(),
                     "{\"organizationId\":\"" + UUID.randomUUID() + "\",\"title\":\"Fraude\"}").statusCode());
-            assertEquals(404, get(path, null).statusCode() == 401 ? 404 : get(path, null).statusCode());
-            assertEquals(404, json.readTree(get("/v1/account-session", other.cookie()).body())
-                    .path("projects").size() == 0 ? 404 : 400);
+            assertEquals(401, get(path, null).statusCode());
+            assertEquals(0, json.readTree(get("/v1/account-session", other.cookie()).body())
+                    .path("projects").size());
 
             var invalid = client.send(command("POST", "/v1/projects", owner.cookie(), UUID.randomUUID().toString(),
                     null, "{\"organizationId\":\"" + organization + "\",\"title\":\" \"}"),
@@ -136,8 +136,8 @@ class ProjectDraftResourceTest {
             assertEquals(404, get(path, owner.cookie()).statusCode());
             assertEquals(404, client.send(command("PATCH", path, owner.cookie(), UUID.randomUUID().toString(),
                     "\"1\"", "{\"title\":\"Não pode\"}"), HttpResponse.BodyHandlers.ofString()).statusCode());
-            assertEquals(404, json.readTree(get("/v1/account-session", owner.cookie()).body())
-                    .path("projects").size() == 0 ? 404 : 400);
+            assertEquals(0, json.readTree(get("/v1/account-session", owner.cookie()).body())
+                    .path("projects").size());
         } finally {
             logoutSeed(owner);
             logoutSeed(other);
