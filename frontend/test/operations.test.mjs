@@ -30,7 +30,12 @@ test('consulta trabalhos e confere o piso inclusivo de retenção na interface',
     await panel.getByRole('button', {name: 'Consultar retenção', exact: true}).click();
     await panel.getByText('Monitoramento · Guarda mínima · Guarda até 30/09/2034, inclusive', {exact: true}).waitFor();
     await date.fill('2034-10-01');
-    await panel.getByRole('button', {name: 'Consultar retenção', exact: true}).click();
+    const [retentionResponse] = await Promise.all([
+      page.waitForResponse(response => response.url().includes('/retention?asOf=2034-10-01')),
+      panel.getByRole('button', {name: 'Consultar retenção', exact: true}).click(),
+    ]);
+    assert.equal(retentionResponse.status(), 200);
+    assert.equal((await retentionResponse.json()).asOf, '2034-10-01');
     await panel.getByText('Monitoramento · Reavaliar prazo · Guarda até 30/09/2034, inclusive', {exact: true}).waitFor();
     assert.equal(await panel.getByRole('button', {name: 'Revisar fim de crédito', exact: true}).count(), 0);
   } finally {
