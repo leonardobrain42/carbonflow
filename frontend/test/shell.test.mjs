@@ -22,6 +22,9 @@ test('CF-IMP-005: shell responsivo, navegação e controle de sessão no piloto'
     assert.equal(await page.getByRole('navigation', {name: 'Navegação pelas etapas do piloto'}).getByRole('link').count(), 5);
     await sidebar.getByRole('link', {name: 'Enquadramento e inventário'}).click();
     assert.ok(page.url().endsWith('#cf-intake'));
+    // Angular may still be attaching the project workbench after the sidebar is rendered.
+    // Wait for the anchor instead of reading a transient zero immediately after navigation.
+    await page.locator('#cf-intake').waitFor({state: 'attached'});
     assert.equal(await page.locator('#cf-intake').count(), 1);
 
     await page.setViewportSize({width: 390, height: 844});

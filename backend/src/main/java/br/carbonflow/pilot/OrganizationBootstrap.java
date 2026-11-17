@@ -1,11 +1,13 @@
 package br.carbonflow.pilot;
 
 import static br.carbonflow.pilot.PilotSql.first;
+import static br.carbonflow.pilot.PilotSql.query;
 import static br.carbonflow.pilot.PilotSql.update;
 
 import java.security.MessageDigest;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.UUID;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -62,6 +64,22 @@ class OrganizationBootstrap {
                         command_key, request_fingerprint) VALUES (?, ?, ?, ?, ?)
                     """, identity.id(), organizationId, UUID.randomUUID(), key, fingerprint);
             return initialWorkspace(organizationId, name);
+        });
+    }
+
+    List<Workspace> list(String token) {
+        return database.read(connection -> {
+            var identity = accounts.requireIdentity(connection, token);
+            return List.copyOf(query(connection, """
+                    SELECT o.id, o.display_name, o.environment, o.status, o.version, m.role
+                    FROM app_organization o JOIN app_organization_membership m ON m.organization_id = o.id
+                    WHERE m.identity_id = ? AND o.environment = 'SANDBOX' AND m.role = 'DRAFT_OWNER'
+                      AND m.revoked_at IS NULL AND m.valid_from <= statement_timestamp()
+                      AND (m.valid_until IS NULL OR m.valid_until > statement_timestamp())
+                    ORDER BY o.id
+                    """, row -> new Workspace(row.getObject("id", UUID.class), row.getString("display_name"),
+                    row.getString("environment"), row.getString("status"), row.getInt("version"),
+                    row.getString("role")), identity.id()));
         });
     }
 
