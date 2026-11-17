@@ -179,6 +179,31 @@ class ProjectTriageWizardTest {
     }
 
     @Test
+    void nonMobilityNeedsExplicitJustificationInsteadOfAutoApproval() throws Exception {
+        Actor owner = actor();
+        String project = project(owner, organization(owner.id()));
+        String endpoint = "/v1/projects/" + project + "/triage";
+        var plan = call("PUT", endpoint + "/steps/1", owner.cookie(),
+                UUID.randomUUID().toString(), "\"0\"",
+                "{\"answers\":{\"objective\":\"Gestão de resíduos\",\"activityType\":\"RESIDUOS\"},\"nextStep\":3}");
+        assertEquals(200, plan.statusCode(), plan.body());
+        var missingReason = call("PUT", endpoint + "/steps/3", owner.cookie(),
+                UUID.randomUUID().toString(), "\"1\"",
+                "{\"answers\":{},\"nextStep\":3}");
+        assertEquals(200, missingReason.statusCode(), missingReason.body());
+        assertTrue(json(missingReason).path("pending").toString().contains("notApplicableReason"));
+        assertNotEquals("NAO_APLICAVEL_JUSTIFICADO",
+                json(missingReason).at("/stages/2/status").asText());
+
+        var justified = call("PUT", endpoint + "/steps/3", owner.cookie(),
+                UUID.randomUUID().toString(), "\"2\"",
+                "{\"answers\":{\"notApplicableReason\":\"Projeto não envolve veículos\"},\"nextStep\":4}");
+        assertEquals(200, justified.statusCode(), justified.body());
+        assertEquals("NAO_APLICAVEL_JUSTIFICADO", json(justified).at("/stages/2/status").asText());
+        assertEquals("NAO_AVALIADO", json(justified).path("analysisState").asText());
+    }
+
+    @Test
     void rejectsInvalidDatesCountsRightJustificationAndUndeclaredFields() throws Exception {
         Actor owner = actor();
         String project = project(owner, organization(owner.id()));
