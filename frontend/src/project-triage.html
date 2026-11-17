@@ -1,0 +1,231 @@
+<a class="cf-skip-link" href="#triage-main">Pular para a triagem</a>
+<div class="cf-workspace-shell">
+  <aside class="cf-workspace-sidebar" aria-label="Navegação da conta">
+    <a routerLink="/workspace" class="cf-workspace-brand">Carbon<span>Flow</span></a>
+    <p class="cf-workspace-kicker">SANDBOX · JORNADA GUIADA</p>
+    <nav class="cf-workspace-nav" aria-label="Espaço de trabalho">
+      <a routerLink="/workspace">Meus projetos</a>
+      <a routerLink="/workspace/projects/new">Novo projeto</a>
+      <a href="/pilot">Piloto sintético (separado)</a>
+    </nav>
+    <p class="cf-workspace-disclaimer">RASCUNHO
+      <small>Respostas não equivalem a avaliação, verificação independente ou emissão de VCUs.</small>
+    </p>
+  </aside>
+  <div class="cf-workspace-stage">
+    <header class="cf-workspace-topbar">
+      <span>Triagem inicial do projeto</span>
+      <a routerLink="/workspace" class="cf-workspace-link">Voltar a meus projetos</a>
+    </header>
+    <main id="triage-main" class="cf-workspace-content">
+      @if (loading()) {
+        <p role="status">Consultando seu rascunho e as respostas anteriores…</p>
+      } @else if (project(); as project) {
+        @if (view(); as current) {
+          <header class="cf-workspace-heading">
+            <span class="cf-workspace-chip">CONTA SANDBOX · PROJETO EM RASCUNHO</span>
+            <h1>Conheça seu projeto</h1>
+            <p><strong>{{ project.title }}</strong></p>
+            <p>Esta jornada coleta informações em cinco etapas, inclusive as que você ainda não conhece. Os dados podem ser salvos, revisados e retomados depois.</p>
+            <p class="cf-workspace-helper">Revisão das respostas: {{ current.version }} · Análise metodológica: não realizada. Nenhum crédito foi calculado.</p>
+            @if (example()) {
+              <p role="status" class="cf-workspace-note">EXEMPLO SINTÉTICO · 25 BEVs · Brasília/DF · 27/09/2027. Não é dado de operação ou evidência real.</p>
+            }
+          </header>
+
+          @if (error()) { <div role="alert" class="cf-workspace-alert">{{ error() }}</div> }
+          @if (notice()) { <div role="status" class="cf-workspace-note">{{ notice() }}</div> }
+
+          <nav class="cf-triage-steps" aria-label="Etapas da triagem">
+            @for (stage of current.stages; track stage.number) {
+              <button type="button" class="cf-triage-step"
+                [class.cf-triage-step-active]="current.currentStep === stage.number"
+                [attr.aria-current]="current.currentStep === stage.number ? 'step' : null"
+                [disabled]="busy()"
+                (click)="navigate(stage.number)">
+                <span class="cf-triage-step-number">{{ stage.number }}</span>
+                <span class="cf-triage-step-name">{{ stage.title }}</span>
+                <small>{{ status(stage.status) }}</small>
+              </button>
+            }
+          </nav>
+
+          <section class="cf-workspace-card" aria-labelledby="cf-triage-heading">
+            <span class="cf-workspace-step">ETAPA {{ current.currentStep }} DE 5 · {{ current.analysisState === 'NAO_AVALIADO' ? 'NÃO AVALIADA' : current.analysisState }}</span>
+            <h2 id="cf-triage-heading">{{ current.stages[current.currentStep - 1].title }}</h2>
+            @if (current.currentStep <= 4) {
+              <p>Informe apenas o que sabe. Campos vazios são mantidos como desconhecidos; avançar não equivale a aprovar a etapa.</p>
+              <form (submit)="submit($event)" class="cf-triage-form" novalidate>
+                @switch (current.currentStep) {
+                  @case (1) {
+                    <label for="cf-wz-objective">O que você quer alcançar com o projeto?</label>
+                    <textarea id="cf-wz-objective" rows="3" maxlength="400" [value]="field(1,'objective')"
+                      placeholder="Ex.: substituir veículos de combustão por veículos elétricos"
+                      (input)="input(1,'objective',$event)"></textarea>
+                    <label for="cf-wz-type">Qual atividade descreve melhor sua ideia?</label>
+                    <select id="cf-wz-type" [value]="field(1,'activityType')" (change)="input(1,'activityType',$event)">
+                      <option value="">Ainda não sei</option>
+                      <option value="MOBILIDADE_ELETRICA">Mobilidade elétrica e recarga</option>
+                      <option value="RESIDUOS">Resíduos e economia circular</option>
+                      <option value="ENERGIA">Energia e eficiência energética</option>
+                      <option value="AGRICULTURA">Agricultura, solo e florestas</option>
+                      <option value="OUTRO">Outra atividade</option>
+                      <option value="DESCONHECIDO">Preciso de orientação</option>
+                    </select>
+                    <label for="cf-wz-methodology">Metodologia que você está considerando (opcional)</label>
+                    <input id="cf-wz-methodology" maxlength="400" [value]="field(1,'methodologyCandidate')"
+                      placeholder="Ex.: VM0038, apenas uma hipótese"
+                      (input)="input(1,'methodologyCandidate',$event)" />
+                    <p class="cf-workspace-helper">Indicar VM0038 ou outra metodologia não comprova aplicabilidade, adicionalidade ou elegibilidade.</p>
+                  }
+                  @case (2) {
+                    <label for="cf-wz-description">Como a atividade funcionará?</label>
+                    <textarea id="cf-wz-description" rows="4" maxlength="800" [value]="field(2,'activityDescription')"
+                      placeholder="Descreva a infraestrutura, o serviço ou a operação que pretende executar"
+                      (input)="input(2,'activityDescription',$event)"></textarea>
+                    <label for="cf-wz-baseline">O que acontece hoje, antes do projeto?</label>
+                    <textarea id="cf-wz-baseline" rows="3" maxlength="800" [value]="field(2,'baselinePractice')"
+                      placeholder="Se ainda não conhece o cenário de referência, deixe sem resposta"
+                      (input)="input(2,'baselinePractice',$event)"></textarea>
+                    <label for="cf-wz-benefit">Qual benefício ambiental você espera?</label>
+                    <textarea id="cf-wz-benefit" rows="3" maxlength="800" [value]="field(2,'expectedBenefit')"
+                      placeholder="Expectativa qualitativa; não informe toneladas de CO₂e sem cálculo"
+                      (input)="input(2,'expectedBenefit',$event)"></textarea>
+                  }
+                  @case (3) {
+                    <p>Esta etapa detalha frota e recarga quando a atividade envolve veículos elétricos. Para outros projetos, os dados poderão não se aplicar.</p>
+                    <label for="cf-wz-vehicles">Quantidade estimada de veículos (se conhecida)</label>
+                    <input type="number" id="cf-wz-vehicles" min="0" max="100000" step="1"
+                      [value]="field(3,'vehicleCount')" (input)="input(3,'vehicleCount',$event)"/>
+                    <label for="cf-wz-propulsion">Tipo de veículo/propulsão</label>
+                    <select id="cf-wz-propulsion" [value]="field(3,'propulsion')" (change)="input(3,'propulsion',$event)">
+                      <option value="">Não informado</option>
+                      <option value="BEV">BEV — totalmente elétrico</option>
+                      <option value="PHEV">Híbrido plug-in</option>
+                      <option value="COMBUSTAO">Veículos de combustão</option>
+                      <option value="DESCONHECIDO">Ainda não sei</option>
+                    </select>
+                    <label for="cf-wz-charger">Tipo de recarga</label>
+                    <select id="cf-wz-charger" [value]="field(3,'chargerType')" (change)="input(3,'chargerType',$event)">
+                      <option value="">Não informado</option>
+                      <option value="DCFC">DCFC — recarga rápida em corrente contínua</option>
+                      <option value="AC">Recarga em corrente alternada</option>
+                      <option value="DESCONHECIDO">Ainda não sei</option>
+                    </select>
+                    <label for="cf-wz-chargers">Quantidade estimada de carregadores</label>
+                    <input type="number" id="cf-wz-chargers" min="0" max="100000" step="1"
+                      [value]="field(3,'chargerCount')" (input)="input(3,'chargerCount',$event)"/>
+                    <label for="cf-wz-energy">Origem da energia</label>
+                    <input id="cf-wz-energy" maxlength="400" [value]="field(3,'electricitySource')"
+                      placeholder="Ex.: rede SIN, geração local, desconhecida"
+                      (input)="input(3,'electricitySource',$event)"/>
+                    <label for="cf-wz-na">Justificativa, se a etapa não se aplicar à sua atividade</label>
+                    <textarea id="cf-wz-na" rows="2" maxlength="400" [value]="field(3,'notApplicableReason')"
+                      placeholder="Ex.: o projeto não envolve veículos ou infraestrutura de recarga"
+                      (input)="input(3,'notApplicableReason',$event)"></textarea>
+                  }
+                  @case (4) {
+                    <label for="cf-wz-country">País (código de duas letras)</label>
+                    <input id="cf-wz-country" maxlength="2" placeholder="BR" [value]="field(4,'country')"
+                      (input)="input(4,'country',$event)"/>
+                    <label for="cf-wz-state">Estado ou região</label>
+                    <input id="cf-wz-state" maxlength="400" placeholder="DF"
+                      [value]="field(4,'state')" (input)="input(4,'state',$event)"/>
+                    <label for="cf-wz-locality">Cidade/localidade</label>
+                    <input id="cf-wz-locality" maxlength="400" placeholder="Brasília"
+                      [value]="field(4,'locality')" (input)="input(4,'locality',$event)"/>
+                    <label for="cf-wz-date">Data de referência pretendida</label>
+                    <input id="cf-wz-date" type="date" [value]="field(4,'referenceDate')"
+                      (change)="input(4,'referenceDate',$event)"/>
+                    <label for="cf-wz-evidence">Situação dos dados de origem</label>
+                    <select id="cf-wz-evidence" [value]="field(4,'evidenceStatus')"
+                      (change)="input(4,'evidenceStatus',$event)">
+                      <option value="">Ainda não informado</option>
+                      <option value="DESCONHECIDO">Não sei quais dados tenho</option>
+                      <option value="EM_PREPARACAO">Estou organizando os dados</option>
+                      <option value="DISPONIVEL_DECLARADO">Declaro possuir dados, sem conferência</option>
+                    </select>
+                    <label for="cf-wz-rights">Situação de direitos e titularidade</label>
+                    <select id="cf-wz-rights" [value]="field(4,'rightsStatus')"
+                      (change)="input(4,'rightsStatus',$event)">
+                      <option value="">Ainda não informado</option>
+                      <option value="DESCONHECIDO">Ainda não sei</option>
+                      <option value="DECLARADO">Declaro que possuo direitos, sem comprovação</option>
+                      <option value="NAO_APLICAVEL_JUSTIFICADO">Entendo que não se aplica (exige justificativa)</option>
+                    </select>
+                    <label for="cf-wz-rights-reason">Justificativa, se declarou não aplicável</label>
+                    <textarea id="cf-wz-rights-reason" rows="3" maxlength="400"
+                      [value]="field(4,'rightsJustification')" (input)="input(4,'rightsJustification',$event)"></textarea>
+                    <p class="cf-workspace-helper">A declaração de direitos ou disponibilidade de dados não substitui a apresentação e a admissão de evidências.</p>
+                  }
+                }
+                @if (current.stages[current.currentStep - 1].missingFields.length) {
+                  <p class="cf-workspace-helper">
+                    Campos ainda pendentes: {{ missingLabels(current.stages[current.currentStep - 1].missingFields) }}.
+                    Você pode avançar mesmo assim.
+                  </p>
+                }
+                <div class="cf-triage-actions">
+                  <button type="button" class="cf-workspace-outline" [disabled]="busy()"
+                    (click)="navigate(current.currentStep === 1 ? 1 : current.currentStep - 1)">Voltar</button>
+                  <button type="button" class="cf-workspace-outline" [disabled]="busy()" (click)="saveHere()">Salvar e continuar depois</button>
+                  <button type="submit" class="cf-workspace-primary" [disabled]="busy()">
+                    {{ current.currentStep === 4 ? 'Salvar e ver resumo' : 'Salvar e avançar' }}
+                  </button>
+                </div>
+              </form>
+            } @else {
+              <div role="status" class="cf-workspace-note">
+                Resumo de respostas; análise de elegibilidade ainda não realizada.
+                Não há reduções de CO₂e verificadas nem VCUs emitidas.
+              </div>
+              @if (current.exampleKind) {
+                <p>Este cenário contém somente dados de demonstração: 25 veículos BEV, localidade Brasília/DF e data de referência 27/09/2027.</p>
+              }
+              <div class="cf-triage-summary">
+                @for (stage of current.stages.slice(0,4); track stage.number) {
+                  <section class="cf-triage-summary-section">
+                    <h3>Etapa {{ stage.number }} · {{ stage.title }}</h3>
+                    <p>{{ status(stage.status) }}</p>
+                    @if (stage.missingFields.length) {
+                      <p>Não informados: {{ missingLabels(stage.missingFields) }}.</p>
+                    }
+                    <dl>
+                      @for (item of (stage.number === 1
+                        ? ['objective','activityType','methodologyCandidate']
+                        : stage.number === 2 ? ['activityDescription','baselinePractice','expectedBenefit']
+                        : stage.number === 3 ? ['vehicleCount','propulsion','chargerType','chargerCount','electricitySource','notApplicableReason']
+                        : ['country','state','locality','referenceDate','evidenceStatus','rightsStatus','rightsJustification']); track item) {
+                        <div>
+                          <dt>{{ fieldLabel(item) }}</dt>
+                          <dd>{{ valueLabel(field(stage.number, item)) || 'Ainda não informado' }}</dd>
+                        </div>
+                      }
+                    </dl>
+                  </section>
+                }
+              </div>
+              <p class="cf-workspace-helper">{{ current.nextAction }}</p>
+              <div class="cf-triage-actions">
+                <button type="button" class="cf-workspace-outline" [disabled]="busy()" (click)="navigate(4)">Revisar respostas</button>
+                <a [routerLink]="['/workspace/projects',projectId,'technical']" class="cf-workspace-link">Consultar preparação técnica separada</a>
+                <a routerLink="/workspace" class="cf-workspace-primary cf-workspace-link">Voltar a meus projetos</a>
+              </div>
+            }
+          </section>
+
+          <section class="cf-workspace-card" aria-labelledby="cf-wz-example-title">
+            <h2 id="cf-wz-example-title">Testar com um exemplo sintético</h2>
+            <p>Insere respostas ilustrativas para uma frota de 25 veículos elétricos (BEV), Brasília/DF, em 27/09/2027. Nenhuma medição, fator ou resultado é importado do piloto.</p>
+            <button type="button" class="cf-workspace-outline" [disabled]="busy()"
+              (click)="applyExample()">Preencher exemplo de 25 BEVs</button>
+            <p class="cf-workspace-helper">Atenção: substituirá as respostas anteriores por um exemplo de teste; a versão anterior continua no histórico do banco.</p>
+          </section>
+        }
+      } @else {
+        <div role="alert" class="cf-workspace-alert">{{ error() || 'Projeto não disponível para esta conta.' }}</div>
+        <a routerLink="/workspace">Voltar a meus projetos</a>
+      }
+    </main>
+  </div>
+</div>

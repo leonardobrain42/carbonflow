@@ -30,6 +30,12 @@ public class WorkspaceSpaRouteResource {
         return html();
     }
 
+    @GET
+    @Path("/projects/{project}/triage")
+    public Response projectTriage() {
+        return html();
+    }
+
     private Response html() {
         InputStream page = getClass().getClassLoader().getResourceAsStream("META-INF/resources/index.html");
         if (page == null) {
