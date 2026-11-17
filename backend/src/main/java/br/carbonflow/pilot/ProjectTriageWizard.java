@@ -223,7 +223,8 @@ class ProjectTriageWizard {
                     && !Set.of("MOBILIDADE_ELETRICA", "DESCONHECIDO").contains(category);
             if (!notApplicable) for (String required : REQUIRED.get(i - 1)) {
                 JsonNode answer = step.path(required);
-                if (answer.isMissingNode() || answer.isNull() || answer.isTextual() && answer.asText().isBlank()) {
+                if (answer.isMissingNode() || answer.isNull() || answer.isTextual()
+                        && (answer.asText().isBlank() || "DESCONHECIDO".equals(answer.asText()))) {
                     missing.add(required);
                 }
             }
