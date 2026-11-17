@@ -163,7 +163,7 @@
                 }
                 <div class="cf-triage-actions">
                   <button type="button" class="cf-workspace-outline" [disabled]="busy()"
-                    (click)="navigate(Math.max(1,current.currentStep - 1))">Voltar</button>
+                    (click)="navigate(current.currentStep === 1 ? 1 : current.currentStep - 1)">Voltar</button>
                   <button type="button" class="cf-workspace-outline" [disabled]="busy()" (click)="saveHere()">Salvar e continuar depois</button>
                   <button type="submit" class="cf-workspace-primary" [disabled]="busy()">
                     {{ current.currentStep === 4 ? 'Salvar e ver resumo' : 'Salvar e avançar' }}
