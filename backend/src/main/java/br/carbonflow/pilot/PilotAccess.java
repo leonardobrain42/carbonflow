@@ -5,7 +5,6 @@ import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -36,13 +35,15 @@ class PilotAccess {
 
     private static final SecureRandom RANDOM = new SecureRandom();
     private final PilotDatabase database;
+    private final ProjectRepository projects;
     private final PilotAudit audit;
     private final RoutingContext routing;
     private Identity identity;
     private boolean resolved;
 
-    PilotAccess(PilotDatabase database, PilotAudit audit, RoutingContext routing) {
+    PilotAccess(PilotDatabase database, ProjectRepository projects, PilotAudit audit, RoutingContext routing) {
         this.database = database;
+        this.projects = projects;
         this.audit = audit;
         this.routing = routing;
     }
@@ -149,30 +150,10 @@ class PilotAccess {
     }
 
     private List<Scope> scopes(Identity actor, String project) {
-        return database.read(connection -> {
-            var scopes = new ArrayList<Scope>();
-            try (var statement = connection.prepareStatement("""
-                    SELECT p.id, p.organization_id, p.environment, m.roles, m.power_proof
-                    FROM pilot_membership m JOIN pilot_project p ON p.id = m.project_id
-                    WHERE m.identity_id = ? AND p.organization_id = ? AND p.environment = 'SIMULACAO'
-                      AND m.valid_from <= clock_timestamp() AND m.valid_until > clock_timestamp()
-                      AND (CAST(? AS text) IS NULL OR p.id = ?)
-                    ORDER BY p.id
-                    """)) {
-                statement.setString(1, actor.id());
-                statement.setString(2, actor.organization());
-                statement.setString(3, project);
-                statement.setString(4, project);
-                try (var rows = statement.executeQuery()) {
-                    while (rows.next()) {
-                        var roles = (String[]) rows.getArray("roles").getArray();
-                        scopes.add(new Scope(rows.getString(1), rows.getString(2), rows.getString(3), List.of(roles),
-                                rows.getString(5)));
-                    }
-                }
-            }
-            return List.copyOf(scopes);
-        });
+        return projects.pilotScopes(actor, project).stream()
+                .map(scope -> new Scope(scope.projectId(), scope.organizationId(), scope.environment(),
+                        scope.roles(), scope.powerProof()))
+                .toList();
     }
 
     private static Credentials credentials(Connection connection, String id) throws SQLException {
