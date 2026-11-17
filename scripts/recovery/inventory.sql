@@ -29,12 +29,13 @@ FROM pilot_recovery_observed_effect
 ORDER BY project_id COLLATE "C", kind COLLATE "C", source COLLATE "C", namespace COLLATE "C", reference COLLATE "C";
 
 -- Conferência de todas as tabelas, inclusive versões, grants, chaves de comando, trabalhos e trilha.
--- Só a sessão transitória é omitida. A conta preservada autentica de novo depois do restauro.
+-- Sessões e desafios transitórios são omitidos. A conta preservada autentica de novo depois do restauro.
 SELECT format($command$
     SELECT jsonb_build_object('kind','TABELA','name',%L,'count',count(*),
         'sha256',encode(sha256(convert_to(coalesce(string_agg(row_hash,'' ORDER BY row_hash COLLATE "C"),''),'UTF8')),'hex'))
     FROM (SELECT encode(sha256(convert_to(to_jsonb(t)::text,'UTF8')),'hex') AS row_hash FROM public.%I t) hashes
 $command$, tablename, tablename)
-FROM pg_tables WHERE schemaname='public' AND tablename<>'pilot_session'
+FROM pg_tables WHERE schemaname='public'
+    AND tablename NOT IN ('pilot_session', 'app_account_session', 'app_account_challenge')
 ORDER BY tablename COLLATE "C"
 \gexec
