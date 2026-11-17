@@ -1,0 +1,8 @@
+# Opt-in only: combine with compose.yaml using scripts/demo_sandbox.py.
+# A separate Compose project name isolates this PostgreSQL volume from the normal pilot.
+services:
+  app:
+    environment:
+      CARBONFLOW_ACCOUNTS_SANDBOX_INBOX: /run/carbonflow-demo-inbox
+    tmpfs:
+      - /run/carbonflow-demo-inbox:uid=10001,gid=10001,mode=0700
