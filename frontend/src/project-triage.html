@@ -161,7 +161,7 @@
                 }
                 @if (current.stages[current.currentStep - 1].missingFields.length) {
                   <p class="cf-workspace-helper">
-                    Campos ainda pendentes: {{ current.stages[current.currentStep - 1].missingFields.join(', ') }}.
+                    Campos ainda pendentes: {{ missingLabels(current.stages[current.currentStep - 1].missingFields) }}.
                     Você pode avançar mesmo assim.
                   </p>
                 }
@@ -188,7 +188,7 @@
                     <h3>Etapa {{ stage.number }} · {{ stage.title }}</h3>
                     <p>{{ status(stage.status) }}</p>
                     @if (stage.missingFields.length) {
-                      <p>Não informados: {{ stage.missingFields.join(', ') }}.</p>
+                      <p>Não informados: {{ missingLabels(stage.missingFields) }}.</p>
                     }
                     <dl>
                       @for (item of (stage.number === 1
@@ -197,8 +197,8 @@
                         : stage.number === 3 ? ['vehicleCount','propulsion','chargerType','chargerCount','electricitySource','notApplicableReason']
                         : ['country','state','locality','referenceDate','evidenceStatus','rightsStatus','rightsJustification']); track item) {
                         <div>
-                          <dt>{{ item }}</dt>
-                          <dd>{{ field(stage.number, item) || 'Ainda não informado' }}</dd>
+                          <dt>{{ fieldLabel(item) }}</dt>
+                          <dd>{{ valueLabel(field(stage.number, item)) || 'Ainda não informado' }}</dd>
                         </div>
                       }
                     </dl>
