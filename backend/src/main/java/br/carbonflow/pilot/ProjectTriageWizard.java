@@ -109,7 +109,7 @@ class ProjectTriageWizard {
             serialise(connection, actor.actor().id(), key);
             Receipt receipt = receipt(connection, actor.actor().id(), key);
             if (receipt != null) return replay(receipt, "MOVE_CURSOR", projectId, digest);
-            Snapshot previous = latest(connection, projectId);
+            Snapshot previous = latestOrEmpty(connection, projectId);
             PilotCommands.requireVersion(expected, previous.version());
             Snapshot next = new Snapshot(expected + 1, destination, previous.answers().deepCopy());
             saveRevision(connection, actor, next);
@@ -129,7 +129,7 @@ class ProjectTriageWizard {
             serialise(connection, actor.actor().id(), key);
             Receipt receipt = receipt(connection, actor.actor().id(), key);
             if (receipt != null) return replay(receipt, "APPLY_EXAMPLE", projectId, digest);
-            Snapshot previous = latest(connection, projectId);
+            Snapshot previous = latestOrEmpty(connection, projectId);
             PilotCommands.requireVersion(expected, previous.version());
             // These are new illustrative user answers, not the PIL-SYN-BR-001 fixture or E8 evidence.
             ObjectNode answers = mapper.createObjectNode();
