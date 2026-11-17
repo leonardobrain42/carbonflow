@@ -6,6 +6,15 @@ const base = process.env.CARBONFLOW_TEST_URL ?? 'http://127.0.0.1:8080';
 const executablePath = process.env.CARBONFLOW_CHROME ?? '/usr/bin/google-chrome';
 const projectId = '20000000-0000-4000-8000-000000000001';
 const orgId = '10000000-0000-4000-8000-000000000001';
+const methodologies = [{value:'VM0038', label:'VM0038 v1.1 · Recarga de veículos elétricos'}];
+const general = {
+  id:'GENERAL', candidate:null, title:'Triagem inicial', description:'Descreva a atividade e o escopo.',
+  technicalTopics:['Dados e direitos a comprovar'],
+};
+const vm0038 = {
+  id:'VM0038_V1_1', candidate:'VM0038', title:methodologies[0].label, description:'Piloto de veículos leves e estações DCFC.',
+  technicalTopics:['Energia entregue ao veículo (ED) e consumida pelo sistema (EC)'],
+};
 const project = {
   projectId, organizationId: orgId, environment: 'SANDBOX', state: 'DRAFT',
   title: 'Recarga urbana', description: 'Hipótese de projeto', version: 1,
@@ -50,6 +59,7 @@ test('CF-IMP-008: rascunho da conta cruza intake e prévia sem adquirir autorida
         await route.fulfill({status: 200, headers: {ETag: '"' + (state.intake?.version ?? 0) + '"'}, json:
           state.intake ?? {projectId, organizationId: orgId, environment: 'SANDBOX', version: 0,
             state: 'NAO_INICIADO', reviewState: 'NAO_AVALIADO', data: null,
+            triageCandidate: null, journey:general, methodologies,
             outstandingGates: [{code: 'ANALISE_NAO_EXECUTADA', rule: 'CF-IMP-008',
               message: 'Cadastro ainda não avaliado.'}]},
         });
@@ -61,6 +71,7 @@ test('CF-IMP-008: rascunho da conta cruza intake e prévia sem adquirir autorida
         state.intake = {
           projectId, organizationId: orgId, environment: 'SANDBOX', version: 1,
           state: 'RASCUNHO', reviewState: 'NAO_AVALIADO', data,
+          triageCandidate: null, journey:vm0038, methodologies,
           outstandingGates: [
             {code: 'ANALISE_NAO_EXECUTADA', rule: 'CF-IMP-008', message: 'Análise não executada.'},
             {code: 'PEN-004', rule: 'REG-E2-04', message: 'Direitos não comprovados.'},
@@ -106,20 +117,30 @@ test('CF-IMP-008: rascunho da conta cruza intake e prévia sem adquirir autorida
     await page.getByRole('link', {name: 'Preparar informações técnicas'}).click();
     assert.ok(page.url().includes('/workspace/projects/' + projectId + '/technical'));
     await page.getByRole('heading', {name: 'Preparação técnica'}).waitFor();
-    await page.getByText('NAO_INICIADO', {exact: false}).waitFor();
-    await page.getByText('Nenhum resultado de carbono foi calculado.', {exact: false}).waitFor();
+    const sections = page.getByRole('navigation', {name:'Seções da preparação técnica'});
+    await page.getByText('Rascunho técnico ainda não iniciado').waitFor();
+    assert.equal(await page.getByLabel('Atividade planejada').count(), 0);
+    await sections.getByRole('button', {name:'Preparar informações'}).click();
 
     await page.getByLabel('Atividade planejada').fill('Recarga elétrica em ambiente urbano');
-    await page.getByLabel('País (sigla de duas letras, se conhecido)').fill('br');
-    await page.getByLabel('Estado ou região (se conhecido)').fill('DF');
-    await page.getByLabel('Localidade (se conhecida)').fill('Brasília');
-    await page.getByLabel('Metodologia candidata (opcional)').fill('VM0038');
-    await page.getByLabel('Data de referência da atividade (se conhecida)').fill('2027-09-27');
+    await page.getByLabel('País (código de duas letras)').fill('br');
+    await page.getByLabel('Estado ou região').fill('DF');
+    await page.getByLabel('Cidade/localidade').fill('Brasília');
+    await page.getByLabel('Metodologia candidata').selectOption('VM0038');
+    await page.getByLabel('Data de referência da atividade').fill('2027-09-27');
+    await sections.getByRole('button',{name:'Redigir'}).click();
+    await page.getByRole('heading',{name:'Redigir'}).waitFor();
+    assert.equal(await page.getByLabel('Atividade planejada').count(), 0);
+    assert.equal(await page.getByRole('button',{name:'Preparar prévia da revisão atual'}).isDisabled(), true);
+    await sections.getByRole('button',{name:'Preparar informações'}).click();
+    assert.equal(await page.getByLabel('Atividade planejada').inputValue(), 'Recarga elétrica em ambiente urbano');
     await page.getByRole('button', {name: 'Salvar informações'}).click();
     await page.getByText('Informações preliminares salvas (revisão 1).').waitFor();
+    await sections.getByRole('button',{name:'Analisar'}).click();
     await page.getByText('PEN-004', {exact: false}).waitFor();
     assert.equal(state.intake.version, 1);
 
+    await sections.getByRole('button',{name:'Redigir'}).click();
     await page.getByRole('button', {name: 'Preparar prévia da revisão atual'}).click();
     await page.getByText('Prévia de dossiê criada.', {exact: false}).waitFor();
     await page.getByText('SRC-007_PD_v5.0B.docx').waitFor();
@@ -130,9 +151,13 @@ test('CF-IMP-008: rascunho da conta cruza intake e prévia sem adquirir autorida
     await page.reload();
     await page.getByRole('heading', {name: 'Preparação técnica'}).waitFor();
     await page.getByText('SRC-007_PD_v5.0B.docx').waitFor();
+    assert.equal(await sections.getByRole('button',{name:'Redigir'}).getAttribute('aria-current'), 'page');
+    await sections.getByRole('button',{name:'Revisar'}).click();
+    await page.getByText('Prévia preliminar, aguardando comprovação.').waitFor();
+    await sections.getByRole('button',{name:'Preparar informações'}).click();
     assert.equal(await page.getByLabel('Atividade planejada').inputValue(),
       'Recarga elétrica em ambiente urbano');
-    assert.equal(await page.getByLabel('País (sigla de duas letras, se conhecido)').inputValue(), 'BR');
+    assert.equal(await page.getByLabel('País (código de duas letras)').inputValue(), 'BR');
     await page.setViewportSize({width: 390, height: 844});
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth), false);
   } finally {

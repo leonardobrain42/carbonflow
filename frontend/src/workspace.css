@@ -91,3 +91,30 @@
 .cf-triage-summary-section dd { font-weight: 600; color: #f1faf4; }
 @media(max-width:900px) { .cf-triage-steps { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media(max-width:440px) { .cf-triage-steps { grid-template-columns: 1fr; } .cf-triage-step { display:flex; gap: .7rem; flex-wrap:wrap; align-items:center; } .cf-triage-step-number { margin-bottom:0; } }
+
+.cf-journey-shell .cf-workspace-nav a[aria-current="page"] { color: #b9f2cf; background: #1d3829; }
+.cf-journey-menu { display: none; }
+.cf-journey-shell .cf-workspace-primary { background: #23724b; }
+.cf-journey-shell .cf-workspace-primary:hover { background: #287c52; }
+.cf-journey-context { margin: 1.1rem 0; border: 1px solid #365543; border-radius: .8rem; background: #10201b; padding: 1rem; }
+.cf-journey-context > :first-child { margin-top: 0; }
+.cf-journey-context p { color: #c5dacd; }
+.cf-journey-context summary { cursor: pointer; font-weight: 700; color: #c5efd5; }
+.cf-journey-context a, .cf-triage-actions a:not(.cf-workspace-primary) { text-decoration: underline; text-underline-offset: .2em; }
+.cf-journey-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 1rem; max-width: 760px; }
+.cf-journey-full { grid-column: 1 / -1; }
+.cf-journey-fields .cf-journey-field-help { margin-top: .35rem; }
+.cf-journey-fieldset { border: 0; min-width: 0; padding: 0; margin: 0; }
+.cf-journey-shell .cf-workspace-card form .cf-triage-actions .cf-workspace-primary { margin-top: 0; }
+.cf-technical-steps .cf-triage-step { text-align: center; min-height: 44px; font-weight: 700; }
+.cf-journey-example { margin-top: 1.1rem; }
+@media (max-width: 740px) {
+  .cf-journey-shell .cf-workspace-sidebar { display: grid; grid-template-columns: 1fr auto; align-items: center; }
+  .cf-journey-menu { display: block; min-height: 44px; }
+  .cf-journey-shell .cf-workspace-nav { grid-column: 1 / -1; display: none; }
+  .cf-journey-shell .cf-journey-menu-open { display: flex; }
+}
+@media (max-width: 520px) {
+  .cf-journey-fields { grid-template-columns: minmax(0, 1fr); }
+  .cf-technical-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

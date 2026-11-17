@@ -6,15 +6,17 @@
 
 Após criar um projeto sandbox, o usuário escolhe **Iniciar triagem guiada** (ou **Iniciar ou retomar triagem** na home). As etapas são:
 
-1. **Planejamento:** objetivo, tipo de atividade e metodologia *candidata* (facultativa).
-2. **Atividade:** descrição operacional, cenário atual de referência e benefício esperado (qualitativo).
-3. **Frota e recarga:** quantidade de veículos, tipo de propulsão, tecnologia de recarga, carregadores e fonte de eletricidade. Se o projeto não for de mobilidade, o usuário pode registrar **justificativa explícita** para não aplicabilidade; a etapa permanece pendente até essa justificativa, sem preencher os campos de veículos por suposição.
-4. **Local, dados e direitos:** país/estado/localidade, data de referência, disponibilidade *declarada* de dados e situação *declarada* de direitos. Não aplicável exige justificativa; nunca se torna uma certificação.
-5. **Resumo da triagem:** transcrição de respostas e pendências, com estado **NAO_AVALIADO** e indicação de análise posterior na CF-IMP-010.
+1. **Planejamento** registra objetivo, atividade e metodologia candidata. O catálogo oferece a jornada VM0038 v1.1 e permite registrar outra hipótese ou continuar sem indicação.
+2. **Atividade** descreve a operação e seu cenário sem o projeto. Na VM0038, pergunta também se o projeto inclui a instalação de sistemas de recarga.
+3. **Detalhes da metodologia** apresenta frota, recarga, rede, acesso, suprimento, infraestrutura associada e medição para VM0038. A jornada inicial usa esta etapa para registrar escopo e dúvidas. Justificativas registradas em versões anteriores continuam legíveis.
+4. **Local, dados e direitos** registra localização, data de referência, situação dos dados e declarações sobre titularidade.
+5. **Resumo da triagem** permite editar qualquer etapa, consultar condições metodológicas a revisar ou declarações fora do recorte do piloto e seguir para a preparação técnica. A avaliação metodológica continua pendente.
 
-O usuário pode ir a qualquer etapa; antes de sair da etapa atual, o frontend salva as respostas com versão e próximo cursor. O botão **Salvar e continuar depois** persiste sem avançar. Recarregar a página restaura cursor e respostas. Não há percentual de certificação, nenhuma elegibilidade deduzida da seleção de metodologia e nenhum fator ou ER calculado. Campos vazios e escolhas \`DESCONHECIDO\` continuam **pendentes**, não viram zero. O status \`PREENCHIDO\` indica apenas respostas completas naquele formulário, não conformidade metodológica.
+O perfil da jornada vem da API e é selecionado pelo código da edição configurada. O valor histórico `VM0038` abre o perfil v1.1 sem definir a edição vigente para nenhum ato externo. A [VM0038 v1.1, seção 4](https://verra.org/documents/vm0038-electric-vehicle-charging-systems-v1-1/) contempla, sob condições, recarga AC, determinadas combinações com híbridos plug-in, ônibus e caminhões médios/pesados e infraestrutura associada com medição rastreável. O piloto continua limitado pelo recorte implementado em `IntakeRules`. A triagem registra cenários fora desse recorte para revisão e mantém desconhecidos em aberto.
 
-A interface foi desenhada para o usuário comum e preserva a possibilidade de revisão técnica separada via CF-IMP-008. Essa persistência de respostas **não cria uma segunda máquina de tarefas ECA** nem escreve automaticamente no intake técnico do E8. A integração normativa do diagnóstico futuro deve ler essas respostas com o mesmo contexto de projeto, verificando admissibilidade e versões antes de promovê-las a dados técnicos.
+O usuário pode ir a qualquer etapa; a navegação guarda o cursor e salva as alterações da etapa com controle de versão. O botão **Salvar e continuar depois** persiste sem avançar. Recarregar a página restaura cursor e respostas. Não há percentual de certificação, nenhuma elegibilidade deduzida da seleção de metodologia e nenhum fator ou ER calculado. Campos vazios e escolhas \`DESCONHECIDO\` continuam **pendentes**, não viram zero. O status \`PREENCHIDO\` indica apenas respostas completas naquele formulário, não conformidade metodológica.
+
+A interface foi desenhada para o usuário comum e preserva a possibilidade de revisão técnica separada via CF-IMP-008. Essa persistência de respostas **não cria uma segunda máquina de tarefas ECA** nem escreve automaticamente no intake técnico do E8. A preparação técnica usa a metodologia candidata da triagem para orientar as telas. Vincular a indicação à revisão técnica exige salvar. A análise futura deve verificar admissibilidade e vigência antes de usar as demais respostas como dados técnicos.
 
 ## Contratos
 

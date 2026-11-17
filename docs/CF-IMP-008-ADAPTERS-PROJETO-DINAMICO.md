@@ -10,11 +10,17 @@ A futura integração do E8 completo terá que passar por gates ECA/REG, dados p
 
 ## Jornada disponível
 
-1. Uma conta verificada cria o rascunho na CF-IMP-007 e o seleciona na home.
-2. Em **Preparar informações técnicas**, o dono do rascunho informa atividade, país/estado/localidade, metodologia *candidata* e data, com campos desconhecidos permanecendo vazios.
-3. O backend salva uma revisão imutável de intake. O estado é sempre **RASCUNHO / NAO_AVALIADO**; a API expõe bloqueios gerais e, quando \`VM0038\` foi apenas indicado, os alertas \`PEN\` já catalogados em E8.
-4. A mesma conta solicita a **prévia de dossiê**. Uma revisão imutável referencia a revisão de intake e contém somente estrutura das seções, versão/metadados de template e lacunas. Não copia documentos Verra nem cria PD formal.
-5. Ao modificar o intake, a prévia antiga permanece preservada e o usuário pode gerar nova revisão. A versão anterior não é sobrescrita.
+Após selecionar o rascunho em **Meus projetos**, abra **Preparar informações técnicas**. Cada seção é uma tela acessível pelo parâmetro de URL `secao`. A navegação entre telas preserva os dados ainda em edição.
+
+| Tela | O que o usuário faz |
+|---|---|
+| Entender | Consulta o escopo da metodologia candidata, sua referência e os tópicos a preparar. |
+| Preparar informações | Registra atividade, local, data ou observações. Quando a triagem indicou uma metodologia, a revisão técnica passa a referenciá-la ao salvar. |
+| Analisar | Consulta requisitos a comprovar e os estados de preparação, evidências, decisão metodológica e revisão. |
+| Redigir | Gera uma prévia de dossiê vinculada à revisão técnica salva e consulta as seções a desenvolver. |
+| Revisar | Lê as pendências da prévia e confere a revisão técnica à qual ela pertence. |
+
+A prévia registra estrutura, versão e metadados de referência. Gerar outra prévia conserva as revisões anteriores. A metodologia indicada e os dados técnicos permanecem sujeitos a análise.
 
 ## Contratos HTTP
 
@@ -28,7 +34,7 @@ Todos sob \`/v1/projects/{id}/technical\`, aceitando **somente cookie \`carbonfl
 | GET | \`/preliminary-dossier\` | 204 se inexistente; 200 se existente |
 | POST | \`/preliminary-dossier\` | \`Idempotency-Key\` e \`If-Match\` da revisão de intake; cria snapshot da prévia (201) |
 
-O \`IntakeData\` contém \`activity\` (obrigatório, até 400 caracteres), \`country\` (ISO alfa-2 opcional), \`state\`, \`locality\`, \`candidateMethodology\`, \`referenceActDate\` e \`notes\`; nenhum campo recebe fatos presumidos. **Metodologia candidata não é metodologia autorizada.**
+O \`IntakeData\` contém \`activity\` (até 400 caracteres), \`country\` (ISO alfa-2 opcional), \`state\`, \`locality\`, \`candidateMethodology\`, \`referenceActDate\` e \`notes\`; o salvamento exige pelo menos um campo preenchido, inclusive apenas observações. **Metodologia candidata não é metodologia autorizada.**
 
 As revisões de intake e dossiê usam FKs por **(projeto, organização, ambiente)**; o acesso é checado pelo projeto criado pela identidade, membership ativo, DRAFT_OWNER e status SANDBOX/DRAFT. As operações de escrita adquirem lock de identidade, projeto e membership no mesmo banco; key/idempotência por ator preserva resultado de retry. Reprovação de acesso retorna 404 e grava \`app_project_technical_access_event\` com **digest opaco do alvo**, sem revelar existência do projeto; ausência de sessão retorna 401. Sem \`If-Match\`: 428; versão obsoleta: 412; chave reutilizada com outro comando: 409. Uma prévia para a mesma versão de intake não é duplicada por chave diferente.
 

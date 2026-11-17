@@ -33,7 +33,8 @@ class ProjectTriageWizard {
     record View(String projectId, String environment, int version, int currentStep,
                 String analysisState, String exampleKind, JsonNode answers,
                 List<StepSummary> stages, List<String> pending,
-                String nextAction) {}
+                String nextAction, ProjectJourney.Profile journey, List<ProjectJourney.Option> methodologies,
+                ProjectJourney.Guidance guidance) {}
     private record Snapshot(int version, int currentStep, ObjectNode answers) {}
     private record Receipt(String action, String projectId, byte[] fingerprint, String response) {}
 
@@ -42,15 +43,15 @@ class ProjectTriageWizard {
             "Local, dados e direitos", "Resumo da triagem");
     private static final List<Set<String>> FIELDS = List.of(
             Set.of("objective", "activityType", "methodologyCandidate"),
-            Set.of("activityDescription", "baselinePractice", "expectedBenefit"),
-            Set.of("vehicleCount", "propulsion", "chargerType", "chargerCount", "electricitySource", "notApplicableReason"),
+            Set.of("activityDescription", "baselinePractice", "expectedBenefit", "installsChargers"),
+            journeyFields(),
             Set.of("country", "state", "locality", "referenceDate", "evidenceStatus",
                    "rightsStatus", "rightsJustification")
     );
     private static final List<List<String>> REQUIRED = List.of(
             List.of("objective", "activityType"),
             List.of("activityDescription", "baselinePractice"),
-            List.of("vehicleCount", "propulsion", "chargerType"),
+            List.of(),
             List.of("country", "state", "locality", "referenceDate", "evidenceStatus", "rightsStatus")
     );
 
@@ -88,6 +89,7 @@ class ProjectTriageWizard {
             Snapshot previous = latestOrEmpty(connection, projectId);
             PilotCommands.requireVersion(expected, previous.version());
             ObjectNode answers = previous.answers().deepCopy();
+            validateJourneyStep(step, normalized, answers);
             answers.set(Integer.toString(step), normalized);
             Snapshot next = new Snapshot(expected + 1, destination, answers);
             saveRevision(connection, actor, next);
@@ -137,11 +139,12 @@ class ProjectTriageWizard {
                     "objective", "Estudar redução potencial pela eletrificação de frota",
                     "activityType", "MOBILIDADE_ELETRICA", "methodologyCandidate", "VM0038")));
             answers.set("2", normalizeSample(2, Map.of(
-                    "activityDescription", "Operação planejada de frota BEV e recarga controlada",
+                    "activityDescription", "Instalação planejada de recarga controlada para frota BEV",
+                    "installsChargers", "YES",
                     "baselinePractice", "Veículos de combustão comparáveis ainda não documentados",
                     "expectedBenefit", "Redução potencial de emissões, ainda não quantificada")));
             answers.set("3", normalizeSample(3, Map.of(
-                    "vehicleCount", 25, "propulsion", "BEV", "chargerType", "DCFC",
+                    "vehicleCount", 25, "vehicleClass", "LDV", "propulsion", "BEV", "chargerType", "DCFC",
                     "chargerCount", 1, "electricitySource", "DESCONHECIDA")));
             answers.set("4", normalizeSample(4, Map.of(
                     "country", "BR", "state", "DF", "locality", "Brasília",
@@ -184,7 +187,7 @@ class ProjectTriageWizard {
                 String content = value.asText().strip();
                 if (content.codePointCount(0, content.length()) > ("activityDescription".equals(name)
                         || "baselinePractice".equals(name) || "expectedBenefit".equals(name) ? 800 : 400)
-                        || content.codePoints().anyMatch(Character::isISOControl)) throw invalid(name);
+                        || content.codePoints().anyMatch(c -> Character.isISOControl(c) && c != '\n' && c != '\r' && c != '\t')) throw invalid(name);
                 if (content.isBlank()) {
                     result.putNull(name);
                     continue;
@@ -213,40 +216,83 @@ class ProjectTriageWizard {
         return result;
     }
 
+    private static Set<String> journeyFields() {
+        var result = new java.util.HashSet<String>();
+        result.add("notApplicableReason"); // Read and accept the previous generic step's explicit justification.
+        for (var profile : List.of(ProjectJourney.GENERAL, ProjectJourney.VM0038)) {
+            profile.questions().forEach(question -> result.add(question.key()));
+        }
+        return Set.copyOf(result);
+    }
+
+    private static void validateJourneyStep(int step, ObjectNode submitted, ObjectNode answers) {
+        var journey = ProjectJourney.profile(answers);
+        if (step == 2 && submitted.hasNonNull("installsChargers") &&
+                (journey != ProjectJourney.VM0038 || !Set.of("YES", "NO", "DESCONHECIDO")
+                        .contains(submitted.path("installsChargers").asText()))) {
+            throw invalid("installsChargers");
+        }
+        if (step != 3) return;
+        JsonNode previous = answers.path("3");
+        submitted.properties().forEach(entry -> {
+            String key = entry.getKey();
+            JsonNode value = entry.getValue();
+            if (value.isNull() || value.equals(previous.path(key))) return;
+            if (journey == ProjectJourney.GENERAL && "notApplicableReason".equals(key)) return;
+            var question = journey.questions().stream().filter(item -> item.key().equals(key)).findFirst()
+                    .orElseThrow(() -> invalid(key));
+            if ("choice".equals(question.type()) &&
+                    question.options().stream().noneMatch(option -> option.value().equals(value.asText()))) {
+                throw invalid(key);
+            }
+        });
+    }
+
     private View view(DynamicProjectScope.Context context, Snapshot snapshot) {
         List<StepSummary> stages = new ArrayList<>();
         List<String> pending = new ArrayList<>();
-        String category = snapshot.answers().path("1").path("activityType").asText();
+        var answers = snapshot.answers();
+        var journey = ProjectJourney.profile(answers);
         for (int i = 1; i <= 4; i++) {
-            JsonNode step = snapshot.answers().path(Integer.toString(i));
-            List<String> missing = new ArrayList<>();
-            boolean nonMobility = i == 3 && !category.isBlank()
-                    && !Set.of("MOBILIDADE_ELETRICA", "DESCONHECIDO").contains(category);
-            if (nonMobility) {
-                JsonNode reason = step.path("notApplicableReason");
-                if (!reason.isTextual() || reason.asText().isBlank()) {
-                    missing.add("notApplicableReason");
-                }
-            } else for (String required : REQUIRED.get(i - 1)) {
-                JsonNode answer = step.path(required);
-                if (answer.isMissingNode() || answer.isNull() || answer.isTextual()
-                        && (answer.asText().isBlank() || "DESCONHECIDO".equals(answer.asText()))) {
-                    missing.add(required);
+            JsonNode step = answers.path(Integer.toString(i));
+            List<String> required = REQUIRED.get(i - 1);
+            if (i == 2 && journey == ProjectJourney.VM0038) {
+                required = List.of("installsChargers", "activityDescription", "baselinePractice");
+            }
+            if (i == 3) required = journey == ProjectJourney.VM0038
+                    ? journey.questions().stream().map(ProjectJourney.Question::key).toList() : List.of();
+            if (i == 3 && journey == ProjectJourney.GENERAL) {
+                String category = answers.path("1").path("activityType").asText();
+                if (!category.isBlank() && !Set.of("MOBILIDADE_ELETRICA", "DESCONHECIDO").contains(category)) {
+                    required = List.of("scopeNotes");
                 }
             }
-            String state = nonMobility && missing.isEmpty() ? "NAO_APLICAVEL_JUSTIFICADO"
+            boolean previousJustification = i == 3 && journey == ProjectJourney.GENERAL
+                    && ProjectJourney.known(step.path("notApplicableReason"));
+            List<String> missing = previousJustification ? List.of() : required.stream()
+                    .filter(field -> !ProjectJourney.known(step.path(field))).toList();
+            String state = previousJustification ? "NAO_APLICAVEL_JUSTIFICADO"
                     : step.isMissingNode() || step.size() == 0 ? "NAO_INICIADO"
                     : missing.isEmpty() ? "PREENCHIDO" : "PENDENTE";
             for (String field : missing) pending.add("Etapa " + i + ": " + field);
-            stages.add(new StepSummary(i, TITLES.get(i - 1), state, List.copyOf(missing)));
+            String title = switch (i) {
+                case 2 -> journey.activitiesTitle();
+                case 3 -> journey.detailsTitle();
+                default -> TITLES.get(i - 1);
+            };
+            stages.add(new StepSummary(i, title, state, missing));
         }
         stages.add(new StepSummary(5, TITLES.get(4), "RESUMO_SEM_PARECER", List.of()));
-        String exampleKind = snapshot.answers().path("_example").asText(null);
         return new View(context.id(), context.environment(), snapshot.version(), snapshot.currentStep(),
-                "NAO_AVALIADO", exampleKind, snapshot.answers().deepCopy(), List.copyOf(stages),
+                "NAO_AVALIADO", answers.path("_example").asText(null), answers.deepCopy(), List.copyOf(stages),
                 List.copyOf(pending), snapshot.currentStep() == 5
-                    ? "Revisar respostas e solicitar diagnóstico preliminar quando CF-IMP-010 estiver disponível."
-                    : "Salvar as respostas ou avançar mantendo os itens desconhecidos pendentes.");
+                    ? "Revise as respostas e organize na preparação técnica o que precisa ser comprovado."
+                    : "Salve as respostas e deixe em aberto o que ainda precisa confirmar.",
+                journey, ProjectJourney.METHODOLOGIES, ProjectJourney.guidance(answers));
+    }
+
+    static String savedCandidate(Connection connection, String projectId) throws SQLException {
+        return ProjectJourney.candidate(latestOrEmpty(connection, projectId).answers());
     }
 
     private static Snapshot latest(Connection connection, String project) throws SQLException {

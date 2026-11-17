@@ -31,7 +31,8 @@ class DynamicProjectTechnical {
                       String candidateMethodology, LocalDate referenceActDate, String notes) {}
     record IntakeView(String projectId, UUID organizationId, String environment, int version,
                       String state, String reviewState, IntakeData data,
-                      List<IntakeModel.Reason> outstandingGates) {}
+                      List<IntakeModel.Reason> outstandingGates, String triageCandidate,
+                      ProjectJourney.Profile journey, List<ProjectJourney.Option> methodologies) {}
     record PreliminaryDossier(UUID id, String projectId, UUID organizationId, String environment,
                               int revision, int intakeVersion, String state, String documentKind,
                               String sourceTemplate, String sourceEdition,
@@ -71,7 +72,8 @@ class DynamicProjectTechnical {
 
     IntakeView intake(String cookie, String project) {
         return scopes.read(cookie, project, "VIEW_INTAKE",
-                (connection, scope) -> view(scope, latestIntake(connection, project)));
+                (connection, scope) -> view(scope, latestIntake(connection, project),
+                        ProjectTriageWizard.savedCandidate(connection, project)));
     }
 
     JsonNode saveIntake(String cookie, String project, String keyHeader, String ifMatch, IntakeData input) {
@@ -94,7 +96,8 @@ class DynamicProjectTechnical {
                       (project_id, organization_id, environment, version, actor_id, payload)
                     VALUES (?, ?, ?, ?, ?, ?::jsonb)
                     """, project, scope.organization(), scope.environment(), next, scope.actor().id(), encode(data));
-            JsonNode result = mapper.valueToTree(view(scope, new IntakeRow(next, data)));
+            JsonNode result = mapper.valueToTree(view(scope, new IntakeRow(next, data),
+                    ProjectTriageWizard.savedCandidate(connection, project)));
             storeReceipt(connection, scope, key, "SAVE_INTAKE", fingerprint, result);
             return result;
         });
@@ -142,13 +145,13 @@ class DynamicProjectTechnical {
             int revision = previousRevision == null ? 1 : previousRevision + 1;
             IntakeData data = current.data();
             // A template identifier is metadata only: protected Verra text is not copied into this preview.
-            String template = "VM0038".equals(data.candidateMethodology())
-                    ? DocumentRules.Act.DESENVOLVIMENTO.template() : "A_DEFINIR_APOS_TRIAGEM";
-            String edition = "VM0038".equals(data.candidateMethodology()) ? DocumentRules.EDITION : "INDEFINIDA";
+            boolean vm0038 = ProjectJourney.profile(data.candidateMethodology()) == ProjectJourney.VM0038;
+            String template = vm0038 ? DocumentRules.Act.DESENVOLVIMENTO.template() : "A_DEFINIR_APOS_TRIAGEM";
+            String edition = vm0038 ? DocumentRules.EDITION : "INDEFINIDA";
             var dossier = new PreliminaryDossier(UUID.randomUUID(), project, scope.organization(),
                     scope.environment(), revision, current.version(),
                     "RASCUNHO_PRELIMINAR_NAO_ADMISSIVEL", "PD_PREPARATORY_SCAFFOLD",
-                    template, edition, PD_SECTIONS, blockers(data), data);
+                    template, edition, PD_SECTIONS, blockers(data.candidateMethodology()), data);
             update(connection, """
                     INSERT INTO app_project_preliminary_dossier
                       (id, project_id, organization_id, environment, revision,
@@ -162,15 +165,17 @@ class DynamicProjectTechnical {
         });
     }
 
-    private IntakeView view(DynamicProjectScope.Context scope, IntakeRow row) {
+    private IntakeView view(DynamicProjectScope.Context scope, IntakeRow row, String triageCandidate) {
         IntakeData data = row == null ? null : row.data();
+        String candidate = triageCandidate != null ? triageCandidate : data == null ? null : data.candidateMethodology();
+        var journey = ProjectJourney.profile(candidate);
         return new IntakeView(scope.id(), scope.organization(), scope.environment(),
                 row == null ? 0 : row.version(), row == null ? "NAO_INICIADO" : "RASCUNHO",
-                "NAO_AVALIADO", data, blockers(data));
+                "NAO_AVALIADO", data, blockers(candidate), triageCandidate, journey, ProjectJourney.METHODOLOGIES);
     }
 
-    private static List<IntakeModel.Reason> blockers(IntakeData data) {
-        if (data != null && "VM0038".equals(data.candidateMethodology())) {
+    private static List<IntakeModel.Reason> blockers(String candidate) {
+        if (ProjectJourney.profile(candidate) == ProjectJourney.VM0038) {
             var result = new java.util.ArrayList<>(STANDARD_BLOCKERS);
             result.addAll(IntakeRules.REAL_GATES);
             return List.copyOf(result);
@@ -190,21 +195,20 @@ class DynamicProjectTechnical {
 
     private static IntakeData normalize(IntakeData input) {
         if (input == null) throw invalid("body");
-        String activity = value(input.activity(), "activity", 400, true);
-        String country = value(input.country(), "country", 2, false);
-        String state = value(input.state(), "state", 80, false);
-        String locality = value(input.locality(), "locality", 200, false);
-        String candidate = value(input.candidateMethodology(), "candidateMethodology", 80, false);
-        String notes = value(input.notes(), "notes", 2000, false);
+        String activity = value(input.activity(), "activity", 400);
+        String country = value(input.country(), "country", 2);
+        String state = value(input.state(), "state", 80);
+        String locality = value(input.locality(), "locality", 200);
+        String candidate = value(input.candidateMethodology(), "candidateMethodology", 400);
+        String notes = value(input.notes(), "notes", 2000);
         if (country != null && !country.matches("[A-Z]{2}")) throw invalid("country");
+        if (activity == null && country == null && state == null && locality == null && candidate == null
+                && input.referenceActDate() == null && notes == null) throw invalid("activity");
         return new IntakeData(activity, country, state, locality, candidate, input.referenceActDate(), notes);
     }
 
-    private static String value(String input, String field, int max, boolean required) {
-        if (input == null || input.isBlank()) {
-            if (required) throw invalid(field);
-            return null;
-        }
+    private static String value(String input, String field, int max) {
+        if (input == null || input.isBlank()) return null;
         String value = input.strip();
         if (value.codePointCount(0, value.length()) > max ||
                 value.codePoints().anyMatch(c -> Character.isISOControl(c) && c != '\n' && c != '\t' && c != '\r'))

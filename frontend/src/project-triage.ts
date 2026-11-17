@@ -1,7 +1,8 @@
-import {Component, computed, inject, signal} from '@angular/core';
+import {afterNextRender, Component, computed, ElementRef, inject, Injector, signal, viewChild} from '@angular/core';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {ActivatedRoute, RouterLink} from '@angular/router';
 import {firstValueFrom} from 'rxjs';
+import {JourneyOption, JourneyProfile, JourneyQuestion, methodologyOption, OTHER_METHODOLOGY} from './project-journey';
 
 interface ProjectMetadata {
   projectId: string;
@@ -29,6 +30,9 @@ interface TriageView {
   stages: TriageStage[];
   pending: string[];
   nextAction: string;
+  journey: JourneyProfile;
+  methodologies: JourneyOption[];
+  guidance: {state: string; outsideMethodology: string[]; outsidePilot: string[]};
 }
 
 type Values = Record<string, string | number | null>;
@@ -42,6 +46,8 @@ type AnswerSet = Record<number, Values>;
 export class ProjectTriageComponent {
   private readonly http = inject(HttpClient);
   private readonly route = inject(ActivatedRoute);
+  private readonly injector = inject(Injector);
+  private readonly heading = viewChild<ElementRef<HTMLHeadingElement>>('stepHeading');
   readonly projectId = this.route.snapshot.paramMap.get('projectId') ?? '';
   private readonly base = '/v1/projects/' + encodeURIComponent(this.projectId);
   private readonly endpoint = this.base + '/triage';
@@ -51,10 +57,19 @@ export class ProjectTriageComponent {
   readonly draft = signal<AnswerSet>({});
   readonly loading = signal(true);
   readonly busy = signal(false);
+  readonly menuOpen = signal(false);
   readonly error = signal('');
   readonly notice = signal('');
   readonly dirty = signal(false);
   readonly step = computed(() => this.view()?.currentStep ?? 1);
+  readonly otherMethodology = signal(false);
+  readonly methodologyChoice = computed(() => {
+    const current = this.view();
+    return this.otherMethodology() ? OTHER_METHODOLOGY
+      : methodologyOption(this.field(1, 'methodologyCandidate'), current?.methodologies ?? [], current?.journey);
+  });
+  readonly vm0038 = computed(() => this.view()?.journey.id === 'VM0038_V1_1');
+  readonly otherOption = OTHER_METHODOLOGY;
   private pendingKey = '';
   private pendingPayload = '';
 
@@ -94,6 +109,7 @@ export class ProjectTriageComponent {
     this.draft.set(answers);
     this.view.set(value);
     this.dirty.set(false);
+    this.otherMethodology.set(false);
     this.pendingKey = '';
     this.pendingPayload = '';
   }
@@ -110,10 +126,33 @@ export class ProjectTriageComponent {
     if (key === 'vehicleCount' || key === 'chargerCount') {
       value = value == null ? null : Number(value);
     }
+    this.setField(step, key, value);
+  }
+
+  private setField(step: number, key: string, value: string | number | null) {
     this.draft.update(previous => ({
       ...previous, [step]: {...(previous[step] ?? {}), [key]: value},
     }));
     this.dirty.set(true);
+  }
+
+  chooseMethodology(value: string) {
+    const previous = this.methodologyChoice();
+    this.otherMethodology.set(value === OTHER_METHODOLOGY);
+    if (value !== previous) this.setField(1, 'methodologyCandidate', value === OTHER_METHODOLOGY || !value ? null : value);
+  }
+
+  questions(step: number): string[] {
+    const details = this.view()?.journey.questions ?? [];
+    switch (step) {
+      case 1: return ['objective', 'activityType', 'methodologyCandidate'];
+      case 2: return [...(this.vm0038() ? ['installsChargers'] : []),
+        'activityDescription', 'baselinePractice', 'expectedBenefit'];
+      case 3: return [...details.map(question => question.key),
+        ...(this.field(3, 'notApplicableReason') ? ['notApplicableReason'] : [])];
+      default: return ['country', 'state', 'locality', 'referenceDate', 'evidenceStatus', 'rightsStatus',
+        ...(this.field(4, 'rightsStatus') === 'NAO_APLICAVEL_JUSTIFICADO' ? ['rightsJustification'] : [])];
+    }
   }
 
   async submit(event: Event) {
@@ -133,7 +172,8 @@ export class ProjectTriageComponent {
     const current = this.view();
     if (!current || this.busy() || destination === current.currentStep || destination < 1 || destination > 5) return;
     if (current.currentStep <= 4) {
-      await this.save(current.currentStep, destination);
+      if (this.dirty()) await this.save(current.currentStep, destination);
+      else await this.commit('PATCH', this.endpoint + '/cursor', {nextStep: destination}, current.version);
     } else {
       await this.commit('PATCH', this.endpoint + '/cursor', {nextStep: destination}, current.version);
     }
@@ -142,14 +182,15 @@ export class ProjectTriageComponent {
   private async save(step: number, nextStep: number) {
     const current = this.view();
     if (!current || this.busy()) return;
-    const answers = {...(this.draft()[step] ?? {})};
+    const answers = Object.fromEntries(Object.entries(this.draft()[step] ?? {})
+      .filter(([key]) => this.questions(step).includes(key)));
     await this.commit('PUT', this.endpoint + '/steps/' + step, {answers, nextStep}, current.version);
   }
 
   async applyExample() {
     const current = this.view();
     if (!current || this.busy()) return;
-    if (this.dirty() && !confirm('Substituir as respostas da triagem pelo exemplo sintético de 25 BEVs?')) return;
+    if ((this.dirty() || Object.keys(current.answers).length > 0) && !confirm('Substituir as respostas da triagem pelo exemplo sintético de 25 BEVs?')) return;
     await this.commit('POST', this.endpoint + '/examples/bev-df-2027', {}, current.version);
   }
 
@@ -171,7 +212,11 @@ export class ProjectTriageComponent {
         ? this.http.put<TriageView>(url, body, options)
         : method === 'PATCH' ? this.http.patch<TriageView>(url, body, options)
         : this.http.post<TriageView>(url, body, options));
+      const changedStep = this.view()?.currentStep !== result.currentStep;
       this.apply(result);
+      if (changedStep) {
+        afterNextRender(() => this.heading()?.nativeElement.focus(), {injector: this.injector});
+      }
       this.notice.set(method === 'POST'
         ? 'Exemplo ilustrativo de 25 BEVs preenchido. Nenhuma redução foi calculada ou verificada.'
         : 'Respostas salvas na revisão ' + result.version + '.');
@@ -204,6 +249,7 @@ export class ProjectTriageComponent {
   fieldLabel(key: string) {
     const labels: Record<string, string> = {
       objective: 'Objetivo', activityType: 'Tipo de atividade',
+      installsChargers: 'Instalação de carregadores',
       methodologyCandidate: 'Metodologia candidata', activityDescription: 'Como funcionará',
       baselinePractice: 'Cenário atual', expectedBenefit: 'Benefício esperado',
       vehicleCount: 'Número de veículos', propulsion: 'Propulsão',
@@ -214,16 +260,21 @@ export class ProjectTriageComponent {
       referenceDate: 'Data de referência', evidenceStatus: 'Dados de origem',
       rightsStatus: 'Direitos e titularidade', rightsJustification: 'Justificativa sobre direitos',
     };
-    return labels[key] ?? key;
+    return this.view()?.journey.questions.find(question => question.key === key)?.label ?? labels[key] ?? key;
   }
 
   missingLabels(fields: string[]) {
     return fields.map(field => this.fieldLabel(field)).join(', ');
   }
 
-  valueLabel(value: string) {
+  legacyChoice(question: JourneyQuestion): string {
+    const value = this.field(3, question.key);
+    return value && !question.options.some(option => option.value === value) ? value : '';
+  }
+
+  valueLabel(value: string, key: string) {
     const values: Record<string, string> = {
-      DESCONHECIDO: 'Ainda não conhecido', DESCONHECIDA: 'Ainda não conhecida',
+      YES: 'Sim', NO: 'Não', DESCONHECIDO: 'Ainda não conhecido', DESCONHECIDA: 'Ainda não conhecida',
       DECLARADO: 'Declarado, ainda não comprovado',
       DISPONIVEL_DECLARADO: 'Disponibilidade declarada, sem conferência',
       EM_PREPARACAO: 'Em preparação',
@@ -231,14 +282,17 @@ export class ProjectTriageComponent {
       MOBILIDADE_ELETRICA: 'Mobilidade elétrica',
       RESIDUOS: 'Resíduos', ENERGIA: 'Energia', AGRICULTURA: 'Agricultura',
     };
-    return values[value] ?? value;
+    const question = this.view()?.journey.questions.find(item => item.key === key);
+    return question?.options.find(option => option.value === value)?.label ?? values[value] ?? value;
   }
 
   readonly example = computed(() => !!this.view()?.exampleKind);
 
   private message(reason: unknown, fallback: string) {
     if (reason instanceof HttpErrorResponse && typeof reason.error?.message === 'string') {
-      return reason.error.message;
+      return reason.error.field && reason.status === 400
+        ? reason.error.message + ' Campo: ' + this.fieldLabel(reason.error.field) + '.'
+        : reason.error.message;
     }
     return reason instanceof Error ? reason.message : fallback;
   }
