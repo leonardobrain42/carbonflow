@@ -1,6 +1,7 @@
 import {afterNextRender, Component, computed, ElementRef, inject, Injector, signal, viewChild} from '@angular/core';
 import {HttpClient, HttpErrorResponse, provideHttpClient} from '@angular/common/http';
 import {bootstrapApplication} from '@angular/platform-browser';
+import {provideRouter, RouterOutlet, Routes} from '@angular/router';
 import {firstValueFrom} from 'rxjs';
 import {AccessPanel, SessionProject} from './access-panel';
 import {IntakePanel} from './intake-panel';
@@ -237,4 +238,19 @@ class PilotComponent {
   }
 }
 
-bootstrapApplication(PilotComponent, {providers: [provideHttpClient()]}).catch(console.error);
+@Component({
+  selector: 'carbonflow-root',
+  imports: [RouterOutlet],
+  template: '<router-outlet />',
+})
+class CarbonFlowRoot {}
+
+const routes: Routes = [
+  {path: '', pathMatch: 'full', redirectTo: 'pilot'},
+  {path: 'pilot', component: PilotComponent},
+  {path: '**', redirectTo: 'pilot'},
+];
+
+bootstrapApplication(CarbonFlowRoot, {
+  providers: [provideHttpClient(), provideRouter(routes)],
+}).catch(console.error);

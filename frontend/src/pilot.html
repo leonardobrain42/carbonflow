@@ -1,3 +1,28 @@
+<a class="cf-skip-link" href="#cf-main">Pular para o conteúdo</a>
+<div class="cf-app" [class.cf-app--authenticated]="!!session()">
+  @if (session()) {
+    <aside class="cf-sidebar" aria-label="Navegação lateral da demonstração">
+      <a class="cf-sidebar-brand" href="/pilot" aria-label="CarbonFlow — início da demonstração">Carbon<span>Flow</span></a>
+      <span class="cf-sidebar-kicker">ESPAÇO DE TRABALHO</span>
+      <nav class="cf-sidebar-nav" aria-label="Áreas do piloto">
+        <a href="#cf-overview">Visão geral</a>
+        @if (project()) {
+          <a href="#cf-intake">Enquadramento e inventário</a>
+          <a href="#cf-imports">Medições ED/EC</a>
+          <a href="#cf-calculations">Cálculos de emissões</a>
+          <a href="#cf-monitoring">Monitoramento</a>
+          <a href="#cf-dossiers">Dossiês PD/MR</a>
+          <a href="#cf-listings">Listagens</a>
+          <a href="#cf-audits">Auditorias</a>
+          <a href="#cf-issuance">Emissão</a>
+          <a href="#cf-operations">Trabalhos e retenção</a>
+          <a href="#cf-access">Acesso a artefatos</a>
+        }
+      </nav>
+      <p class="cf-sidebar-notice">AMBIENTE DE SIMULAÇÃO<br><small>Os dados sintéticos não representam créditos emitidos.</small></p>
+    </aside>
+  }
+  <div class="cf-stage">
 <header class="site-header">
   <div class="shell header-content">
     <a class="brand" href="/">Carbon<span>Flow</span></a>
@@ -10,7 +35,7 @@
   </div>
 </header>
 
-<main class="shell">
+<main class="shell" id="cf-main">
   @if (opening()) {
     <p role="status">Consultando sessão…</p>
   } @else if (!session()) {
@@ -27,10 +52,19 @@
       @if (sessionError()) { <p class="feedback error" role="alert">{{ sessionError() }}</p> }
     </section>
   } @else {
-  <header class="intro">
+  <header class="intro" id="cf-overview">
     @if (sessionError()) { <p class="feedback error" role="alert">{{ sessionError() }}</p> }
     <span class="simulation">SIMULAÇÃO</span>
     <h1 #mainHeading tabindex="-1">{{ canReadRun() ? "Monitoramento de emissões" : "Acesso ao piloto" }}</h1>
+    @if (project()) {
+      <nav class="cf-workflow-steps" aria-label="Navegação pelas etapas do piloto">
+        <a href="#cf-intake"><span>01</span>Enquadramento</a>
+        <a href="#cf-imports"><span>02</span>Dados de operação</a>
+        <a href="#cf-calculations"><span>03</span>Quantificação</a>
+        <a href="#cf-monitoring"><span>04</span>Monitoramento</a>
+        <a href="#cf-dossiers"><span>05</span>Documentos</a>
+      </nav>
+    }
     @if (canCalculate()) {
       <p>Dois ciclos de recarga elétrica no piloto VM0038.</p>
       <div class="actions">
@@ -124,18 +158,20 @@
     <p class="empty">{{ canCalculate() ? "Execute o cenário para consultar os quatro recortes e o estado da coleta." : "Nenhuma execução disponível." }}</p>
   }
   @if (project(); as scope) {
-    <carbonflow-intake [project]="scope" [actor]="session()!.identity.id" />
-    <carbonflow-monitoring [project]="scope" />
-    <carbonflow-imports [project]="scope" [actor]="session()!.identity.id" />
-    <carbonflow-calculations [project]="scope" [actor]="session()!.identity.id" />
-    <carbonflow-dossiers [project]="scope" [actor]="session()!.identity.id" />
-    <carbonflow-listings [project]="scope" />
-    <carbonflow-audits [project]="scope" />
-    <carbonflow-issuance [project]="scope" />
-    <carbonflow-operations [project]="scope" />
-    <carbonflow-access [project]="scope" [actor]="session()!.identity.id" />
+    <carbonflow-intake id="cf-intake" [project]="scope" [actor]="session()!.identity.id" />
+    <carbonflow-monitoring id="cf-monitoring" [project]="scope" />
+    <carbonflow-imports id="cf-imports" [project]="scope" [actor]="session()!.identity.id" />
+    <carbonflow-calculations id="cf-calculations" [project]="scope" [actor]="session()!.identity.id" />
+    <carbonflow-dossiers id="cf-dossiers" [project]="scope" [actor]="session()!.identity.id" />
+    <carbonflow-listings id="cf-listings" [project]="scope" />
+    <carbonflow-audits id="cf-audits" [project]="scope" />
+    <carbonflow-issuance id="cf-issuance" [project]="scope" />
+    <carbonflow-operations id="cf-operations" [project]="scope" />
+    <carbonflow-access id="cf-access" [project]="scope" [actor]="session()!.identity.id" />
   } @else {
     <p class="empty">Nenhum vínculo de projeto vigente.</p>
   }
   }
 </main>
+  </div>
+</div>

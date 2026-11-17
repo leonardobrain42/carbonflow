@@ -1,0 +1,105 @@
+/* CF-IMP-005 — Shell CarbonFlow. Scoped navigation plus dark design tokens. */
+:root {
+  color-scheme: dark;
+  color: #ebf3ef;
+  background: #0b1114;
+  --muted: #9cb0a9;
+  --border: #293c38;
+  --dark: #142520;
+  --accent: #63cf98;
+  --cf-surface: #14201f;
+  --cf-surface-raised: #1a2926;
+  --cf-green: #38a86f;
+}
+body { background: #0b1114; color: #ebf3ef; }
+a { color: #89dcb0; }
+.cf-skip-link { position: fixed; z-index: 90; top: -80px; left: 1rem; padding: .65rem 1rem; border-radius: .5rem; background: #2d9a68; color: #07130c; }
+.cf-skip-link:focus { top: .75rem; }
+.cf-app { display: block; min-height: 100vh; }
+.cf-app--authenticated { display: grid; grid-template-columns: 254px minmax(0, 1fr); }
+.cf-stage { min-width: 0; }
+.cf-sidebar {
+  align-self: stretch; position: sticky; top: 0; height: 100vh; min-width: 0;
+  display: flex; flex-direction: column; gap: 1.25rem;
+  padding: 1.6rem 1rem 1.15rem; background: #0d1718; border-right: 1px solid #263732;
+}
+.cf-sidebar-brand { color: #eefaf3; text-decoration: none; font-size: 1.42rem; letter-spacing: -.045em; font-weight: 780; padding: .35rem .75rem; }
+.cf-sidebar-brand span { color: var(--cf-green); }
+.cf-sidebar-kicker { padding: 0 .75rem; font-size: .69rem; letter-spacing: .12em; font-weight: 800; color: #849c94; }
+.cf-sidebar-nav { overflow-y: auto; display: flex; flex-direction: column; gap: .15rem; }
+.cf-sidebar-nav a {
+  color: #b9ccc3; text-decoration: none; font-size: .85rem; line-height: 1.4;
+  padding: .66rem .75rem; border-radius: .7rem; border: 1px solid transparent;
+}
+.cf-sidebar-nav a:hover, .cf-sidebar-nav a:focus-visible { color: #e3fff0; background: #1b302a; border-color: #345547; }
+.cf-sidebar-nav a[href="#cf-overview"] { background: #1b342a; color: #81d6a8; }
+.cf-sidebar-notice {
+  color: #94b6a3; border: 1px solid #355345; background: #132820;
+  font-size: .71rem; letter-spacing: .07em; border-radius: .75rem;
+  padding: .9rem .85rem; margin-top: auto;
+}
+.cf-sidebar-notice small { color: #a4b3aa; letter-spacing: normal; }
+.cf-stage .site-header { background: #0f181b; border-bottom: 1px solid #2a3d39; }
+.cf-stage .header-content { min-height: 70px; width: min(1180px, calc(100% - 3.2rem)); }
+.cf-stage .shell { width: min(1180px, calc(100% - 3.2rem)); }
+.cf-stage main { padding-top: 2.3rem; }
+.cf-stage h1 { font-size: clamp(1.8rem, 3.2vw, 3rem); }
+.cf-stage h2 { color: #edf7f2; }
+.cf-stage .project { color: #a5c9b5; overflow-wrap: anywhere; }
+.cf-stage .intro { padding: 1rem 0 1.3rem; }
+.cf-stage .intro p { color: #a9bdb4; }
+.cf-workflow-steps { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .5rem; margin: 1.6rem 0 .75rem; }
+.cf-workflow-steps a { display: flex; flex-direction: column; gap: .4rem; min-width: 0; color: #c3d6ce; text-decoration: none; padding: .95rem .7rem; border: 1px solid #2f4941; background: #172724; border-radius: .8rem; font-size: .83rem; }
+.cf-workflow-steps a span { color: #65c592; font-size: .77rem; font-weight: 800; }
+.cf-workflow-steps a:hover, .cf-workflow-steps a:focus-visible { background: #214333; border-color: #49986f; }
+.cf-stage .simulation { background: #1e3b2c; color: #8fe4b1; border-color: #38674b; }
+.cf-stage .period, .cf-stage .checkpoint, .cf-stage .table-scroll, .cf-stage .access-item, .cf-stage .login-card, .cf-stage .empty {
+  color: #edf7f2; background: var(--cf-surface); border-color: var(--border);
+}
+.cf-stage .period-head { background: #1d382b; }
+.cf-stage .period-head p, .cf-stage .amount span { color: #b3cfc0; }
+.cf-stage .period-head h3 { color: #81d9aa; }
+.cf-stage thead { background: #1b3029; }
+.cf-stage th, .cf-stage td { color: #d9ebe3; }
+.cf-stage label { color: #d7e8de; }
+.cf-stage input, .cf-stage select, .cf-stage textarea {
+  color: #e8faf0; background: #0d1919; border: 1px solid #426057; border-radius: .55rem;
+}
+.cf-stage input:disabled, .cf-stage select:disabled { opacity: .62; }
+.cf-stage button { border-color: #3c6850; border-radius: .65rem; }
+.cf-stage button.primary { background: #288a57; border-color: #288a57; color: white; }
+.cf-stage button.primary:hover:enabled { background: #339e65; }
+.cf-stage button.secondary { background: #182b25; border-color: #466f59; color: #d4eee0; }
+.cf-stage button.secondary:hover:enabled { background: #234132; }
+.cf-stage .sign-out { background: #192923; color: #dcebe3; border-color: #456b56; }
+.cf-stage :focus-visible, .cf-sidebar :focus-visible { outline: 3px solid #81d8a4; outline-offset: 3px; }
+.cf-stage .intro .feedback { color: #b6e6c9; background: #1e4030; }
+.cf-stage .intro .error { color: #ffc1ac; background: #442820; }
+.cf-stage .source a, .cf-stage .resource-link { color: #8bddad; }
+.cf-stage .note, .cf-stage .factor, .cf-stage .source, .cf-stage time { color: #a6b9ae; }
+.cf-stage .access-panel { border-color: var(--border); }
+.cf-stage section, .cf-stage [id^="cf-"] { scroll-margin-top: 5rem; }
+.cf-stage carbonflow-intake, .cf-stage carbonflow-monitoring, .cf-stage carbonflow-imports,
+.cf-stage carbonflow-calculations, .cf-stage carbonflow-dossiers, .cf-stage carbonflow-listings,
+.cf-stage carbonflow-audits, .cf-stage carbonflow-issuance, .cf-stage carbonflow-operations,
+.cf-stage carbonflow-access { display: block; }
+@media (max-width: 1000px) {
+  .cf-app--authenticated { grid-template-columns: 208px minmax(0,1fr); }
+  .cf-sidebar { padding-inline: .5rem; }
+  .cf-workflow-steps { grid-template-columns: repeat(3, minmax(0,1fr)); }
+}
+@media (max-width: 740px) {
+  .cf-app--authenticated { display: block; }
+  .cf-sidebar { position: static; height: auto; padding: .6rem 1rem; gap: .4rem; }
+  .cf-sidebar-brand { font-size: 1.1rem; }
+  .cf-sidebar-kicker, .cf-sidebar-notice { display: none; }
+  .cf-sidebar-nav { flex-direction: row; overflow-x: auto; gap: .25rem; scrollbar-width: thin; }
+  .cf-sidebar-nav a { white-space: nowrap; flex: 0 0 auto; font-size: .78rem; }
+  .cf-stage .shell, .cf-stage .header-content { width: calc(100% - 2rem); }
+  .cf-workflow-steps { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@media (max-width: 390px) {
+  .cf-stage .session-controls { justify-content: flex-end; }
+  .cf-stage .project { font-size: .7rem; }
+  .cf-workflow-steps a { font-size: .74rem; }
+}

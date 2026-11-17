@@ -14,7 +14,7 @@
             "browser": "src/main.ts",
             "index": "src/index.html",
             "tsConfig": "tsconfig.json",
-            "styles": ["src/styles.css"],
+            "styles": ["src/styles.css", "src/shell.css"],
             "outputPath": "dist/piloto",
             "outputHashing": "all"
           }
