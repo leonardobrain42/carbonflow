@@ -1,0 +1,133 @@
+<a class="cf-skip-link" href="#workspace-main">Pular para o conteúdo</a>
+<div class="cf-workspace-shell">
+  <aside class="cf-workspace-sidebar" aria-label="Navegação do espaço da conta">
+    <a routerLink="/workspace" class="cf-workspace-brand" aria-label="CarbonFlow — minha conta">Carbon<span>Flow</span></a>
+    <p class="cf-workspace-kicker">AMBIENTE DE TESTE</p>
+    <nav aria-label="Áreas do espaço da conta" class="cf-workspace-nav">
+      <a routerLink="/workspace">Meus projetos</a>
+      <a routerLink="/workspace/projects/new">Novo projeto</a>
+      <a href="/pilot">Piloto sintético</a>
+    </nav>
+    <p class="cf-workspace-disclaimer">
+      SANDBOX
+      <small>Rascunhos não equivalem a projetos registrados ou créditos emitidos.</small>
+    </p>
+  </aside>
+  <div class="cf-workspace-stage">
+    <header class="cf-workspace-topbar">
+      <span>Espaço do cliente</span>
+      @if (session(); as account) {
+        <div class="cf-workspace-account">
+          <span>{{ account.identity.name }}</span>
+          <button type="button" class="cf-workspace-outline" (click)="logout()" [disabled]="busy()">Sair</button>
+        </div>
+      }
+    </header>
+    <main id="workspace-main" class="cf-workspace-content">
+      @if (loading()) {
+        <p role="status">Carregando seu espaço…</p>
+      } @else if (!session()) {
+        <section class="cf-workspace-card cf-workspace-login" aria-labelledby="cf-account-login-heading">
+          <span class="cf-workspace-chip">CONTA SANDBOX</span>
+          <h1 id="cf-account-login-heading">Entre na sua conta</h1>
+          <p>Utilize o e-mail confirmado no cadastro de conta. As credenciais SIM-* pertencem a uma demonstração separada.</p>
+          <form (submit)="login($event, email.value, password.value)">
+            <label for="cf-account-email">E-mail da conta</label>
+            <input #email id="cf-account-email" name="email" type="email" required autocomplete="email" />
+            <label for="cf-account-password">Senha</label>
+            <input #password id="cf-account-password" name="password" type="password" required autocomplete="current-password" />
+            <button type="submit" class="cf-workspace-primary" [disabled]="busy()">Entrar na conta</button>
+          </form>
+          <p class="cf-workspace-helper">O cadastro de contas está disponível por API no sandbox configurado. Se deseja usar contas SIM-*, abra o <a href="/pilot">piloto sintético</a>.</p>
+        </section>
+      } @else {
+        <header class="cf-workspace-heading">
+          <span class="cf-workspace-chip">SANDBOX · CONTA VERIFICADA</span>
+          @if (creationFlow) {
+            <h1>Preparar meu primeiro projeto</h1>
+            <p>Comece criando seu espaço organizacional. A criação do projeto será habilitada na CF-IMP-007.</p>
+          } @else {
+            <h1>Meus projetos</h1>
+            <p>Consulte somente os projetos vinculados à sua conta. Nenhum projeto é selecionado automaticamente.</p>
+          }
+        </header>
+
+        @if (error()) {
+          <div role="alert" class="cf-workspace-alert">{{ error() }}</div>
+        }
+        @if (notice()) {
+          <div role="status" class="cf-workspace-note">{{ notice() }}</div>
+        }
+
+        @if (creationFlow) {
+          @if (organizations().length === 0) {
+            <section class="cf-workspace-card" aria-labelledby="cf-org-create-heading">
+              <span class="cf-workspace-step">ETAPA 1 · ORGANIZAÇÃO</span>
+              <h2 id="cf-org-create-heading">Crie o espaço da organização</h2>
+              <p>O vínculo inicial será <strong>DRAFT_OWNER</strong>, restrito a rascunhos. Ele não comprova representação legal ou poderes PP.</p>
+              <form (submit)="createOrganization($event, orgName.value)">
+                <label for="cf-org-name">Nome de trabalho da organização</label>
+                <input #orgName id="cf-org-name" name="organization-name" maxlength="120" required placeholder="Ex.: Minha organização" />
+                <button type="submit" class="cf-workspace-primary" [disabled]="busy()">Criar espaço privado</button>
+              </form>
+            </section>
+          } @else {
+            <section class="cf-workspace-card" aria-labelledby="cf-org-ready-heading">
+              <span class="cf-workspace-step">ETAPA 1 · CONCLUÍDA</span>
+              <h2 id="cf-org-ready-heading">Espaço organizacional criado</h2>
+              @for (organization of organizations(); track organization.id) {
+                <p><strong>{{ organization.name }}</strong> · {{ organization.environment }} · {{ organization.role }}</p>
+              }
+              <div class="cf-workspace-info">
+                <strong>Etapa 2 · Criação de projeto</strong>
+                <p>Ainda não disponível nesta versão. A CF-IMP-007 implementará a criação persistente e a associação do projeto ao espaço autorizado.</p>
+              </div>
+              <a routerLink="/workspace" class="cf-workspace-link">Voltar aos meus projetos</a>
+            </section>
+          }
+        } @else if (session()!.projects.length === 0) {
+          <section class="cf-workspace-card cf-workspace-empty" aria-labelledby="cf-empty-project-heading">
+            <div class="cf-workspace-empty-icon" aria-hidden="true">+</div>
+            <h2 id="cf-empty-project-heading">Você ainda não tem projetos</h2>
+            <p>Seu espaço está pronto para começar. Crie sua organização inicial ou continue para a preparação do primeiro projeto.</p>
+            <a routerLink="/workspace/projects/new" class="cf-workspace-primary cf-workspace-link">Criar meu primeiro projeto</a>
+            @if (organizations().length > 0) {
+              <p class="cf-workspace-helper">Organização disponível: {{ organizations()[0].name }}. A persistência do projeto será entregue na CF-IMP-007.</p>
+            }
+          </section>
+        } @else {
+          <section class="cf-workspace-card" aria-labelledby="cf-project-selector-heading">
+            <h2 id="cf-project-selector-heading">Selecionar projeto</h2>
+            <p>Escolha explicitamente um projeto autorizado para visualizar seu estado.</p>
+            <label for="cf-project-selector">Projetos disponíveis nesta conta</label>
+            <select id="cf-project-selector" name="project" [value]="selectedProjectId()" (change)="selectProject($event)">
+              <option value="">Selecione um projeto</option>
+              @for (project of session()!.projects; track project.projectId) {
+                <option [value]="project.projectId">{{ project.projectId }} · {{ project.environment }}</option>
+              }
+            </select>
+            @if (selectedProject(); as selected) {
+              <div class="cf-workspace-info" aria-live="polite">
+                <h3>Projeto selecionado</h3>
+                <p><strong>{{ selected.projectId }}</strong></p>
+                <p>Estado: {{ selected.state }} · Ambiente: {{ selected.environment }} · Versão: {{ selected.version }}</p>
+                <p>As ferramentas técnicas serão liberadas conforme o vínculo e a generalização E8, sem herdar poderes do piloto.</p>
+              </div>
+            } @else {
+              <p role="status" class="cf-workspace-helper">Nenhum projeto selecionado.</p>
+            }
+          </section>
+          <section class="cf-workspace-card">
+            <h2>Projetos visíveis</h2>
+            <ul class="cf-workspace-project-list">
+              @for (project of session()!.projects; track project.projectId) {
+                <li><strong>{{ project.projectId }}</strong><span>{{ project.state }} · {{ project.environment }}</span></li>
+              }
+            </ul>
+            <button type="button" class="cf-workspace-outline" [disabled]="busy() || loading()" (click)="refreshSession()">Atualizar lista</button>
+          </section>
+        }
+      }
+    </main>
+  </div>
+</div>
