@@ -20,6 +20,9 @@
         }
         <a class="cf-workspace-link" href="/pilot#cf-imports">Consultar lotes ED/EC no piloto sintético</a>
       }
+      @if (guide.id === 'safeguards') {
+        <p class="cf-workspace-note">A consulta e o recibo aguardam conferência das provas do evento.</p>
+      }
       @if (guide.id === 'additionality' && answers()['commitment'] && answers()['considered'] && answers()['commitment'] < answers()['considered']) {
         <p class="cf-workspace-note">O compromisso informado antecede a consideração do carbono. Encaminhe a cronologia e as provas para revisão.</p>
       }
