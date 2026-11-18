@@ -197,7 +197,8 @@ class ProjectInvitations {
                 SELECT EXISTS(SELECT 1 FROM app_project_intake_draft_revision WHERE project_id = ? AND actor_id = ?)
                     OR EXISTS(SELECT 1 FROM app_project_preliminary_dossier WHERE project_id = ? AND actor_id = ?)
                     OR EXISTS(SELECT 1 FROM app_technical_guide_revision WHERE project_id = ? AND actor_id = ?)
-                """, row -> row.getBoolean(1), project, actor, project, actor, project, actor));
+                    OR EXISTS(SELECT 1 FROM app_pd_section_version WHERE project_id = ? AND author_id = ?)
+                """, row -> row.getBoolean(1), project, actor, project, actor, project, actor, project, actor));
     }
 
     private static OwnerView ownerView(Connection connection, DynamicProjectScope.Context scope) throws SQLException {

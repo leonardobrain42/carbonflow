@@ -106,7 +106,7 @@ class ProjectGuides {
         return new PilotProblem(404,"GUIA_INDISPONIVEL","guide","CF-IMP-017","Guia indisponível.");
     }
 
-    private Catalog catalog(Connection c, DynamicProjectScope.Context scope) throws SQLException {
+    Catalog catalog(Connection c, DynamicProjectScope.Context scope) throws SQLException {
         String candidate = ProjectTriageWizard.savedCandidate(c, scope.id());
         if (candidate == null) candidate = first(c, """
                 SELECT payload->>'candidateMethodology' FROM app_project_intake_draft_revision

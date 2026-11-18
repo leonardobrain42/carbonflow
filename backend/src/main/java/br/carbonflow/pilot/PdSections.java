@@ -1,0 +1,115 @@
+package br.carbonflow.pilot;
+
+import static br.carbonflow.pilot.PilotSql.first;
+import static br.carbonflow.pilot.PilotSql.update;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.HexFormat;
+import java.util.List;
+import java.util.UUID;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.enterprise.context.ApplicationScoped;
+
+@ApplicationScoped
+class PdSections {
+    record Input(int guideVersion, String narrative) {}
+    record Version(int number, int guideVersion, UUID author, String narrative, String sha256) {}
+    record Section(ProjectGuides.Guide guide, Version latest) {}
+    record Artifact(String text, String sha256) {}
+    private final DynamicProjectScope scopes;
+    private final ProjectGuides guides;
+    private final ObjectMapper mapper;
+
+    PdSections(DynamicProjectScope scopes, ProjectGuides guides, ObjectMapper mapper) {
+        this.scopes = scopes;
+        this.guides = guides;
+        this.mapper = mapper;
+    }
+
+    List<Section> list(String token, String project) {
+        return scopes.read(token, project, "VIEW_DOSSIER", (c, scope) -> {
+            var sections = new ArrayList<Section>();
+            for (var guide : guides.catalog(c, scope).guides()) {
+                sections.add(new Section(guide, latest(c, project, guide.id())));
+            }
+            return sections;
+        });
+    }
+
+    ProjectGuides.Guide visible(Connection c, DynamicProjectScope.Context scope, String id) throws SQLException {
+        return guides.catalog(c, scope).guides().stream().filter(g -> g.id().equals(id))
+                .findFirst().orElseThrow(PdSections::missing);
+    }
+
+    Version save(String token, String project, String id, String match, Input input) {
+        return scopes.write(token, project, "PREPARE_DOSSIER", (c,scope) -> {
+            var guide = visible(c,scope,id);
+            if (input == null || input.narrative() == null || input.narrative().isBlank()
+                    || input.narrative().length() > 12000) {
+                throw new PilotProblem(400,"TEXTO_INVALIDO","narrative","CF-IMP-023","Informe uma narrativa de até 12.000 caracteres.");
+            }
+            int expected = PilotCommands.expected(match);
+            var current = latest(c,project,id);
+            String text = input.narrative().strip();
+            if (current != null && expected == current.number()-1 && current.author().equals(scope.actor().id())
+                    && input.guideVersion() == current.guideVersion() && text.equals(current.narrative())) return current;
+            PilotCommands.requireVersion(expected,current == null ? 0 : current.number());
+            if (guide.version() == 0 || guide.version() != input.guideVersion()) {
+                throw conflict("Consulte a revisão atual do guia antes de redigir.");
+            }
+            if (current != null && current.guideVersion() == guide.version() && text.equals(current.narrative())) return current;
+            int version = expected+1;
+            var artifact = mapper.createObjectNode();
+            artifact.put("kind","PD_SECTION_DRAFT").put("exposure","RESERVED").put("projectId",project)
+                    .put("sectionId",id).put("version",version).put("authorId",scope.actor().id().toString())
+                    .put("createdAt",OffsetDateTime.now(java.time.ZoneOffset.UTC).toString())
+                    .put("template",DocumentRules.Act.DESENVOLVIMENTO.template()).put("edition",DocumentRules.EDITION)
+                    .put("guideVersion",guide.version()).put("narrative",text);
+            artifact.set("fields",mapper.valueToTree(guide.fields()));
+            artifact.set("inputs",mapper.valueToTree(new java.util.TreeMap<>(guide.answers())));
+            artifact.set("missing",mapper.valueToTree(guide.missing()));
+            String payload = artifact.toString();
+            String digest = hash(payload);
+            update(c,"""
+                    INSERT INTO app_pd_section_version(project_id,section_id,version,guide_version,author_id,narrative,artifact,sha256)
+                    VALUES(?,?,?,?,?,?,?,?)
+                    """,project,id,version,guide.version(),scope.actor().id(),text,payload,digest);
+            return new Version(version,guide.version(),scope.actor().id(),text,digest);
+        });
+    }
+
+    Artifact download(String token,String project,String id,int version) {
+        return scopes.read(token,project,"DOWNLOAD_DOSSIER",(c,scope) -> {
+            visible(c,scope,id);
+            Artifact artifact = first(c,"SELECT artifact,sha256 FROM app_pd_section_version WHERE project_id=? AND section_id=? AND version=?",
+                    r -> new Artifact(r.getString(1),r.getString(2)), project,id,version);
+            if (artifact == null) throw missing();
+            return artifact;
+        });
+    }
+
+    static Version latest(Connection c,String project,String id) throws SQLException {
+        return first(c,"""
+                SELECT version,guide_version,author_id,narrative,sha256 FROM app_pd_section_version
+                WHERE project_id=? AND section_id=? ORDER BY version DESC LIMIT 1
+                """, r -> new Version(r.getInt(1),r.getInt(2),r.getObject(3,UUID.class),r.getString(4),r.getString(5)),project,id);
+    }
+
+    static PilotProblem conflict(String message) {
+        return new PilotProblem(409,"SECAO_INDISPONIVEL","section","CF-IMP-023",message);
+    }
+
+    static PilotProblem missing() {
+        return new PilotProblem(404,"SECAO_INDISPONIVEL","section","CF-IMP-023","Seção indisponível.");
+    }
+
+    private static String hash(String text) {
+        try { return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(text.getBytes(StandardCharsets.UTF_8))); }
+        catch (NoSuchAlgorithmException e) { throw new IllegalStateException(e); }
+    }
+}

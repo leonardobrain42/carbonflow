@@ -1,0 +1,42 @@
+<section class="cf-journey-context" aria-label="Seções da descrição do projeto">
+  <h3>Descrição do projeto (PD)</h3>
+  <button type="button" class="cf-workspace-outline" [disabled]="busy()" (click)="load()">
+    {{ items() ? 'Atualizar seções' : 'Abrir seções do PD' }}
+  </button>
+  @if (items(); as list) {
+    @if (list.length) {
+      <label for="pd-section">Seção do documento</label>
+      <select id="pd-section" #choice [disabled]="busy()" (change)="select(choice.value); choice.value = current()?.guide?.id ?? ''">
+        @for (item of list; track item.guide.id) {
+          <option [value]="item.guide.id" [selected]="item.guide.id === current()?.guide?.id">{{ item.guide.title }}</option>
+        }
+      </select>
+    } @else {
+      <p>Nenhuma seção disponível para a metodologia e as atividades autorizadas nesta conta.</p>
+    }
+  }
+  @if (current(); as item) {
+    <p>Guia de origem · {{ item.guide.version ? 'revisão ' + item.guide.version : 'aguardando a primeira revisão' }}</p>
+    @if (item.guide.version) {
+      <details><summary>Dados e lacunas do guia atual</summary>
+        <dl>@for (field of item.guide.fields; track field.key) {
+          <dt>{{ field.label }}</dt><dd>{{ item.guide.answers[field.key] || 'Não informado' }}</dd>
+        }</dl>
+      </details>
+    }
+    @if (item.latest; as saved) {
+      <p>Versão {{ saved.number }} · guia de origem {{ saved.guideVersion }} · acesso reservado</p>
+      @if (saved.guideVersion !== item.guide.version) { <p>O guia recebeu uma nova revisão. Confira a narrativa antes de salvar outra versão.</p> }
+      <a class="cf-workspace-link" [href]="url + '/' + item.guide.id + '/versions/' + saved.number + '/download'">Baixar seção e lacunas desta versão</a>
+      <details><summary>Autoria e integridade</summary><p>Autor · {{ saved.author }}</p><p>SHA-256 · {{ saved.sha256 }}</p></details>
+    }
+    <label for="pd-narrative">Narrativa da seção</label>
+    <textarea id="pd-narrative" rows="6" maxlength="12000" #body [value]="text()" [readOnly]="!editable() || !item.guide.version || busy()"
+      (input)="text.set(body.value)"></textarea>
+    @if (editable()) {
+      <button type="button" class="cf-workspace-primary" [disabled]="busy() || !item.guide.version || !text().trim()" (click)="save()">Salvar versão da seção</button>
+    }
+  }
+  @if (message()) { <p role="status">{{ message() }}</p> }
+  <p>O relatório de monitoramento (MR) depende de um período com registros e fechamento admitidos.</p>
+</section>

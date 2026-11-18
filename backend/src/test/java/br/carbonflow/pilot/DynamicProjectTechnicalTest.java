@@ -420,6 +420,37 @@ class DynamicProjectTechnicalTest {
                 "{\"incidence\":\"Não aplicável\"}").statusCode());
     }
 
+    @Test
+    void pdSectionPinsGuideRevisionAndRestrictsItsExport() throws Exception {
+        Actor owner = actor();
+        Actor reviewer = actor();
+        UUID org = organization(owner.id());
+        String project = body(call("POST", PROJECTS, owner.cookie(), key(), null,
+                "{\"organizationId\":\"" + org + "\",\"title\":\"Teste de seção\"}")).path("projectId").asText();
+        String root = PROJECTS + "/" + project + "/technical";
+        String guide = root + "/guides/baseline";
+        String section = root + "/pd-sections/baseline";
+        String text = "{\"guideVersion\":1,\"narrative\":\"Descrição da frota\"}";
+        assertEquals(200,call("PUT",root + "/intake",owner.cookie(),key(),"\"0\"","{\"candidateMethodology\":\"VM0038\"}").statusCode());
+        assertEquals(409,call("PUT",section,owner.cookie(),key(),"\"0\"",text).statusCode());
+        assertEquals(200,call("PUT",guide,owner.cookie(),key(),"\"0\"","{\"scenario\":\"Cenário A\"}").statusCode());
+        var saved = call("PUT",section,owner.cookie(),key(),"\"0\"",text);
+        assertEquals(200,saved.statusCode(),saved.body());
+        assertEquals(body(saved),body(call("PUT",section,owner.cookie(),key(),"\"0\"",text)));
+        String file = section + "/versions/1/download";
+        assertEquals(200,call("PUT",guide,owner.cookie(),key(),"\"1\"","{\"scenario\":\"Cenário B\"}").statusCode());
+        grant(project,org,reviewer,owner,"REV","DOCUMENTATION");
+        assertEquals(404,call("GET",file,reviewer.cookie(),null,null,null).statusCode());
+        grant(project,org,reviewer,owner,"REV","BASELINE");
+        var download = call("GET",file,reviewer.cookie(),null,null,null);
+        assertEquals(200,download.statusCode(),download.body());
+        assertEquals("Cenário A",body(download).at("/inputs/scenario").asText());
+        assertTrue(body(download).path("missing").size() > 0);
+        assertEquals(body(saved).path("sha256").asText(),java.util.HexFormat.of().formatHex(
+                java.security.MessageDigest.getInstance("SHA-256").digest(download.body().getBytes(java.nio.charset.StandardCharsets.UTF_8))));
+        assertEquals(404,call("PUT",section,reviewer.cookie(),key(),"\"1\"",text).statusCode());
+    }
+
     private UUID grant(String project, UUID org, Actor recipient, Actor owner, String role, String activity) {
         UUID id = UUID.randomUUID();
         database.transaction(c -> update(c, """
