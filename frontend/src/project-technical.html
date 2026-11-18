@@ -7,6 +7,7 @@
     <nav id="cf-tech-sidebar" class="cf-workspace-nav" aria-label="Espaço de trabalho"
       [class.cf-journey-menu-open]="menuOpen()">
       <a routerLink="/workspace">Meus projetos</a>
+      @if (!owner() && capabilities()) { <a routerLink="/workspace/invitations">Convites recebidos</a> }
       @if (owner()) { <a [routerLink]="['/workspace/projects',projectId,'triage']">Triagem guiada</a> }
       <a [routerLink]="['/workspace/projects',projectId,'technical']" aria-current="page">Preparação técnica</a>
       @if (owner()) { <a [routerLink]="['/workspace/projects',projectId,'experience']">Preferências e equipe</a> }

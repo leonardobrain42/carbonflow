@@ -49,12 +49,17 @@ class SandboxAccountMailbox {
     }
 
     void deliver(Message message) {
+        deliver(UUID.randomUUID(), message);
+    }
+
+    void deliver(UUID notification, Message message) {
         Path inbox = requireEnabled();
         try {
             Path pending = Files.createTempFile(inbox, ".pending-", ".tmp");
             try {
                 Files.write(pending, json.writeValueAsBytes(message));
-                Files.move(pending, inbox.resolve(UUID.randomUUID() + ".json"), StandardCopyOption.ATOMIC_MOVE);
+                Files.move(pending, inbox.resolve(notification + ".json"), StandardCopyOption.ATOMIC_MOVE,
+                        StandardCopyOption.REPLACE_EXISTING);
             } finally {
                 Files.deleteIfExists(pending);
             }

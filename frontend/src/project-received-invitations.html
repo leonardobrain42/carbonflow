@@ -1,0 +1,51 @@
+<div class="cf-workspace-shell">
+  <aside class="cf-workspace-sidebar" aria-label="Navegação da conta">
+    <a routerLink="/workspace" class="cf-workspace-brand">Carbon<span>Flow</span></a>
+    <nav class="cf-workspace-nav" aria-label="Espaço de trabalho">
+      <a routerLink="/workspace">Meus projetos</a>
+      <a routerLink="/workspace/invitations" aria-current="page">Convites recebidos</a>
+    </nav>
+  </aside>
+
+  <div class="cf-workspace-stage">
+    <main class="cf-workspace-content">
+      <header class="cf-workspace-heading">
+        <h1>Convites recebidos</h1>
+        <p>Confira o papel, as atividades e a vigência antes de aceitar.</p>
+      </header>
+      @if (error()) { <p class="cf-workspace-alert" role="alert">{{ error() }}</p> }
+      @if (items(); as invitations) {
+        <ul class="cf-workspace-project-list">
+          @for (invitation of invitations; track invitation.id) {
+            <li>
+              <div>
+                <strong>{{ invitation.projectTitle }}</strong>
+                <p>{{ invitation.role === 'PREP' ? 'Preparação técnica' : 'Revisão técnica' }} · {{ status[invitation.state] }}</p>
+                <ul>
+                  @for (activity of invitation.activities; track activity) { <li>{{ names[activity] || activity }}</li> }
+                </ul>
+                @if (invitation.state === 'SENT') {
+                  <p>Aceite até {{ invitation.acceptUntil | date:'dd/MM/yyyy HH:mm' }}</p>
+                }
+                @if (invitation.state === 'SENT' || invitation.state === 'ACCEPTED') {
+                  <p>Vigência do acesso até {{ invitation.accessUntil | date:'dd/MM/yyyy HH:mm' }}</p>
+                }
+              </div>
+              @if (invitation.state === 'SENT') {
+                <button type="button" class="cf-workspace-primary" [disabled]="busy()" (click)="accept(invitation)">Aceitar convite</button>
+              } @else if (invitation.state === 'ACCEPTED') {
+                <a class="cf-workspace-link" [routerLink]="['/workspace/projects',invitation.projectId,'technical']">Abrir preparação técnica</a>
+              }
+            </li>
+          } @empty {
+            <li>Você ainda não recebeu convites nesta conta.</li>
+          }
+        </ul>
+      } @else if (busy()) {
+        <p role="status">Carregando convites…</p>
+      } @else {
+        <a routerLink="/workspace" class="cf-workspace-link">Ir para o espaço da conta</a>
+      }
+    </main>
+  </div>
+</div>

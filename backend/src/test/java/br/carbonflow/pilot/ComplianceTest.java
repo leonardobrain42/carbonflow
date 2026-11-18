@@ -93,9 +93,28 @@ class ComplianceTest {
         var pending = body(call("GET", "/v1/projects/" + project + "/authority-requests", owner, null, null));
         assertEquals(0, pending.path("activePowers").size());
         assertTrue(pending.path("requests").findValuesAsText("decision").contains("NEEDS_INFORMATION"));
+        String guest = actor(UUID.randomUUID());
+        String root = "/v1/projects/" + project;
+        String invitations = root + "/invitations";
+        String inbox = "/v1/project-invitations";
+        String planId = invitationPlan(owner, root, guest, "[\"INTAKE\",\"DOCUMENTATION\"]");
+        String send = invitations + "/plans/" + planId + "/send";
+        assertFalse(body(call("GET", invitations, owner, null, null)).path("canSend").asBoolean());
+        assertEquals(403, call("POST", send, owner, null, null, "\"1\"").statusCode());
 
         String proof = UUID.randomUUID().toString();
         String expiry = java.time.Instant.now().plusSeconds(3600).toString();
+        String representation = submit(owner, project, "REPRESENT_PROJECT");
+        String representationProof = UUID.randomUUID().toString();
+        assertEquals(200, call("PUT", root + "/authority-requests/" + representation + "/documents/" + representationProof,
+                owner, pdf, "application/octet-stream").statusCode());
+        var represented = call("POST", API + "/projects/" + project + "/requests/" + representation + "/decisions",
+                reviewer, """
+                {"decision":"APPROVED","reason":"Representação demonstrada.","documentId":"%s","validUntil":"%s"}
+                """.formatted(representationProof, expiry), "application/json", "\"0\"");
+        assertEquals(200, represented.statusCode(), represented.body());
+        assertFalse(body(call("GET", invitations, owner, null, null)).path("canSend").asBoolean());
+        assertEquals(403, call("POST", send, owner, null, null, "\"1\"").statusCode());
         String approval = "{\"decision\":\"APPROVED\",\"reason\":\"Poder administrativo demonstrado.\","
                 + "\"documentId\":\"" + proof + "\",\"validUntil\":\"" + expiry + "\"}";
         assertEquals(400, call("POST", decisions, reviewer, approval, "application/json", "\"1\"").statusCode());
@@ -106,10 +125,49 @@ class ComplianceTest {
 
         String statusPath = "/v1/projects/" + project + "/authority-requests";
         var active = body(call("GET", statusPath, owner, null, null)).path("activePowers");
-        assertEquals(java.util.List.of("SEND_INVITATIONS"), active.findValuesAsText("power"));
+        assertEquals(java.util.Set.of("REPRESENT_PROJECT", "SEND_INVITATIONS"),
+                java.util.Set.copyOf(active.findValuesAsText("power")));
         assertEquals(409, call("POST", ownerPath + "/withdraw", owner, null, null, "\"1\"").statusCode());
         assertEquals(409, call("PUT", ownerPath + "/documents/" + UUID.randomUUID(), owner, pdf,
                 "application/octet-stream").statusCode());
+
+        assertTrue(body(call("GET", invitations, owner, null, null)).path("canSend").asBoolean());
+        String unsupported = invitationPlan(owner, root, guest, "[\"BASELINE\"]");
+        assertEquals(409, call("POST", invitations + "/plans/" + unsupported + "/send",
+                owner, null, null, "\"1\"").statusCode());
+        assertEquals(412, call("POST", send, owner, null, null, "\"0\"").statusCode());
+        String key = UUID.randomUUID().toString();
+        var sent = call("POST", send, owner, null, null, "\"1\"", key);
+        assertEquals(200, sent.statusCode(), sent.body());
+        String invite = body(sent).path("id").asText();
+        assertEquals("SENT", body(sent).path("state").asText());
+        assertEquals(body(sent), body(call("POST", send, owner, null, null, "\"1\"", key)));
+        assertEquals(409, call("POST", send, owner, null, null, "\"1\"").statusCode());
+        assertEquals(0, body(call("GET", inbox, otherOwner, null, null)).size());
+        assertEquals(404, call("POST", inbox + "/" + invite + "/accept", otherOwner, null, null).statusCode());
+        assertEquals(404, call("GET", root + "/metadata", guest, null, null).statusCode());
+        assertEquals(invite, body(call("GET", inbox, guest, null, null)).get(0).path("id").asText());
+
+        String accept = inbox + "/" + invite + "/accept";
+        var accepted = call("POST", accept, guest, null, null);
+        assertEquals(200, accepted.statusCode(), accepted.body());
+        assertEquals("ACCEPTED", body(accepted).path("state").asText());
+        assertEquals(body(accepted), body(call("POST", accept, guest, null, null)));
+        assertEquals(404, call("GET", invitations, guest, null, null).statusCode());
+        assertEquals(200, call("GET", root + "/metadata", guest, null, null).statusCode());
+        String intake = root + "/technical/intake";
+        String dossier = root + "/technical/preliminary-dossier";
+        var saved = call("PUT", intake, guest, "{\"activity\":\"Preparação externa\"}", "application/json", "\"0\"");
+        assertEquals(200, saved.statusCode(), saved.body());
+        var prepared = call("POST", dossier, guest, null, null, "\"1\"");
+        assertEquals(201, prepared.statusCode(), prepared.body());
+        assertEquals(200, call("GET", dossier + "/download", guest, null, null).statusCode());
+
+        String secondGuest = actor(UUID.randomUUID());
+        String secondPlan = invitationPlan(owner, root, secondGuest, "[\"INTAKE\"]");
+        var secondSent = call("POST", invitations + "/plans/" + secondPlan + "/send", owner, null, null, "\"1\"");
+        assertEquals(200, secondSent.statusCode(), secondSent.body());
+        String secondInvite = body(secondSent).path("id").asText();
 
         String revocation = "{\"decision\":\"REVOKED\",\"reason\":\"Houve mudança na representação.\"}";
         assertEquals(412, call("POST", decisions, reviewer, revocation, "application/json", "\"1\"").statusCode());
@@ -117,10 +175,35 @@ class ComplianceTest {
         assertEquals(200, revoked.statusCode(), revoked.body());
         assertEquals(java.util.List.of("REVOKED", "APPROVED", "NEEDS_INFORMATION"),
                 body(revoked).findValuesAsText("decision"));
-        assertEquals(0, body(call("GET", statusPath, owner, null, null)).path("activePowers").size());
+        assertEquals(java.util.List.of("REPRESENT_PROJECT"),
+                body(call("GET", statusPath, owner, null, null)).path("activePowers").findValuesAsText("power"));
+        assertEquals(409, call("POST", inbox + "/" + secondInvite + "/accept", secondGuest, null, null).statusCode());
+        String revoke = invitations + "/" + invite + "/revoke";
+        assertEquals(404, call("POST", revoke, guest, null, null).statusCode());
+        var invitationRevoked = call("POST", revoke, owner, null, null);
+        assertEquals(200, invitationRevoked.statusCode(), invitationRevoked.body());
+        assertEquals("REVOKED", body(call("GET", inbox, guest, null, null)).get(0).path("state").asText());
+        for (String url : java.util.List.of(root + "/metadata", intake, dossier, dossier + "/download")) {
+            assertEquals(404, call("GET", url, guest, null, null).statusCode());
+        }
+        assertEquals(404, call("PUT", intake, guest, "{\"activity\":\"Nova edição\"}", "application/json", "\"1\"").statusCode());
+        UUID guestId = lookup(guest);
+        assertEquals(1L, database.read(c -> first(c,
+                "SELECT count(*) FROM app_project_intake_draft_revision WHERE project_id = ? AND actor_id = ?",
+                row -> row.getLong(1), project, guestId)).longValue());
         assertEquals(404, call("GET", ownerPath + "/documents/" + proof, owner, null, null).statusCode());
         assertEquals(404, call("GET", staffPath + "/documents/" + proof, reviewer, null, null).statusCode());
         assertEquals(3, body(call("GET", decisions, reviewer, null, null)).size());
+    }
+
+    private String invitationPlan(String owner, String projectRoot, String guest, String activities) throws Exception {
+        String plan = UUID.randomUUID().toString();
+        String payload = """
+                {"email":"%s@example.invalid","role":"PREP","activities":%s,"declaredConflict":"NONE_DECLARED"}
+                """.formatted(lookup(guest), activities);
+        var response = call("PUT", projectRoot + "/invitation-plans/" + plan, owner, payload, "application/json", "\"0\"");
+        assertEquals(200, response.statusCode(), response.body());
+        return plan;
     }
 
     private String currentCode() {
@@ -130,11 +213,15 @@ class ComplianceTest {
     }
 
     private String submit(String owner, String project) throws Exception {
+        return submit(owner, project, "SEND_INVITATIONS");
+    }
+
+    private String submit(String owner, String project, String power) throws Exception {
         String id = UUID.randomUUID().toString();
         var response = call("PUT", "/v1/projects/" + project + "/authority-requests/" + id, owner,
                 """
-                {"power":"SEND_INVITATIONS","representationBasis":"Ata sintética","evidenceReference":"DOC-SIM"}
-                """, "application/json");
+                {"power":"%s","representationBasis":"Ata sintética","evidenceReference":"DOC-SIM"}
+                """.formatted(power), "application/json");
         assertEquals(200, response.statusCode(), response.body());
         return id;
     }
@@ -177,9 +264,14 @@ class ComplianceTest {
     }
 
     private HttpResponse<String> call(String method, String path, String token, String data, String media, String etag) throws Exception {
+        return call(method, path, token, data, media, etag, UUID.randomUUID().toString());
+    }
+
+    private HttpResponse<String> call(String method, String path, String token, String data, String media, String etag,
+                                      String key) throws Exception {
         var request = HttpRequest.newBuilder(URI.create(server.toExternalForm()).resolve(path))
                 .header("Cookie", AccountAccess.COOKIE + "=" + token)
-                .header("Idempotency-Key", UUID.randomUUID().toString());
+                .header("Idempotency-Key", key);
         if (media != null) request.header("Content-Type", media);
         if (etag != null) request.header("If-Match", etag);
         return client.send(request.method(method, data == null ? HttpRequest.BodyPublishers.noBody()
