@@ -1,3 +1,4 @@
+import {ProjectOverviewComponent} from './project-overview';
 import {toSignal} from '@angular/core/rxjs-interop';
 import {afterNextRender, Component, computed, ElementRef, inject, Injector, signal, viewChild} from '@angular/core';
 import {HttpClient, HttpErrorResponse, provideHttpClient} from '@angular/common/http';
@@ -278,6 +279,7 @@ const routes: Routes = [
   {path: 'workspace/compliance', component: ComplianceQueueComponent},
   {path: 'workspace/invitations', component: ProjectReceivedInvitationsComponent},
   {path: 'workspace/projects/new', component: WorkspaceComponent},
+  {path: 'workspace/projects/:projectId/overview', component: ProjectOverviewComponent},
   {path: 'workspace/projects/:projectId/authority-requests', component: ProjectAuthorityRequestsComponent},
   {path: 'workspace/projects/:projectId/invitation-plans', component: ProjectInvitationPlansComponent},
   {path: 'workspace/projects/:projectId/experience', component: ProjectExperienceComponent},

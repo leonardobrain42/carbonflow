@@ -238,7 +238,7 @@
         </section>
       } @else if (project() && can('VIEW_GUIDES')) {
         <section class="cf-workspace-card"><h1>Guias técnicos</h1>
-          <carbonflow-project-guides [projectId]="projectId" (saved)="updateGuide($event)" />
+          <carbonflow-project-guides [projectId]="projectId" [initialGuide]="selectedGuide()" (saved)="updateGuide($event)" />
         </section>
       } @else {
         <div role="alert" class="cf-workspace-alert">{{ error() || 'Projeto indisponível para esta conta.' }}</div>

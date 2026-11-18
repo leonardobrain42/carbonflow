@@ -28,6 +28,7 @@
               @if (invitation.state === 'SENT') {
                 <button type="button" class="cf-workspace-primary" [disabled]="busy()" (click)="accept(invitation)">Aceitar convite</button>
               } @else if (invitation.state === 'ACCEPTED') {
+                <a class="cf-workspace-link" [routerLink]="['/workspace/projects',invitation.projectId,'overview']">Visão geral do projeto</a>
                 <a class="cf-workspace-link" [routerLink]="['/workspace/projects',invitation.projectId,'technical']">Abrir preparação técnica</a>
               }
             </li>

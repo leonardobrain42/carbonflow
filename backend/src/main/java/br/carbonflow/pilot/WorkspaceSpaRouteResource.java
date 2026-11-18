@@ -25,6 +25,12 @@ public class WorkspaceSpaRouteResource {
     }
 
     @GET
+    @Path("/projects/{project}/overview")
+    public Response projectOverview() {
+        return html();
+    }
+
+    @GET
     @Path("/projects/{project}/technical")
     public Response projectTechnical() {
         return html();

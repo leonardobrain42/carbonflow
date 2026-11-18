@@ -1,0 +1,96 @@
+<a class="cf-skip-link" href="#overview-main">Pular para a visão geral</a>
+<div class="cf-workspace-shell cf-journey-shell">
+  <aside cfWorkspaceNavigation [projectId]="journey()?.projectId ?? null"
+    [owner]="journey()?.role === 'DRAFT_OWNER'"></aside>
+  <div class="cf-workspace-stage">
+    <main id="overview-main" class="cf-workspace-content">
+      @if (journey(); as project) {
+        <header class="cf-workspace-heading cf-overview-heading">
+          <div>
+            <p>Visão geral do projeto</p>
+            <h1>{{ project.title }}</h1>
+            <p>{{ project.environment === 'SANDBOX' ? 'Ambiente de teste' : project.environment }}
+              · {{ project.projectState === 'DRAFT' ? 'Rascunho' : project.projectState }}
+              · {{ roleNames[project.role] }}</p>
+            <p>{{ project.methodology || 'Metodologia a definir' }}
+              @if (project.methodology && !project.methodologyConfigured) { · Jornada técnica indisponível }</p>
+          </div>
+          <button type="button" class="cf-workspace-outline" (click)="reload()">Atualizar visão geral</button>
+        </header>
+
+        <div class="cf-overview-summary">
+          <section class="cf-workspace-card" aria-labelledby="overview-next">
+            <h2 id="overview-next">Próxima ação</h2>
+            @if (next(); as task) {
+              <h3>{{ task.title }}</h3>
+              <p>{{ task.reason }}</p>
+              @if (task.destination; as destination) {
+                <a class="cf-workspace-primary" [routerLink]="routeFor(project.projectId, destination)"
+                  [queryParams]="queryFor(destination)">Continuar tarefa</a>
+              }
+            } @else {
+              <p>Nenhuma ação disponível para seu acesso neste momento.</p>
+            }
+          </section>
+
+          <section class="cf-workspace-card" aria-labelledby="overview-attention">
+            <h2 id="overview-attention">Atenção na jornada</h2>
+            @if (attention().length) {
+              <ul class="cf-tech-gates">
+                @for (task of attention().slice(0, 3); track task.id) {
+                  <li><strong>{{ task.title }}</strong><small>{{ stateNames[task.state] }}</small></li>
+                }
+              </ul>
+              <a class="cf-workspace-link" href="#overview-work">Ver tarefas e motivos</a>
+            } @else {
+              <p>Nenhuma tarefa visível aguarda dados ou rechecagem.</p>
+            }
+          </section>
+        </div>
+
+        <section aria-labelledby="overview-work">
+          <h2 id="overview-work" tabindex="-1">Minha jornada</h2>
+          @for (group of groups(); track group.title) {
+            <details class="cf-workspace-card cf-overview-group" [open]="group.hasNext || groups().length === 1">
+              <summary>{{ group.title }}</summary>
+              <ul class="cf-overview-tasks">
+                @for (task of group.items; track task.id) {
+                  <li>
+                    <div>
+                      <h3>{{ task.title }}</h3>
+                      <p>{{ task.reason }}</p>
+                      <small>{{ roleNames[task.responsible] }}
+                        @if (task.sourceVersion) { · Versão {{ task.sourceVersion }} }</small>
+                    </div>
+                    <div class="cf-overview-task-actions">
+                      <span class="cf-workspace-chip">{{ stateNames[task.state] }}</span>
+                      @if (task.destination; as destination) {
+                        <a class="cf-workspace-link" [routerLink]="routeFor(project.projectId, destination)"
+                          [queryParams]="queryFor(destination)" [attr.aria-label]="'Abrir ' + task.title">Abrir tarefa</a>
+                      }
+                    </div>
+                  </li>
+                }
+              </ul>
+            </details>
+          } @empty {
+            <p>Nenhuma tarefa compartilhada com esta conta.</p>
+          }
+        </section>
+      } @else {
+        <header class="cf-workspace-heading"><h1>Visão geral do projeto</h1></header>
+        @switch (state().kind) {
+          @case ('loading') { <p role="status">Carregando a visão geral…</p> }
+          @case ('error') {
+            <p role="alert" class="cf-workspace-alert">Não foi possível consultar a visão geral agora.</p>
+            <button type="button" class="cf-workspace-outline" (click)="reload()">Tentar novamente</button>
+          }
+          @case ('unavailable') {
+            <p role="alert" class="cf-workspace-alert">Projeto indisponível para esta conta.</p>
+            <a routerLink="/workspace" class="cf-workspace-link">Voltar a Meus projetos</a>
+          }
+        }
+      }
+    </main>
+  </div>
+</div>
