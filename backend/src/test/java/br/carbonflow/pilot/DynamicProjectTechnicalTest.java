@@ -371,6 +371,47 @@ class DynamicProjectTechnicalTest {
                 row -> row.getLong(1), project, preparer.id())).longValue());
     }
 
+    @Test
+    void methodologyGuidesKeepIndependentRevisionsAndEnforceActivityScope() throws Exception {
+        Actor owner = actor();
+        Actor guest = actor();
+        UUID org = organization(owner.id());
+        String project = body(call("POST", PROJECTS, owner.cookie(), key(), null,
+                "{\"organizationId\":\"" + org + "\",\"title\":\"Guias metodológicos\"}")).path("projectId").asText();
+        String root = PROJECTS + "/" + project + "/technical";
+        String guides = root + "/guides";
+        assertEquals(0, body(call("GET", guides, owner.cookie(), null, null, null)).path("guides").size());
+        assertEquals(404, call("GET", guides, guest.cookie(), null, null, null).statusCode());
+        assertEquals(200, call("PUT", root + "/intake", owner.cookie(), key(), "\"0\"",
+                "{\"candidateMethodology\":\"VM0038\"}").statusCode());
+        var catalogue = body(call("GET", guides, owner.cookie(), null, null, null)).path("guides");
+        assertTrue(catalogue.size() >= 1);
+        for (var guide : catalogue) {
+            String path = guides + "/" + guide.path("id").asText();
+            var field = guide.path("fields").findValues("key").get(0).asText();
+            String value = "date".equals(guide.at("/fields/0/type").asText()) ? "2027-02-01" :
+                    "select".equals(guide.at("/fields/0/type").asText()) ? guide.at("/fields/0/options/0").asText() : "Registro sintético";
+            String payload = json.writeValueAsString(java.util.Map.of(field, value));
+            var saved = call("PUT", path, owner.cookie(), key(), "\"0\"", payload);
+            assertEquals(200, saved.statusCode(), saved.body());
+            assertEquals(1,body(saved).path("version").asInt());
+            assertEquals(200,call("PUT", path, owner.cookie(), key(), "\"0\"", payload).statusCode());
+            assertEquals(412,call("PUT", path, owner.cookie(), key(), "\"0\"", "{}").statusCode());
+            assertEquals(200,call("PUT", path, owner.cookie(), key(), "\"1\"", "{}").statusCode());
+            var historical = body(call("GET",path + "/revisions/1",owner.cookie(),null,null,null));
+            assertEquals(value,historical.path("answers").path(field).asText());
+            assertFalse(historical.path("editable").asBoolean());
+        }
+        grant(project,org,guest,owner,"REV","INTAKE");
+        var permitted = body(call("GET",guides,guest.cookie(),null,null,null)).path("guides");
+        assertEquals(1, permitted.size());
+        assertEquals("applicability",permitted.get(0).path("id").asText());
+        assertEquals(404,call("PUT",guides + "/applicability",guest.cookie(),key(),"\"2\"","{}").statusCode());
+        assertEquals(404,call("GET",guides + "/safeguards/revisions/1",guest.cookie(),null,null,null).statusCode());
+        assertEquals(400,call("PUT",guides + "/applicability",owner.cookie(),key(),"\"2\"",
+                "{\"incidence\":\"Não aplicável\"}").statusCode());
+    }
+
     private UUID grant(String project, UUID org, Actor recipient, Actor owner, String role, String activity) {
         UUID id = UUID.randomUUID();
         database.transaction(c -> update(c, """

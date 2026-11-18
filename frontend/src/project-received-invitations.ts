@@ -18,7 +18,8 @@ export class ProjectReceivedInvitationsComponent {
   readonly busy = signal(false);
   readonly error = signal('');
   readonly status = INVITATION_STATUS;
-  readonly names: Record<string, string> = {INTAKE: 'Aplicabilidade e fronteira', DOCUMENTATION: 'Documentação do projeto'};
+  readonly names: Record<string, string> = {INTAKE: 'Aplicabilidade e fronteira', DOCUMENTATION: 'Documentação do projeto',
+    BASELINE: 'Linha de base', ADDITIONALITY: 'Adicionalidade', MONITORING: 'Monitoramento', CALCULATION: 'Quantificação'};
 
   constructor() {
     void this.load();

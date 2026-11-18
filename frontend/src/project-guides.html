@@ -1,0 +1,62 @@
+@if (loading()) {
+  <p role="status">Consultando os guias da metodologia…</p>
+} @else {
+  @if (error()) { <p class="cf-workspace-alert" role="alert">{{ error() }}</p>
+    <button type="button" class="cf-workspace-outline" (click)="load()">Recarregar guias</button> }
+  @if (guides().length) {
+    <nav aria-label="Guias da metodologia" class="cf-triage-actions">
+      @for (guide of guides(); track guide.id) {
+        <button class="cf-workspace-outline" type="button" [disabled]="busy()"
+          [attr.aria-current]="guide.id === current()?.id ? 'page' : null" (click)="select(guide)">{{ guide.title }}</button>
+      }
+    </nav>
+    @if (current(); as guide) {
+      <h3>{{ guide.title }}</h3>
+      <p>{{ guide.guidance }}</p>
+      <p>{{ guide.version ? 'Revisão salva · ' + guide.version : 'Rascunho a iniciar' }} · Revisão técnica pendente</p>
+      <fieldset class="cf-journey-fieldset" [disabled]="!guide.editable || busy()">
+        @for (field of guide.fields; track field.key) {
+          @if (field.key !== 'justification' || answers()['incidence'] === 'Não aplicável' || answers()['justification']) {
+            <label [for]="'guide-' + field.key">{{ field.label }}</label>
+            @if (field.type === 'select') {
+              <select #choice [id]="'guide-' + field.key" (change)="change(field.key,choice.value)">
+                <option value="" [selected]="!answers()[field.key]">Não informado</option>
+                @for (option of field.options; track option) {
+                  <option [value]="option" [selected]="answers()[field.key] === option">{{ option }}</option>
+                }
+              </select>
+            } @else if (field.type === 'date') {
+              <input #day type="date" [id]="'guide-' + field.key" [value]="answers()[field.key] || ''" (input)="change(field.key,day.value)">
+            } @else {
+              <textarea #content rows="2" maxlength="1600" [id]="'guide-' + field.key"
+                [value]="answers()[field.key] || ''" (input)="change(field.key,content.value)"></textarea>
+            }
+          }
+        }
+      </fieldset>
+      @if (guide.editable) { <button class="cf-workspace-primary" [disabled]="busy() || !dirty()" (click)="save()">Salvar guia</button> }
+      @if (notice()) { <p role="status">{{ notice() }}</p> }
+      @if (guide.version > 1) {
+        <details class="cf-journey-context">
+          <summary>Histórico de revisões</summary>
+          <label for="guide-revision">Revisão anterior a consultar</label>
+          <input #version id="guide-revision" type="number" min="1" [max]="guide.version - 1" [value]="guide.version - 1">
+          <button type="button" class="cf-workspace-outline" [disabled]="busy()" (click)="showRevision(version.valueAsNumber)">Consultar revisão</button>
+          @if (historical(); as past) {
+            <h4>Revisão {{ past.version }}</h4>
+            <dl>@for (field of past.fields; track field.key) {
+              <dt>{{ field.label }}</dt><dd>{{ past.answers[field.key] || 'Não informado' }}</dd>
+            }</dl>
+          }
+        </details>
+      }
+      @if (guide.missing.length) {
+        <details class="cf-journey-context"><summary>Informações pendentes na revisão salva ({{ guide.missing.length }})</summary>
+          <ul>@for (label of guide.missing; track label) { <li>{{ label }}</li> }</ul>
+        </details>
+      }
+    }
+  } @else if (!error()) {
+    <p>Nenhum guia disponível para a metodologia e as permissões deste projeto. Confira a metodologia indicada na triagem.</p>
+  }
+}

@@ -12,9 +12,8 @@ import java.util.UUID;
 final class ProjectCollaboration {
     private record Grant(String role, Set<String> activities) {}
 
-    static final Set<String> SUPPORTED_ACTIVITIES = Set.of("INTAKE", "DOCUMENTATION");
     static final Set<String> OWNER_TECHNICAL_ACTIONS = Set.of("VIEW_PROJECT_METADATA", "VIEW_CAPABILITIES",
-            "VIEW_INTAKE", "SAVE_INTAKE", "VIEW_DOSSIER", "PREPARE_DOSSIER", "DOWNLOAD_DOSSIER");
+            "VIEW_GUIDES", "SAVE_GUIDE", "VIEW_INTAKE", "SAVE_INTAKE", "VIEW_DOSSIER", "PREPARE_DOSSIER", "DOWNLOAD_DOSSIER");
 
     private ProjectCollaboration() {}
 
@@ -37,6 +36,13 @@ final class ProjectCollaboration {
         var actions = new LinkedHashSet<>(List.of("VIEW_PROJECT_METADATA", "VIEW_CAPABILITIES"));
         for (var grant : grants) {
             boolean preparer = "PREP".equals(grant.role());
+            for (String activity : grant.activities()) {
+                if (!"DOCUMENTATION".equals(activity)) {
+                    actions.add("GUIDE_" + activity);
+                    actions.add("VIEW_GUIDES");
+                    if (preparer) actions.add("SAVE_GUIDE");
+                }
+            }
             if (grant.activities().contains("INTAKE")) {
                 actions.add("VIEW_INTAKE");
                 if (preparer) actions.add("SAVE_INTAKE");

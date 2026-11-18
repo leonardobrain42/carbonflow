@@ -20,7 +20,7 @@ class ProjectInvitations {
     record Invitation(UUID id, String projectId, String projectTitle, UUID planId, int planVersion,
                       String recipient, String role, List<String> activities, String state,
                       OffsetDateTime acceptUntil, OffsetDateTime accessUntil) {}
-    record OwnerView(boolean canSend, List<Invitation> invitations) {}
+    record OwnerView(boolean canSend, List<Invitation> invitations, List<String> supportedActivities) {}
     private record Entry(Invitation view, UUID sender, UUID authorityRequest, int authorityVersion,
                          UUID grant, UUID grantee, UUID organization) {}
 
@@ -79,8 +79,9 @@ class ProjectInvitations {
                     || plan.independence() == ProjectInvitationPlans.Independence.DECLARED_CONFLICT) {
                 throw conflict("INDEPENDENCIA_DO_CONVITE", "Revise o destinatário e resolva o conflito de funções antes do envio.");
             }
-            if (details.activities().stream().anyMatch(activity -> !ProjectCollaboration.SUPPORTED_ACTIVITIES.contains(activity.name()))) {
-                throw conflict("ATIVIDADES_INDISPONIVEIS", "Convites ativos abrangem aplicabilidade e documentação neste projeto.");
+            var supported = ProjectGuides.supportedActivities(connection);
+            if (details.activities().stream().anyMatch(activity -> !supported.contains(activity.name()))) {
+                throw conflict("ATIVIDADES_INDISPONIVEIS", "O plano contém uma atividade ainda indisponível para convite.");
             }
             if (Boolean.TRUE.equals(first(connection, """
                     SELECT true FROM app_project_invitation WHERE project_id = ? AND plan_id = ? AND revoked_at IS NULL
@@ -195,13 +196,14 @@ class ProjectInvitations {
         return Boolean.TRUE.equals(first(connection, """
                 SELECT EXISTS(SELECT 1 FROM app_project_intake_draft_revision WHERE project_id = ? AND actor_id = ?)
                     OR EXISTS(SELECT 1 FROM app_project_preliminary_dossier WHERE project_id = ? AND actor_id = ?)
-                """, row -> row.getBoolean(1), project, actor, project, actor));
+                    OR EXISTS(SELECT 1 FROM app_technical_guide_revision WHERE project_id = ? AND actor_id = ?)
+                """, row -> row.getBoolean(1), project, actor, project, actor, project, actor));
     }
 
     private static OwnerView ownerView(Connection connection, DynamicProjectScope.Context scope) throws SQLException {
         var list = query(connection, SELECT + " WHERE i.project_id = ? ORDER BY i.sent_at DESC, i.id",
                 ProjectInvitations::entry, scope.id()).stream().map(Entry::view).toList();
-        return new OwnerView(sendingPower(connection, scope.id(), scope.actor().id()) != null, list);
+        return new OwnerView(sendingPower(connection, scope.id(), scope.actor().id()) != null, list, ProjectGuides.supportedActivities(connection));
     }
 
     private static ComplianceDecisions.GrantedPower sendingPower(Connection connection, String project, UUID actor) throws SQLException {

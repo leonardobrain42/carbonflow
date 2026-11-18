@@ -132,7 +132,7 @@ class ComplianceTest {
                 "application/octet-stream").statusCode());
 
         assertTrue(body(call("GET", invitations, owner, null, null)).path("canSend").asBoolean());
-        String unsupported = invitationPlan(owner, root, guest, "[\"BASELINE\"]");
+        String unsupported = invitationPlan(owner, root, guest, "[\"EVIDENCE\"]");
         assertEquals(409, call("POST", invitations + "/plans/" + unsupported + "/send",
                 owner, null, null, "\"1\"").statusCode());
         assertEquals(412, call("POST", send, owner, null, null, "\"0\"").statusCode());

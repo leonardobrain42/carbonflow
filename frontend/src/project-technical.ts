@@ -1,3 +1,4 @@
+import {ProjectGuidesComponent} from './project-guides';
 import {WorkspaceNavigationComponent} from './workspace-navigation';
 import {afterNextRender, Component, computed, ElementRef, inject, Injector, signal, viewChild} from '@angular/core';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
@@ -83,6 +84,7 @@ const SECTIONS = [
   {id: 'entender', title: 'Entender'},
   {id: 'preparar', title: 'Preparar informações'},
   {id: 'analisar', title: 'Analisar'},
+  {id: 'guias', title: 'Guias técnicos'},
   {id: 'redigir', title: 'Redigir'},
   {id: 'revisar', title: 'Revisar'},
 ] as const;
@@ -99,7 +101,7 @@ function formValues(data: IntakeData | null): IntakeForm {
 
 @Component({
   selector: 'carbonflow-project-technical',
-  imports: [RouterLink, WorkspaceNavigationComponent],
+  imports: [RouterLink, WorkspaceNavigationComponent, ProjectGuidesComponent],
   templateUrl: './project-technical.html',
 })
 export class ProjectTechnicalComponent {
@@ -107,6 +109,8 @@ export class ProjectTechnicalComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly injector = inject(Injector);
+  private readonly guideEditor = viewChild(ProjectGuidesComponent);
+  readonly canLeaveGuides = () => this.guideEditor()?.canLeave() ?? true;
   private readonly heading = viewChild<ElementRef<HTMLHeadingElement>>('sectionHeading');
   private readonly query = toSignal(this.route.queryParamMap);
   readonly projectId = this.route.snapshot.paramMap.get('projectId') ?? '';
@@ -125,7 +129,11 @@ export class ProjectTechnicalComponent {
   readonly notice = signal('');
   readonly form = signal<IntakeForm>(formValues(null));
   readonly owner = computed(() => this.capabilities()?.owner !== false && !!this.capabilities());
-  readonly sections = computed(() => this.can('VIEW_DOSSIER') ? SECTIONS : SECTIONS.slice(0, 3));
+  readonly sections = computed(() => SECTIONS.filter(item => {
+    if (item.id === 'guias') return this.capabilities()?.actions?.includes('VIEW_GUIDES') === true;
+    if (item.id === 'redigir' || item.id === 'revisar') return this.can('VIEW_DOSSIER');
+    return this.can('VIEW_INTAKE');
+  }));
   readonly section = computed(() => this.sections().find(item => item.id === this.query()?.get('secao')) ?? SECTIONS[0]);
   readonly dirty = computed(() => JSON.stringify(formValues(this.intake()?.data ?? null)) !== JSON.stringify(this.form()));
   readonly otherMethodology = signal(false);
@@ -183,7 +191,7 @@ export class ProjectTechnicalComponent {
   }
 
   async open(section: Section) {
-    if (this.section().id === section || this.saving()) return;
+    if (this.section().id === section || this.saving() || !this.canLeaveGuides()) return;
     this.notice.set('');
     if (await this.router.navigate([], {relativeTo: this.route, queryParams: {secao: section}, queryParamsHandling: 'merge'})) {
       afterNextRender(() => this.heading()?.nativeElement.focus(), {injector: this.injector});
