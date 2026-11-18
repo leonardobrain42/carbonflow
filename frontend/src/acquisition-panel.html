@@ -46,6 +46,10 @@
         <div class="cf-triage-actions">
           @if (item.canPlan) { <button type="button" class="cf-workspace-outline" [disabled]="busy()" (click)="editItem(item)">Replanejar</button> }
           @if (item.canReply) { <button type="button" class="cf-workspace-outline" [disabled]="busy()" (click)="chooseReply(item)">Responder</button> }
+          @if (item.canPlan || item.canReply) {
+            <button type="button" class="cf-workspace-outline" [disabled]="busy()"
+              (click)="evidence.emit({id:item.request.id,field:item.request.field})">Vincular versão do guia</button>
+          }
           <button type="button" class="cf-workspace-outline" [disabled]="busy()" (click)="showHistory(item)">Ver versões</button>
         </div>
       </article>

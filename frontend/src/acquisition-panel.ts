@@ -1,4 +1,4 @@
-import {Component, inject, input, signal} from '@angular/core';
+import {Component, inject, input, output, signal} from '@angular/core';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {firstValueFrom} from 'rxjs';
 
@@ -36,6 +36,7 @@ type Editor = {field: string; version: number; setup?: Setup};
 export class AcquisitionPanelComponent {
   readonly projectId = input.required<string>();
   readonly section = input.required<string>();
+  readonly evidence = output<{id:string;field:string}>();
   private readonly http = inject(HttpClient);
   readonly act = signal<Act>('PD');
   readonly view = signal<View|null>(null);

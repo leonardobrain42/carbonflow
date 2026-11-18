@@ -33,7 +33,10 @@
       @for (section of [guide.id]; track section) {
         <carbonflow-guide-references [projectId]="projectId()" [section]="section" [revision]="guide.version"
           [canOpenIntake]="canOpenIntake()" (prepare)="prepare.emit()" />
-        <carbonflow-acquisition-panel [projectId]="projectId()" [section]="section" />
+        <carbonflow-acquisition-panel [projectId]="projectId()" [section]="section" (evidence)="evidenceRequest.set($event)" />
+        <carbonflow-guide-facts-panel [projectId]="projectId()" [section]="section" [version]="guide.version"
+          [fields]="guide.fields" [answers]="guide.answers" [request]="evidenceRequest()" [editable]="guide.editable"
+          (clearRequest)="evidenceRequest.set(null)" (origin)="showRevision($event)" />
       }
       <fieldset class="cf-journey-fieldset" [disabled]="!guide.editable || busy()">
         @for (field of guide.fields; track field.key) {
@@ -58,7 +61,7 @@
       @if (guide.editable) { <button class="cf-workspace-primary" [disabled]="busy() || !dirty()" (click)="save()">Salvar guia</button> }
       @if (notice()) { <p role="status">{{ notice() }}</p> }
       @if (guide.version > 1) {
-        <details class="cf-journey-context">
+        <details class="cf-journey-context" [open]="historyOpen()">
           <summary>Histórico de revisões</summary>
           <label for="guide-revision">Revisão anterior a consultar</label>
           <input #version id="guide-revision" type="number" min="1" [max]="guide.version - 1" [value]="guide.version - 1">
