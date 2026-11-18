@@ -47,6 +47,7 @@ interface TechnicalIntake {
   journey: JourneyProfile;
   methodologies: JourneyOption[];
   experienceMode?: ExperienceMode;
+  applicability?: {revision:number; boundary:string | null; incidence:string | null; rights:string | null};
 }
 
 interface PreliminaryDossier {
@@ -188,6 +189,13 @@ export class ProjectTechnicalComponent {
     } finally {
       this.loading.set(false);
     }
+  }
+
+  updateGuide(guide: {id:string; version:number; answers:Record<string,string>}) {
+    if (guide.id !== 'applicability') return;
+    const {boundary,incidence,rights} = guide.answers;
+    this.intake.update(state => state && {...state,applicability:{revision:guide.version,
+      boundary:boundary ?? null,incidence:incidence ?? null,rights:rights ?? null}});
   }
 
   async open(section: Section) {

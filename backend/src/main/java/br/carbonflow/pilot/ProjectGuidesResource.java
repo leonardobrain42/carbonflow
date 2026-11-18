@@ -24,6 +24,13 @@ public class ProjectGuidesResource {
         return Response.ok(guides.revision(token, project, guide, version)).header("Cache-Control","private, no-store").build();
     }
 
+    @GET
+    @Path("/quantification/revisions/{version}/inputs")
+    public Response inputs(@CookieParam(AccountAccess.COOKIE) String token, @PathParam("project") String project,
+                           @PathParam("version") int version) {
+        return Response.ok(guides.quantificationInputs(token, project, version)).header("Cache-Control","private, no-store").build();
+    }
+
     @PUT
     @Path("/{guide}")
     @Consumes(MediaType.APPLICATION_JSON)

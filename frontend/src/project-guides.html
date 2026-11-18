@@ -66,6 +66,23 @@
           }
         </details>
       }
+      @if (guide.id === 'quantification' && guide.version) {
+        @if (guide.editable && !dirty()) {
+          <button type="button" class="cf-workspace-outline" [disabled]="busy()" (click)="save()">Atualizar referências dos guias</button>
+        }
+        <button type="button" class="cf-workspace-outline" [disabled]="busy()" (click)="showInputs(historical()?.version ?? guide.version)">
+          Consultar entradas vinculadas à revisão {{ historical()?.version ?? guide.version }}
+        </button>
+        @if (sources(); as inputs) {
+          @for (entry of inputs; track entry.id) {
+            <details class="cf-journey-context"><summary>{{ entry.title }} · revisão {{ entry.version }}</summary>
+              <dl>@for (field of entry.fields; track field.key) {
+                @if (entry.answers[field.key]) { <dt>{{ field.label }}</dt><dd>{{ entry.answers[field.key] }}</dd> }
+              }</dl>
+            </details>
+          } @empty { <p>Nenhuma entrada vinculada disponível para esta conta.</p> }
+        }
+      }
       @if (guide.missing.length) {
         <details class="cf-journey-context"><summary>Informações pendentes na revisão salva ({{ guide.missing.length }})</summary>
           <ul>@for (label of guide.missing; track label) { <li>{{ label }}</li> }</ul>

@@ -30,7 +30,8 @@ class ProjectGuides {
 
     Guide save(String token, String project, String id, String match, Map<String,String> submitted) {
         return scopes.write(token, project, "SAVE_GUIDE", (c, scope) -> {
-            Guide guide = catalog(c, scope).guides().stream().filter(g -> g.id().equals(id) && g.editable())
+            var catalog = catalog(c, scope);
+            Guide guide = catalog.guides().stream().filter(g -> g.id().equals(id) && g.editable())
                     .findFirst().orElseThrow(ProjectGuides::unavailable);
             Map<String,String> answers = normalize(guide, submitted);
             int expected = PilotCommands.expected(match);
@@ -38,11 +39,32 @@ class ProjectGuides {
                     && Boolean.TRUE.equals(first(c, "SELECT actor_id = ? FROM app_technical_guide_revision WHERE project_id=? AND guide_id=? AND version=?",
                     r -> r.getBoolean(1), scope.actor().id(), project, id, guide.version()))) return guide;
             PilotCommands.requireVersion(expected, guide.version());
-            if (answers.equals(guide.answers())) return guide;
+            var inputs = new TreeMap<String,Integer>();
+            if ("quantification".equals(id)) {
+                for (Guide item : catalog.guides()) {
+                    if (item.version() > 0 && Set.of("applicability","baseline","additionality","monitoring").contains(item.id())) {
+                        inputs.put(item.id(), item.version());
+                    }
+                }
+            }
+            if (answers.equals(guide.answers())) {
+                if (!"quantification".equals(id)) return guide;
+                var pinned = query(c, """
+                        SELECT input_id,input_version FROM app_quantification_guide_input
+                        WHERE project_id=? AND version=?
+                        """, r -> Map.entry(r.getString(1),r.getInt(2)),project,expected);
+                if (inputs.entrySet().equals(Set.copyOf(pinned))) return guide;
+            }
             update(c, """
                     INSERT INTO app_technical_guide_revision(project_id,organization_id,environment,guide_id,version,actor_id,answers)
                     VALUES(?,?,?,?,?,?,?::jsonb)
                     """, project, scope.organization(), scope.environment(), id, expected+1, scope.actor().id(), json.valueToTree(answers).toString());
+            for (var input : inputs.entrySet()) {
+                update(c, """
+                        INSERT INTO app_quantification_guide_input(project_id,guide_id,version,input_id,input_version)
+                        VALUES (?,?,?,?,?)
+                        """, project, id, expected + 1, input.getKey(), input.getValue());
+            }
             return view(guide.id(), guide.title(), guide.guidance(), guide.fields(), expected+1, answers, true);
         });
     }
@@ -57,6 +79,26 @@ class ProjectGuides {
             if (data == null) throw unavailable();
             return view(id, guide.title(), guide.guidance(), guide.fields(), version,
                     read(data, new TypeReference<>() {}), false);
+        });
+    }
+
+    List<Guide> quantificationInputs(String token, String project, int version) {
+        return scopes.read(token, project, "VIEW_GUIDES", (c, scope) -> {
+            var visible = catalog(c, scope).guides();
+            if (visible.stream().noneMatch(g -> "quantification".equals(g.id()) && version > 0 && version <= g.version())) {
+                throw unavailable();
+            }
+            var sources = visible.stream().collect(java.util.stream.Collectors.toMap(Guide::id, g -> g));
+            return query(c, """
+                    SELECT i.input_id,i.input_version,r.answers::text FROM app_quantification_guide_input i
+                    JOIN app_technical_guide_revision r ON r.project_id=i.project_id AND r.guide_id=i.input_id
+                        AND r.version=i.input_version WHERE i.project_id=? AND i.version=? ORDER BY i.input_id
+                    """, r -> {
+                        Guide source = sources.get(r.getString("input_id"));
+                        if (source == null) return null;
+                        return view(source.id(),source.title(),source.guidance(),source.fields(),r.getInt("input_version"),
+                                read(r.getString("answers"), new TypeReference<>() {}),false);
+                    },project,version).stream().filter(Objects::nonNull).toList();
         });
     }
 
