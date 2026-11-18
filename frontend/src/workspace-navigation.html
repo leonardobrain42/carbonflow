@@ -17,6 +17,8 @@
   @if (projectId(); as id) {
     <div class="cf-workspace-nav-group" role="group" aria-label="Projeto">
       <p class="cf-workspace-kicker" aria-hidden="true">Projeto</p>
+      <a [routerLink]="['/workspace/projects', id, 'overview']" routerLinkActive="cf-workspace-current"
+        ariaCurrentWhenActive="page" [routerLinkActiveOptions]="activeOptions" (click)="open.set(false)">Visão geral</a>
       @if (owner()) {
         <a [routerLink]="['/workspace/projects', id, 'triage']" routerLinkActive="cf-workspace-current"
           ariaCurrentWhenActive="page" [routerLinkActiveOptions]="activeOptions" (click)="open.set(false)">Triagem guiada</a>

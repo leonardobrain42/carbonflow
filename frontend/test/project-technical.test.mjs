@@ -125,7 +125,7 @@ test('CF-IMP-008: rascunho da conta cruza intake e prévia sem adquirir autorida
     await page.getByRole('heading', {name: 'Recarga urbana'}).waitFor();
     const menu = page.getByRole('navigation', {name:'Menu principal'});
     const menuItems = await menu.getByRole('link').allTextContents();
-    assert.deepEqual(menuItems, ['Meus projetos', 'Novo projeto', 'Convites recebidos', 'Triagem guiada',
+    assert.deepEqual(menuItems, ['Meus projetos', 'Novo projeto', 'Convites recebidos', 'Visão geral', 'Triagem guiada',
       'Preparação técnica', 'Preferências e equipe', 'Planos de convite', 'Comprovação de poderes', 'Piloto sintético']);
     await page.getByRole('link', {name: 'Preparar informações técnicas'}).click();
     await page.waitForURL('**/workspace/projects/' + projectId + '/technical');
@@ -241,7 +241,7 @@ test('CF-IMP-008: rascunho da conta cruza intake e prévia sem adquirir autorida
     await menuButton.click();
     await menu.waitFor();
     assert.deepEqual(await menu.getByRole('link').allTextContents(),
-      ['Meus projetos', 'Novo projeto', 'Convites recebidos', 'Preparação técnica', 'Piloto sintético']);
+      ['Meus projetos', 'Novo projeto', 'Convites recebidos', 'Visão geral', 'Preparação técnica', 'Piloto sintético']);
 
   } finally {
     await browser.close();
