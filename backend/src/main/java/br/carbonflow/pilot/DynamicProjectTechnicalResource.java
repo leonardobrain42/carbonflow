@@ -63,6 +63,16 @@ public class DynamicProjectTechnicalResource {
                 .header("Cache-Control", "private, no-store").build();
     }
 
+    @GET
+    @Path("/preliminary-dossier/download")
+    @Produces(MediaType.APPLICATION_OCTET_STREAM)
+    public Response downloadDossier(@CookieParam(AccountAccess.COOKIE) String cookie,
+                                    @PathParam("project") String project) {
+        return Response.ok(technical.downloadDossier(cookie, project), MediaType.APPLICATION_OCTET_STREAM)
+                .header("Content-Disposition", "attachment; filename=\"dossie-preliminar.json\"")
+                .header("Cache-Control", "private, no-store").header("X-Content-Type-Options", "nosniff").build();
+    }
+
     @POST
     @Path("/preliminary-dossier")
     public Response prepareDossier(@CookieParam(AccountAccess.COOKIE) String cookie,

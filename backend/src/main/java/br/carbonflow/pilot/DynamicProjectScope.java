@@ -5,6 +5,7 @@ import static br.carbonflow.pilot.PilotSql.update;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Set;
 import java.util.UUID;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -16,7 +17,7 @@ import jakarta.enterprise.context.ApplicationScoped;
  */
 @ApplicationScoped
 class DynamicProjectScope {
-    record Context(AccountAccess.Identity actor, ProjectContext.Draft project) {
+    record Context(AccountAccess.Identity actor, ProjectContext.Draft project, boolean owner, Set<String> actions) {
         String id() { return project.projectId(); }
         UUID organization() { return project.organizationId(); }
         String environment() { return project.environment(); }
@@ -25,15 +26,11 @@ class DynamicProjectScope {
     @FunctionalInterface
     interface Work<T> { T execute(Connection connection, Context context) throws SQLException; }
 
-    private static final String SCOPE_SQL = """
-            SELECT p.id, p.organization_id, p.environment, p.state, p.version
-            FROM app_project p JOIN app_organization_membership m
-              ON m.organization_id = p.organization_id AND m.identity_id = p.created_by
-            WHERE p.id = ? AND p.created_by = ? AND m.identity_id = ?
-              AND p.environment = 'SANDBOX' AND p.state = 'DRAFT'
-              AND m.role = 'DRAFT_OWNER' AND m.revoked_at IS NULL
-              AND m.valid_from <= statement_timestamp()
-              AND (m.valid_until IS NULL OR m.valid_until > statement_timestamp())
+    private record Target(ProjectContext.Draft project, UUID creator) {}
+
+    private static final String PROJECT = """
+            SELECT id, organization_id, environment, state, version, created_by
+            FROM app_project WHERE id = ? AND environment = 'SANDBOX' AND state = 'DRAFT'
             """;
 
     private final PilotDatabase database;
@@ -46,9 +43,9 @@ class DynamicProjectScope {
 
     <T> T read(String cookie, String project, String action, Work<T> body) {
         try {
-            return database.read(connection -> {
+            return database.transaction(connection -> {
                 var actor = accounts.requireIdentity(connection, cookie);
-                var scope = require(connection, actor, project, false);
+                var scope = require(connection, actor, project, action, false);
                 T result = body.execute(connection, scope);
                 audit(connection, scope.actor().id(), project, action, "PERMITTED", "OK");
                 return result;
@@ -63,7 +60,7 @@ class DynamicProjectScope {
         try {
             return database.transaction(connection -> {
                 var actor = accounts.lockIdentity(connection, cookie);
-                var scope = require(connection, actor, project, true);
+                var scope = require(connection, actor, project, action, true);
                 T result = body.execute(connection, scope);
                 audit(connection, scope.actor().id(), project, action, "PERMITTED", "OK");
                 return result;
@@ -74,17 +71,25 @@ class DynamicProjectScope {
         }
     }
 
-    private static Context require(Connection connection, AccountAccess.Identity actor, String project,
-                                   boolean lock) throws SQLException {
-        var draft = first(connection, SCOPE_SQL + (lock ? "FOR UPDATE OF p FOR SHARE OF m" : ""),
-                row -> new ProjectContext.Draft(row.getString("id"), row.getObject("organization_id", UUID.class),
+    private static Context require(Connection connection, AccountAccess.Identity actor, String project, String action,
+                                   boolean write) throws SQLException {
+        Target target = first(connection, PROJECT + (write ? "FOR UPDATE" : "FOR SHARE"), row -> new Target(
+                new ProjectContext.Draft(row.getString("id"), row.getObject("organization_id", UUID.class),
                         row.getString("environment"), row.getString("state"), row.getInt("version")),
-                project, actor.id(), actor.id());
-        if (draft == null) {
-            throw new PilotProblem(404, "RECURSO_NAO_VISIVEL", "project", "CF-IMP-008",
-                    "Recurso indisponível.");
+                row.getObject("created_by", UUID.class)), project);
+        if (target != null) {
+            Boolean owns = target.creator().equals(actor.id()) ? first(connection, """
+                    SELECT true FROM app_organization_membership WHERE organization_id = ? AND identity_id = ?
+                    AND role = 'DRAFT_OWNER' AND revoked_at IS NULL AND valid_from <= statement_timestamp()
+                    AND (valid_until IS NULL OR valid_until > statement_timestamp()) FOR SHARE
+                    """, row -> true, target.project().organizationId(), actor.id()) : null;
+            if (Boolean.TRUE.equals(owns)) {
+                return new Context(actor, target.project(), true, ProjectCollaboration.OWNER_TECHNICAL_ACTIONS);
+            }
+            Set<String> actions = ProjectCollaboration.actions(connection, project, actor.id());
+            if (actions.contains(action)) return new Context(actor, target.project(), false, actions);
         }
-        return new Context(actor, draft);
+        throw new PilotProblem(404, "RECURSO_NAO_VISIVEL", "project", "CF-IMP-008", "Recurso indisponível.");
     }
 
     private void denied(String cookie, String project, String action) {

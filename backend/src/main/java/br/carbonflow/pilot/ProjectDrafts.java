@@ -34,18 +34,23 @@ class ProjectDrafts {
     private final PilotDatabase database;
     private final AccountAccess accounts;
     private final ObjectMapper mapper;
+    private final DynamicProjectScope scopes;
 
-    ProjectDrafts(PilotDatabase database, AccountAccess accounts, ObjectMapper mapper) {
+    ProjectDrafts(PilotDatabase database, AccountAccess accounts, ObjectMapper mapper, DynamicProjectScope scopes) {
         this.database = database;
         this.accounts = accounts;
         this.mapper = mapper;
+        this.scopes = scopes;
     }
 
     Metadata metadata(String token, String project) {
-        return database.read(connection -> {
-            var actor = accounts.requireIdentity(connection, token);
-            return requireVisible(connection, project, actor.id(), false);
-        });
+        return scopes.read(token, project, "VIEW_PROJECT_METADATA", (connection, scope) ->
+                first(connection, """
+                        SELECT id, organization_id, environment, state, version, title, description
+                        FROM app_project WHERE id = ?
+                        """, row -> new Metadata(row.getString("id"), row.getObject("organization_id", UUID.class),
+                        row.getString("environment"), row.getString("state"), row.getInt("version"),
+                        row.getString("title"), row.getString("description")), scope.id()));
     }
 
     JsonNode create(String token, String keyHeader, ProjectDraftResource.Creation input) {

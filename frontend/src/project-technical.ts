@@ -64,6 +64,8 @@ interface Capabilities {
   projectId: string;
   environment: string;
   modules: Record<string, string>;
+  owner?: boolean;
+  actions?: string[];
 }
 
 const SECTIONS = [
@@ -99,6 +101,7 @@ export class ProjectTechnicalComponent {
   readonly projectId = this.route.snapshot.paramMap.get('projectId') ?? '';
   private readonly root = '/v1/projects/' + encodeURIComponent(this.projectId);
   private readonly technical = this.root + '/technical';
+  readonly dossierDownload = this.technical + '/preliminary-dossier/download';
 
   readonly project = signal<ProjectMetadata | null>(null);
   readonly capabilities = signal<Capabilities | null>(null);
@@ -110,8 +113,9 @@ export class ProjectTechnicalComponent {
   readonly notice = signal('');
   readonly menuOpen = signal(false);
   readonly form = signal<IntakeForm>(formValues(null));
-  readonly sections = SECTIONS;
-  readonly section = computed(() => SECTIONS.find(item => item.id === this.query()?.get('secao')) ?? SECTIONS[0]);
+  readonly owner = computed(() => this.capabilities()?.owner !== false && !!this.capabilities());
+  readonly sections = computed(() => this.can('VIEW_DOSSIER') ? SECTIONS : SECTIONS.slice(0, 3));
+  readonly section = computed(() => this.sections().find(item => item.id === this.query()?.get('secao')) ?? SECTIONS[0]);
   readonly dirty = computed(() => JSON.stringify(formValues(this.intake()?.data ?? null)) !== JSON.stringify(this.form()));
   readonly otherMethodology = signal(false);
   readonly otherOption = OTHER_METHODOLOGY;
@@ -129,10 +133,15 @@ export class ProjectTechnicalComponent {
     void this.load();
   }
 
+  can(action: string) {
+    const capabilities = this.capabilities();
+    return capabilities?.actions?.includes(action) ?? !!capabilities;
+  }
+
   readonly canPrepare = () => {
     const current = this.intake();
     const dossier = this.dossier();
-    return !!current && !this.dirty() && current.version > 0 && (!dossier || dossier.intakeVersion !== current.version);
+    return this.can('PREPARE_DOSSIER') && !!current && !this.dirty() && current.version > 0 && (!dossier || dossier.intakeVersion !== current.version);
   };
 
   private async load() {
@@ -144,13 +153,12 @@ export class ProjectTechnicalComponent {
         throw new Error('Contexto incorreto');
       }
       this.project.set(project);
-      const [capabilities, intake, dossier] = await Promise.all([
-        firstValueFrom(this.http.get<Capabilities>(this.technical + '/capabilities')),
-        firstValueFrom(this.http.get<TechnicalIntake>(this.technical + '/intake')),
-        firstValueFrom(this.http.get<PreliminaryDossier | null>(this.technical + '/preliminary-dossier')),
+      this.capabilities.set(await firstValueFrom(this.http.get<Capabilities>(this.technical + '/capabilities')));
+      const [intake, dossier] = await Promise.all([
+        this.can('VIEW_INTAKE') ? firstValueFrom(this.http.get<TechnicalIntake>(this.technical + '/intake')) : null,
+        this.can('VIEW_DOSSIER') ? firstValueFrom(this.http.get<PreliminaryDossier | null>(this.technical + '/preliminary-dossier')) : null,
       ]);
-      this.capabilities.set(capabilities);
-      this.acceptIntake(intake);
+      if (intake) this.acceptIntake(intake);
       this.dossier.set(dossier);
     } catch (cause: unknown) {
       this.project.set(null);
@@ -192,7 +200,7 @@ export class ProjectTechnicalComponent {
   async save(event: Event) {
     event.preventDefault();
     const current = this.intake();
-    if (this.saving() || this.loading() || !current) return;
+    if (this.saving() || this.loading() || !current || !this.can('SAVE_INTAKE')) return;
     const draft = this.form();
     const input: IntakeData = {
       activity: draft.activity.trim() || null,
@@ -265,6 +273,14 @@ export class ProjectTechnicalComponent {
   }
 
   private errorMessage(cause: unknown, fallback: string) {
+    if (cause instanceof HttpErrorResponse && [401, 404].includes(cause.status) && this.capabilities()?.owner === false) {
+      this.project.set(null);
+      this.capabilities.set(null);
+      this.intake.set(null);
+      this.dossier.set(null);
+      this.form.set(formValues(null));
+      return 'Seu acesso a este projeto está indisponível.';
+    }
     if (cause instanceof HttpErrorResponse && cause.status === 412) {
       return 'A preparação mudou em outra aba. Revise suas anotações antes de recarregar a página.';
     }

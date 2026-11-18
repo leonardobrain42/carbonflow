@@ -327,6 +327,60 @@ class DynamicProjectTechnicalTest {
                 owner.cookie(), null, null, null)).at("/modules/externalActs").asText());
     }
 
+    @Test
+    void technicalAdaptersRespectRoleActivityAndRevocation() throws Exception {
+        Actor owner = actor();
+        Actor reviewer = actor();
+        Actor preparer = actor();
+        UUID org = organization(owner.id());
+        var created = call("POST", PROJECTS, owner.cookie(), key(), null,
+                "{\"organizationId\":\"" + org + "\",\"title\":\"Projeto compartilhado\"}");
+        assertEquals(201, created.statusCode(), created.body());
+        String project = body(created).path("projectId").asText();
+        String root = PROJECTS + "/" + project;
+        String intake = root + "/technical/intake";
+        String dossier = root + "/technical/preliminary-dossier";
+        UUID revGrant = grant(project, org, reviewer, owner, "REV", "DOCUMENTATION");
+        grant(project, org, preparer, owner, "PREP", "INTAKE");
+
+        assertEquals(200, call("GET", root + "/metadata", reviewer.cookie(), null, null, null).statusCode());
+        assertEquals(404, call("GET", root + "/triage", reviewer.cookie(), null, null, null).statusCode());
+        var preparedInput = call("PUT", intake, preparer.cookie(), key(), "\"0\"",
+                "{\"activity\":\"Estudo de recarga\"}");
+        assertEquals(200, preparedInput.statusCode(), preparedInput.body());
+        assertEquals(404, call("POST", dossier, preparer.cookie(), key(), "\"1\"", null).statusCode());
+        assertEquals(404, call("PUT", intake, reviewer.cookie(), key(), "\"1\"",
+                "{\"activity\":\"Alteração indevida\"}").statusCode());
+        assertEquals(404, call("POST", dossier, reviewer.cookie(), key(), "\"1\"", null).statusCode());
+        assertEquals(201, call("POST", dossier, owner.cookie(), key(), "\"1\"", null).statusCode());
+        assertEquals(200, call("GET", dossier, reviewer.cookie(), null, null, null).statusCode());
+        var download = call("GET", dossier + "/download", reviewer.cookie(), null, null, null);
+        assertEquals(200, download.statusCode(), download.body());
+        assertTrue(download.headers().firstValue("Content-Disposition").orElseThrow().startsWith("attachment;"));
+        assertEquals("RASCUNHO_PRELIMINAR_NAO_ADMISSIVEL", body(download).path("state").asText());
+        assertEquals(404, call("GET", dossier + "/download", preparer.cookie(), null, null, null).statusCode());
+
+        database.transaction(c -> update(c, """
+                UPDATE app_project_collaborator_grant SET revoked_at = statement_timestamp(), revoked_by = ? WHERE id = ?
+                """, owner.id(), revGrant));
+        for (String url : java.util.List.of(root + "/metadata", intake, dossier, dossier + "/download")) {
+            assertEquals(404, call("GET", url, reviewer.cookie(), null, null, null).statusCode());
+        }
+        assertEquals(1L, database.read(c -> first(c,
+                "SELECT count(*) FROM app_project_intake_draft_revision WHERE project_id = ? AND actor_id = ?",
+                row -> row.getLong(1), project, preparer.id())).longValue());
+    }
+
+    private UUID grant(String project, UUID org, Actor recipient, Actor owner, String role, String activity) {
+        UUID id = UUID.randomUUID();
+        database.transaction(c -> update(c, """
+                INSERT INTO app_project_collaborator_grant(id,project_id,organization_id,environment,identity_id,
+                    granted_by,role,activities,valid_until)
+                VALUES(?,?,?,'SANDBOX',?,?,?,ARRAY[?]::text[],statement_timestamp()+interval '1 day')
+                """, id, project, org, recipient.id(), owner.id(), role, activity));
+        return id;
+    }
+
     private Actor actor() {
         UUID id = UUID.randomUUID();
         String token = AccessSecrets.newToken();

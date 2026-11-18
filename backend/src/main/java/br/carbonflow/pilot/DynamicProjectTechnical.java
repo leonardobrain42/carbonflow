@@ -39,7 +39,8 @@ class DynamicProjectTechnical {
                               String sourceTemplate, String sourceEdition,
                               List<String> sections, List<IntakeModel.Reason> blockers,
                               IntakeData intake) {}
-    record Capabilities(String projectId, String environment, Map<String, String> modules) {}
+    record Capabilities(String projectId, String environment, Map<String, String> modules,
+                        boolean owner, java.util.Set<String> actions) {}
     private record Receipt(String action, String project, byte[] fingerprint, String result) {}
     private record IntakeRow(int version, IntakeData data) {}
     private record DossierRow(int revision, String json) {}
@@ -66,9 +67,10 @@ class DynamicProjectTechnical {
     Capabilities capabilities(String cookie, String project) {
         return scopes.read(cookie, project, "VIEW_CAPABILITIES", (connection, context) ->
                 new Capabilities(project, context.environment(), Map.of(
-                        "intake", "PREPARATORY_ONLY", "evidence", "NOT_ENABLED",
-                        "calculation", "NOT_ENABLED", "monitoring", "NOT_ENABLED",
-                        "projectDescription", "PRELIMINARY_ONLY", "externalActs", "NOT_ENABLED")));
+                        "intake", context.actions().contains("VIEW_INTAKE") ? "PREPARATORY_ONLY" : "NOT_ENABLED",
+                        "evidence", "NOT_ENABLED", "calculation", "NOT_ENABLED", "monitoring", "NOT_ENABLED",
+                        "projectDescription", context.actions().contains("VIEW_DOSSIER") ? "PRELIMINARY_ONLY" : "NOT_ENABLED",
+                        "externalActs", "NOT_ENABLED"), context.owner(), context.actions()));
     }
 
     IntakeView intake(String cookie, String project) {
@@ -106,13 +108,26 @@ class DynamicProjectTechnical {
 
     PreliminaryDossier dossier(String cookie, String project) {
         return scopes.read(cookie, project, "VIEW_DOSSIER", (connection, scope) -> {
-            DossierRow latest = first(connection, """
-                    SELECT revision, preview::text AS body
-                    FROM app_project_preliminary_dossier
-                    WHERE project_id = ? ORDER BY revision DESC LIMIT 1
-                    """, row -> new DossierRow(row.getInt("revision"), row.getString("body")), project);
+            DossierRow latest = latestDossier(connection, project);
             return latest == null ? null : decode(latest.json(), PreliminaryDossier.class);
         });
+    }
+
+    String downloadDossier(String cookie, String project) {
+        return scopes.read(cookie, project, "DOWNLOAD_DOSSIER", (connection, scope) -> {
+            DossierRow latest = latestDossier(connection, project);
+            if (latest == null) throw new PilotProblem(404, "RECURSO_NAO_VISIVEL", "dossier", "CF-IMP-008",
+                    "Prévia indisponível.");
+            return latest.json();
+        });
+    }
+
+    private static DossierRow latestDossier(Connection connection, String project) throws SQLException {
+        return first(connection, """
+                SELECT revision, preview::text AS body
+                FROM app_project_preliminary_dossier
+                WHERE project_id = ? ORDER BY revision DESC LIMIT 1
+                """, row -> new DossierRow(row.getInt("revision"), row.getString("body")), project);
     }
 
     JsonNode prepareDossier(String cookie, String project, String keyHeader, String ifMatch) {
