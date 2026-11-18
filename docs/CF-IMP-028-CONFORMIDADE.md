@@ -12,3 +12,9 @@ O proprietário do rascunho registra a solicitação e os comprovantes no projet
 A página aceita até cinco PDFs de até 2 MiB por solicitação. O servidor valida o tamanho e a assinatura do formato, cifra os bytes e entrega o arquivo apenas como download autenticado. O sandbox usa documentos de teste.
 
 A fila, a validação MFA e os downloads pela equipe têm trilha de acesso. O solicitante pode retirar um pedido pendente. A retirada mantém o histórico e encerra o acesso aos comprovantes.
+
+## Decisões e vigência
+
+A equipe pode pedir complemento, indeferir, conceder um poder com comprovante e vigência ou revogar um poder concedido. Cada decisão registra o autor, a edição e o motivo. A concessão de representação abrange só o projeto analisado. A capacidade de enviar convites tem pedido e vigência próprios.
+
+Um poder aparece como vigente somente enquanto o vínculo com a organização, o pedido e a decisão correspondente estiverem ativos. Após revogação o histórico permanece consultável e o acesso aos comprovantes do pedido é encerrado. A ativação de convites é tratada na [CF-IMP-013](https://github.com/leonardobrain42/carbonflow/issues/24).

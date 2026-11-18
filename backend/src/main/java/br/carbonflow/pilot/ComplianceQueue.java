@@ -61,6 +61,7 @@ class ComplianceQueue {
         return database.transaction(connection -> {
             var actor = staff.require(connection, token);
             requireCase(connection, actor, project, request, false);
+            ComplianceEvidence.requireDocumentAccess(connection, project, request);
             return ComplianceEvidence.documents(connection, project, request);
         });
     }

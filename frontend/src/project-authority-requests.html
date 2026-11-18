@@ -54,11 +54,13 @@
                 <li>Nenhum comprovante anexado.</li>
               }
             </ul>
-            <label for="cf-power-pdf">Comprovante em PDF, até 2 MiB</label>
-            <input id="cf-power-pdf" #pdf type="file" accept="application/pdf,.pdf" [disabled]="busy()"
-              (change)="selectFile(pdf)">
-            <div class="cf-triage-actions">
+            @if (pending(request)) {
+              <label for="cf-power-pdf">Comprovante em PDF, até 2 MiB</label>
+              <input id="cf-power-pdf" #pdf type="file" accept="application/pdf,.pdf" [disabled]="busy()"
+                (change)="selectFile(pdf)">
               <button class="cf-workspace-primary" type="button" [disabled]="busy()" (click)="upload(pdf)">Anexar comprovante</button>
+            }
+            <div class="cf-triage-actions">
               <button class="cf-workspace-outline" type="button" [disabled]="busy()" (click)="cancel()">Voltar</button>
             </div>
           </section>
@@ -75,16 +77,29 @@
           <div class="cf-triage-actions">
             <button type="button" class="cf-workspace-primary" [disabled]="busy()" (click)="start()">Nova solicitação</button>
           </div>
+          @if (saved.activePowers?.length) {
+            <section class="cf-workspace-card">
+              <h2>Poderes vigentes neste projeto</h2>
+              <ul class="cf-tech-gates">
+                @for (grant of saved.activePowers; track grant.requestId) {
+                  <li>{{ powerLabel[grant.power] }} · até {{ grant.validUntil | date:'short' }}</li>
+                }
+              </ul>
+            </section>
+          }
           <ul class="cf-workspace-project-list">
             @for (request of saved.requests; track request.id) {
               <li>
                 <div>
                   <strong>{{ powerLabel[request.details.power] }}</strong>
-                  <p>{{ request.state === 'SUBMITTED' ? 'Registrada · comprovação pendente' : 'Retirada pelo solicitante' }}</p>
+                  <p>{{ status(request) }}</p>
+                  @if (request.assessment; as decision) { <p>{{ decision.reason }}</p> }
                   <p>{{ request.details.evidenceReference }}</p>
                 </div>
-                @if (request.state === 'SUBMITTED') {
+                @if (request.state === 'SUBMITTED' && request.assessment?.decision !== 'REVOKED') {
                   <button class="cf-workspace-outline" type="button" [disabled]="busy()" (click)="openEvidence(request)">Comprovantes</button>
+                }
+                @if (pending(request)) {
                   <button type="button" class="cf-workspace-outline" [disabled]="busy()"
                     (click)="withdrawing.set(request)">Retirar solicitação</button>
                 }

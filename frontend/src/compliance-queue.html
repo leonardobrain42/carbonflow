@@ -38,9 +38,56 @@
                 @for (document of documents(); track document.id) {
                   <li><a class="cf-workspace-link" [href]="documentUrl(item, document)">Baixar comprovante {{ $index + 1 }}</a></li>
                 } @empty {
-                  <li>Nenhum comprovante anexado.</li>
+                  <li>{{ history()[0]?.decision === 'REVOKED' ? 'Acesso aos comprovantes encerrado.' : 'Nenhum comprovante anexado.' }}</li>
                 }
               </ul>
+              <h3>Decisões e histórico</h3>
+              <ul class="cf-tech-gates">
+                @for (entry of history(); track entry.version) {
+                  <li>
+                    <strong>{{ decisionLabel[entry.decision] }}</strong>
+                    <p>{{ entry.reason }}</p>
+                    @if (entry.validUntil) { <p>Vigência até {{ entry.validUntil | date:'short' }}</p> }
+                  </li>
+                } @empty {
+                  <li>Aguardando parecer.</li>
+                }
+              </ul>
+              @if (decision(); as result) {
+                <form (submit)="saveDecision($event, reason.value, proof.value, expiry.value)">
+                  <h4>{{ decisionLabel[result] }}</h4>
+                  <label for="cf-decision-reason">Fundamento da decisão</label>
+                  <textarea #reason id="cf-decision-reason" rows="3" maxlength="600" required></textarea>
+                  <div [hidden]="result !== 'APPROVED'">
+                    <label for="cf-decision-proof">Comprovante que sustenta a decisão</label>
+                    <select #proof id="cf-decision-proof" [required]="result === 'APPROVED'">
+                      <option value="">Selecione o comprovante</option>
+                      @for (document of documents(); track document.id) {
+                        <option [value]="document.id">Comprovante {{ $index + 1 }}</option>
+                      }
+                    </select>
+                    <label for="cf-decision-expiry">Fim da vigência</label>
+                    <input #expiry id="cf-decision-expiry" type="datetime-local" [required]="result === 'APPROVED'">
+                  </div>
+                  <div class="cf-triage-actions">
+                    <button type="submit" class="cf-workspace-primary" [disabled]="busy()">Registrar decisão</button>
+                    <button type="button" class="cf-workspace-outline" [disabled]="busy()" (click)="decision.set(null)">Cancelar</button>
+                  </div>
+                </form>
+              } @else {
+                <div class="cf-triage-actions">
+                  @if (history()[0]?.decision === 'APPROVED') {
+                    <button type="button" class="cf-workspace-outline" [disabled]="busy()" (click)="choose('REVOKED')">Revogar poder</button>
+                  } @else if (!history().length || history()[0]?.decision === 'NEEDS_INFORMATION') {
+                    <button type="button" class="cf-workspace-primary" [disabled]="busy() || !documents().length"
+                      (click)="choose('APPROVED')">Conceder poder</button>
+                    <button type="button" class="cf-workspace-outline" [disabled]="busy()"
+                      (click)="choose('NEEDS_INFORMATION')">Solicitar complemento</button>
+                    <button type="button" class="cf-workspace-outline" [disabled]="busy()"
+                      (click)="choose('REJECTED')">Indeferir solicitação</button>
+                  }
+                </div>
+              }
               <button class="cf-workspace-outline" type="button" (click)="selected.set(null)">Voltar à fila</button>
             </section>
           } @else {

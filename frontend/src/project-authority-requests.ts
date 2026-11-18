@@ -1,4 +1,5 @@
 import {Component, inject, signal} from '@angular/core';
+import {DatePipe} from '@angular/common';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {ActivatedRoute, RouterLink} from '@angular/router';
 import {firstValueFrom, Observable} from 'rxjs';
@@ -20,6 +21,7 @@ interface AuthorityRequest {
   version: number;
   state: 'SUBMITTED' | 'WITHDRAWN';
   details: Input;
+  assessment?: {decision: 'NEEDS_INFORMATION' | 'APPROVED' | 'REJECTED' | 'REVOKED'; reason: string};
 }
 
 interface EvidenceDocument {id: string; bytesCount: number}
@@ -28,11 +30,12 @@ interface View {
   projectId: string;
   environment: string;
   requests: AuthorityRequest[];
+  activePowers?: {power: Power; requestId: string; validUntil: string}[];
 }
 
 @Component({
   selector: 'carbonflow-project-authority-requests',
-  imports: [RouterLink],
+  imports: [RouterLink, DatePipe],
   templateUrl: './project-authority-requests.html',
 })
 export class ProjectAuthorityRequestsComponent {
@@ -90,6 +93,23 @@ export class ProjectAuthorityRequestsComponent {
     const headers = {'If-Match':'"' + request.version + '"'};
     void this.run(this.http.post<View>(this.url + '/' + request.id + '/withdraw', null, {headers}),
       'Solicitação retirada. O histórico foi preservado.', () => this.withdrawing.set(null));
+  }
+
+  pending(request: AuthorityRequest) {
+    return request.state === 'SUBMITTED'
+      && (!request.assessment || request.assessment.decision === 'NEEDS_INFORMATION');
+  }
+
+  status(request: AuthorityRequest) {
+    if (request.state === 'WITHDRAWN') return 'Retirada pelo solicitante';
+    switch (request.assessment?.decision) {
+      case 'NEEDS_INFORMATION': return 'Complemento solicitado';
+      case 'APPROVED': return this.view()?.activePowers?.some(power => power.requestId === request.id)
+        ? 'Poder concedido' : 'Vigência encerrada';
+      case 'REJECTED': return 'Solicitação indeferida';
+      case 'REVOKED': return 'Poder revogado';
+      default: return 'Registrada · comprovação pendente';
+    }
   }
 
   async openEvidence(request: AuthorityRequest) {

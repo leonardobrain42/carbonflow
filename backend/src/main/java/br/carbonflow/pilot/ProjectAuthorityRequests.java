@@ -19,8 +19,10 @@ class ProjectAuthorityRequests {
     enum Power { REPRESENT_PROJECT, SEND_INVITATIONS }
     enum State { SUBMITTED, WITHDRAWN }
     record Input(Power power, String representationBasis, String evidenceReference) {}
-    record Entry(UUID id, int version, State state, Input details, OffsetDateTime recordedAt) {}
-    record View(String projectId, UUID organizationId, String environment, List<Entry> requests) {}
+    record Entry(UUID id, int version, State state, Input details, OffsetDateTime recordedAt,
+                 ComplianceDecisions.Decision assessment) {}
+    record View(String projectId, UUID organizationId, String environment, List<Entry> requests,
+                List<ComplianceDecisions.GrantedPower> activePowers) {}
 
     private static final String COLUMNS = """
             request_id, version, requested_power, state, representation_basis, evidence_reference, recorded_at
@@ -45,8 +47,9 @@ class ProjectAuthorityRequests {
                 throw new PilotProblem(409, "PROTOCOLO_REUSADO", "request", "CF-IMP-028",
                         "Este protocolo já foi registrado com outros dados.");
             }
-            if (previous.requests().stream().anyMatch(entry -> entry.state() == State.SUBMITTED
-                    && entry.details().power() == normalized.power())) {
+            if (previous.activePowers().stream().anyMatch(power -> power.power() == normalized.power())
+                    || previous.requests().stream().anyMatch(entry -> entry.state() == State.SUBMITTED
+                    && entry.details().power() == normalized.power() && pending(entry.assessment()))) {
                 throw new PilotProblem(409, "SOLICITACAO_EM_ABERTO", "power", "CF-IMP-028",
                         "Já existe uma solicitação em aberto para esse poder.");
             }
@@ -68,6 +71,10 @@ class ProjectAuthorityRequests {
                 return view(connection, context);
             }
             PilotCommands.requireVersion(expected, current.version());
+            if (!pending(ComplianceDecisions.latest(connection, project, id))) {
+                throw new PilotProblem(409, "SOLICITACAO_DECIDIDA", "request", "CF-IMP-028",
+                        "A solicitação já possui uma decisão final. A revisão da decisão cabe à conformidade.");
+            }
             insert(connection, context, id, current.version() + 1, State.WITHDRAWN, current.details());
             return view(connection, context);
         });
@@ -78,7 +85,11 @@ class ProjectAuthorityRequests {
                 FROM app_project_authority_request_revision WHERE project_id = ?
                 ORDER BY request_id, version DESC
                 """, ProjectAuthorityRequests::entry, context.id());
-        return new View(context.id(), context.organization(), context.environment(), entries);
+        var decisions = ComplianceDecisions.latestForProject(connection, context.id());
+        var assessed = entries.stream().map(entry -> new Entry(entry.id(), entry.version(), entry.state(),
+                entry.details(), entry.recordedAt(), decisions.get(entry.id()))).toList();
+        return new View(context.id(), context.organization(), context.environment(), assessed,
+                ComplianceDecisions.active(connection, context.id(), context.actor().id()));
     }
 
     private static Entry entry(ResultSet row) throws SQLException {
@@ -86,7 +97,11 @@ class ProjectAuthorityRequests {
                 State.valueOf(row.getString("state")),
                 new Input(Power.valueOf(row.getString("requested_power")), row.getString("representation_basis"),
                         row.getString("evidence_reference")),
-                row.getObject("recorded_at", OffsetDateTime.class));
+                row.getObject("recorded_at", OffsetDateTime.class), null);
+    }
+
+    private static boolean pending(ComplianceDecisions.Decision assessment) {
+        return assessment == null || assessment.decision() == ComplianceDecisions.Outcome.NEEDS_INFORMATION;
     }
 
     private static void insert(Connection connection, DynamicProjectScope.Context context, UUID id,
