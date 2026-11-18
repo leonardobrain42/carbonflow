@@ -169,6 +169,24 @@ test('CF-IMP-008: rascunho da conta cruza intake e prévia sem adquirir autorida
     assert.equal(await sections.getByRole('button',{name:'Redigir'}).getAttribute('aria-current'), 'page');
     await sections.getByRole('button',{name:'Revisar'}).click();
     await page.getByText('Prévia preliminar, aguardando comprovação.').waitFor();
+    const draft = {id:'baseline',title:'Linha de base',outdated:false,section:{number:1,guideVersion:1,
+      author:'autor-fixture',narrative:'Descrição da frota de referência',sha256:'sha-fixture'},history:[],actions:['SUBMITTED']};
+    await page.route('**/technical/pd-reviews', route => route.fulfill({json:[draft]}));
+    await page.route('**/technical/pd-reviews/baseline/versions/1', async route => {
+      assert.equal(route.request().headers()['if-match'], '"0"');
+      const payload=route.request().postDataJSON();
+      assert.deepEqual(payload,{state:'SUBMITTED',reason:'Conferir a evidência da frota'});
+      await route.fulfill({json:{...draft,actions:['REOPENED'],history:[{...payload,seq:1,actor:'autor-fixture',at:'2026-01-01T12:00:00Z'}]}});
+    });
+    await page.getByRole('button',{name:'Abrir fila de revisão'}).click();
+    const submitReview=page.getByRole('button',{name:'Encaminhar para revisão'});
+    await submitReview.waitFor();
+    assert.equal(await submitReview.isDisabled(),true);
+    await page.getByLabel('Parecer ou motivo da ação').fill('Conferir a evidência da frota');
+    await submitReview.click();
+    await page.getByRole('button',{name:'Reabrir para edição'}).waitFor();
+    assert.equal(await page.getByRole('button',{name:'Aprovar internamente'}).count(),0);
+    await page.getByText('Conferir a evidência da frota',{exact:true}).waitFor();
     await sections.getByRole('button',{name:'Preparar informações'}).click();
     assert.equal(await page.getByLabel('Atividade planejada').inputValue(),
       'Recarga elétrica em ambiente urbano');

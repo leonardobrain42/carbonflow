@@ -1,0 +1,21 @@
+<section class="cf-workspace-card">
+  <h2>Competência para congelar seções do PD</h2>
+  <button class="cf-workspace-outline" type="button" (click)="load()" [disabled]="busy()">Consultar revisores</button>
+  @if (targets(); as list) {
+    <ul>@for (target of list; track target.projectId + target.reviewerId + target.sectionId) {
+      <li><button type="button" (click)="open(target)" [disabled]="busy()">{{target.projectTitle}} · {{target.sectionTitle}} · {{target.reviewerName}}</button></li>
+    } @empty { <li>Nenhum revisor com seção redigida e escopo compatível.</li> }</ul>
+  }
+  @if (selected(); as target) { @if (entry(); as current) {
+    <h3>{{target.reviewerName}} · {{target.sectionTitle}}</h3>
+    <p>{{target.projectTitle}} · {{current.active ? 'Competência vigente' : 'Sem competência vigente'}}</p>
+    @if (current.version) { <p>Decisão {{current.version}} · {{current.reference}} · vigência até {{current.validUntil | date:'short'}}</p> }
+    <label for="pd-proof">Referência da comprovação ou motivo da revogação</label>
+    <input id="pd-proof" #proof maxlength="1000" [disabled]="busy()">
+    <label for="pd-expiry">Vigência da concessão até</label>
+    <input id="pd-expiry" #expiry type="datetime-local" [disabled]="busy()">
+    <button type="button" [disabled]="busy()" (click)="save(proof.value,expiry.value,false)">Confirmar competência</button>
+    @if (current.active) { <button type="button" [disabled]="busy()" (click)="save(proof.value,'',true)">Revogar competência</button> }
+  } }
+  @if (message()) { <p role="status">{{message()}}</p> }
+</section>

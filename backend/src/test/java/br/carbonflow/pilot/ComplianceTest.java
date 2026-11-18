@@ -104,6 +104,25 @@ class ComplianceTest {
 
         String proof = UUID.randomUUID().toString();
         String expiry = java.time.Instant.now().plusSeconds(3600).toString();
+        UUID docReviewer = UUID.randomUUID();
+        actor(docReviewer);
+        database.transaction(c -> update(c, """
+                INSERT INTO app_project_collaborator_grant(id,project_id,organization_id,environment,identity_id,
+                    granted_by,role,activities,valid_until)
+                VALUES(?,?,?,'SANDBOX',?,?,'REV',ARRAY['DOCUMENTATION','BASELINE'],statement_timestamp()+interval '1 hour')
+                """,UUID.randomUUID(),project,ORG,docReviewer,OWNER_STAFF));
+        String competence = API + "/projects/" + project + "/reviewers/" + docReviewer + "/sections/baseline/competence";
+        String reference = "{\"reference\":\"Termo interno do revisor\",\"validUntil\":\"" + expiry + "\"}";
+        assertEquals(403,call("GET",competence,secondSession,null,null).statusCode());
+        assertEquals(404,call("GET",competence,owner,null,null).statusCode());
+        assertEquals(200,call("GET",API+"/pd-reviewers",reviewer,null,null).statusCode());
+        var confirmed = call("PUT",competence,reviewer,reference,"application/json","\"0\"");
+        assertEquals(200,confirmed.statusCode(),confirmed.body());
+        assertTrue(body(confirmed).path("active").asBoolean());
+        assertEquals(412,call("PUT",competence,reviewer,reference,"application/json","\"0\"").statusCode());
+        var revoked = call("PUT",competence,reviewer,"{\"revoke\":true,\"reference\":\"Retirada\"}","application/json","\"1\"");
+        assertEquals(200,revoked.statusCode(),revoked.body());
+        assertFalse(body(revoked).path("active").asBoolean());
         String representation = submit(owner, project, "REPRESENT_PROJECT");
         String representationProof = UUID.randomUUID().toString();
         assertEquals(200, call("PUT", root + "/authority-requests/" + representation + "/documents/" + representationProof,

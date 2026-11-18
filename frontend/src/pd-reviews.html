@@ -1,0 +1,44 @@
+<section class="cf-journey-context" aria-label="Revisão interna das seções">
+  <h3>Revisão interna das seções do PD</h3>
+  <p>O parecer do REV fica associado à versão redigida. A avaliação do VVB e os atos da Verra seguem fluxos próprios.</p>
+  <button type="button" class="cf-workspace-outline" [disabled]="busy()" (click)="load()">{{items() ? 'Atualizar fila' : 'Abrir fila de revisão'}}</button>
+  @if (items(); as list) {
+    <div class="cf-triage-actions">
+      @for (item of list; track item.id) {
+        <button type="button" class="cf-workspace-outline" [attr.aria-pressed]="selected()?.id === item.id" [disabled]="busy()" (click)="select(item)">{{item.title}}</button>
+      } @empty { <p>Nenhuma seção redigida nas atividades disponíveis para esta conta.</p> }
+    </div>
+  }
+  @if (selected(); as item) {
+    <h4>{{item.title}} · versão {{version()}}</h4>
+    <p role="status">{{ events().length ? state[events()[events().length-1].state] : 'Rascunho' }}</p>
+    @if (item.section.number > 1) {
+      <div class="cf-triage-actions">
+        <button type="button" [disabled]="busy() || version() === 1" (click)="history(version()-1)">Versão anterior</button>
+        <button type="button" [disabled]="busy() || version() === item.section.number" (click)="history(version()+1)">Versão seguinte</button>
+      </div>
+    }
+    @if (version() === item.section.number) {
+      <p>Autor · {{item.section.author}} · guia de origem v{{item.section.guideVersion}}</p>
+      <p style="white-space: pre-wrap">{{item.section.narrative}}</p>
+      @if (item.outdated) { <p>O guia mudou após a redação. Confira os novos dados antes de encaminhar outra versão.</p> }
+    }
+    <a class="cf-workspace-link" [href]="base+'/pd-sections/'+item.id+'/versions/'+version()+'/download'">Baixar texto, fontes e lacunas desta versão</a>
+    <ol>@for (entry of events(); track entry.seq) {
+      <li><strong>{{state[entry.state]}}</strong> · {{entry.at | date:'short'}} · {{entry.actor}}
+        <p>{{entry.reason}}</p>
+        @if (entry.competenceVersion) { <small>Competência confirmada · versão {{entry.competenceVersion}}</small> }
+      </li>
+    }</ol>
+    @if (version() === item.section.number && item.actions.length) {
+      <label for="pd-opinion">Parecer ou motivo da ação</label>
+      <textarea id="pd-opinion" #note rows="3" maxlength="2000" [value]="reason()" [disabled]="busy()" (input)="reason.set(note.value)"></textarea>
+      <div class="cf-triage-actions">@for (action of item.actions; track action) {
+        <button type="button" class="cf-workspace-outline" [disabled]="busy() || !reason().trim()" (click)="decide(action)">{{verb[action]}}</button>
+      }</div>
+    } @else if (version() === item.section.number) {
+      <p>Ações dependem do estado da versão, do escopo da conta e da independência de autoria. O congelamento exige competência vigente para esta seção.</p>
+    }
+  }
+  @if (error()) { <p role="alert">{{error()}}</p> }
+</section>

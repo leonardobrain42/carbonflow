@@ -63,6 +63,9 @@ class PdSections {
                 throw conflict("Consulte a revisão atual do guia antes de redigir.");
             }
             if (current != null && current.guideVersion() == guide.version() && text.equals(current.narrative())) return current;
+            if (current != null && PdReviews.locked(c,project,id,current.number())) {
+                throw conflict("Reabra a seção antes de criar outra versão.");
+            }
             int version = expected+1;
             var artifact = mapper.createObjectNode();
             artifact.put("kind","PD_SECTION_DRAFT").put("exposure","RESERVED").put("projectId",project)

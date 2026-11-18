@@ -13,7 +13,7 @@ final class ProjectCollaboration {
     private record Grant(String role, Set<String> activities) {}
 
     static final Set<String> OWNER_TECHNICAL_ACTIONS = Set.of("VIEW_PROJECT_METADATA", "VIEW_CAPABILITIES",
-            "VIEW_GUIDES", "SAVE_GUIDE", "VIEW_INTAKE", "SAVE_INTAKE", "VIEW_DOSSIER", "PREPARE_DOSSIER", "DOWNLOAD_DOSSIER");
+            "VIEW_PD_REVIEW", "VIEW_GUIDES", "SAVE_GUIDE", "VIEW_INTAKE", "SAVE_INTAKE", "VIEW_DOSSIER", "PREPARE_DOSSIER", "DOWNLOAD_DOSSIER");
 
     private ProjectCollaboration() {}
 
@@ -49,7 +49,8 @@ final class ProjectCollaboration {
             }
             if (grant.activities().contains("DOCUMENTATION")) {
                 // A preliminary dossier includes its intake snapshot. Preparing it also requires viewing current intake.
-                actions.addAll(List.of("VIEW_INTAKE", "VIEW_DOSSIER", "DOWNLOAD_DOSSIER"));
+                actions.addAll(List.of("VIEW_INTAKE", "VIEW_DOSSIER", "DOWNLOAD_DOSSIER", "VIEW_PD_REVIEW"));
+                if (!preparer) actions.add("DECIDE_PD_REVIEW");
                 if (preparer) actions.add("PREPARE_DOSSIER");
             }
         }

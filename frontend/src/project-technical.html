@@ -213,6 +213,7 @@
             }
 
             @case ('revisar') {
+              <carbonflow-pd-reviews [projectId]="projectId" />
               <p>Confira as condições que ainda impedem o encaminhamento do dossiê para análise técnica.</p>
               @if (dossier(); as prepared) {
                 <div class="cf-journey-context">
