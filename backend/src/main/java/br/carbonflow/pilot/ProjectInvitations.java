@@ -25,7 +25,7 @@ class ProjectInvitations {
                          UUID grant, UUID grantee, UUID organization) {}
 
     private static final String SELECT = """
-            SELECT i.*, p.title, p.organization_id, plan.email_normalized, plan.proposed_role, plan.activities,
+            SELECT i.*, p.organization_id, plan.email_normalized, plan.proposed_role, plan.activities,
                    g.identity_id AS grantee,
                    CASE WHEN i.revoked_at IS NOT NULL OR g.revoked_at IS NOT NULL THEN 'REVOKED'
                         WHEN i.access_until <= statement_timestamp() THEN 'EXPIRED'
@@ -103,11 +103,11 @@ class ProjectInvitations {
             UUID id = UUID.nameUUIDFromBytes((project + ":" + scope.actor().id() + ":" + command).getBytes(StandardCharsets.UTF_8));
             mailbox.requireAvailable();
             update(connection, """
-                    INSERT INTO app_project_invitation(id,project_id,plan_id,plan_version,sender_id,
+                    INSERT INTO app_project_invitation(id,project_id,project_title,plan_id,plan_version,sender_id,
                         authority_request_id,authority_version,command_key,sent_at,accept_until,access_until)
-                    VALUES(?,?,?,?,?,?,?,?,?,?,?)
-                    """, id, project, planId, plan.version(), scope.actor().id(), power.requestId(), power.decisionVersion(),
-                    command, now, acceptUntil, accessUntil);
+                    SELECT ?,id,title,?,?,?,?,?,?,?,?,? FROM app_project WHERE id = ?
+                    """, id, planId, plan.version(), scope.actor().id(), power.requestId(), power.decisionVersion(),
+                    command, now, acceptUntil, accessUntil, project);
             mailbox.deliver(id, new SandboxAccountMailbox.Message(details.email(), "PROJECT_INVITATION", id.toString(), acceptUntil));
             return find(connection, id).view();
         });
@@ -220,7 +220,7 @@ class ProjectInvitations {
     private static Entry entry(ResultSet row) throws SQLException {
         var array = row.getArray("activities");
         try {
-            return new Entry(new Invitation(row.getObject("id", UUID.class), row.getString("project_id"), row.getString("title"),
+            return new Entry(new Invitation(row.getObject("id", UUID.class), row.getString("project_id"), row.getString("project_title"),
                     row.getObject("plan_id", UUID.class), row.getInt("plan_version"), row.getString("email_normalized"),
                     row.getString("proposed_role"), List.of((String[]) array.getArray()), row.getString("invitation_state"),
                     row.getObject("accept_until", OffsetDateTime.class), row.getObject("access_until", OffsetDateTime.class)),

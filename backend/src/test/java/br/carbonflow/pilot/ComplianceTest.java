@@ -182,7 +182,10 @@ class ComplianceTest {
         assertEquals(404, call("POST", revoke, guest, null, null).statusCode());
         var invitationRevoked = call("POST", revoke, owner, null, null);
         assertEquals(200, invitationRevoked.statusCode(), invitationRevoked.body());
-        assertEquals("REVOKED", body(call("GET", inbox, guest, null, null)).get(0).path("state").asText());
+        database.transaction(c -> update(c, "UPDATE app_project SET title = ? WHERE id = ?", "Título posterior", project));
+        var revokedInvitation = body(call("GET", inbox, guest, null, null)).get(0);
+        assertEquals("REVOKED", revokedInvitation.path("state").asText());
+        assertEquals("Projeto sintético", revokedInvitation.path("projectTitle").asText());
         for (String url : java.util.List.of(root + "/metadata", intake, dossier, dossier + "/download")) {
             assertEquals(404, call("GET", url, guest, null, null).statusCode());
         }

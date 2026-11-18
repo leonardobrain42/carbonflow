@@ -1,6 +1,7 @@
 CREATE TABLE app_project_invitation (
     id uuid PRIMARY KEY,
     project_id text NOT NULL REFERENCES app_project(id),
+    project_title text NOT NULL,
     plan_id uuid NOT NULL,
     plan_version integer NOT NULL,
     sender_id uuid NOT NULL REFERENCES app_identity(id),
