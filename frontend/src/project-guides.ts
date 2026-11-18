@@ -1,3 +1,4 @@
+import {AcquisitionPanelComponent} from './acquisition-panel';
 import {Component, inject, input, OnInit, output, signal} from '@angular/core';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {firstValueFrom} from 'rxjs';
@@ -11,7 +12,7 @@ interface Guide {
 
 @Component({
   selector: 'carbonflow-project-guides',
-  imports: [GuideReferencesComponent],
+  imports: [GuideReferencesComponent, AcquisitionPanelComponent],
   templateUrl: './project-guides.html',
 })
 export class ProjectGuidesComponent implements OnInit {

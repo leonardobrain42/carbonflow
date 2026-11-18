@@ -33,6 +33,7 @@
       @for (section of [guide.id]; track section) {
         <carbonflow-guide-references [projectId]="projectId()" [section]="section" [revision]="guide.version"
           [canOpenIntake]="canOpenIntake()" (prepare)="prepare.emit()" />
+        <carbonflow-acquisition-panel [projectId]="projectId()" [section]="section" />
       }
       <fieldset class="cf-journey-fieldset" [disabled]="!guide.editable || busy()">
         @for (field of guide.fields; track field.key) {

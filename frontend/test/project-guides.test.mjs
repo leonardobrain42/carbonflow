@@ -96,3 +96,56 @@ test('guia mostra a referência da regra, a edição consultada e o fallback ap�
     assert.equal(await page.getByRole('link',{name:'Consultar origem de VM0038'}).count(),0);
   } finally { await browser.close(); }
 });
+
+test('registra solicitação a partir de lacuna e preserva a natureza da resposta', async () => {
+  const browser = await chromium.launch({executablePath});
+  try {
+    const page = await browser.newPage({viewport:{width:390,height:844}});
+    const root = '/v1/projects/' + projectId;
+    const planUrl = root + '/sections/baseline/acquisition/PD';
+    const guide = {id:'baseline',title:'Linha de base',guidance:'Registre o cenário.',
+      fields:[{key:'scenario',label:'Cenário',type:'text',options:[]}],
+      version:0,answers:{},missing:['Cenário'],editable:true};
+    let item;
+    await page.route('**' + root + '/metadata', r => r.fulfill({json:{projectId,environment:'SANDBOX',title:'Frota'}}));
+    await page.route('**' + root + '/technical/capabilities', r => r.fulfill({json:{
+      projectId,environment:'SANDBOX',owner:false,actions:['VIEW_GUIDES','SAVE_GUIDE'],modules:{}
+    }}));
+    await page.route('**' + root + '/technical/guides', r => r.fulfill({json:{methodology:'VM0038_V1_1',guides:[guide]}}));
+    await page.route('**' + planUrl, r => r.fulfill({json:{
+      available:[{field:'scenario',label:'Cenário'}],requests:item?[item]:[],recipients:[],canCreate:true,
+    }}));
+    await page.route('**' + planUrl + '/scenario', r => {
+      assert.equal(r.request().headers()['if-match'],'"0"');
+      const setup = r.request().postDataJSON();
+      assert.equal(setup.purpose,'Confirmar cenário de referência');
+      assert.equal(setup.criteria.period,'2029');
+      item = {request:{id:'request',act:'PD',field:'scenario'},canPlan:true,canReply:true,
+        revision:{number:1,status:'OPEN',plan:{setup,label:'Cenário',reason:'Lacuna no guia'},reply:null}};
+      return r.fulfill({json:item});
+    });
+    await page.route('**' + root + '/evidence-requests/request/replies', r => {
+      assert.equal(r.request().headers()['if-match'],'"1"');
+      const reply = r.request().postDataJSON();
+      assert.equal(reply.nature,'ESTIMATED');
+      item.revision = {...item.revision,number:2,status:reply.status,reply};
+      return r.fulfill({json:item});
+    });
+    await page.goto(base + '/workspace/projects/' + projectId + '/technical?secao=guias&guia=baseline');
+    await page.getByText('Solicitações de dados',{exact:true}).click();
+    await page.getByRole('button',{name:'Consultar solicitações'}).click();
+    await page.getByLabel('Lacuna para solicitar').selectOption('scenario');
+    await page.getByRole('button',{name:'Planejar solicitação'}).click();
+    await page.getByLabel('Finalidade').fill('Confirmar cenário de referência');
+    await page.getByText('Critérios de aceite do dado',{exact:true}).click();
+    await page.getByLabel('Período',{exact:true}).fill('2029');
+    await page.getByRole('button',{name:'Salvar solicitação'}).click();
+    await page.getByText('Aguardando resposta',{exact:false}).waitFor();
+    await page.getByRole('button',{name:'Responder',exact:true}).click();
+    await page.getByLabel('Resposta',{exact:true}).selectOption('PARTIAL');
+    await page.getByLabel('Natureza da informação parcial').selectOption('ESTIMATED');
+    await page.getByLabel('Observações da resposta').fill('Fonte preliminar.');
+    await page.getByRole('button',{name:'Registrar resposta'}).click();
+    await page.getByText('Natureza informada · Estimada',{exact:true}).waitFor();
+  } finally { await browser.close(); }
+});
