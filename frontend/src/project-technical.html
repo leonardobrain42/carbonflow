@@ -175,11 +175,13 @@
             }
 
             @case ('guias') {
-              <carbonflow-project-guides [projectId]="projectId" (saved)="updateGuide($event)" />
+              <carbonflow-project-guides [projectId]="projectId" [initialGuide]="selectedGuide()" [canOpenDocument]="can('VIEW_DOSSIER')"
+                (document)="open('redigir', $event)" (saved)="updateGuide($event)" />
             }
 
             @case ('redigir') {
-              <carbonflow-pd-sections [projectId]="projectId" [editable]="can('PREPARE_DOSSIER')" />
+              <carbonflow-pd-sections [projectId]="projectId" [initialGuide]="selectedGuide()"
+                (review)="open('revisar', $event)" [editable]="can('PREPARE_DOSSIER')" />
               <p>{{ can('PREPARE_DOSSIER') ? 'Gere o roteiro das seções do dossiê a partir da revisão técnica salva.' : 'Consulte a prévia preparada para revisão.' }}</p>
               @if (dossier(); as prepared) {
                 <div class="cf-journey-context">
@@ -213,7 +215,7 @@
             }
 
             @case ('revisar') {
-              <carbonflow-pd-reviews [projectId]="projectId" />
+              <carbonflow-pd-reviews [projectId]="projectId" [initialGuide]="selectedGuide()" (document)="open('redigir', $event)" />
               <p>Confira as condições que ainda impedem o encaminhamento do dossiê para análise técnica.</p>
               @if (dossier(); as prepared) {
                 <div class="cf-journey-context">

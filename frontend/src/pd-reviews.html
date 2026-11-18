@@ -28,6 +28,7 @@
       <p style="white-space: pre-wrap">{{old.narrative}}</p>
     }
     <a class="cf-workspace-link" [href]="base+'/pd-sections/'+item.id+'/versions/'+version()+'/download'">Baixar texto, fontes e lacunas desta versão</a>
+    <button type="button" class="cf-workspace-outline" [disabled]="busy()" (click)="document.emit(item.id)">Abrir seção no editor</button>
     <ol>@for (entry of events(); track entry.seq) {
       <li><strong>{{state[entry.state]}}</strong> · {{entry.at | date:'short'}} · {{entry.actorName || entry.actor}}
         <p>{{entry.reason}}</p>

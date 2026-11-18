@@ -1,4 +1,4 @@
-import {Component, inject, input, signal} from '@angular/core';
+import {Component, inject, input, output, OnInit, signal} from '@angular/core';
 import {DatePipe} from '@angular/common';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {firstValueFrom} from 'rxjs';
@@ -10,7 +10,10 @@ interface Item {
   outdated:boolean; ownerOnly:boolean; authorName:string; history:ReviewEvent[]; actions:Action[];
 }
 @Component({selector:'carbonflow-pd-reviews', imports:[DatePipe], templateUrl:'./pd-reviews.html'})
-export class PdReviewsComponent {
+export class PdReviewsComponent implements OnInit {
+  readonly initialGuide = input<string|null>(null);
+  readonly document = output<string>();
+  ngOnInit() { if (this.initialGuide()) void this.load(); }
   readonly projectId = input.required<string>();
   private readonly http = inject(HttpClient);
   readonly items = signal<Item[] | null>(null);
@@ -35,7 +38,7 @@ export class PdReviewsComponent {
     await this.run(async () => {
       const items = await firstValueFrom(this.http.get<Item[]>(this.reviewUrl));
       this.items.set(items);
-      this.choose(items.find(i => i.id === this.selected()?.id) ?? items[0] ?? null);
+      this.choose(items.find(i => i.id === (this.selected()?.id ?? this.initialGuide())) ?? items[0] ?? null);
     });
   }
   select(item:Item) { if (this.canLeave()) this.choose(item); }

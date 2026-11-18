@@ -187,6 +187,14 @@ test('CF-IMP-008: rascunho da conta cruza intake e prévia sem adquirir autorida
     await page.getByRole('button',{name:'Reabrir para edição'}).waitFor();
     assert.equal(await page.getByRole('button',{name:'Aprovar internamente'}).count(),0);
     await page.getByText('Conferir a evidência da frota',{exact:true}).waitFor();
+    await page.route('**/technical/pd-sections', route => route.fulfill({json:[
+      {guide:{id:'applicability',title:'Aplicabilidade',version:0,fields:[],answers:{},missing:[]},latest:null},
+      {guide:{id:'baseline',title:draft.title,version:1,fields:[],answers:{},missing:[]},latest:draft.section}
+    ]}));
+    await page.getByRole('button',{name:'Abrir seção no editor'}).click();
+    await page.getByLabel('Narrativa da seção').waitFor();
+    assert.equal(await page.getByLabel('Narrativa da seção').inputValue(),draft.section.narrative);
+    assert.equal(new URL(page.url()).searchParams.get('guia'),'baseline');
     await sections.getByRole('button',{name:'Preparar informações'}).click();
     assert.equal(await page.getByLabel('Atividade planejada').inputValue(),
       'Recarga elétrica em ambiente urbano');

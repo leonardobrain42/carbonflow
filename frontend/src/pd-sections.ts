@@ -1,4 +1,4 @@
-import {Component, inject, input, signal} from '@angular/core';
+import {Component, inject, input, output, OnInit, signal} from '@angular/core';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {firstValueFrom} from 'rxjs';
 
@@ -10,7 +10,10 @@ interface Version {number:number;guideVersion:number;author:string;narrative:str
 interface Section {guide:Guide;latest:Version | null}
 
 @Component({selector:'carbonflow-pd-sections',templateUrl:'./pd-sections.html'})
-export class PdSectionsComponent {
+export class PdSectionsComponent implements OnInit {
+  readonly initialGuide = input<string|null>(null);
+  readonly review = output<string>();
+  ngOnInit() { if (this.initialGuide()) void this.load(); }
   readonly projectId = input.required<string>();
   readonly editable = input(false);
   readonly items = signal<Section[] | null>(null);
@@ -31,7 +34,7 @@ export class PdSectionsComponent {
     try {
       const items = await firstValueFrom(this.http.get<Section[]>(this.url));
       this.items.set(items);
-      this.show(items.find(item => item.guide.id === this.current()?.guide.id) ?? items[0] ?? null);
+      this.show(items.find(item => item.guide.id === (this.current()?.guide.id ?? this.initialGuide())) ?? items[0] ?? null);
     } catch (cause) { this.failed(cause); }
     finally { this.busy.set(false); }
   }

@@ -14,6 +14,9 @@ interface Guide {
 })
 export class ProjectGuidesComponent implements OnInit {
   readonly projectId = input.required<string>();
+  readonly initialGuide = input<string|null>(null);
+  readonly canOpenDocument = input(false);
+  readonly document = output<string>();
   readonly saved = output<Guide>();
   readonly guides = signal<Guide[]>([]);
   readonly sources = signal<Guide[] | null>(null);
@@ -36,7 +39,7 @@ export class ProjectGuidesComponent implements OnInit {
     try {
       const catalog = await firstValueFrom(this.http.get<{guides: Guide[]}>(this.url));
       this.guides.set(catalog.guides);
-      this.select(catalog.guides.find(item => item.id === this.current()?.id) ?? catalog.guides[0] ?? null);
+      this.select(catalog.guides.find(item => item.id === (this.current()?.id ?? this.initialGuide())) ?? catalog.guides[0] ?? null);
     } catch {
       this.error.set('Não foi possível consultar os guias deste projeto.');
     } finally { this.loading.set(false); }
