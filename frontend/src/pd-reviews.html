@@ -19,13 +19,17 @@
       </div>
     }
     @if (version() === item.section.number) {
-      <p>Autor · {{item.section.author}} · guia de origem v{{item.section.guideVersion}}</p>
+      <p>Autor · {{item.authorName || item.section.author}} · guia de origem v{{item.section.guideVersion}}</p>
       <p style="white-space: pre-wrap">{{item.section.narrative}}</p>
+      @if (item.ownerOnly) { <p>O guia desta seção tem acesso exclusivo do titular. O encaminhamento ao REV está indisponível.</p> }
       @if (item.outdated) { <p>O guia mudou após a redação. Confira os novos dados antes de encaminhar outra versão.</p> }
+    } @else if (previous(); as old) {
+      <p>Autor · {{old.authorId}} · guia de origem v{{old.guideVersion}}</p>
+      <p style="white-space: pre-wrap">{{old.narrative}}</p>
     }
     <a class="cf-workspace-link" [href]="base+'/pd-sections/'+item.id+'/versions/'+version()+'/download'">Baixar texto, fontes e lacunas desta versão</a>
     <ol>@for (entry of events(); track entry.seq) {
-      <li><strong>{{state[entry.state]}}</strong> · {{entry.at | date:'short'}} · {{entry.actor}}
+      <li><strong>{{state[entry.state]}}</strong> · {{entry.at | date:'short'}} · {{entry.actorName || entry.actor}}
         <p>{{entry.reason}}</p>
         @if (entry.competenceVersion) { <small>Competência confirmada · versão {{entry.competenceVersion}}</small> }
       </li>

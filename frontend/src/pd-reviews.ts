@@ -4,10 +4,10 @@ import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {firstValueFrom} from 'rxjs';
 
 type Action = 'SUBMITTED' | 'RETURNED' | 'APPROVED_INTERNAL' | 'FROZEN_INTERNAL' | 'REOPENED';
-interface ReviewEvent {seq:number; state:Action; actor:string; at:string; reason:string; competenceVersion:number|null}
+interface ReviewEvent {seq:number; state:Action; actor:string; actorName:string; at:string; reason:string; competenceVersion:number|null}
 interface Item {
   id:string; title:string; section:{number:number; guideVersion:number; author:string; narrative:string; sha256:string};
-  outdated:boolean; history:ReviewEvent[]; actions:Action[];
+  outdated:boolean; ownerOnly:boolean; authorName:string; history:ReviewEvent[]; actions:Action[];
 }
 @Component({selector:'carbonflow-pd-reviews', imports:[DatePipe], templateUrl:'./pd-reviews.html'})
 export class PdReviewsComponent {
@@ -18,6 +18,7 @@ export class PdReviewsComponent {
   readonly version = signal(0);
   readonly events = signal<ReviewEvent[]>([]);
   readonly reason = signal('');
+  readonly previous = signal<{authorId:string;guideVersion:number;narrative:string}|null>(null);
   readonly busy = signal(false);
   readonly error = signal('');
   readonly state = {SUBMITTED:'Em revisão',RETURNED:'Devolvida',APPROVED_INTERNAL:'Aprovada internamente',
@@ -40,6 +41,7 @@ export class PdReviewsComponent {
   select(item:Item) { if (this.canLeave()) this.choose(item); }
   private choose(item:Item | null) {
     this.selected.set(item);
+    this.previous.set(null);
     this.version.set(item?.section.number ?? 0);
     this.events.set(item?.history ?? []);
     this.reason.set('');
@@ -48,7 +50,11 @@ export class PdReviewsComponent {
     const item = this.selected();
     if (!item || !Number.isInteger(version) || version<1 || version>item.section.number || !this.canLeave()) return;
     await this.run(async () => {
-      const history = await firstValueFrom(this.http.get<ReviewEvent[]>(this.reviewUrl+'/'+item.id+'/versions/'+version));
+      const [history,artifact] = await Promise.all([
+        firstValueFrom(this.http.get<ReviewEvent[]>(this.reviewUrl+'/'+item.id+'/versions/'+version)),
+        firstValueFrom(this.http.get<{authorId:string;guideVersion:number;narrative:string}>(this.base+'/pd-sections/'+item.id+'/versions/'+version+'/download'))
+      ]);
+      this.previous.set(artifact);
       this.events.set(history);
       this.version.set(version);
       this.reason.set('');

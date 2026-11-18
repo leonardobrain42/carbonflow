@@ -12,8 +12,8 @@ import jakarta.enterprise.context.ApplicationScoped;
 @ApplicationScoped
 class PdReviews {
     enum State { DRAFT, SUBMITTED, RETURNED, APPROVED_INTERNAL, FROZEN_INTERNAL, REOPENED }
-    record Event(int seq, State state, String reason, UUID actor, OffsetDateTime at, Integer competenceVersion) {}
-    record Item(String id,String title, PdSections.Version section, boolean outdated, List<Event> history, List<State> actions) {}
+    record Event(int seq, State state, String reason, UUID actor, String actorName, OffsetDateTime at, Integer competenceVersion) {}
+    record Item(String id,String title, PdSections.Version section, boolean outdated, boolean ownerOnly, String authorName, List<Event> history, List<State> actions) {}
     record Decision(State state,String reason) {}
     private final DynamicProjectScope scopes;
     private final PdSections sections;
@@ -74,8 +74,10 @@ class PdReviews {
         State state=history.isEmpty()?State.DRAFT:history.getLast().state();
         boolean outdated=guide.version()!=section.guideVersion();
         List<State> actions=new ArrayList<>();
+        boolean ownerOnly = Boolean.TRUE.equals(first(c, "SELECT activity='OWNER' FROM app_technical_guide WHERE id=?",
+                r -> r.getBoolean(1),guide.id()));
         if (scope.actions().contains("PREPARE_DOSSIER")) {
-            if (!outdated && List.of(State.DRAFT,State.REOPENED,State.RETURNED).contains(state)) actions.add(State.SUBMITTED);
+            if (!ownerOnly && !outdated && List.of(State.DRAFT,State.REOPENED,State.RETURNED).contains(state)) actions.add(State.SUBMITTED);
             if (List.of(State.SUBMITTED,State.APPROVED_INTERNAL,State.FROZEN_INTERNAL).contains(state)) actions.add(State.REOPENED);
         }
         if (scope.actions().contains("DECIDE_PD_REVIEW") && !section.author().equals(scope.actor().id())) {
@@ -90,7 +92,8 @@ class PdReviews {
                 if (!outdated && state==State.APPROVED_INTERNAL && competence(c,scope,guide.id())!=null) actions.add(State.FROZEN_INTERNAL);
             }
         }
-        return new Item(guide.id(),guide.title(),section,outdated,history,actions);
+        String authorName = first(c,"SELECT display_name FROM app_identity WHERE id=?",r -> r.getString(1),section.author());
+        return new Item(guide.id(),guide.title(),section,outdated,ownerOnly,authorName,history,actions);
     }
 
     private static Integer competence(Connection c,DynamicProjectScope.Context scope,String id) throws SQLException {
@@ -107,9 +110,10 @@ class PdReviews {
 
     private static List<Event> events(Connection c,String project,String id,int version) throws SQLException {
         return query(c,"""
-                SELECT seq,state,reason,actor_id,decided_at,competence_version FROM app_pd_review_event
-                WHERE project_id=? AND section_id=? AND version=? ORDER BY seq
-                """,r->new Event(r.getInt(1),State.valueOf(r.getString(2)),r.getString(3),r.getObject(4,UUID.class),
+                SELECT seq,state,reason,actor_id,decided_at,competence_version,i.display_name FROM app_pd_review_event e
+                JOIN app_identity i ON i.id=e.actor_id
+                WHERE e.project_id=? AND e.section_id=? AND e.version=? ORDER BY e.seq
+                """,r->new Event(r.getInt(1),State.valueOf(r.getString(2)),r.getString(3),r.getObject(4,UUID.class),r.getString(7),
                         r.getObject(5,OffsetDateTime.class),r.getObject(6,Integer.class)),project,id,version);
     }
 }

@@ -120,9 +120,9 @@ class ComplianceTest {
         assertEquals(200,confirmed.statusCode(),confirmed.body());
         assertTrue(body(confirmed).path("active").asBoolean());
         assertEquals(412,call("PUT",competence,reviewer,reference,"application/json","\"0\"").statusCode());
-        var revoked = call("PUT",competence,reviewer,"{\"revoke\":true,\"reference\":\"Retirada\"}","application/json","\"1\"");
-        assertEquals(200,revoked.statusCode(),revoked.body());
-        assertFalse(body(revoked).path("active").asBoolean());
+        var revokedCompetence = call("PUT",competence,reviewer,"{\"revoke\":true,\"reference\":\"Retirada\"}","application/json","\"1\"");
+        assertEquals(200,revokedCompetence.statusCode(),revokedCompetence.body());
+        assertFalse(body(revokedCompetence).path("active").asBoolean());
         String representation = submit(owner, project, "REPRESENT_PROJECT");
         String representationProof = UUID.randomUUID().toString();
         assertEquals(200, call("PUT", root + "/authority-requests/" + representation + "/documents/" + representationProof,
