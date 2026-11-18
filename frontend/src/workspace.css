@@ -118,3 +118,6 @@
   .cf-journey-fields { grid-template-columns: minmax(0, 1fr); }
   .cf-technical-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+.cf-workspace-card .cf-plan-choice { display: flex; gap: .55rem; align-items: center; }
+.cf-workspace-card .cf-plan-choice input { display: inline; width: 1.15rem; height: 1.15rem; accent-color: #64c48e; }
