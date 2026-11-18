@@ -6,6 +6,7 @@ import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.CookieParam;
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
@@ -22,9 +23,12 @@ public class ComplianceResource {
     private final ComplianceStaff staff;
     private final ComplianceQueue queue;
 
-    ComplianceResource(ComplianceStaff staff, ComplianceQueue queue) {
+    private final ComplianceDecisions decisions;
+
+    ComplianceResource(ComplianceStaff staff, ComplianceQueue queue, ComplianceDecisions decisions) {
         this.staff = staff;
         this.queue = queue;
+        this.decisions = decisions;
     }
 
     @GET
@@ -59,6 +63,22 @@ public class ComplianceResource {
     public Response download(@CookieParam(AccountAccess.COOKIE) String token, @PathParam("project") String project,
                              @PathParam("request") UUID request, @PathParam("document") UUID document) {
         return attachment(queue.download(token, project, request, document), document);
+    }
+
+    @GET
+    @Path("/projects/{project}/requests/{request}/decisions")
+    public Response history(@CookieParam(AccountAccess.COOKIE) String token, @PathParam("project") String project,
+                            @PathParam("request") UUID request) {
+        return privateJson(decisions.history(token, project, request));
+    }
+
+    @POST
+    @Path("/projects/{project}/requests/{request}/decisions")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response decide(@CookieParam(AccountAccess.COOKIE) String token, @PathParam("project") String project,
+                           @PathParam("request") UUID request, @HeaderParam("If-Match") String version,
+                           @HeaderParam("Idempotency-Key") String key, ComplianceDecisions.Input input) {
+        return privateJson(decisions.decide(token, project, request, version, key, input));
     }
 
     static Response attachment(byte[] content, UUID id) {

@@ -82,6 +82,45 @@ class ComplianceTest {
         assertEquals(200, call("POST", path + "/withdraw", owner, null, null, "\"1\"").statusCode());
         assertEquals(404, call("GET", download, reviewer, null, null).statusCode());
         assertEquals(404, call("GET", path + "/documents/" + file, owner, null, null).statusCode());
+
+        String fresh = submit(owner, project);
+        String ownerPath = "/v1/projects/" + project + "/authority-requests/" + fresh;
+        String staffPath = API + "/projects/" + project + "/requests/" + fresh;
+        String decisions = staffPath + "/decisions";
+        String complement = "{\"decision\":\"NEEDS_INFORMATION\",\"reason\":\"Anexe a ata que define esse poder.\"}";
+        assertEquals(404, call("POST", decisions, owner, complement, "application/json", "\"0\"").statusCode());
+        assertEquals(200, call("POST", decisions, reviewer, complement, "application/json", "\"0\"").statusCode());
+        var pending = body(call("GET", "/v1/projects/" + project + "/authority-requests", owner, null, null));
+        assertEquals(0, pending.path("activePowers").size());
+        assertTrue(pending.path("requests").findValuesAsText("decision").contains("NEEDS_INFORMATION"));
+
+        String proof = UUID.randomUUID().toString();
+        String expiry = java.time.Instant.now().plusSeconds(3600).toString();
+        String approval = "{\"decision\":\"APPROVED\",\"reason\":\"Poder administrativo demonstrado.\","
+                + "\"documentId\":\"" + proof + "\",\"validUntil\":\"" + expiry + "\"}";
+        assertEquals(400, call("POST", decisions, reviewer, approval, "application/json", "\"1\"").statusCode());
+        assertEquals(200, call("PUT", ownerPath + "/documents/" + proof, owner, pdf, "application/octet-stream").statusCode());
+        var approved = call("POST", decisions, reviewer, approval, "application/json", "\"1\"");
+        assertEquals(200, approved.statusCode(), approved.body());
+        assertEquals("APPROVED", body(approved).get(0).path("decision").asText());
+
+        String statusPath = "/v1/projects/" + project + "/authority-requests";
+        var active = body(call("GET", statusPath, owner, null, null)).path("activePowers");
+        assertEquals(java.util.List.of("SEND_INVITATIONS"), active.findValuesAsText("power"));
+        assertEquals(409, call("POST", ownerPath + "/withdraw", owner, null, null, "\"1\"").statusCode());
+        assertEquals(409, call("PUT", ownerPath + "/documents/" + UUID.randomUUID(), owner, pdf,
+                "application/octet-stream").statusCode());
+
+        String revocation = "{\"decision\":\"REVOKED\",\"reason\":\"Houve mudança na representação.\"}";
+        assertEquals(412, call("POST", decisions, reviewer, revocation, "application/json", "\"1\"").statusCode());
+        var revoked = call("POST", decisions, reviewer, revocation, "application/json", "\"2\"");
+        assertEquals(200, revoked.statusCode(), revoked.body());
+        assertEquals(java.util.List.of("REVOKED", "APPROVED", "NEEDS_INFORMATION"),
+                body(revoked).findValuesAsText("decision"));
+        assertEquals(0, body(call("GET", statusPath, owner, null, null)).path("activePowers").size());
+        assertEquals(404, call("GET", ownerPath + "/documents/" + proof, owner, null, null).statusCode());
+        assertEquals(404, call("GET", staffPath + "/documents/" + proof, reviewer, null, null).statusCode());
+        assertEquals(3, body(call("GET", decisions, reviewer, null, null)).size());
     }
 
     private String currentCode() {

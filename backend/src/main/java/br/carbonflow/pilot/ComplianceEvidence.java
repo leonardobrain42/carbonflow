@@ -42,14 +42,18 @@ class ComplianceEvidence {
 
     List<Document> documents(String token, String project, UUID request) {
         return scope.read(token, project, "VIEW_AUTHORITY_DOCUMENTS", (connection, context) -> {
-            requireOpen(connection, project, request);
+            requireDocumentAccess(connection, project, request);
             return documents(connection, project, request);
         });
     }
 
     List<Document> add(String token, String project, UUID request, UUID id, InputStream input) {
         return scope.write(token, project, "ADD_AUTHORITY_DOCUMENT", (connection, context) -> {
-            requireOpen(connection, project, request);
+            var assessment = requireDocumentAccess(connection, project, request);
+            if (assessment != null && assessment.decision() != ComplianceDecisions.Outcome.NEEDS_INFORMATION) {
+                throw new PilotProblem(409, "COMPROVANTES_ENCERRADOS", "request", RULE,
+                        "A solicitação já recebeu uma decisão sobre os comprovantes.");
+            }
             byte[] pdf = readPdf(input);
             byte[] digest = digest(pdf);
             byte[] previous = first(connection, """
@@ -86,12 +90,21 @@ class ComplianceEvidence {
     }
 
     byte[] download(Connection connection, String project, UUID request, UUID id) throws SQLException {
-        requireOpen(connection, project, request);
+        requireDocumentAccess(connection, project, request);
         Encrypted document = first(connection, """
                 SELECT nonce, encrypted FROM app_compliance_evidence WHERE project_id = ? AND request_id = ? AND id = ?
                 """, row -> new Encrypted(row.getBytes(1), row.getBytes(2)), project, request, id);
         if (document == null) throw ComplianceStaff.unavailable();
         return crypt(Cipher.DECRYPT_MODE, project, request, id, document.nonce(), document.bytes());
+    }
+
+    static ComplianceDecisions.Decision requireDocumentAccess(Connection connection, String project, UUID request) throws SQLException {
+        requireOpen(connection, project, request);
+        var assessment = ComplianceDecisions.latest(connection, project, request);
+        if (assessment != null && assessment.decision() == ComplianceDecisions.Outcome.REVOKED) {
+            throw ComplianceStaff.unavailable();
+        }
+        return assessment;
     }
 
     static void requireOpen(Connection connection, String project, UUID request) throws SQLException {
