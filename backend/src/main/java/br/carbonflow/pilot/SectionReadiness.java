@@ -42,7 +42,7 @@ class SectionReadiness {
         return scopes.read(cookie,project,"VIEW_GUIDES",(connection,scope) -> view(connection,scope,section,act));
     }
 
-    private View view(Connection connection, DynamicProjectScope.Context scope, String section,
+    View view(Connection connection, DynamicProjectScope.Context scope, String section,
                       RequirementResolver.Act act) throws SQLException {
         Map<String, ProjectGuides.Guide> visible = guides.catalog(connection,scope).guides().stream()
                 .collect(Collectors.toMap(ProjectGuides.Guide::id,Function.identity()));

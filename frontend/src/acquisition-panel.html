@@ -1,0 +1,123 @@
+<details class="cf-journey-context">
+  <summary>Solicitações de dados</summary>
+  <p>Planeje o que precisa reunir para esta seção. Atribuições usam o acesso vigente ao guia.</p>
+  <label [for]="'acquisition-act-' + section()">Documento da solicitação</label>
+  <select #actChoice [id]="'acquisition-act-' + section()" [value]="act()" [disabled]="busy()" (change)="selectAct(actChoice.value)">
+    <option value="PD">PD · Descrição do projeto</option>
+    <option value="MR">MR · Relatório de monitoramento</option>
+  </select>
+  <button type="button" class="cf-workspace-outline" [disabled]="busy()" (click)="load()">Consultar solicitações</button>
+  @if (busy()) { <p role="status">Consultando solicitações…</p> }
+  @if (problem()) { <p role="alert">{{problem()}}</p> }
+  @if (view(); as current) {
+    @if (current.canCreate && current.available.length) {
+      <label [for]="'acquisition-need-' + section()">Lacuna para solicitar</label>
+      <select #need [id]="'acquisition-need-' + section()" [disabled]="busy()">
+        <option value="">Selecione a lacuna</option>
+        @for (gap of current.available; track gap.field) {
+          <option [value]="gap.field" [disabled]="planned(gap.field)">{{gap.label}}</option>
+        }
+      </select>
+      <button type="button" class="cf-workspace-outline" [disabled]="busy()" (click)="create(need.value)">Planejar solicitação</button>
+    }
+    @for (item of current.requests; track item.request.id) {
+      <article class="cf-journey-context">
+        <h4>{{item.revision.plan.label}}</h4>
+        <p>{{item.revision.plan.setup.purpose}} · versão {{item.revision.number}} · {{statusLabel[item.revision.status]}}</p>
+        <p>{{item.revision.plan.reason}}</p>
+        @if (item.revision.plan.setup.assignee; as assignee) {
+          <p>Responsável · {{recipientName(assignee) || 'Preparador designado'}}</p>
+        }
+        @if (item.revision.plan.setup.candidateSource; as source) { <p>Fonte candidata · {{source}}</p> }
+        <details class="cf-journey-context">
+          <summary>Critérios do pedido</summary>
+          <dl>
+            @for (criterion of criteria; track criterion.key) {
+              <dt>{{criterion.label}}</dt><dd>{{item.revision.plan.setup.criteria[criterion.key] || 'A confirmar'}}</dd>
+            }
+          </dl>
+        </details>
+        @if (item.revision.plan.setup.due; as deadline) { <p>Prazo · {{deadline}}</p> }
+        @if (item.revision.plan.requirementCode; as rule) { <p>Regra {{rule}} · {{item.revision.plan.packId}}</p> }
+        @if (item.revision.reply; as reply) {
+          @if (reply.nature; as nature) { <p>Natureza informada · {{natureLabel[nature]}}</p> }
+          @if (reply.note) { <p>{{reply.note}}</p> }
+        }
+        <div class="cf-triage-actions">
+          @if (item.canPlan) { <button type="button" class="cf-workspace-outline" [disabled]="busy()" (click)="editItem(item)">Replanejar</button> }
+          @if (item.canReply) { <button type="button" class="cf-workspace-outline" [disabled]="busy()" (click)="chooseReply(item)">Responder</button> }
+          <button type="button" class="cf-workspace-outline" [disabled]="busy()" (click)="showHistory(item)">Ver versões</button>
+        </div>
+      </article>
+    } @empty {
+      <p>Nenhuma solicitação disponível para esta conta.</p>
+    }
+
+    @if (edit(); as editor) {
+      <form class="cf-journey-context" (submit)="savePlan($event)">
+        <h4>Plano da solicitação</h4>
+        <fieldset class="cf-journey-fieldset" [disabled]="busy()">
+          <label for="acquisition-kind">Tipo de informação</label>
+          <select id="acquisition-kind" name="kind" [value]="editor.setup?.kind ?? 'TECHNICAL_INFORMATION'">
+            <option value="TECHNICAL_INFORMATION">Informação técnica</option>
+            <option value="DOCUMENT_REFERENCE">Referência de documento</option>
+            <option value="MEASUREMENT">Medição</option>
+          </select>
+          <label for="acquisition-purpose">Finalidade</label>
+          <textarea id="acquisition-purpose" name="purpose" rows="2" required maxlength="800" [value]="editor.setup?.purpose ?? ''"></textarea>
+          <label for="acquisition-source">Fonte candidata</label>
+          <input id="acquisition-source" name="source" maxlength="800" [value]="editor.setup?.candidateSource ?? ''">
+          <label for="acquisition-due">Prazo</label>
+          <input id="acquisition-due" name="due" type="date" [value]="editor.setup?.due ?? ''">
+          <label for="acquisition-assignee">Responsável</label>
+          <select id="acquisition-assignee" name="assignee" [value]="editor.setup?.assignee ?? ''">
+            <option value="">Sem atribuição</option>
+            @for (recipient of current.recipients; track recipient.id) {
+              <option [value]="recipient.id">{{recipient.name}}</option>
+            }
+          </select>
+          <details class="cf-journey-context">
+            <summary>Critérios de aceite do dado</summary>
+            @for (criterion of criteria; track criterion.key) {
+              <label [for]="'acquisition-'+criterion.key">{{criterion.label}}</label>
+              <input [id]="'acquisition-'+criterion.key" [name]="criterion.key" maxlength="800" [value]="editor.setup?.criteria?.[criterion.key] ?? ''">
+            }
+          </details>
+          <button type="submit" class="cf-workspace-primary">Salvar solicitação</button>
+        </fieldset>
+      </form>
+    }
+
+    @if (replyTo(); as item) {
+      <form class="cf-journey-context" (submit)="saveReply($event,answer.value,nature.value,note.value)">
+        <h4>Resposta · {{item.revision.plan.label}}</h4>
+        <label for="acquisition-answer">Resposta</label>
+        <select #answer id="acquisition-answer" [disabled]="busy()">
+          <option value="UNKNOWN">Não sei</option>
+          <option value="DECLINED">Recusar resposta</option>
+          <option value="PARTIAL">Tenho informação parcial</option>
+        </select>
+        <label for="acquisition-nature">Natureza da informação parcial</label>
+        <select #nature id="acquisition-nature" [disabled]="busy()">
+          <option value="">Selecione quando houver dado parcial</option>
+          <option value="PLANNED">Prevista</option>
+          <option value="ESTIMATED">Estimada</option>
+          <option value="MEASURED">Medida</option>
+        </select>
+        <label for="acquisition-note">Observações da resposta</label>
+        <textarea #note id="acquisition-note" rows="2" maxlength="800" [disabled]="busy()"></textarea>
+        <button type="submit" class="cf-workspace-primary" [disabled]="busy()">Registrar resposta</button>
+      </form>
+    }
+    @if (history(); as past) {
+      <section class="cf-journey-context" aria-label="Histórico da solicitação">
+        <h4>{{past.label}}</h4>
+        <ol>@for (revision of past.revisions; track revision.number) {
+          <li>Versão {{revision.number}} · {{statusLabel[revision.status]}} · {{revision.plan.setup.purpose}}
+            @if (revision.reply?.note) { <p>{{revision.reply?.note}}</p> }
+          </li>
+        }</ol>
+      </section>
+    }
+  }
+</details>

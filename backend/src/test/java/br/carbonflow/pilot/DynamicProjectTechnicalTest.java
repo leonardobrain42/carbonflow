@@ -729,6 +729,51 @@ class DynamicProjectTechnicalTest {
         assertEquals(200,call("GET",technical+"/pd-sections/baseline/versions/1/download",owner.cookie(),null,null,null).statusCode());
     }
 
+    @Test
+    void acquisitionVersionsRequireExistingScopeAndPreservePartialReplies() throws Exception {
+        Actor owner = actor();
+        Actor assignee = actor();
+        Actor outsider = actor();
+        UUID org = organization(owner.id());
+        String project = body(call("POST",PROJECTS,owner.cookie(),key(),null,
+                "{\"organizationId\":\"" + org + "\",\"title\":\"Coleta de dados\"}")).path("projectId").asText();
+        String root = PROJECTS + "/" + project;
+        assertEquals(200,call("PUT",root+"/technical/intake",owner.cookie(),key(),"\"0\"",
+                "{\"candidateMethodology\":\"VM0038\"}").statusCode());
+        String list = root + "/sections/baseline/acquisition/PD";
+        var empty = body(call("GET",list,owner.cookie(),null,null,null));
+        assertTrue(empty.path("available").findValuesAsText("field").contains("scenario"));
+        assertTrue(empty.path("requests").isEmpty());
+        UUID grantId = grant(project,org,assignee,owner,"PREP","BASELINE");
+        String setup = """
+                {"kind":"DOCUMENT_REFERENCE","purpose":"Conferir o cenário base",
+                 "candidateSource":"Arquivo cadastral","due":"2030-03-01","assignee":"%s",
+                 "criteria":{"period":"2029","origin":"Operação"}}
+                """.formatted(assignee.id());
+        assertEquals(422,call("PUT",list+"/scenario",owner.cookie(),null,"\"0\"",
+                setup.replace(assignee.id().toString(),outsider.id().toString())).statusCode());
+        assertEquals(422,call("PUT",list+"/inventado",owner.cookie(),null,"\"0\"",setup).statusCode());
+        var saved = call("PUT",list+"/scenario",owner.cookie(),null,"\"0\"",setup);
+        assertEquals(200,saved.statusCode(),saved.body());
+        assertEquals(body(saved),body(call("PUT",list+"/scenario",owner.cookie(),null,"\"0\"",setup)));
+        assertEquals("guide-baseline",body(saved).at("/request/taskId").asText());
+        String request = root+"/evidence-requests/"+body(saved).at("/request/id").asText();
+        assertEquals(404,call("GET",request,outsider.cookie(),null,null,null).statusCode());
+        assertEquals(404,call("POST",request+"/replies",owner.cookie(),null,"\"1\"","{\"status\":\"UNKNOWN\"}").statusCode());
+        assertEquals(200,call("POST",request+"/replies",assignee.cookie(),null,"\"1\"","{\"status\":\"UNKNOWN\"}").statusCode());
+        String reply = "{\"status\":\"PARTIAL\",\"nature\":\"ESTIMATED\",\"note\":\"Falta confirmar a fonte.\"}";
+        assertEquals(200,call("POST",request+"/replies",assignee.cookie(),null,"\"2\"",reply).statusCode());
+        var history = body(call("GET",request,owner.cookie(),null,null,null));
+        assertEquals(java.util.List.of("PARTIAL","UNKNOWN","OPEN"),history.findValuesAsText("status").stream()
+                .distinct().toList());
+        assertEquals("ESTIMATED",history.at("/0/reply/nature").asText());
+        assertEquals(412,call("POST",request+"/replies",assignee.cookie(),null,"\"1\"",reply).statusCode());
+        database.transaction(c -> update(c,"UPDATE app_project_collaborator_grant SET revoked_at=statement_timestamp(),revoked_by=? WHERE id=?",
+                owner.id(),grantId));
+        assertEquals(404,call("GET",request,assignee.cookie(),null,null,null).statusCode());
+        assertEquals(200,call("GET",request,owner.cookie(),null,null,null).statusCode());
+    }
+
     private static JsonNode task(JsonNode journey, String id) {
         for (JsonNode task : journey.path("tasks")) {
             if (id.equals(task.path("id").asText())) return task;
