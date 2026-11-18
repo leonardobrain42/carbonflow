@@ -264,6 +264,7 @@ const routes: Routes = [
   {path: 'workspace/projects/:projectId/invitation-plans', component: ProjectInvitationPlansComponent},
   {path: 'workspace/projects/:projectId/experience', component: ProjectExperienceComponent},
   {path: 'workspace/projects/:projectId/technical', component: ProjectTechnicalComponent,
+    canDeactivate: [(page: ProjectTechnicalComponent) => page.canLeaveGuides()],
     resolve: {technicalAccess: resolveTechnicalAccess}},
   {path: 'workspace/projects/:projectId/triage', component: ProjectTriageComponent},
   {path: '**', redirectTo: 'pilot'},

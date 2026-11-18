@@ -98,7 +98,7 @@
             <section class="cf-workspace-card">
               <h2>Convites enviados</h2>
               @if (collaboration.canSend) {
-                <p>O envio está disponível para planos de aplicabilidade e documentação, conforme o papel escolhido.</p>
+                <p>O envio fica disponível quando todas as atividades do plano permitem colaboração.</p>
               } @else {
                 <p>O envio exige poder vigente para convidar neste projeto.</p>
                 <a [routerLink]="['/workspace/projects',projectId,'authority-requests']" class="cf-workspace-link">Consultar comprovação de poderes</a>

@@ -132,3 +132,5 @@
   .cf-workspace-navigation .cf-workspace-menu-open { display: grid; }
   .cf-workspace-nav-group a { min-height: 44px; display: flex; align-items: center; }
 }
+
+.cf-triage-actions button[aria-current="page"] { border-color: #83d99f; background: #1f4934; font-weight: 700; }

@@ -45,6 +45,7 @@ interface View {
 
 interface ActiveInvitations {
   canSend: boolean;
+  supportedActivities?: Activity[];
   invitations: ProjectInvitation[];
 }
 
@@ -153,7 +154,7 @@ export class ProjectInvitationPlansComponent {
 
   canSend(plan: Plan) {
     return this.active()?.canSend === true
-      && plan.details.activities.every(activity => activity === 'INTAKE' || activity === 'DOCUMENTATION')
+      && plan.details.activities.every(activity => (this.active()?.supportedActivities ?? ['INTAKE','DOCUMENTATION']).includes(activity))
       && ['REVIEW_REQUIRED', 'NONE_DECLARED'].includes(plan.independence)
       && !this.active()?.invitations.some(item => item.planId === plan.id && ['SENT', 'ACCEPTED'].includes(item.state));
   }
