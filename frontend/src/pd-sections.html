@@ -28,6 +28,7 @@
       <p>Versão {{ saved.number }} · guia de origem {{ saved.guideVersion }} · acesso reservado</p>
       @if (saved.guideVersion !== item.guide.version) { <p>O guia recebeu uma nova revisão. Confira a narrativa antes de salvar outra versão.</p> }
       <a class="cf-workspace-link" [href]="url + '/' + item.guide.id + '/versions/' + saved.number + '/download'">Baixar seção e lacunas desta versão</a>
+      <button class="cf-workspace-outline" type="button" [disabled]="busy()" (click)="review.emit(item.guide.id)">Consultar revisão desta seção</button>
       <details><summary>Autoria e integridade</summary><p>Autor · {{ saved.author }}</p><p>SHA-256 · {{ saved.sha256 }}</p></details>
     }
     <label for="pd-narrative">Narrativa da seção</label>

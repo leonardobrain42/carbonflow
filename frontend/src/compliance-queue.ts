@@ -1,3 +1,4 @@
+import {PdCompetenceComponent} from './pd-competence';
 import {Component, DestroyRef, inject, signal} from '@angular/core';
 import {DatePipe} from '@angular/common';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
@@ -25,7 +26,7 @@ interface Decision {version: number; decision: Outcome; reason: string; validUnt
 
 @Component({
   selector: 'carbonflow-compliance-queue',
-  imports: [RouterLink, DatePipe],
+  imports: [RouterLink, DatePipe, PdCompetenceComponent],
   templateUrl: './compliance-queue.html',
 })
 export class ComplianceQueueComponent {

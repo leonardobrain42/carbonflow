@@ -449,6 +449,54 @@ class DynamicProjectTechnicalTest {
         assertEquals(body(saved).path("sha256").asText(),java.util.HexFormat.of().formatHex(
                 java.security.MessageDigest.getInstance("SHA-256").digest(download.body().getBytes(java.nio.charset.StandardCharsets.UTF_8))));
         assertEquals(404,call("PUT",section,reviewer.cookie(),key(),"\"1\"",text).statusCode());
+
+        String nextText = text.replace("Version\":1","Version\":2");
+        assertEquals(200,call("PUT",section,owner.cookie(),key(),"\"1\"",nextText).statusCode());
+        String review = root + "/pd-reviews/baseline/versions/2";
+        assertEquals(404,call("GET",review,actor().cookie(),null,null,null).statusCode());
+        assertEquals(200,decision(review,owner,0,"SUBMITTED").statusCode());
+        assertEquals(409,decision(review,owner,1,"APPROVED_INTERNAL").statusCode());
+        assertEquals(412,decision(review,reviewer,0,"APPROVED_INTERNAL").statusCode());
+        assertEquals(200,decision(review,reviewer,1,"RETURNED").statusCode());
+        assertEquals(200,decision(review,owner,2,"SUBMITTED").statusCode());
+        assertEquals(200,decision(review,reviewer,3,"APPROVED_INTERNAL").statusCode());
+        assertEquals(409,decision(review,reviewer,4,"FROZEN_INTERNAL").statusCode());
+        UUID verifier = actor().id();
+        database.transaction(c -> update(c, """
+                INSERT INTO app_pd_reviewer_competence(project_id,section_id,reviewer_id,verified_by,reference,valid_until,version)
+                VALUES(?,'baseline',?,?,'Certidão interna',statement_timestamp()+interval '1 hour',1)
+                """,project,reviewer.id(),verifier));
+        var freeze = decision(review,reviewer,4,"FROZEN_INTERNAL");
+        assertEquals(200,freeze.statusCode(),freeze.body());
+        assertEquals(1,body(freeze).at("/history/4/competenceVersion").asInt());
+        assertEquals(body(freeze),body(decision(review,reviewer,4,"FROZEN_INTERNAL")));
+        String corrected = nextText.replace("frota","atividade");
+        assertEquals(409,call("PUT",section,owner.cookie(),key(),"\"2\"",corrected).statusCode());
+        assertEquals(200,decision(review,owner,5,"REOPENED").statusCode());
+        assertEquals(200,call("PUT",section,owner.cookie(),key(),"\"2\"",corrected).statusCode());
+        assertEquals(6,body(call("GET",review,reviewer.cookie(),null,null,null)).size());
+        assertEquals(409,decision(review,owner,6,"SUBMITTED").statusCode());
+        assertEquals("DRAFT",body(call("GET",PROJECTS+"/"+project+"/metadata",owner.cookie(),null,null,null)).path("state").asText());
+        Actor contributor = actor();
+        UUID editorial = grant(project,org,contributor,owner,"PREP","DOCUMENTATION");
+        UUID thematic = grant(project,org,contributor,owner,"PREP","BASELINE");
+        assertEquals(200,call("PUT",section,contributor.cookie(),key(),"\"3\"",nextText).statusCode());
+        String authored = root + "/pd-reviews/baseline/versions/4";
+        assertEquals(200,decision(authored,owner,0,"SUBMITTED").statusCode());
+        grant(project,org,contributor,owner,"REV","DOCUMENTATION");
+        grant(project,org,contributor,owner,"REV","BASELINE");
+        assertEquals(404,decision(authored,contributor,1,"APPROVED_INTERNAL").statusCode());
+        database.transaction(c -> update(c, """
+                UPDATE app_project_collaborator_grant SET revoked_at=statement_timestamp(),revoked_by=? WHERE id IN (?,?)
+                """,owner.id(),editorial,thematic));
+        assertEquals(409,decision(authored,contributor,1,"APPROVED_INTERNAL").statusCode());
+        assertEquals(200,decision(authored,reviewer,1,"APPROVED_INTERNAL").statusCode());
+
+    }
+
+    private HttpResponse<String> decision(String url,Actor actor,int revision,String state) throws Exception {
+        return call("POST",url,actor.cookie(),key(),"\""+revision+"\"",
+                "{\"state\":\""+state+"\",\"reason\":\"Parecer fundamentado\"}");
     }
 
     private UUID grant(String project, UUID org, Actor recipient, Actor owner, String role, String activity) {

@@ -1,3 +1,4 @@
+import {PdReviewsComponent} from './pd-reviews';
 import {PdSectionsComponent} from './pd-sections';
 import {ProjectGuidesComponent} from './project-guides';
 import {WorkspaceNavigationComponent} from './workspace-navigation';
@@ -103,7 +104,7 @@ function formValues(data: IntakeData | null): IntakeForm {
 
 @Component({
   selector: 'carbonflow-project-technical',
-  imports: [RouterLink, WorkspaceNavigationComponent, ProjectGuidesComponent, PdSectionsComponent],
+  imports: [RouterLink, WorkspaceNavigationComponent, ProjectGuidesComponent, PdSectionsComponent, PdReviewsComponent],
   templateUrl: './project-technical.html',
 })
 export class ProjectTechnicalComponent {
@@ -113,9 +114,11 @@ export class ProjectTechnicalComponent {
   private readonly injector = inject(Injector);
   private readonly guideEditor = viewChild(ProjectGuidesComponent);
   private readonly pdEditor = viewChild(PdSectionsComponent);
-  readonly canLeaveGuides = () => (this.guideEditor()?.canLeave() ?? true) && (this.pdEditor()?.canLeave() ?? true);
+  private readonly pdReview = viewChild(PdReviewsComponent);
+  readonly canLeaveGuides = () => (this.guideEditor()?.canLeave() ?? true) && (this.pdEditor()?.canLeave() ?? true) && (this.pdReview()?.canLeave() ?? true);
   private readonly heading = viewChild<ElementRef<HTMLHeadingElement>>('sectionHeading');
   private readonly query = toSignal(this.route.queryParamMap);
+  readonly selectedGuide = computed(() => this.query()?.get('guia') ?? null);
   readonly projectId = this.route.snapshot.paramMap.get('projectId') ?? '';
   private readonly root = '/v1/projects/' + encodeURIComponent(this.projectId);
   private readonly technical = this.root + '/technical';
@@ -200,10 +203,10 @@ export class ProjectTechnicalComponent {
       boundary:boundary ?? null,incidence:incidence ?? null,rights:rights ?? null}});
   }
 
-  async open(section: Section) {
+  async open(section: Section, guide: string | null = null) {
     if (this.section().id === section || this.saving() || !this.canLeaveGuides()) return;
     this.notice.set('');
-    if (await this.router.navigate([], {relativeTo: this.route, queryParams: {secao: section}, queryParamsHandling: 'merge'})) {
+    if (await this.router.navigate([], {relativeTo: this.route, queryParams: {secao: section, guia: guide}, queryParamsHandling: 'merge'})) {
       afterNextRender(() => this.heading()?.nativeElement.focus(), {injector: this.injector});
     }
   }
