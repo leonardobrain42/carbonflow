@@ -33,6 +33,7 @@
       @for (section of [guide.id]; track section) {
         <carbonflow-guide-references [projectId]="projectId()" [section]="section" [revision]="guide.version"
           [canOpenIntake]="canOpenIntake()" (prepare)="prepare.emit()" />
+        <carbonflow-section-assessment [projectId]="projectId()" [section]="section" [revision]="guide.version" />
         <carbonflow-acquisition-panel [projectId]="projectId()" [section]="section" (evidence)="evidenceRequest.set($event)" />
         <carbonflow-guide-facts-panel [projectId]="projectId()" [section]="section" [version]="guide.version"
           [fields]="guide.fields" [answers]="guide.answers" [request]="evidenceRequest()" [editable]="guide.editable"

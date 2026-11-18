@@ -1,0 +1,29 @@
+<details class="cf-journey-context">
+  <summary>Avaliação interna da seção</summary>
+  <p>Consulte os dados salvos, os fatos revisados e as pendências do catálogo de demonstração.</p>
+  <button type="button" class="cf-workspace-outline" [disabled]="busy()" (click)="evaluate()">Consultar avaliação</button>
+  @if (busy()) { <p role="status">Consultando avaliação…</p> }
+  @if (error()) { <p role="alert">{{ error() }}</p> }
+  @if (report(); as evaluated) {
+    @if (evaluated.assessment.guideRevision === revision()) {
+      <p>{{ evaluated.assessment.catalogReason }}</p>
+      <ul>
+        @for (result of evaluated.assessment.results; track result.code) {
+          <li>
+            <strong>{{ result.title }}</strong>
+            <p>{{ result.data === 'RECORDED' ? 'Dado registrado' : 'Dado pendente' }} · {{ proofLabel[result.proof] }}</p>
+            @if (result.evidence; as evidence) {
+              <p>Origem no guia, revisão {{ evidence.guideVersion }} · Campo {{ result.field }}
+                @if (evidence.factVersion) { · Versão do fato {{ evidence.factVersion }} }</p>
+            }
+            <p>{{ result.reason }}</p>
+            @if (result.humanReviewRequired) { <p>Parecer técnico do requisito pendente.</p> }
+          </li>
+        } @empty { <li>Nenhum requisito do catálogo disponível para avaliar nesta seção.</li> }
+      </ul>
+      <p>Cálculo do projeto pendente · Ato externo não avaliado</p>
+    } @else {
+      <p>O guia foi atualizado. Consulte a avaliação da nova revisão.</p>
+    }
+  }
+</details>

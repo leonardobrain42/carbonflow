@@ -28,6 +28,8 @@ class SectionReadiness {
                 LocalDate dateUsed, Window window, List<Gate> gates, Denominator counts, List<RequirementGraph.Node> requirements,
                 List<InputNeed> acquisitionPlan) {}
 
+    record Evaluation(View view, ProjectGuides.Guide guide, Map<String,RequirementResolver.Rule> sectionRules) {}
+
     private final DynamicProjectScope scopes;
     private final ProjectGuides guides;
     private final RequirementResolver resolver;
@@ -44,6 +46,11 @@ class SectionReadiness {
 
     View view(Connection connection, DynamicProjectScope.Context scope, String section,
                       RequirementResolver.Act act) throws SQLException {
+        return evaluate(connection,scope,section,act).view();
+    }
+
+    Evaluation evaluate(Connection connection, DynamicProjectScope.Context scope, String section,
+                        RequirementResolver.Act act) throws SQLException {
         Map<String, ProjectGuides.Guide> visible = guides.catalog(connection,scope).guides().stream()
                 .collect(Collectors.toMap(ProjectGuides.Guide::id,Function.identity()));
         var guide = visible.get(section);
@@ -95,10 +102,14 @@ class SectionReadiness {
         var nodes = evaluateScoped(rules, new RequirementGraph.Inputs(recorded,stale,optional));
         var sectionNodes = nodes.stream().filter(node -> node.guide().equals(section)).toList();
         var plan = plan(guide,regime,sectionNodes,viewIntake,scope.actions().contains("SAVE_INTAKE"));
-        return new View(section,guide.version(),act,regime.state(),regime.reason(),regime.packId(),regime.packEdition(),
+        var view = new View(section,guide.version(),act,regime.state(),regime.reason(),regime.packId(),regime.packEdition(),
                 regime.dateBasis(),regime.dateUsed(),window,gates(sectionNodes,regime.state(),plan),
                 regime.state() == RequirementResolver.State.RESOLVED_SYNTHETIC && !sectionNodes.isEmpty()
                         ? count(sectionNodes) : null,sectionNodes,plan);
+        var sectionRules = rules.stream().map(RequirementResolver.RuleResult::rule)
+                .filter(rule -> section.equals(rule.section()))
+                .collect(Collectors.toMap(RequirementResolver.Rule::code,Function.identity()));
+        return new Evaluation(view,guide,sectionRules);
     }
 
     private static List<RequirementGraph.Node> evaluateScoped(List<RequirementResolver.RuleResult> visible,
