@@ -1,0 +1,70 @@
+<div class="cf-workspace-shell">
+  <aside class="cf-workspace-sidebar" aria-label="Navegação">
+    <a routerLink="/workspace" class="cf-workspace-brand">Carbon<span>Flow</span></a>
+    <nav class="cf-workspace-nav" aria-label="Espaço de trabalho">
+      <a routerLink="/workspace">Meus projetos</a>
+      <a routerLink="/workspace/compliance" aria-current="page">Conformidade</a>
+    </nav>
+  </aside>
+  <div class="cf-workspace-stage">
+    <main class="cf-workspace-content">
+      <header class="cf-workspace-heading">
+        <h1>Conformidade</h1>
+        <p>Solicitações de comprovação de poderes das organizações sob sua responsabilidade.</p>
+      </header>
+      @if (error()) { <p class="cf-workspace-alert" role="alert">{{ error() }}</p> }
+      @if (busy()) { <p role="status">Carregando conformidade…</p> }
+      @if (session(); as access) {
+        @if (!access.verified) {
+          <section class="cf-workspace-card">
+            <h2>Confirme seu acesso</h2>
+            <form (submit)="verify($event, code)">
+              <label for="cf-mfa-code">Código de seis dígitos do autenticador</label>
+              <input #code id="cf-mfa-code" type="text" inputmode="numeric" autocomplete="one-time-code"
+                pattern="[0-9]{6}" maxlength="6" required [disabled]="busy()">
+              <button type="submit" class="cf-workspace-primary" [disabled]="busy()">Desbloquear fila</button>
+            </form>
+          </section>
+        } @else if (queue(); as page) {
+          @if (selected(); as item) {
+            <section class="cf-workspace-card">
+              <h2>{{ item.projectTitle }}</h2>
+              <p>{{ item.organizationName }} · {{ power[item.power] }}</p>
+              <h3>Fundamento da representação</h3>
+              <p>{{ item.basis }}</p>
+              <h3>Referência e comprovantes</h3>
+              <p>{{ item.reference }}</p>
+              <ul class="cf-tech-gates">
+                @for (document of documents(); track document.id) {
+                  <li><a class="cf-workspace-link" [href]="documentUrl(item, document)">Baixar comprovante {{ $index + 1 }}</a></li>
+                } @empty {
+                  <li>Nenhum comprovante anexado.</li>
+                }
+              </ul>
+              <button class="cf-workspace-outline" type="button" (click)="selected.set(null)">Voltar à fila</button>
+            </section>
+          } @else {
+            <ul class="cf-workspace-project-list">
+              @for (item of page.cases; track item.projectId + item.requestId) {
+                <li>
+                  <div><strong>{{ item.projectTitle }}</strong><p>{{ item.organizationName }} · {{ power[item.power] }}</p></div>
+                  <button class="cf-workspace-outline" type="button" [disabled]="busy()" (click)="open(item)">Abrir solicitação</button>
+                </li>
+              } @empty {
+                <li>Nenhuma solicitação disponível.</li>
+              }
+            </ul>
+            <div class="cf-triage-actions">
+              @if (offset() > 0) {
+                <button class="cf-workspace-outline" type="button" [disabled]="busy()" (click)="showQueue(offset() - 40)">Página anterior</button>
+              }
+              @if (page.nextOffset !== null) {
+                <button class="cf-workspace-outline" type="button" [disabled]="busy()" (click)="showQueue(page.nextOffset)">Próxima página</button>
+              }
+            </div>
+          }
+        }
+      }
+    </main>
+  </div>
+</div>
