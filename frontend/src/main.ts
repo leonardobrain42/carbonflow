@@ -14,6 +14,7 @@ import {AuditPanel} from './audit-panel';
 import {IssuancePanel} from './issuance-panel';
 import {OperationsPanel} from './operations-panel';
 import {WorkspaceComponent} from './workspace';
+import {ProjectExperienceComponent} from './project-experience';
 import {ProjectTechnicalComponent} from './project-technical';
 import {ProjectTriageComponent} from './project-triage';
 
@@ -253,6 +254,7 @@ const routes: Routes = [
   {path: 'pilot', component: PilotComponent},
   {path: 'workspace', component: WorkspaceComponent},
   {path: 'workspace/projects/new', component: WorkspaceComponent},
+  {path: 'workspace/projects/:projectId/experience', component: ProjectExperienceComponent},
   {path: 'workspace/projects/:projectId/technical', component: ProjectTechnicalComponent},
   {path: 'workspace/projects/:projectId/triage', component: ProjectTriageComponent},
   {path: '**', redirectTo: 'pilot'},
