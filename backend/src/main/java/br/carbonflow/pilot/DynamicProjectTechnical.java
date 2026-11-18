@@ -210,6 +210,11 @@ class DynamicProjectTechnical {
         return STANDARD_BLOCKERS;
     }
 
+    static LocalDate referenceActDate(Connection connection, String project) throws SQLException {
+        IntakeRow saved = latestIntake(connection, project);
+        return saved == null ? null : saved.data().referenceActDate();
+    }
+
     private static IntakeRow latestIntake(Connection connection, String project) throws SQLException {
         // Read immutable technical revisions, not pilot_intake_revision.
         return first(connection, """
