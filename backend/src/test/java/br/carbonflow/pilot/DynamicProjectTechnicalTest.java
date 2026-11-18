@@ -26,6 +26,8 @@ class DynamicProjectTechnicalTest {
     private static final String PROJECTS = "/v1/projects";
 
     @Inject PilotDatabase database;
+    @Inject DynamicProjectScope scopes;
+    @Inject ContentLicensePolicy licenses;
     @Inject ObjectMapper json;
     @TestHTTPResource URL base;
 
@@ -559,6 +561,72 @@ class DynamicProjectTechnicalTest {
         var afterRevocation = body(call("GET", journey, reviewer.cookie(), null, null, null));
         assertTrue(task(afterRevocation, "review-baseline").isMissingNode());
         assertTrue(afterRevocation.path("nextTask").isNull());
+    }
+
+    @Test
+    void sourcePolicySeparatesMetadataAndOperationsAndChecksLatestDecision() throws Exception {
+        Actor owner = actor();
+        Actor verifier = actor();
+        UUID org = organization(owner.id());
+        String project = body(call("POST", PROJECTS, owner.cookie(), key(), null,
+                "{\"organizationId\":\"" + org + "\",\"title\":\"Preparação manual\"}")).path("projectId").asText();
+        String root = PROJECTS + "/" + project;
+        assertEquals(200, call("PUT", root + "/technical/intake", owner.cookie(), key(), "\"0\"",
+                "{\"candidateMethodology\":\"VM0038\"}").statusCode());
+        var policy = call("GET", root + "/source-policy", owner.cookie(), null, null, null);
+        assertEquals(200, policy.statusCode(), policy.body());
+        assertTrue(body(policy).path("normativeAiDisabled").asBoolean());
+        assertEquals(2, body(policy).path("sources").size());
+        assertEquals("VM0038", body(policy).at("/sources/0/id").asText());
+        assertFalse(body(policy).at("/sources/0/requirementReferenceAvailable").asBoolean());
+        assertTrue(body(policy).at("/sources/1/requirementReferenceAvailable").asBoolean());
+        assertEquals(404, call("GET", root + "/source-policy", verifier.cookie(), null, null, null).statusCode());
+
+        var external = new ContentLicensePolicy.SourceRef("VM0038", "1.1");
+        var fixture = new ContentLicensePolicy.SourceRef("CF-ECA-DEMO", "1");
+        assertNotNull(license(owner, project, fixture, ContentLicensePolicy.Operation.REFERENCE_REQUIREMENT));
+        assertNull(license(owner, project, fixture, ContentLicensePolicy.Operation.EXTRACT_TEXT));
+        assertNull(license(owner, project, external, ContentLicensePolicy.Operation.REFERENCE_REQUIREMENT));
+
+        UUID permitted = UUID.randomUUID();
+        database.transaction(c -> {
+            update(c, """
+                    INSERT INTO app_content_license(id,source_id,edition,organization_id,project_id,actor_id,
+                        submitted_by,environment,purpose,authorization_ref,proof_sha256,starts_at)
+                    VALUES (?, 'VM0038','1.1',?,?,?,?,'SANDBOX','REQUIREMENT_CATALOG','Prova de teste',
+                        repeat('a',64),statement_timestamp()-interval '1 hour')
+                    """, permitted, org, project, owner.id(), owner.id());
+            update(c, """
+                    INSERT INTO app_content_license_decision(license_id,version,outcome,decided_by,reason)
+                    VALUES (?,1,'APPROVED',?,'Decisão de teste')
+                    """, permitted, owner.id());
+            update(c, "INSERT INTO app_content_license_capability VALUES (?,1,'REFERENCE_REQUIREMENT')", permitted);
+            return null;
+        });
+        assertNull(license(owner, project, external, ContentLicensePolicy.Operation.REFERENCE_REQUIREMENT));
+        database.transaction(c -> {
+            update(c, """
+                    INSERT INTO app_content_license_decision(license_id,version,outcome,decided_by,reason)
+                    VALUES (?,2,'APPROVED',?,'Revisão independente de teste')
+                    """, permitted, verifier.id());
+            update(c, "INSERT INTO app_content_license_capability VALUES (?,2,'REFERENCE_REQUIREMENT')", permitted);
+            return null;
+        });
+        assertEquals(permitted, license(owner, project, external, ContentLicensePolicy.Operation.REFERENCE_REQUIREMENT).licenseId());
+        assertNull(license(owner, project, external, ContentLicensePolicy.Operation.RAG_RETRIEVE));
+        database.transaction(c -> update(c, """
+                INSERT INTO app_content_license_decision(license_id,version,outcome,decided_by,reason)
+                VALUES (?,3,'REVOKED',?,'Encerramento de teste')
+                """, permitted, verifier.id()));
+        assertNull(license(owner, project, external, ContentLicensePolicy.Operation.REFERENCE_REQUIREMENT));
+        assertEquals(200, call("PUT", root + "/technical/guides/baseline", owner.cookie(), key(), "\"0\"",
+                "{\"scenario\":\"Cenário manual\"}").statusCode());
+    }
+
+    private ContentLicensePolicy.Authorization license(Actor actor, String project, ContentLicensePolicy.SourceRef source,
+                                                       ContentLicensePolicy.Operation operation) {
+        return scopes.read(actor.cookie().substring(AccountAccess.COOKIE.length() + 1), project, "VIEW_GUIDES", (connection, scope) ->
+                licenses.authorize(connection, scope, source, ContentLicensePolicy.Purpose.REQUIREMENT_CATALOG, operation, null));
     }
 
     private static JsonNode task(JsonNode journey, String id) {
