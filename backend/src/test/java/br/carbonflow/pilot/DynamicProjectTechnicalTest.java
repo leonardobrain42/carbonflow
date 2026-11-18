@@ -233,6 +233,55 @@ class DynamicProjectTechnicalTest {
         assertEquals("DRAFT", body(call("GET", project + "/metadata", owner.cookie(), null, null, null)).path("state").asText());
     }
 
+    @Test
+    void plansExternalContributorsAndFlagsSameIdentityAcrossRoles() throws Exception {
+        Actor owner = actor();
+        Actor peer = actor();
+        UUID org = organization(owner.id());
+        membership(org, peer.id());
+        var created = call("POST", PROJECTS, owner.cookie(), key(), null,
+                "{\"organizationId\":\"" + org + "\",\"title\":\"Planejamento de convites\"}");
+        assertEquals(201, created.statusCode(), created.body());
+        String projectId = body(created).path("projectId").asText();
+        String plans = PROJECTS + "/" + projectId + "/invitation-plans";
+        String preparer = plans + "/" + UUID.randomUUID();
+        String reviewer = plans + "/" + UUID.randomUUID();
+        assertEquals(0, body(call("GET", plans, owner.cookie(), null, null, null)).path("plans").size());
+        String input = """
+                {"email":" EXTERNO@example.invalid ","role":"PREP","activities":["BASELINE"],"deadline":"2030-01-15",
+                 "competence":"Experiência declarada","declaredConflict":"UNKNOWN"}
+                """;
+        var saved = call("PUT", preparer, owner.cookie(), null, "\"0\"", input);
+        assertEquals(200, saved.statusCode(), saved.body());
+        assertEquals("PLANNED", body(saved).at("/plans/0/state").asText());
+        assertEquals("externo@example.invalid", body(saved).at("/plans/0/details/email").asText());
+        assertEquals("REVIEW_REQUIRED", body(saved).at("/plans/0/independence").asText());
+        assertEquals(body(saved), body(call("PUT", preparer, owner.cookie(), null, "\"0\"", input)));
+
+        var overlap = call("PUT", reviewer, owner.cookie(), null, "\"0\"", input.replace("PREP", "REV"));
+        assertEquals(200, overlap.statusCode(), overlap.body());
+        var matches = body(overlap).path("plans").findValuesAsText("independence");
+        assertEquals(java.util.List.of("SAME_PREPARER_AND_REVIEWER", "SAME_PREPARER_AND_REVIEWER"), matches);
+        assertEquals(404, call("GET", plans, peer.cookie(), null, null, null).statusCode());
+        assertEquals(404, call("PUT", reviewer, peer.cookie(), null, "\"1\"", input).statusCode());
+
+        String edited = input.replace("PREP", "REV").replace("EXTERNO@", "SEGUNDO@");
+        assertEquals(412, call("PUT", reviewer, owner.cookie(), null, "\"0\"", edited).statusCode());
+        var split = call("PUT", reviewer, owner.cookie(), null, "\"1\"", edited);
+        assertEquals(200, split.statusCode(), split.body());
+        assertEquals(java.util.List.of("REVIEW_REQUIRED", "REVIEW_REQUIRED"),
+                body(split).path("plans").findValuesAsText("independence"));
+        assertEquals(3L, database.read(connection -> first(connection,
+                "SELECT count(*) FROM app_project_invitation_plan_revision WHERE project_id = ?",
+                row -> row.getLong(1), projectId)).longValue());
+        assertEquals(0L, database.read(connection -> first(connection,
+                "SELECT count(*) FROM app_identity WHERE email_normalized = 'externo@example.invalid'",
+                row -> row.getLong(1))).longValue());
+        assertEquals(2L, database.read(connection -> first(connection,
+                "SELECT count(*) FROM app_organization_membership WHERE organization_id = ?",
+                row -> row.getLong(1), org)).longValue());
+    }
+
     private Actor actor() {
         UUID id = UUID.randomUUID();
         String token = AccessSecrets.newToken();

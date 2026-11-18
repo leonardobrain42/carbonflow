@@ -1,0 +1,105 @@
+<div class="cf-workspace-shell">
+  <aside class="cf-workspace-sidebar" aria-label="Navegação do projeto">
+    <a routerLink="/workspace" class="cf-workspace-brand">Carbon<span>Flow</span></a>
+    <nav class="cf-workspace-nav" aria-label="Espaço de trabalho">
+      <a routerLink="/workspace">Meus projetos</a>
+      <a [routerLink]="['/workspace/projects',projectId,'experience']">Preferências e equipe</a>
+      <a [routerLink]="['/workspace/projects',projectId,'invitation-plans']" aria-current="page">Planos de convite</a>
+    </nav>
+  </aside>
+
+  <div class="cf-workspace-stage">
+    <main class="cf-workspace-content">
+      <header class="cf-workspace-heading">
+        <h1>Planos de convite</h1>
+        <p>Defina quem poderá preparar ou revisar o projeto, quais atividades terá e até quando. O plano fica salvo como rascunho privado.</p>
+      </header>
+      @if (error()) { <p class="cf-workspace-alert" role="alert">{{ error() }}</p> }
+      @if (notice()) { <p class="cf-workspace-note" role="status">{{ notice() }}</p> }
+      @if (view(); as saved) {
+        @if (draft(); as input) {
+          <section class="cf-workspace-card" aria-labelledby="cf-plan-heading">
+            <h2 id="cf-plan-heading">Dados do plano</h2>
+            <form (submit)="save($event)">
+              <fieldset class="cf-journey-fieldset" [disabled]="busy()">
+                <div class="cf-journey-fields">
+                  <div>
+                    <label for="cf-plan-email">E-mail da pessoa</label>
+                    <input id="cf-plan-email" type="email" required maxlength="254" #email [value]="input.email"
+                      (input)="update({email:email.value})">
+                  </div>
+                  <div>
+                    <label for="cf-plan-role">Papel planejado</label>
+                    <select id="cf-plan-role" #role [value]="input.role" (change)="update({role:role.value === 'REV' ? 'REV' : 'PREP'})">
+                      <option value="PREP">Preparação técnica (PREP)</option>
+                      <option value="REV">Revisão técnica (REV)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label for="cf-plan-date">Prazo proposto</label>
+                    <input id="cf-plan-date" type="date" #deadline [value]="input.deadline || ''"
+                      (change)="update({deadline:deadline.value || null})">
+                  </div>
+                </div>
+                <fieldset class="cf-journey-fieldset">
+                  <legend>Atividades planejadas</legend>
+                  @for (activity of activities; track activity) {
+                    <label class="cf-plan-choice">
+                      <input type="checkbox" #check [checked]="input.activities.includes(activity)"
+                        (change)="setActivity(activity,check.checked)"> {{ activityLabel[activity] }}
+                    </label>
+                  }
+                </fieldset>
+                <label for="cf-plan-competence">Competência informada · sem verificação</label>
+                <textarea id="cf-plan-competence" #competence maxlength="400" rows="2" [value]="input.competence || ''"
+                  (input)="update({competence:competence.value || null})"></textarea>
+                <label for="cf-plan-conflict">Conflito de interesses</label>
+                <select id="cf-plan-conflict" #conflict [value]="input.declaredConflict"
+                  (change)="update({declaredConflict:conflict.value === 'DECLARED' ? 'DECLARED' : conflict.value === 'NONE_DECLARED' ? 'NONE_DECLARED' : 'UNKNOWN'})">
+                  <option value="UNKNOWN">A confirmar</option>
+                  <option value="NONE_DECLARED">Nenhum conflito declarado</option>
+                  <option value="DECLARED">Conflito declarado</option>
+                </select>
+                @if (input.declaredConflict === 'DECLARED') {
+                  <label for="cf-plan-conflict-note">Descreva o conflito</label>
+                  <textarea id="cf-plan-conflict-note" #note required maxlength="400" rows="2" [value]="input.conflictNote || ''"
+                    (input)="update({conflictNote:note.value || null})"></textarea>
+                }
+              </fieldset>
+              <div class="cf-triage-actions">
+                <button type="submit" class="cf-workspace-primary" [disabled]="busy()">Salvar plano</button>
+                <button type="button" class="cf-workspace-outline" [disabled]="busy()" (click)="cancel()">Voltar aos planos</button>
+              </div>
+            </form>
+          </section>
+        } @else {
+          <div class="cf-triage-actions">
+            <button type="button" class="cf-workspace-primary" [disabled]="busy()" (click)="edit()">Novo plano de convite</button>
+          </div>
+          <ul class="cf-workspace-project-list">
+            @for (plan of saved.plans; track plan.id) {
+              <li>
+                <div>
+                  <strong>{{ plan.details.email }} · {{ plan.details.role }}</strong>
+                  <p>Planejado · {{ independenceLabel[plan.independence] }}</p>
+                  <p>
+                    @for (activity of plan.details.activities; track activity) {
+                      {{ activityLabel[activity] }}{{ $last ? '' : ' · ' }}
+                    }
+                  </p>
+                </div>
+                <button type="button" class="cf-workspace-outline" [disabled]="busy()" (click)="edit(plan)">
+                  Editar plano de {{ plan.details.role }}
+                </button>
+              </li>
+            } @empty {
+              <li>Nenhum convite planejado para este projeto.</li>
+            }
+          </ul>
+        }
+      } @else if (busy()) {
+        <p role="status">Carregando planos de convite…</p>
+      }
+    </main>
+  </div>
+</div>

@@ -308,7 +308,7 @@ class AccountAccess {
                 """, row -> row.getInt("attempts"), bucket);
     }
 
-    private static String email(String value) {
+    static String email(String value) {
         String normalized = value == null ? "" : value.strip().toLowerCase(Locale.ROOT);
         if (!validEmail(normalized)) {
             throw badField("email");
