@@ -33,6 +33,12 @@ async function setup(page) {
     answers: state.answers,
     journey: journeys[state.answers['1']?.methodologyCandidate === 'VM0038' ? 'VM0038' : 'GENERAL'],
     methodologies: [{value:'VM0038',label:vmTitle}],
+    diagnosis: {
+      ruleVersion:'REG-E2 / CF-IMP-010 v1',
+      classification:state.answers['3']?.chargerType === 'AC' ? 'UNSUPPORTED_MVP' : 'UNKNOWN_REVIEW_REQUIRED',
+      reason:'A configuração precisa de análise.',
+      findings:[{code:'DATE',title:'Documente a cronologia do projeto',detail:'Reúna documentos.',step:4,fields:['referenceDate']}],
+    },
     guidance: {
       state:'A_CONFIRMAR', outsideMethodology:[],
       outsidePilot:state.answers['3']?.chargerType === 'AC' ? ['O piloto cobre estações DCFC.'] : [],
@@ -176,6 +182,11 @@ test('triagem só oferece recarga na VM0038 e mantém AC como resposta fora do p
     await page.getByRole('button',{name:/Resumo da triagem/}).click();
     await page.getByRole('heading',{name:'Respostas fora do recorte do piloto'}).waitFor();
     assert.equal(state.answers['3'].chargerType,'AC');
+    await page.getByText('Configuração fora do recorte implementado',{exact:true}).waitFor();
+    await page.getByRole('button',{name:'Abrir etapa · Documente a cronologia do projeto'}).click();
+    await page.getByLabel('Data de referência pretendida').waitFor();
+    await page.getByRole('button',{name:/Resumo da triagem/}).click();
+    await page.getByRole('heading',{name:'Diagnóstico preliminar'}).waitFor();
     await page.reload();
     await page.getByRole('button',{name:'Editar frota, recarga e medição'}).click();
     assert.equal(await page.getByLabel('Tipo de recarga').inputValue(),'AC');

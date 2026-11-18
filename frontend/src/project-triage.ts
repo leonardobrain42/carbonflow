@@ -19,8 +19,16 @@ interface TriageStage {
   missingFields: string[];
 }
 
+interface Diagnosis {
+  ruleVersion: string;
+  classification: 'SUPPORTED_MVP_CONFIGURATION' | 'UNSUPPORTED_MVP' | 'UNKNOWN_REVIEW_REQUIRED';
+  reason: string;
+  findings: {code: string; title: string; detail: string; step: number; fields: string[]}[];
+}
+
 interface TriageView {
   projectId: string;
+  diagnosis?: Diagnosis;
   environment: string;
   version: number;
   currentStep: number;
@@ -151,6 +159,8 @@ export class ProjectTriageComponent {
       case 3: return [...details.map(question => question.key),
         ...(this.field(3, 'notApplicableReason') ? ['notApplicableReason'] : [])];
       default: return ['country', 'state', 'locality', 'referenceDate', 'evidenceStatus', 'rightsStatus',
+        ...(this.vm0038() ? ['investmentCommitted',
+          ...(this.field(4, 'investmentCommitted') === 'YES' ? ['carbonConsideredBeforeInvestment'] : [])] : []),
         ...(this.field(4, 'rightsStatus') === 'NAO_APLICAVEL_JUSTIFICADO' ? ['rightsJustification'] : [])];
     }
   }
@@ -246,10 +256,20 @@ export class ProjectTriageComponent {
     return names[value] ?? value;
   }
 
+  diagnosisLabel(value: Diagnosis['classification']) {
+    return {
+      SUPPORTED_MVP_CONFIGURATION: 'Configuração compatível com o recorte do piloto',
+      UNSUPPORTED_MVP: 'Configuração fora do recorte implementado',
+      UNKNOWN_REVIEW_REQUIRED: 'Requer mais informações ou revisão',
+    }[value];
+  }
+
   fieldLabel(key: string) {
     const labels: Record<string, string> = {
       objective: 'Objetivo', activityType: 'Tipo de atividade',
       installsChargers: 'Instalação de carregadores',
+      investmentCommitted: 'Compromisso de investimento',
+      carbonConsideredBeforeInvestment: 'Receita de carbono considerada antes do compromisso',
       methodologyCandidate: 'Metodologia candidata', activityDescription: 'Como funcionará',
       baselinePractice: 'Cenário atual', expectedBenefit: 'Benefício esperado',
       vehicleCount: 'Número de veículos', propulsion: 'Propulsão',
