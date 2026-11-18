@@ -75,7 +75,7 @@ class ProjectInvitationPlans {
         });
     }
 
-    private static View view(Connection connection, DynamicProjectScope.Context context) throws SQLException {
+    static View view(Connection connection, DynamicProjectScope.Context context) throws SQLException {
         var current = query(connection, "SELECT DISTINCT ON (plan_id) " + COLUMNS + """
                 FROM app_project_invitation_plan_revision WHERE project_id = ?
                 ORDER BY plan_id, version DESC

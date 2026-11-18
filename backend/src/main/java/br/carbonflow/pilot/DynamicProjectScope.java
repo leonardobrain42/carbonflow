@@ -105,7 +105,7 @@ class DynamicProjectScope {
         }
     }
 
-    private static void audit(Connection connection, UUID actor, String target, String action,
+    static void audit(Connection connection, UUID actor, String target, String action,
                               String outcome, String code) throws SQLException {
         update(connection, """
                 INSERT INTO app_project_technical_access_event

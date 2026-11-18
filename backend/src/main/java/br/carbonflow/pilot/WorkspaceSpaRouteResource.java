@@ -60,6 +60,12 @@ public class WorkspaceSpaRouteResource {
         return html();
     }
 
+    @GET
+    @Path("/invitations")
+    public Response receivedInvitations() {
+        return html();
+    }
+
     private Response html() {
         InputStream page = getClass().getClassLoader().getResourceAsStream("META-INF/resources/index.html");
         if (page == null) {

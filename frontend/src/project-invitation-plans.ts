@@ -1,7 +1,9 @@
 import {Component, inject, signal} from '@angular/core';
+import {DatePipe} from '@angular/common';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {ActivatedRoute, RouterLink} from '@angular/router';
 import {firstValueFrom} from 'rxjs';
+import {INVITATION_STATUS, ProjectInvitation} from './project-invitations';
 
 const ACTIVITIES = {
   INTAKE: 'Aplicabilidade e fronteira',
@@ -40,6 +42,11 @@ interface View {
   plans: Plan[];
 }
 
+interface ActiveInvitations {
+  canSend: boolean;
+  invitations: ProjectInvitation[];
+}
+
 const INDEPENDENCE = {
   REVIEW_REQUIRED: 'Independência a confirmar',
   NONE_DECLARED: 'Nenhum conflito declarado · a conferir',
@@ -49,13 +56,18 @@ const INDEPENDENCE = {
 
 @Component({
   selector: 'carbonflow-project-invitation-plans',
-  imports: [RouterLink],
+  imports: [RouterLink, DatePipe],
   templateUrl: './project-invitation-plans.html',
 })
 export class ProjectInvitationPlansComponent {
   private readonly http = inject(HttpClient);
   readonly projectId = inject(ActivatedRoute).snapshot.paramMap.get('projectId') ?? '';
-  private readonly url = '/v1/projects/' + encodeURIComponent(this.projectId) + '/invitation-plans';
+  private readonly root = '/v1/projects/' + encodeURIComponent(this.projectId);
+  private readonly url = this.root + '/invitation-plans';
+  private readonly invitationUrl = this.root + '/invitations';
+  readonly active = signal<ActiveInvitations | null>(null);
+  readonly inviteStatus = INVITATION_STATUS;
+  private readonly commands = new Map<string, string>();
   readonly activities = Object.keys(ACTIVITIES) as Activity[];
   readonly activityLabel = ACTIVITIES;
   readonly independenceLabel = INDEPENDENCE;
@@ -76,6 +88,7 @@ export class ProjectInvitationPlansComponent {
     this.error.set('');
     try {
       this.accept(await firstValueFrom(this.http.get<View>(this.url)));
+      await this.loadInvitations();
     } catch {
       this.error.set('Não foi possível consultar os planos de convite deste projeto.');
     } finally {
@@ -135,6 +148,63 @@ export class ProjectInvitationPlansComponent {
     } finally {
       this.busy.set(false);
     }
+  }
+
+  canSend(plan: Plan) {
+    return this.active()?.canSend === true
+      && plan.details.activities.every(activity => activity === 'INTAKE' || activity === 'DOCUMENTATION')
+      && ['REVIEW_REQUIRED', 'NONE_DECLARED'].includes(plan.independence)
+      && !this.active()?.invitations.some(item => item.planId === plan.id && ['SENT', 'ACCEPTED'].includes(item.state));
+  }
+
+  async send(plan: Plan) {
+    if (this.busy() || !this.canSend(plan)) return;
+    this.busy.set(true);
+    this.error.set('');
+    const request = plan.id + ':' + plan.version;
+    const key = this.commands.get(request) ?? crypto.randomUUID();
+    this.commands.set(request, key);
+    try {
+      const invitation = await firstValueFrom(this.http.post<ProjectInvitation>(
+        this.invitationUrl + '/plans/' + encodeURIComponent(plan.id) + '/send', null,
+        {headers:{'Idempotency-Key':key, 'If-Match':'"' + plan.version + '"'}}));
+      this.active.update(view => view ? {...view,
+        invitations:[invitation, ...view.invitations.filter(item => item.id !== invitation.id)]} : view);
+      this.commands.delete(request);
+      this.notice.set('Convite enviado à caixa do sandbox.');
+    } catch (cause) {
+      this.error.set(this.invitationError(cause, 'Não foi possível enviar o convite.'));
+      if (cause instanceof HttpErrorResponse && cause.status === 403) await this.loadInvitations();
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  async revoke(invitation: ProjectInvitation) {
+    if (this.busy() || !confirm('Revogar este vínculo?')) return;
+    this.busy.set(true);
+    this.error.set('');
+    try {
+      this.active.set(await firstValueFrom(this.http.post<ActiveInvitations>(
+        this.invitationUrl + '/' + encodeURIComponent(invitation.id) + '/revoke', null)));
+      this.notice.set('Vínculo revogado. O histórico do convite foi preservado.');
+    } catch (cause) {
+      this.error.set(this.invitationError(cause, 'Não foi possível revogar o vínculo.'));
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  private async loadInvitations() {
+    try {
+      this.active.set(await firstValueFrom(this.http.get<ActiveInvitations>(this.invitationUrl)));
+    } catch {
+      this.active.set(null);
+    }
+  }
+
+  private invitationError(cause: unknown, fallback: string) {
+    return cause instanceof HttpErrorResponse && typeof cause.error?.message === 'string' ? cause.error.message : fallback;
   }
 
   private accept(view: View) {

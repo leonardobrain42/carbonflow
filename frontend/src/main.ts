@@ -16,6 +16,7 @@ import {OperationsPanel} from './operations-panel';
 import {WorkspaceComponent} from './workspace';
 import {ComplianceQueueComponent} from './compliance-queue';
 import {ProjectAuthorityRequestsComponent} from './project-authority-requests';
+import {ProjectReceivedInvitationsComponent} from './project-received-invitations';
 import {ProjectInvitationPlansComponent} from './project-invitation-plans';
 import {ProjectExperienceComponent} from './project-experience';
 import {ProjectTechnicalComponent} from './project-technical';
@@ -257,6 +258,7 @@ const routes: Routes = [
   {path: 'pilot', component: PilotComponent},
   {path: 'workspace', component: WorkspaceComponent},
   {path: 'workspace/compliance', component: ComplianceQueueComponent},
+  {path: 'workspace/invitations', component: ProjectReceivedInvitationsComponent},
   {path: 'workspace/projects/new', component: WorkspaceComponent},
   {path: 'workspace/projects/:projectId/authority-requests', component: ProjectAuthorityRequestsComponent},
   {path: 'workspace/projects/:projectId/invitation-plans', component: ProjectInvitationPlansComponent},
