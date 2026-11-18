@@ -149,3 +149,41 @@ test('registra solicitação a partir de lacuna e preserva a natureza da respost
     await page.getByText('Natureza informada · Estimada',{exact:true}).waitFor();
   } finally { await browser.close(); }
 });
+
+test('revisor decide uma proposta de fato cuja origem está fixada', async () => {
+  const browser = await chromium.launch({executablePath});
+  try {
+    const page = await browser.newPage({viewport:{width:390,height:844}});
+    const root = '/v1/projects/' + projectId;
+    const facts = root + '/sections/baseline/facts';
+    const guide = {id:'baseline',title:'Linha de base',guidance:'Registre o cenário.',
+      fields:[{key:'scenario',label:'Cenário',type:'text',options:[]}],
+      version:2,answers:{scenario:'Referência corrigida'},missing:[],editable:false};
+    let candidate = {id:'proposal',field:'scenario',value:'Referência corrigida',factVersion:null,currentVersion:1,
+      divergent:true,canReview:true,requestId:null,review:null,
+      evidence:{id:'source',guideVersion:2,sha256:'f'.repeat(64),locator:'/answers/scenario'}};
+    await page.route('**' + root + '/metadata', r => r.fulfill({json:{projectId,environment:'SANDBOX',title:'Frota'}}));
+    await page.route('**' + root + '/technical/capabilities', r => r.fulfill({json:{
+      projectId,environment:'SANDBOX',owner:false,actions:['VIEW_GUIDES'],modules:{}
+    }}));
+    await page.route('**' + root + '/technical/guides', r => r.fulfill({json:{methodology:'VM0038_V1_1',guides:[guide]}}));
+    await page.route('**' + facts, r => r.fulfill({json:{candidates:[candidate],canPropose:false}}));
+    await page.route('**' + facts + '/proposal/decision', r => {
+      assert.equal(r.request().headers()['if-match'],'"1"');
+      const review = r.request().postDataJSON();
+      assert.deepEqual(review,{outcome:'ACCEPTED',reason:'Origem conferida.'});
+      candidate = {...candidate,review,factVersion:2,currentVersion:2,canReview:false};
+      return r.fulfill({json:candidate});
+    });
+    await page.goto(base + '/workspace/projects/' + projectId + '/technical?secao=guias&guia=baseline');
+    await page.getByText('Evidências e fatos',{exact:true}).click();
+    await page.getByRole('button',{name:'Consultar propostas de fatos'}).click();
+    await page.getByText('Divergência com o fato vigente',{exact:false}).waitFor();
+    await page.getByText('Origem versionada',{exact:true}).click();
+    await page.getByText('/answers/scenario',{exact:false}).waitFor();
+    await page.getByRole('button',{name:'Registrar parecer'}).click();
+    await page.getByLabel('Motivo do parecer').fill('Origem conferida.');
+    await page.getByRole('button',{name:'Confirmar parecer'}).click();
+    await page.getByText('Fato interno vigente · versão 2',{exact:true}).waitFor();
+  } finally { await browser.close(); }
+});

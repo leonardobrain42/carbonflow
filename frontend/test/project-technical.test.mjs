@@ -200,6 +200,7 @@ test('CF-IMP-008: rascunho da conta cruza intake e prévia sem adquirir autorida
       'Recarga elétrica em ambiente urbano');
     assert.equal(await page.getByLabel('País (código de duas letras)').inputValue(), 'BR');
     await page.getByRole('link',{name:'Preferências e equipe'}).click();
+    await page.getByLabel('Modo de visualização').waitFor();
     assert.deepEqual(await menu.getByRole('link').allTextContents(), menuItems);
     assert.equal(await menu.getByRole('link', {name:'Preferências e equipe'}).getAttribute('aria-current'), 'page');
     await page.getByLabel('Modo de visualização').selectOption('TECHNICAL');

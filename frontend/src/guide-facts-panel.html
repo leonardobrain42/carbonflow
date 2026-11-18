@@ -1,0 +1,72 @@
+<details class="cf-journey-context" [open]="!!request() || !!view()">
+  <summary>Evidências e fatos</summary>
+  <p>Registre uma proposta a partir de um campo salvo. O revisor independente decide se o dado pode ser usado como fato interno.</p>
+  @if (error()) { <p role="alert">{{error()}}</p> }
+  @if (busy()) { <p role="status">Consultando propostas…</p> }
+  @if (request(); as selected) {
+    <div class="cf-journey-context">
+      @if (linkedField(); as field) {
+        <form (submit)="propose($event,field.key,selected.id)">
+          <p>Origem da solicitação · {{field.label}} · revisão {{version()}}</p>
+          <button class="cf-workspace-primary" type="submit" [disabled]="busy() || !editable()">Propor fato para a solicitação</button>
+        </form>
+      } @else {
+        <p>Salve o valor do campo solicitado no guia para vinculá-lo a uma revisão.</p>
+      }
+      <button class="cf-workspace-outline" type="button" (click)="clearRequest.emit()">Limpar vínculo</button>
+    </div>
+  }
+  <button class="cf-workspace-outline" type="button" [disabled]="busy()" (click)="load()">Consultar propostas de fatos</button>
+  @if (view(); as current) {
+    @if (current.canPropose && availableFields().length && !request()) {
+      <form (submit)="propose($event,field.value)">
+        <label for="guide-fact-field">Campo salvo na revisão {{version()}}</label>
+        <select #field id="guide-fact-field" [disabled]="busy()">
+          @for (item of availableFields(); track item.key) { <option [value]="item.key">{{item.label}}</option> }
+        </select>
+        <button class="cf-workspace-primary" type="submit" [disabled]="busy()">Propor fato</button>
+      </form>
+    }
+    @for (candidate of current.candidates; track candidate.id) {
+      <article class="cf-journey-context">
+        <h4>{{label(candidate.field)}}</h4>
+        <p>{{candidate.value}}</p>
+        @if (candidate.factVersion; as version) {
+          <p>{{version === candidate.currentVersion ? 'Fato interno vigente' : 'Fato interno anterior'}} · versão {{version}}</p>
+        } @else if (candidate.review?.outcome === 'REJECTED') {
+          <p>Proposta rejeitada</p>
+        } @else {
+          <p>{{candidate.divergent ? 'Divergência com o fato vigente · aguarda revisão' : 'Proposta · aguarda revisão'}}</p>
+        }
+        @if (candidate.review; as opinion) { <p>Parecer · {{opinion.reason}}</p> }
+        <details class="cf-journey-context">
+          <summary>Origem versionada</summary>
+          <p>Guia · revisão {{candidate.evidence.guideVersion}} · {{candidate.evidence.locator}}</p>
+          <p>SHA-256 · {{candidate.evidence.sha256}}</p>
+          @if (candidate.requestId) { <p>Solicitação de dados vinculada · versão {{candidate.requestVersion}}</p> }
+          @if (candidate.evidence.guideVersion < version()) {
+            <button type="button" class="cf-workspace-outline" (click)="origin.emit(candidate.evidence.guideVersion)">Consultar versão de origem</button>
+          }
+        </details>
+        @if (candidate.canReview) {
+          <button class="cf-workspace-outline" type="button" [disabled]="busy()" (click)="reviewing.set(candidate)">Registrar parecer</button>
+        }
+      </article>
+    } @empty {
+      <p>Nenhuma proposta registrada nesta seção.</p>
+    }
+    @if (reviewing(); as candidate) {
+      <form class="cf-journey-context" (submit)="decide($event,outcome.value,reason.value)">
+        <h4>Parecer · {{label(candidate.field)}}</h4>
+        <label for="fact-outcome">Decisão sobre o fato</label>
+        <select #outcome id="fact-outcome" [disabled]="busy()">
+          <option value="ACCEPTED">Aceitar como fato interno</option>
+          <option value="REJECTED">Rejeitar proposta</option>
+        </select>
+        <label for="fact-reason">Motivo do parecer</label>
+        <textarea #reason id="fact-reason" rows="2" maxlength="800" required [disabled]="busy()"></textarea>
+        <button class="cf-workspace-primary" type="submit" [disabled]="busy()">Confirmar parecer</button>
+      </form>
+    }
+  }
+</details>

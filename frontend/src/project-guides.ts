@@ -1,3 +1,4 @@
+import {EvidenceRequestLink, GuideFactsPanelComponent} from './guide-facts-panel';
 import {AcquisitionPanelComponent} from './acquisition-panel';
 import {Component, inject, input, OnInit, output, signal} from '@angular/core';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
@@ -12,7 +13,7 @@ interface Guide {
 
 @Component({
   selector: 'carbonflow-project-guides',
-  imports: [GuideReferencesComponent, AcquisitionPanelComponent],
+  imports: [GuideReferencesComponent, AcquisitionPanelComponent, GuideFactsPanelComponent],
   templateUrl: './project-guides.html',
 })
 export class ProjectGuidesComponent implements OnInit {
@@ -24,7 +25,9 @@ export class ProjectGuidesComponent implements OnInit {
   readonly document = output<string>();
   readonly saved = output<Guide>();
   readonly guides = signal<Guide[]>([]);
+  readonly evidenceRequest = signal<EvidenceRequestLink|null>(null);
   readonly sources = signal<Guide[] | null>(null);
+  readonly historyOpen = signal(false);
   readonly historical = signal<Guide | null>(null);
   readonly current = signal<Guide | null>(null);
   readonly answers = signal<Record<string,string>>({});
@@ -60,6 +63,8 @@ export class ProjectGuidesComponent implements OnInit {
   }
 
   private display(guide: Guide | null) {
+    this.evidenceRequest.set(null);
+    this.historyOpen.set(false);
     this.sources.set(null);
     this.historical.set(null);
     this.current.set(guide);
@@ -96,6 +101,7 @@ export class ProjectGuidesComponent implements OnInit {
       const state = await firstValueFrom(this.http.get<Guide>(this.url + '/' + guide.id + '/revisions/' + version));
       this.sources.set(null);
       this.historical.set(state);
+      this.historyOpen.set(true);
     } catch (cause) {
       if (cause instanceof HttpErrorResponse && [401,404].includes(cause.status)) {
         this.dirty.set(false);

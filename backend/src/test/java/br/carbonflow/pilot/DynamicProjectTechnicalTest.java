@@ -774,6 +774,63 @@ class DynamicProjectTechnicalTest {
         assertEquals(200,call("GET",request,owner.cookie(),null,null,null).statusCode());
     }
 
+    @Test
+    void factsTrackGuideSourcesAndRequireIndependentReviewBeforeSuperseding() throws Exception {
+        Actor owner = actor();
+        Actor reviewer = actor();
+        Actor scopedElsewhere = actor();
+        UUID org = organization(owner.id());
+        String project = body(call("POST",PROJECTS,owner.cookie(),key(),null,
+                "{\"organizationId\":\"" + org + "\",\"title\":\"Fatos versionados\"}")).path("projectId").asText();
+        String root = PROJECTS + "/" + project;
+        String guide = root+"/technical/guides/baseline";
+        String facts = root+"/sections/baseline/facts";
+        assertEquals(200,call("PUT",root+"/technical/intake",owner.cookie(),key(),"\"0\"",
+                "{\"candidateMethodology\":\"VM0038\"}").statusCode());
+        assertEquals(200,call("PUT",root+"/sections/baseline/acquisition/PD/scenario",owner.cookie(),null,"\"0\"",
+                "{\"kind\":\"TECHNICAL_INFORMATION\",\"purpose\":\"Origem do cenário\",\"criteria\":{}}").statusCode());
+        var lists = body(call("GET",root+"/sections/baseline/acquisition/PD",owner.cookie(),null,null,null));
+        String requestId = lists.at("/requests/0/request/id").asText();
+        String first = "{\"guideVersion\":1,\"field\":\"scenario\",\"requestId\":\""+ requestId +"\"}";
+        assertEquals(404,call("POST",facts,owner.cookie(),null,null,first).statusCode());
+        assertEquals(200,call("PUT",guide,owner.cookie(),key(),"\"0\"","{\"scenario\":\"Referência original\"}").statusCode());
+        var proposed = call("POST",facts,owner.cookie(),null,null,first);
+        assertEquals(200,proposed.statusCode(),proposed.body());
+        assertEquals(body(proposed),body(call("POST",facts,owner.cookie(),null,null,first)));
+        assertEquals(requestId,body(proposed).path("requestId").asText());
+        assertEquals(1,body(proposed).path("requestVersion").asInt());
+        assertEquals("/answers/scenario",body(proposed).at("/evidence/locator").asText());
+        assertEquals(64,body(proposed).at("/evidence/sha256").asText().length());
+        String firstId = body(proposed).path("id").asText();
+        String accept = "{\"outcome\":\"ACCEPTED\",\"reason\":\"Origem conferida pelo revisor.\"}";
+        assertEquals(404,call("POST",facts+"/"+firstId+"/decision",owner.cookie(),null,"\"0\"",accept).statusCode());
+        grant(project,org,scopedElsewhere,owner,"REV","MONITORING");
+        assertEquals(404,call("GET",facts,scopedElsewhere.cookie(),null,null,null).statusCode());
+        UUID revGrant = grant(project,org,reviewer,owner,"REV","BASELINE");
+        var visible = body(call("GET",facts,reviewer.cookie(),null,null,null));
+        assertTrue(visible.at("/candidates/0/requestId").isNull());
+        assertTrue(visible.at("/candidates/0/canReview").asBoolean());
+        assertEquals(200,call("POST",facts+"/"+firstId+"/decision",reviewer.cookie(),null,"\"0\"",accept).statusCode());
+
+        assertEquals(200,call("PUT",guide,owner.cookie(),key(),"\"1\"","{\"scenario\":\"Referência corrigida\"}").statusCode());
+        var conflict = body(call("POST",facts,owner.cookie(),null,null,first.replace("Version\":1","Version\":2")));
+        assertTrue(conflict.path("divergent").asBoolean());
+        assertEquals(1,conflict.path("currentVersion").asInt());
+        String second = facts+"/"+conflict.path("id").asText()+"/decision";
+        assertEquals(412,call("POST",second,reviewer.cookie(),null,"\"0\"",accept).statusCode());
+        assertEquals(200,call("POST",second,reviewer.cookie(),null,"\"1\"",accept).statusCode());
+
+        var history = body(call("GET",facts,reviewer.cookie(),null,null,null));
+        assertEquals("Referência original",history.at("/candidates/1/value").asText());
+        assertEquals(1,history.at("/candidates/1/factVersion").asInt());
+        assertEquals(2,history.at("/candidates/0/factVersion").asInt());
+        assertEquals("Referência corrigida",body(call("GET",guide+"/revisions/2",owner.cookie(),null,null,null))
+                .at("/answers/scenario").asText());
+        database.transaction(c -> update(c,"UPDATE app_project_collaborator_grant SET revoked_at=statement_timestamp(),revoked_by=? WHERE id=?",
+                owner.id(),revGrant));
+        assertEquals(404,call("GET",facts,reviewer.cookie(),null,null,null).statusCode());
+    }
+
     private static JsonNode task(JsonNode journey, String id) {
         for (JsonNode task : journey.path("tasks")) {
             if (id.equals(task.path("id").asText())) return task;
