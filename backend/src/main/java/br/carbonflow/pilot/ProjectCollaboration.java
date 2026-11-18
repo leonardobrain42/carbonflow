@@ -1,0 +1,52 @@
+package br.carbonflow.pilot;
+
+import static br.carbonflow.pilot.PilotSql.query;
+
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+
+final class ProjectCollaboration {
+    private record Grant(String role, Set<String> activities) {}
+
+    static final Set<String> SUPPORTED_ACTIVITIES = Set.of("INTAKE", "DOCUMENTATION");
+    static final Set<String> OWNER_TECHNICAL_ACTIONS = Set.of("VIEW_PROJECT_METADATA", "VIEW_CAPABILITIES",
+            "VIEW_INTAKE", "SAVE_INTAKE", "VIEW_DOSSIER", "PREPARE_DOSSIER", "DOWNLOAD_DOSSIER");
+
+    private ProjectCollaboration() {}
+
+    static Set<String> actions(Connection connection, String project, UUID actor) throws SQLException {
+        List<Grant> grants = query(connection, """
+                SELECT role, activities FROM app_project_collaborator_grant
+                WHERE project_id = ? AND identity_id = ? AND revoked_at IS NULL
+                  AND valid_from <= statement_timestamp() AND valid_until > statement_timestamp()
+                """, row -> {
+            var array = row.getArray("activities");
+            try {
+                return new Grant(row.getString("role"), Set.copyOf(List.of((String[]) array.getArray())));
+            } finally {
+                array.free();
+            }
+        }, project, actor);
+        if (grants.isEmpty()) return Set.of();
+        if (grants.stream().map(Grant::role).distinct().count() != 1) return Set.of();
+
+        var actions = new LinkedHashSet<>(List.of("VIEW_PROJECT_METADATA", "VIEW_CAPABILITIES"));
+        for (var grant : grants) {
+            boolean preparer = "PREP".equals(grant.role());
+            if (grant.activities().contains("INTAKE")) {
+                actions.add("VIEW_INTAKE");
+                if (preparer) actions.add("SAVE_INTAKE");
+            }
+            if (grant.activities().contains("DOCUMENTATION")) {
+                // A preliminary dossier includes its intake snapshot. Preparing it also requires viewing current intake.
+                actions.addAll(List.of("VIEW_INTAKE", "VIEW_DOSSIER", "DOWNLOAD_DOSSIER"));
+                if (preparer) actions.add("PREPARE_DOSSIER");
+            }
+        }
+        return Set.copyOf(actions);
+    }
+}

@@ -7,9 +7,9 @@
     <nav id="cf-tech-sidebar" class="cf-workspace-nav" aria-label="Espaço de trabalho"
       [class.cf-journey-menu-open]="menuOpen()">
       <a routerLink="/workspace">Meus projetos</a>
-      <a [routerLink]="['/workspace/projects',projectId,'triage']">Triagem guiada</a>
+      @if (owner()) { <a [routerLink]="['/workspace/projects',projectId,'triage']">Triagem guiada</a> }
       <a [routerLink]="['/workspace/projects',projectId,'technical']" aria-current="page">Preparação técnica</a>
-      <a [routerLink]="['/workspace/projects',projectId,'experience']">Preferências e equipe</a>
+      @if (owner()) { <a [routerLink]="['/workspace/projects',projectId,'experience']">Preferências e equipe</a> }
     </nav>
   </aside>
 
@@ -33,7 +33,7 @@
         </header>
 
         <nav class="cf-triage-steps cf-technical-steps" aria-label="Seções da preparação técnica">
-          @for (item of sections; track item.id) {
+          @for (item of sections(); track item.id) {
             <button type="button" class="cf-triage-step" [disabled]="saving()"
               [class.cf-triage-step-active]="section().id === item.id"
               [attr.aria-current]="section().id === item.id ? 'page' : null"
@@ -54,7 +54,7 @@
               }
               @if (saved.journey.sourceUrl; as source) {
                 <a class="cf-workspace-link" [href]="source">Consultar metodologia na Verra</a>
-              } @else {
+              } @else if (owner()) {
                 <a class="cf-workspace-link" [routerLink]="['/workspace/projects',projectId,'triage']">Revisar metodologia na triagem</a>
               }
               <h3>O que preparar</h3>
@@ -67,9 +67,13 @@
             }
 
             @case ('preparar') {
-              <p>Registre a atividade, a localização e o que ainda precisa confirmar. Você pode salvar só as observações.</p>
+              @if (can('SAVE_INTAKE')) {
+                <p>Registre a atividade, a localização e o que ainda precisa confirmar. Você pode salvar só as observações.</p>
+              } @else {
+                <p>Consulte as informações técnicas registradas no rascunho.</p>
+              }
               <form (submit)="save($event)">
-                <fieldset [disabled]="saving()" class="cf-journey-fieldset">
+                <fieldset [disabled]="saving() || !can('SAVE_INTAKE')" class="cf-journey-fieldset">
                   <label for="cf-tech-activity">Atividade planejada</label>
                   <input #activity id="cf-tech-activity" name="activity" maxlength="400"
                     [placeholder]="saved.journey.id === 'VM0038_V1_1' ? 'Ex.: instalar carregadores para uma frota definida' : 'Descreva o que o projeto vai realizar'"
@@ -100,7 +104,9 @@
                     <div class="cf-journey-context">
                       <strong>Metodologia indicada na triagem · {{ saved.triageCandidate }}</strong>
                       <p>Ao salvar, essa indicação será vinculada à revisão técnica. A atividade e as demais informações são preenchidas separadamente.</p>
-                      <a [routerLink]="['/workspace/projects',projectId,'triage']" class="cf-workspace-link">Alterar na triagem</a>
+                      @if (owner()) {
+                        <a [routerLink]="['/workspace/projects',projectId,'triage']" class="cf-workspace-link">Alterar na triagem</a>
+                      }
                     </div>
                   } @else {
                     <label for="cf-tech-methodology">Metodologia candidata</label>
@@ -122,7 +128,9 @@
                     [value]="form().notes" (input)="update('notes', notes.value)"></textarea>
                 </fieldset>
                 <div class="cf-triage-actions">
-                  <button class="cf-workspace-primary" type="submit" [disabled]="saving()">Salvar informações</button>
+                  @if (can('SAVE_INTAKE')) {
+                    <button class="cf-workspace-primary" type="submit" [disabled]="saving()">Salvar informações</button>
+                  }
                   <button class="cf-workspace-outline" type="button" (click)="open('analisar')">Ver pendências</button>
                 </div>
               </form>
@@ -156,13 +164,15 @@
                 </ul>
               </details>
               <div class="cf-triage-actions">
-                <button class="cf-workspace-outline" type="button" (click)="open('preparar')">Atualizar informações</button>
-                <a [routerLink]="['/workspace/projects',projectId,'triage']" class="cf-workspace-link">Consultar respostas da triagem</a>
+                <button class="cf-workspace-outline" type="button" (click)="open('preparar')">{{ can('SAVE_INTAKE') ? 'Atualizar informações' : 'Consultar informações' }}</button>
+                @if (owner()) {
+                  <a [routerLink]="['/workspace/projects',projectId,'triage']" class="cf-workspace-link">Consultar respostas da triagem</a>
+                }
               </div>
             }
 
             @case ('redigir') {
-              <p>Gere o roteiro das seções do dossiê a partir da revisão técnica salva.</p>
+              <p>{{ can('PREPARE_DOSSIER') ? 'Gere o roteiro das seções do dossiê a partir da revisão técnica salva.' : 'Consulte a prévia preparada para revisão.' }}</p>
               @if (dossier(); as prepared) {
                 <div class="cf-journey-context">
                   <strong>Prévia {{ prepared.revision }} · revisão técnica {{ prepared.intakeVersion }}</strong>
@@ -173,17 +183,22 @@
                   </ul>
                 </div>
               }
-              @if (dirty() || !saved.version) {
+              @if (can('PREPARE_DOSSIER') && (dirty() || !saved.version)) {
                 <p>Salve as informações técnicas para gerar a prévia.</p>
                 <button class="cf-workspace-outline" type="button" (click)="open('preparar')">Abrir informações técnicas</button>
               } @else if (dossier() && dossier()!.intakeVersion !== saved.version) {
                 <p>A prévia disponível pertence a uma revisão anterior. Gere outra para incluir as alterações.</p>
               }
               <div class="cf-triage-actions">
-                <button type="button" class="cf-workspace-primary" (click)="prepare()" [disabled]="saving() || !canPrepare()">
-                  Preparar prévia da revisão atual
-                </button>
+                @if (can('PREPARE_DOSSIER')) {
+                  <button type="button" class="cf-workspace-primary" (click)="prepare()" [disabled]="saving() || !canPrepare()">
+                    Preparar prévia da revisão atual
+                  </button>
+                }
                 @if (dossier()) {
+                  @if (can('DOWNLOAD_DOSSIER')) {
+                    <a [href]="dossierDownload" class="cf-workspace-link">Baixar prévia em JSON</a>
+                  }
                   <button type="button" class="cf-workspace-outline" (click)="open('revisar')">Consultar revisão</button>
                 }
               </div>
