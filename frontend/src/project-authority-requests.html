@@ -43,6 +43,25 @@
               </div>
             </form>
           </section>
+        } @else if (evidenceFor(); as request) {
+          <section class="cf-workspace-card">
+            <h2>Comprovantes da solicitação</h2>
+            <p>{{ powerLabel[request.details.power] }}</p>
+            <ul class="cf-tech-gates">
+              @for (document of documents(); track document.id) {
+                <li><a class="cf-workspace-link" [href]="documentUrl(request, document)">Baixar comprovante {{ $index + 1 }}</a></li>
+              } @empty {
+                <li>Nenhum comprovante anexado.</li>
+              }
+            </ul>
+            <label for="cf-power-pdf">Comprovante em PDF, até 2 MiB</label>
+            <input id="cf-power-pdf" #pdf type="file" accept="application/pdf,.pdf" [disabled]="busy()"
+              (change)="selectFile(pdf)">
+            <div class="cf-triage-actions">
+              <button class="cf-workspace-primary" type="button" [disabled]="busy()" (click)="upload(pdf)">Anexar comprovante</button>
+              <button class="cf-workspace-outline" type="button" [disabled]="busy()" (click)="cancel()">Voltar</button>
+            </div>
+          </section>
         } @else if (withdrawing(); as request) {
           <section class="cf-workspace-card" aria-labelledby="cf-withdraw-title">
             <h2 id="cf-withdraw-title">Retirar solicitação?</h2>
@@ -65,6 +84,7 @@
                   <p>{{ request.details.evidenceReference }}</p>
                 </div>
                 @if (request.state === 'SUBMITTED') {
+                  <button class="cf-workspace-outline" type="button" [disabled]="busy()" (click)="openEvidence(request)">Comprovantes</button>
                   <button type="button" class="cf-workspace-outline" [disabled]="busy()"
                     (click)="withdrawing.set(request)">Retirar solicitação</button>
                 }

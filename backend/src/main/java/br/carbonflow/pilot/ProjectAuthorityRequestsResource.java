@@ -1,5 +1,6 @@
 package br.carbonflow.pilot;
 
+import java.io.InputStream;
 import java.util.UUID;
 
 import jakarta.ws.rs.Consumes;
@@ -19,8 +20,11 @@ import jakarta.ws.rs.core.Response;
 public class ProjectAuthorityRequestsResource {
     private final ProjectAuthorityRequests requests;
 
-    ProjectAuthorityRequestsResource(ProjectAuthorityRequests requests) {
+    private final ComplianceEvidence evidence;
+
+    ProjectAuthorityRequestsResource(ProjectAuthorityRequests requests, ComplianceEvidence evidence) {
         this.requests = requests;
+        this.evidence = evidence;
     }
 
     @GET
@@ -41,6 +45,29 @@ public class ProjectAuthorityRequestsResource {
     public Response withdraw(@CookieParam(AccountAccess.COOKIE) String token, @PathParam("project") String project,
                              @PathParam("request") UUID id, @HeaderParam("If-Match") String version) {
         return response(requests.withdraw(token, project, id, version));
+    }
+
+    @GET
+    @Path("/{request}/documents")
+    public Response documents(@CookieParam(AccountAccess.COOKIE) String token, @PathParam("project") String project,
+                              @PathParam("request") UUID request) {
+        return ComplianceResource.privateJson(evidence.documents(token, project, request));
+    }
+
+    @PUT
+    @Path("/{request}/documents/{document}")
+    @Consumes(MediaType.APPLICATION_OCTET_STREAM)
+    public Response add(@CookieParam(AccountAccess.COOKIE) String token, @PathParam("project") String project,
+                        @PathParam("request") UUID request, @PathParam("document") UUID document, InputStream pdf) {
+        return ComplianceResource.privateJson(evidence.add(token, project, request, document, pdf));
+    }
+
+    @GET
+    @Path("/{request}/documents/{document}")
+    @Produces(MediaType.APPLICATION_OCTET_STREAM)
+    public Response download(@CookieParam(AccountAccess.COOKIE) String token, @PathParam("project") String project,
+                             @PathParam("request") UUID request, @PathParam("document") UUID document) {
+        return ComplianceResource.attachment(evidence.download(token, project, request, document), document);
     }
 
     private static Response response(ProjectAuthorityRequests.View view) {

@@ -22,6 +22,8 @@ interface AuthorityRequest {
   details: Input;
 }
 
+interface EvidenceDocument {id: string; bytesCount: number}
+
 interface View {
   projectId: string;
   environment: string;
@@ -43,6 +45,10 @@ export class ProjectAuthorityRequestsComponent {
   readonly draft = signal<Input | null>(null);
   readonly withdrawing = signal<AuthorityRequest | null>(null);
   readonly busy = signal(false);
+  readonly evidenceFor = signal<AuthorityRequest | null>(null);
+  readonly documents = signal<EvidenceDocument[]>([]);
+  private file: File | null = null;
+  private documentId = '';
   readonly error = signal('');
   readonly notice = signal('');
   private requestId = '';
@@ -61,6 +67,8 @@ export class ProjectAuthorityRequestsComponent {
   cancel() {
     this.draft.set(null);
     this.withdrawing.set(null);
+    this.evidenceFor.set(null);
+    this.file = null;
     this.error.set('');
   }
 
@@ -82,6 +90,54 @@ export class ProjectAuthorityRequestsComponent {
     const headers = {'If-Match':'"' + request.version + '"'};
     void this.run(this.http.post<View>(this.url + '/' + request.id + '/withdraw', null, {headers}),
       'Solicitação retirada. O histórico foi preservado.', () => this.withdrawing.set(null));
+  }
+
+  async openEvidence(request: AuthorityRequest) {
+    this.file = null;
+    this.documents.set([]);
+    this.evidenceFor.set(request);
+    await this.evidenceAction(this.http.get<EvidenceDocument[]>(this.documentUrl(request)));
+  }
+
+  selectFile(input: HTMLInputElement) {
+    this.file = input.files?.item(0) ?? null;
+    this.documentId = crypto.randomUUID();
+  }
+
+  async upload(input: HTMLInputElement) {
+    const request = this.evidenceFor();
+    const file = this.file;
+    if (!request || !file || this.busy()) return;
+    const added = await this.evidenceAction(this.http.put<EvidenceDocument[]>(
+      this.documentUrl(request) + '/' + this.documentId, file,
+      {headers:{'Content-Type':'application/octet-stream'}}));
+    if (added) {
+      input.value = '';
+      this.file = null;
+      this.notice.set('Comprovante guardado no projeto.');
+    }
+  }
+
+  documentUrl(request: AuthorityRequest, document?: EvidenceDocument) {
+    const path = this.url + '/' + encodeURIComponent(request.id) + '/documents';
+    return document ? path + '/' + encodeURIComponent(document.id) : path;
+  }
+
+  private async evidenceAction(operation: Observable<EvidenceDocument[]>) {
+    if (this.busy()) return false;
+    this.busy.set(true);
+    this.error.set('');
+    this.notice.set('');
+    try {
+      this.documents.set(await firstValueFrom(operation));
+      return true;
+    } catch (cause) {
+      const message = cause instanceof HttpErrorResponse ? cause.error?.message : null;
+      this.error.set(typeof message === 'string' ? message : 'Não foi possível consultar ou anexar comprovantes.');
+      return false;
+    } finally {
+      this.busy.set(false);
+    }
   }
 
   private async run(operation: Observable<View>, notice: string, finish: () => void) {
