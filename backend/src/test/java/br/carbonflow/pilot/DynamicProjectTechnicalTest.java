@@ -629,6 +629,50 @@ class DynamicProjectTechnicalTest {
                 licenses.authorize(connection, scope, source, ContentLicensePolicy.Purpose.REQUIREMENT_CATALOG, operation, null));
     }
 
+    @Test
+    void syntheticRegimeUsesActSpecificDatesAndRetainsPriorSnapshots() throws Exception {
+        Actor owner = actor();
+        Actor preparer = actor();
+        UUID org = organization(owner.id());
+        String project = body(call("POST", PROJECTS, owner.cookie(), key(), null,
+                "{\"organizationId\":\"" + org + "\",\"title\":\"Regime sintético\"}")).path("projectId").asText();
+        String root = PROJECTS + "/" + project;
+        String preview = root + "/regime/preview";
+        String snapshots = root + "/regime/snapshots";
+        String pd = "{\"act\":\"PD\",\"actDate\":\"2030-01-01\",\"periodStart\":\"2029-12-31\"}";
+        String mr = pd.replace("\"PD\"", "\"MR\"").replace("}", ",\"hasEnergyRecords\":false}");
+        assertEquals("UNKNOWN_REVIEW_REQUIRED", body(call("POST",preview,owner.cookie(),null,null,pd)).path("state").asText());
+        assertEquals(200,call("PUT",root + "/technical/intake",owner.cookie(),key(),"\"0\"",
+                "{\"candidateMethodology\":\"VM0038\"}").statusCode());
+        var monitored = call("POST",preview,owner.cookie(),null,null,mr);
+        assertEquals(200,monitored.statusCode(),monitored.body());
+        assertEquals("CF-DEMO-1",body(monitored).path("packId").asText());
+        assertEquals("PERIOD_START",body(monitored).path("dateBasis").asText());
+        assertEquals("NOT_APPLICABLE",body(monitored).at("/rules/1/incidence").asText());
+        assertEquals("BOOLEAN_EQUALS",body(monitored).at("/rules/1/rule/condition/kind").asText());
+        assertFalse(body(monitored).at("/rules/1/reason").asText().isBlank());
+        assertEquals("INDETERMINATE",body(monitored).at("/rules/2/incidence").asText());
+        String energy = mr.replace("}",",\"meteredEnergy\":{\"value\":1.25,\"unit\":\"kWh\"}}");
+        assertEquals("APPLICABLE",body(call("POST",preview,owner.cookie(),null,null,energy)).at("/rules/2/incidence").asText());
+        assertEquals(400,call("POST",preview,owner.cookie(),null,null,energy.replace("kWh","MWh")).statusCode());
+        assertEquals(422,call("POST",snapshots,owner.cookie(),null,null,"{\"act\":\"MR\"}").statusCode());
+
+        var oldSnapshot = call("POST",snapshots,owner.cookie(),null,null,mr);
+        assertEquals(200,oldSnapshot.statusCode(),oldSnapshot.body());
+        String saved = snapshots + "/" + body(oldSnapshot).path("id").asText();
+        assertEquals(body(oldSnapshot),body(call("POST",snapshots,owner.cookie(),null,null,mr)));
+
+        var newSnapshot = call("POST",snapshots,owner.cookie(),null,null,pd);
+        assertEquals(200,newSnapshot.statusCode(),newSnapshot.body());
+        assertEquals("CF-DEMO-2",body(newSnapshot).at("/payload/resolution/packId").asText());
+        assertEquals("ACT_DATE",body(newSnapshot).at("/payload/resolution/dateBasis").asText());
+        assertEquals("MANUAL_REVIEW_REQUIRED",body(newSnapshot).at("/payload/resolution/rules/1/incidence").asText());
+        assertEquals(body(oldSnapshot),body(call("GET",saved,owner.cookie(),null,null,null)));
+        grant(project,org,preparer,owner,"PREP","MONITORING");
+        assertEquals(404,call("GET",saved,preparer.cookie(),null,null,null).statusCode());
+        assertEquals(404,call("POST",preview,actor().cookie(),null,null,pd).statusCode());
+    }
+
     private static JsonNode task(JsonNode journey, String id) {
         for (JsonNode task : journey.path("tasks")) {
             if (id.equals(task.path("id").asText())) return task;
