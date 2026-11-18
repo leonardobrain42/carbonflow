@@ -1,8 +1,9 @@
+import {WorkspaceNavigationComponent} from './workspace-navigation';
 import {afterNextRender, Component, computed, ElementRef, inject, Injector, signal, viewChild} from '@angular/core';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
-import {ActivatedRoute, Router, RouterLink} from '@angular/router';
+import {ActivatedRoute, ResolveFn, Router, RouterLink} from '@angular/router';
 import {toSignal} from '@angular/core/rxjs-interop';
-import {firstValueFrom} from 'rxjs';
+import {catchError, firstValueFrom, map, of} from 'rxjs';
 import type {ExperienceMode} from './project-experience';
 import {JourneyOption, JourneyProfile, methodologyOption, OTHER_METHODOLOGY} from './project-journey';
 
@@ -68,6 +69,16 @@ interface Capabilities {
   actions?: string[];
 }
 
+type TechnicalAccess = {capabilities: Capabilities} | {error: unknown};
+
+export const resolveTechnicalAccess: ResolveFn<TechnicalAccess> = route => {
+  const id = encodeURIComponent(route.paramMap.get('projectId') ?? '');
+  return inject(HttpClient).get<Capabilities>('/v1/projects/' + id + '/technical/capabilities').pipe(
+    map(capabilities => ({capabilities})),
+    catchError(error => of({error})),
+  );
+};
+
 const SECTIONS = [
   {id: 'entender', title: 'Entender'},
   {id: 'preparar', title: 'Preparar informações'},
@@ -88,7 +99,7 @@ function formValues(data: IntakeData | null): IntakeForm {
 
 @Component({
   selector: 'carbonflow-project-technical',
-  imports: [RouterLink],
+  imports: [RouterLink, WorkspaceNavigationComponent],
   templateUrl: './project-technical.html',
 })
 export class ProjectTechnicalComponent {
@@ -104,14 +115,14 @@ export class ProjectTechnicalComponent {
   readonly dossierDownload = this.technical + '/preliminary-dossier/download';
 
   readonly project = signal<ProjectMetadata | null>(null);
-  readonly capabilities = signal<Capabilities | null>(null);
+  private readonly access: TechnicalAccess = this.route.snapshot.data['technicalAccess'];
+  readonly capabilities = signal<Capabilities | null>('capabilities' in this.access ? this.access.capabilities : null);
   readonly intake = signal<TechnicalIntake | null>(null);
   readonly dossier = signal<PreliminaryDossier | null>(null);
   readonly loading = signal(true);
   readonly saving = signal(false);
   readonly error = signal('');
   readonly notice = signal('');
-  readonly menuOpen = signal(false);
   readonly form = signal<IntakeForm>(formValues(null));
   readonly owner = computed(() => this.capabilities()?.owner !== false && !!this.capabilities());
   readonly sections = computed(() => this.can('VIEW_DOSSIER') ? SECTIONS : SECTIONS.slice(0, 3));
@@ -148,12 +159,12 @@ export class ProjectTechnicalComponent {
     this.loading.set(true);
     this.error.set('');
     try {
+      if ('error' in this.access) throw this.access.error;
       const project = await firstValueFrom(this.http.get<ProjectMetadata>(this.root + '/metadata'));
       if (project.projectId !== this.projectId || project.environment !== 'SANDBOX') {
         throw new Error('Contexto incorreto');
       }
       this.project.set(project);
-      this.capabilities.set(await firstValueFrom(this.http.get<Capabilities>(this.technical + '/capabilities')));
       const [intake, dossier] = await Promise.all([
         this.can('VIEW_INTAKE') ? firstValueFrom(this.http.get<TechnicalIntake>(this.technical + '/intake')) : null,
         this.can('VIEW_DOSSIER') ? firstValueFrom(this.http.get<PreliminaryDossier | null>(this.technical + '/preliminary-dossier')) : null,

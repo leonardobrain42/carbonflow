@@ -1,3 +1,4 @@
+import {WorkspaceNavigationComponent} from './workspace-navigation';
 import {afterNextRender, Component, computed, ElementRef, inject, Injector, signal, viewChild} from '@angular/core';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {ActivatedRoute, RouterLink} from '@angular/router';
@@ -57,7 +58,7 @@ type AnswerSet = Record<number, Values>;
 
 @Component({
   selector: 'carbonflow-project-triage',
-  imports: [RouterLink],
+  imports: [RouterLink, WorkspaceNavigationComponent],
   templateUrl: './project-triage.html',
 })
 export class ProjectTriageComponent {
@@ -75,7 +76,6 @@ export class ProjectTriageComponent {
   readonly draft = signal<AnswerSet>({});
   readonly loading = signal(true);
   readonly busy = signal(false);
-  readonly menuOpen = signal(false);
   readonly error = signal('');
   readonly notice = signal('');
   readonly dirty = signal(false);

@@ -1,3 +1,4 @@
+import {WorkspaceNavigationComponent} from './workspace-navigation';
 import {Component, computed, inject, signal} from '@angular/core';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {ActivatedRoute, RouterLink} from '@angular/router';
@@ -38,7 +39,7 @@ interface WorkspaceOrganization {
 
 @Component({
   selector: 'carbonflow-workspace',
-  imports: [RouterLink],
+  imports: [RouterLink, WorkspaceNavigationComponent],
   templateUrl: './workspace.html',
 })
 export class WorkspaceComponent {

@@ -1,16 +1,6 @@
 <a class="cf-skip-link" href="#triage-main">Pular para a triagem</a>
 <div class="cf-workspace-shell cf-journey-shell">
-  <aside class="cf-workspace-sidebar" aria-label="Navegação da conta">
-    <a routerLink="/workspace" class="cf-workspace-brand">Carbon<span>Flow</span></a>
-    <button type="button" class="cf-workspace-outline cf-journey-menu" aria-controls="cf-wz-sidebar"
-      [attr.aria-expanded]="menuOpen()" (click)="menuOpen.set(!menuOpen())">Menu</button>
-    <nav id="cf-wz-sidebar" class="cf-workspace-nav" aria-label="Espaço de trabalho"
-      [class.cf-journey-menu-open]="menuOpen()">
-      <a routerLink="/workspace">Meus projetos</a>
-      <a [routerLink]="['/workspace/projects',projectId,'triage']" aria-current="page">Triagem guiada</a>
-      <a [routerLink]="['/workspace/projects',projectId,'technical']">Preparação técnica</a>
-    </nav>
-  </aside>
+  <aside cfWorkspaceNavigation [projectId]="projectId"></aside>
   <div class="cf-workspace-stage">
     <header class="cf-workspace-topbar">
       <span>Triagem inicial do projeto</span>

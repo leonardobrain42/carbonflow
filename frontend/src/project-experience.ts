@@ -1,3 +1,4 @@
+import {WorkspaceNavigationComponent} from './workspace-navigation';
 import {Component, inject, signal} from '@angular/core';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {ActivatedRoute, RouterLink} from '@angular/router';
@@ -22,7 +23,7 @@ interface Experience {
 
 @Component({
   selector: 'carbonflow-project-experience',
-  imports: [RouterLink],
+  imports: [RouterLink, WorkspaceNavigationComponent],
   templateUrl: './project-experience.html',
 })
 export class ProjectExperienceComponent {

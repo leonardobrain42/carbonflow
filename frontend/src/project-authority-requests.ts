@@ -1,7 +1,8 @@
+import {WorkspaceNavigationComponent} from './workspace-navigation';
 import {Component, inject, signal} from '@angular/core';
 import {DatePipe} from '@angular/common';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
-import {ActivatedRoute, RouterLink} from '@angular/router';
+import {ActivatedRoute} from '@angular/router';
 import {firstValueFrom, Observable} from 'rxjs';
 
 const POWERS = {
@@ -35,7 +36,7 @@ interface View {
 
 @Component({
   selector: 'carbonflow-project-authority-requests',
-  imports: [RouterLink, DatePipe],
+  imports: [WorkspaceNavigationComponent, DatePipe],
   templateUrl: './project-authority-requests.html',
 })
 export class ProjectAuthorityRequestsComponent {

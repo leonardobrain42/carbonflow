@@ -1,15 +1,6 @@
 <a class="cf-skip-link" href="#experience-main">Pular para as preferências</a>
 <div class="cf-workspace-shell">
-  <aside class="cf-workspace-sidebar" aria-label="Navegação do projeto">
-    <a routerLink="/workspace" class="cf-workspace-brand">Carbon<span>Flow</span></a>
-    <nav class="cf-workspace-nav" aria-label="Espaço de trabalho">
-      <a routerLink="/workspace">Meus projetos</a>
-      <a [routerLink]="['/workspace/projects',projectId,'triage']">Triagem guiada</a>
-      <a [routerLink]="['/workspace/projects',projectId,'technical']">Preparação técnica</a>
-      <a [routerLink]="['/workspace/projects',projectId,'experience']" aria-current="page">Preferências e equipe</a>
-      <a [routerLink]="['/workspace/projects',projectId,'invitation-plans']">Planos de convite</a>
-    </nav>
-  </aside>
+  <aside cfWorkspaceNavigation [projectId]="projectId"></aside>
 
   <div class="cf-workspace-stage">
     <main id="experience-main" class="cf-workspace-content">

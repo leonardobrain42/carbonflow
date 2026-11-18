@@ -1,3 +1,4 @@
+import {WorkspaceNavigationComponent} from './workspace-navigation';
 import {Component, inject, signal} from '@angular/core';
 import {DatePipe} from '@angular/common';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
@@ -7,7 +8,7 @@ import {INVITATION_STATUS, ProjectInvitation} from './project-invitations';
 
 @Component({
   selector: 'carbonflow-project-received-invitations',
-  imports: [RouterLink, DatePipe],
+  imports: [RouterLink, WorkspaceNavigationComponent, DatePipe],
   templateUrl: './project-received-invitations.html',
 })
 export class ProjectReceivedInvitationsComponent {
