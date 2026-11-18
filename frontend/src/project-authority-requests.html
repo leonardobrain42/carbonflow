@@ -1,0 +1,82 @@
+<div class="cf-workspace-shell">
+  <aside class="cf-workspace-sidebar" aria-label="Navegação do projeto">
+    <a routerLink="/workspace" class="cf-workspace-brand">Carbon<span>Flow</span></a>
+    <nav class="cf-workspace-nav" aria-label="Espaço de trabalho">
+      <a routerLink="/workspace">Meus projetos</a>
+      <a [routerLink]="['/workspace/projects',projectId,'invitation-plans']">Planos de convite</a>
+      <a [routerLink]="['/workspace/projects',projectId,'authority-requests']" aria-current="page">Comprovação de poderes</a>
+    </nav>
+  </aside>
+
+  <div class="cf-workspace-stage">
+    <main class="cf-workspace-content">
+      <header class="cf-workspace-heading">
+        <h1>Comprovação de poderes</h1>
+        <p>Registre qual poder você precisa comprovar para este projeto e a referência do documento que sustenta o pedido.</p>
+        <p class="cf-workspace-helper">Registro de solicitação · ambiente de teste</p>
+      </header>
+      @if (error()) { <p class="cf-workspace-alert" role="alert">{{ error() }}</p> }
+      @if (notice()) { <p class="cf-workspace-note" role="status">{{ notice() }}</p> }
+      @if (view(); as saved) {
+        @if (draft(); as input) {
+          <section class="cf-workspace-card" aria-labelledby="cf-power-form">
+            <h2 id="cf-power-form">Dados da solicitação</h2>
+            <form (submit)="submit($event)">
+              <fieldset class="cf-journey-fieldset" [disabled]="busy()">
+                <label for="cf-power-type">Poder solicitado</label>
+                <select id="cf-power-type" #power [value]="input.power"
+                  (change)="update({power:power.value === 'SEND_INVITATIONS' ? 'SEND_INVITATIONS' : 'REPRESENT_PROJECT'})">
+                  @for (option of powers; track option) {
+                    <option [value]="option" [selected]="option === input.power">{{ powerLabel[option] }}</option>
+                  }
+                </select>
+                <label for="cf-power-basis">Fundamento da representação</label>
+                <textarea id="cf-power-basis" #basis required maxlength="400" rows="3" [value]="input.representationBasis"
+                  (input)="update({representationBasis:basis.value})"></textarea>
+                <label for="cf-power-reference">Referência do documento</label>
+                <input id="cf-power-reference" #reference required maxlength="240" [value]="input.evidenceReference"
+                  placeholder="Ex.: ata de eleição de 15/10/2026" (input)="update({evidenceReference:reference.value})">
+              </fieldset>
+              <div class="cf-triage-actions">
+                <button type="submit" class="cf-workspace-primary" [disabled]="busy()">Registrar solicitação</button>
+                <button type="button" class="cf-workspace-outline" [disabled]="busy()" (click)="cancel()">Voltar</button>
+              </div>
+            </form>
+          </section>
+        } @else if (withdrawing(); as request) {
+          <section class="cf-workspace-card" aria-labelledby="cf-withdraw-title">
+            <h2 id="cf-withdraw-title">Retirar solicitação?</h2>
+            <p>{{ powerLabel[request.details.power] }}</p>
+            <div class="cf-triage-actions">
+              <button type="button" class="cf-workspace-primary" [disabled]="busy()" (click)="withdraw()">Confirmar retirada</button>
+              <button type="button" class="cf-workspace-outline" [disabled]="busy()" (click)="cancel()">Voltar</button>
+            </div>
+          </section>
+        } @else {
+          <div class="cf-triage-actions">
+            <button type="button" class="cf-workspace-primary" [disabled]="busy()" (click)="start()">Nova solicitação</button>
+          </div>
+          <ul class="cf-workspace-project-list">
+            @for (request of saved.requests; track request.id) {
+              <li>
+                <div>
+                  <strong>{{ powerLabel[request.details.power] }}</strong>
+                  <p>{{ request.state === 'SUBMITTED' ? 'Registrada · comprovação pendente' : 'Retirada pelo solicitante' }}</p>
+                  <p>{{ request.details.evidenceReference }}</p>
+                </div>
+                @if (request.state === 'SUBMITTED') {
+                  <button type="button" class="cf-workspace-outline" [disabled]="busy()"
+                    (click)="withdrawing.set(request)">Retirar solicitação</button>
+                }
+              </li>
+            } @empty {
+              <li>Você ainda não registrou solicitações para este projeto.</li>
+            }
+          </ul>
+        }
+      } @else if (busy()) {
+        <p role="status">Carregando solicitações…</p>
+      }
+    </main>
+  </div>
+</div>

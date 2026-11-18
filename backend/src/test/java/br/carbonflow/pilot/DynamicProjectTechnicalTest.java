@@ -282,6 +282,51 @@ class DynamicProjectTechnicalTest {
                 row -> row.getLong(1), org)).longValue());
     }
 
+    @Test
+    void keepsAuthorityRequestsSeparateAndPreservesTheWithdrawalHistory() throws Exception {
+        Actor owner = actor();
+        Actor peer = actor();
+        UUID org = organization(owner.id());
+        membership(org, peer.id());
+        var created = call("POST", PROJECTS, owner.cookie(), key(), null,
+                "{\"organizationId\":\"" + org + "\",\"title\":\"Projeto com pedido de poderes\"}");
+        assertEquals(201, created.statusCode(), created.body());
+        String project = body(created).path("projectId").asText();
+        String path = PROJECTS + "/" + project + "/authority-requests";
+        String firstPath = path + "/" + UUID.randomUUID();
+        String duplicatePath = path + "/" + UUID.randomUUID();
+        String input = """
+                {"power":"REPRESENT_PROJECT","representationBasis":"Ata registrada em reunião.",
+                 "evidenceReference":"Ata 2026-10-15"}
+                """;
+        var first = client.sendAsync(request("PUT", firstPath, owner.cookie(), null, null, input),
+                HttpResponse.BodyHandlers.ofString());
+        var second = client.sendAsync(request("PUT", duplicatePath, owner.cookie(), null, null, input),
+                HttpResponse.BodyHandlers.ofString());
+        var a = first.join();
+        var b = second.join();
+        assertTrue(a.statusCode() == 200 && b.statusCode() == 409 || a.statusCode() == 409 && b.statusCode() == 200);
+        String registered = a.statusCode() == 200 ? firstPath : duplicatePath;
+        assertEquals(404, call("GET", path, peer.cookie(), null, null, null).statusCode());
+        assertEquals(404, call("POST", registered + "/withdraw", peer.cookie(), null, "\"1\"", null).statusCode());
+        assertEquals(200, call("PUT", registered, owner.cookie(), null, null, input).statusCode());
+        assertEquals(409, call("PUT", registered, owner.cookie(), null, null, input.replace("Ata registrada", "Outra ata")).statusCode());
+        var invitePower = call("PUT", path + "/" + UUID.randomUUID(), owner.cookie(), null, null,
+                input.replace("REPRESENT_PROJECT", "SEND_INVITATIONS"));
+        assertEquals(200, invitePower.statusCode(), invitePower.body());
+        assertEquals(2, body(invitePower).path("requests").size());
+        assertEquals(412, call("POST", registered + "/withdraw", owner.cookie(), null, "\"0\"", null).statusCode());
+        var withdrawal = call("POST", registered + "/withdraw", owner.cookie(), null, "\"1\"", null);
+        assertEquals(200, withdrawal.statusCode(), withdrawal.body());
+        assertTrue(body(withdrawal).path("requests").findValuesAsText("state").contains("WITHDRAWN"));
+        assertEquals(body(withdrawal), body(call("POST", registered + "/withdraw", owner.cookie(), null, "\"1\"", null)));
+        assertEquals(3L, database.read(connection -> first(connection,
+                "SELECT count(*) FROM app_project_authority_request_revision WHERE project_id = ?",
+                row -> row.getLong(1), project)).longValue());
+        assertEquals("NOT_ENABLED", body(call("GET", PROJECTS + "/" + project + "/technical/capabilities",
+                owner.cookie(), null, null, null)).at("/modules/externalActs").asText());
+    }
+
     private Actor actor() {
         UUID id = UUID.randomUUID();
         String token = AccessSecrets.newToken();
