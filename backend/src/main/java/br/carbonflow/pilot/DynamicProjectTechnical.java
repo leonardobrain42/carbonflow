@@ -33,7 +33,8 @@ class DynamicProjectTechnical {
                       String state, String reviewState, IntakeData data,
                       List<IntakeModel.Reason> outstandingGates, String triageCandidate,
                       ProjectJourney.Profile journey, List<ProjectJourney.Option> methodologies,
-                      ProjectExperience.Mode experienceMode) {}
+                      ProjectExperience.Mode experienceMode, ApplicabilitySummary applicability) {}
+    record ApplicabilitySummary(int revision, String boundary, String incidence, String rights) {}
     record PreliminaryDossier(UUID id, String projectId, UUID organizationId, String environment,
                               int revision, int intakeVersion, String state, String documentKind,
                               String sourceTemplate, String sourceEdition,
@@ -76,7 +77,7 @@ class DynamicProjectTechnical {
     IntakeView intake(String cookie, String project) {
         return scopes.read(cookie, project, "VIEW_INTAKE",
                 (connection, scope) -> view(scope, latestIntake(connection, project),
-                        ProjectTriageWizard.savedCandidate(connection, project), ProjectExperience.mode(connection, project)));
+                        ProjectTriageWizard.savedCandidate(connection, project), ProjectExperience.mode(connection, project), connection));
     }
 
     JsonNode saveIntake(String cookie, String project, String keyHeader, String ifMatch, IntakeData input) {
@@ -100,7 +101,7 @@ class DynamicProjectTechnical {
                     VALUES (?, ?, ?, ?, ?, ?::jsonb)
                     """, project, scope.organization(), scope.environment(), next, scope.actor().id(), encode(data));
             JsonNode result = mapper.valueToTree(view(scope, new IntakeRow(next, data),
-                    ProjectTriageWizard.savedCandidate(connection, project), ProjectExperience.mode(connection, project)));
+                    ProjectTriageWizard.savedCandidate(connection, project), ProjectExperience.mode(connection, project), connection));
             storeReceipt(connection, scope, key, "SAVE_INTAKE", fingerprint, result);
             return result;
         });
@@ -182,14 +183,22 @@ class DynamicProjectTechnical {
     }
 
     private IntakeView view(DynamicProjectScope.Context scope, IntakeRow row, String triageCandidate,
-                            ProjectExperience.Mode experienceMode) {
+                            ProjectExperience.Mode experienceMode, Connection connection) throws SQLException {
         IntakeData data = row == null ? null : row.data();
         String candidate = triageCandidate != null ? triageCandidate : data == null ? null : data.candidateMethodology();
         var journey = ProjectJourney.profile(candidate);
+        ApplicabilitySummary summary = null;
+        if (journey == ProjectJourney.VM0038 && (scope.owner() || scope.actions().contains("GUIDE_INTAKE"))) {
+            summary = first(connection, """
+                    SELECT version, answers->>'boundary', answers->>'incidence', answers->>'rights'
+                    FROM app_technical_guide_revision WHERE project_id=? AND guide_id='applicability'
+                    ORDER BY version DESC LIMIT 1
+                    """, r -> new ApplicabilitySummary(r.getInt(1),r.getString(2),r.getString(3),r.getString(4)),scope.id());
+        }
         return new IntakeView(scope.id(), scope.organization(), scope.environment(),
                 row == null ? 0 : row.version(), row == null ? "NAO_INICIADO" : "RASCUNHO",
                 "NAO_AVALIADO", data, blockers(candidate), triageCandidate, journey, ProjectJourney.METHODOLOGIES,
-                experienceMode);
+                experienceMode, summary);
     }
 
     private static List<IntakeModel.Reason> blockers(String candidate) {

@@ -130,21 +130,36 @@
     <section aria-labelledby="memory-heading">
       <div class="section-heading"><h2 id="memory-heading">Memória de cálculo</h2></div>
       <p class="note">AFEC {{ decimal(report.results.afecKwhPer100Mi) }} kWh/100 mi · {{ decimal(report.results.mpg) }} mi/gal US · Dy {{ decimal(report.results.dy) }}</p>
+      <div class="actions">
+        <label>Período da memória <select #periodFilter (change)="filterMemory('periodo', periodFilter.value)">
+          <option value="" [selected]="!filters().get('periodo')">Todos os períodos</option>
+          @for (item of report.results.periods; track item.id) {
+            <option [value]="item.id" [selected]="item.id === filters().get('periodo')">{{ item.id }}</option>
+          }
+        </select></label>
+        <label>Vintage da memória <select #vintageFilter (change)="filterMemory('vintage', vintageFilter.value)">
+          <option value="" [selected]="!filters().get('vintage')">Todos os anos</option>
+          @for (year of vintages(); track year) {
+            <option [value]="year" [selected]="year.toString() === filters().get('vintage')">{{ year }}</option>
+          }
+        </select></label>
+      </div>
       <div class="table-scroll" tabindex="0" role="region" aria-labelledby="memory-heading">
         <table aria-label="Entradas e emissões por recorte">
           <thead>
             <tr><th scope="col">Período / vintage</th><th scope="col">ED (kWh)</th><th scope="col">EC (kWh)</th><th scope="col">BE (tCO₂e)</th><th scope="col">PE (tCO₂e)</th><th scope="col">LE (tCO₂e)</th><th scope="col">ER (tCO₂e)</th></tr>
           </thead>
           <tbody>
-            @for (period of report.results.periods; track period.id) {
-              @for (cut of period.cuts; track cut.start) {
+            @for (row of memoryRows(); track row.periodId + row.cut.start) {
+              @let cut = row.cut;
                 <tr>
-                  <th scope="row">{{ period.id }} · {{ cut.vintage }}</th>
+                  <th scope="row">{{ row.periodId }} · {{ cut.vintage }}</th>
                   <td>{{ decimal(cut.edKwh) }}</td><td>{{ decimal(cut.ecKwh) }}</td>
                   <td>{{ decimal(cut.emissions.be) }}</td><td>{{ decimal(cut.emissions.pe) }}</td>
                   <td>{{ decimal(cut.emissions.le) }}</td><td>{{ decimal(cut.emissions.erDisplay) }}</td>
                 </tr>
-              }
+            } @empty {
+              <tr><td colspan="7">Sem resultado para o recorte selecionado.</td></tr>
             }
           </tbody>
         </table>

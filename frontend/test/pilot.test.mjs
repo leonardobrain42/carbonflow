@@ -39,6 +39,14 @@ test('demonstra os quatro recortes, a coleta de M2 e a recusa sem EC', async () 
     assert.deepEqual(await page.getByRole('table', {name: 'Entradas e emissões por recorte'}).getByRole('rowheader').allTextContents(),
       ['M1 · 2027', 'M1 · 2028', 'M2 · 2028', 'M2 · 2029']);
 
+    const table = page.getByRole('table', {name:'Entradas e emissões por recorte'});
+    await page.getByLabel('Período da memória').selectOption('M2');
+    await page.waitForURL('**/*periodo=M2*');
+    await page.getByLabel('Vintage da memória').selectOption('2029');
+    await page.waitForURL('**/*vintage=2029*');
+    await table.getByRole('rowheader', {name:'M2 · 2029'}).waitFor();
+    assert.deepEqual(await table.getByRole('rowheader').allTextContents(), ['M2 · 2029']);
+
     const [rejected] = await Promise.all([
       page.waitForResponse(response => response.request().method() === 'POST' && response.status() === 422),
       page.getByRole('button', {name: 'Testar massa sem EC'}).click(),

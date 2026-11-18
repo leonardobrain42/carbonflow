@@ -1,7 +1,8 @@
+import {toSignal} from '@angular/core/rxjs-interop';
 import {afterNextRender, Component, computed, ElementRef, inject, Injector, signal, viewChild} from '@angular/core';
 import {HttpClient, HttpErrorResponse, provideHttpClient} from '@angular/common/http';
 import {bootstrapApplication} from '@angular/platform-browser';
-import {provideRouter, RouterOutlet, Routes} from '@angular/router';
+import {ActivatedRoute, provideRouter, Router, RouterOutlet, Routes} from '@angular/router';
 import {firstValueFrom} from 'rxjs';
 import {AccessPanel, SessionProject} from './access-panel';
 import {IntakePanel} from './intake-panel';
@@ -104,6 +105,23 @@ class PilotComponent {
   readonly canCalculate = computed(() => this.project()?.project === 'PIL-SYN-BR-001'
     && (this.project()?.roles.includes('PREP') ?? false));
   readonly run = signal<Run | null>(null);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  readonly filters = toSignal(this.route.queryParamMap, {initialValue:this.route.snapshot.queryParamMap});
+  readonly vintages = computed(() => [...new Set(this.run()?.results.periods.flatMap(period =>
+    period.cuts.map(cut => cut.vintage)) ?? [])].sort());
+  readonly memoryRows = computed(() => {
+    const periodId = this.filters().get('periodo');
+    const vintage = this.filters().get('vintage');
+    return (this.run()?.results.periods ?? []).filter(period => !periodId || period.id === periodId)
+      .flatMap(period => period.cuts.filter(cut => !vintage || String(cut.vintage) === vintage)
+        .map(cut => ({periodId:period.id,cut})));
+  });
+
+  filterMemory(key: 'periodo' | 'vintage', value: string) {
+    void this.router.navigate([], {relativeTo:this.route, queryParams:{[key]:value || null},
+      queryParamsHandling:'merge', preserveFragment:true});
+  }
   readonly busy = signal(true);
   readonly status = signal('');
   readonly error = signal('');

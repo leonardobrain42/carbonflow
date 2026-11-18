@@ -126,6 +126,20 @@
             }
 
             @case ('analisar') {
+              @if ((owner() || capabilities()?.actions?.includes('GUIDE_INTAKE')) && capabilities()?.actions?.includes('VIEW_GUIDES') && saved.journey.candidate === 'VM0038') {
+                <section class="cf-journey-context">
+                  <h3>Ficha de aplicabilidade</h3>
+                  @if (saved.applicability; as ficha) {
+                    <p>Revisão {{ ficha.revision }}</p>
+                    <dl>
+                      <dt>Fronteira</dt><dd>{{ ficha.boundary || 'Pendente' }}</dd>
+                      <dt>Incidência declarada</dt><dd>{{ ficha.incidence || 'Pendente' }}</dd>
+                      <dt>Direitos</dt><dd>{{ ficha.rights || 'Pendente' }}</dd>
+                    </dl>
+                  }
+                  <button type="button" class="cf-workspace-outline" (click)="open('guias')">Abrir guias da metodologia</button>
+                </section>
+              }
               @if (saved.experienceMode === 'TECHNICAL') {
                 <div class="cf-journey-context">
                   <strong>Modo técnico</strong>
@@ -161,7 +175,7 @@
             }
 
             @case ('guias') {
-              <carbonflow-project-guides [projectId]="projectId" />
+              <carbonflow-project-guides [projectId]="projectId" (saved)="updateGuide($event)" />
             }
 
             @case ('redigir') {
@@ -220,7 +234,7 @@
         </section>
       } @else if (project() && can('VIEW_GUIDES')) {
         <section class="cf-workspace-card"><h1>Guias técnicos</h1>
-          <carbonflow-project-guides [projectId]="projectId" />
+          <carbonflow-project-guides [projectId]="projectId" (saved)="updateGuide($event)" />
         </section>
       } @else {
         <div role="alert" class="cf-workspace-alert">{{ error() || 'Projeto indisponível para esta conta.' }}</div>

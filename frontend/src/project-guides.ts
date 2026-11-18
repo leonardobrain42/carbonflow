@@ -1,4 +1,4 @@
-import {Component, inject, input, OnInit, signal} from '@angular/core';
+import {Component, inject, input, OnInit, output, signal} from '@angular/core';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {firstValueFrom} from 'rxjs';
 
@@ -14,7 +14,9 @@ interface Guide {
 })
 export class ProjectGuidesComponent implements OnInit {
   readonly projectId = input.required<string>();
+  readonly saved = output<Guide>();
   readonly guides = signal<Guide[]>([]);
+  readonly sources = signal<Guide[] | null>(null);
   readonly historical = signal<Guide | null>(null);
   readonly current = signal<Guide | null>(null);
   readonly answers = signal<Record<string,string>>({});
@@ -50,6 +52,7 @@ export class ProjectGuidesComponent implements OnInit {
   }
 
   private display(guide: Guide | null) {
+    this.sources.set(null);
     this.historical.set(null);
     this.current.set(guide);
     this.answers.set({...guide?.answers});
@@ -64,6 +67,18 @@ export class ProjectGuidesComponent implements OnInit {
     this.notice.set('');
   }
 
+  async showInputs(version: number) {
+    if (this.busy()) return;
+    this.busy.set(true);
+    this.error.set('');
+    try {
+      this.sources.set(await firstValueFrom(this.http.get<Guide[]>(this.url + '/quantification/revisions/' + version + '/inputs')));
+    } catch {
+      this.sources.set(null);
+      this.error.set('As entradas desta revisão estão indisponíveis para esta conta.');
+    } finally { this.busy.set(false); }
+  }
+
   async showRevision(version: number) {
     const guide = this.current();
     if (!guide || this.busy() || version < 1 || version >= guide.version) return;
@@ -71,6 +86,7 @@ export class ProjectGuidesComponent implements OnInit {
     this.error.set('');
     try {
       const state = await firstValueFrom(this.http.get<Guide>(this.url + '/' + guide.id + '/revisions/' + version));
+      this.sources.set(null);
       this.historical.set(state);
     } catch (cause) {
       if (cause instanceof HttpErrorResponse && [401,404].includes(cause.status)) {
@@ -93,6 +109,7 @@ export class ProjectGuidesComponent implements OnInit {
       this.guides.update(items => items.map(item => item.id === saved.id ? saved : item));
       this.dirty.set(false);
       this.display(saved);
+      this.saved.emit(saved);
       this.notice.set('Revisão ' + saved.version + ' salva.');
     } catch (cause) {
       if (cause instanceof HttpErrorResponse && [401,404].includes(cause.status)) {

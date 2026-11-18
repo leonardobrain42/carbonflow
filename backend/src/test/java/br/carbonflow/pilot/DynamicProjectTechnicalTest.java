@@ -402,6 +402,14 @@ class DynamicProjectTechnicalTest {
             assertEquals(value,historical.path("answers").path(field).asText());
             assertFalse(historical.path("editable").asBoolean());
         }
+        String baseline = guides + "/baseline";
+        String quantification = guides + "/quantification";
+        var pinned = body(call("GET",quantification + "/revisions/1/inputs",owner.cookie(),null,null,null));
+        assertTrue(pinned.findValuesAsText("id").contains("baseline"));
+        assertEquals(200,call("PUT",baseline,owner.cookie(),key(),"\"2\"","{\"scenario\":\"Cenário atualizado\"}").statusCode());
+        assertEquals(pinned,body(call("GET",quantification + "/revisions/1/inputs",owner.cookie(),null,null,null)));
+        var refreshed = call("PUT",quantification,owner.cookie(),key(),"\"2\"","{}");
+        assertEquals(3,body(refreshed).path("version").asInt(),refreshed.body());
         grant(project,org,guest,owner,"REV","INTAKE");
         var permitted = body(call("GET",guides,guest.cookie(),null,null,null)).path("guides");
         assertEquals(1, permitted.size());

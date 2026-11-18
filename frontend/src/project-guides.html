@@ -14,6 +14,10 @@
       <h3>{{ guide.title }}</h3>
       <p>{{ guide.guidance }}</p>
       <p>{{ guide.version ? 'Revisão salva · ' + guide.version : 'Rascunho a iniciar' }} · Revisão técnica pendente</p>
+      @if (guide.id === 'quantification') {
+        <p>Sem resultado admitido para o recorte. Reduções de emissões (ER) em tCO₂e pendentes de cálculo e revisão.</p>
+        <a class="cf-workspace-link" href="/pilot#memory-heading">Consultar a memória da simulação no piloto</a>
+      }
       @if (guide.id === 'monitoring') {
         @if (!answers()['calibration'] || !answers()['validUntil']) {
           <p class="cf-workspace-note">Calibração pendente. Identifique o certificado e sua validade antes de encaminhar o plano.</p>
@@ -61,6 +65,23 @@
             }</dl>
           }
         </details>
+      }
+      @if (guide.id === 'quantification' && guide.version) {
+        @if (guide.editable && !dirty()) {
+          <button type="button" class="cf-workspace-outline" [disabled]="busy()" (click)="save()">Atualizar referências dos guias</button>
+        }
+        <button type="button" class="cf-workspace-outline" [disabled]="busy()" (click)="showInputs(historical()?.version ?? guide.version)">
+          Consultar entradas vinculadas à revisão {{ historical()?.version ?? guide.version }}
+        </button>
+        @if (sources(); as inputs) {
+          @for (entry of inputs; track entry.id) {
+            <details class="cf-journey-context"><summary>{{ entry.title }} · revisão {{ entry.version }}</summary>
+              <dl>@for (field of entry.fields; track field.key) {
+                @if (entry.answers[field.key]) { <dt>{{ field.label }}</dt><dd>{{ entry.answers[field.key] }}</dd> }
+              }</dl>
+            </details>
+          } @empty { <p>Nenhuma entrada vinculada disponível para esta conta.</p> }
+        }
       }
       @if (guide.missing.length) {
         <details class="cf-journey-context"><summary>Informações pendentes na revisão salva ({{ guide.missing.length }})</summary>
