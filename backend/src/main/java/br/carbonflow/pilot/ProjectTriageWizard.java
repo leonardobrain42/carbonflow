@@ -65,7 +65,7 @@ class ProjectTriageWizard {
 
     View get(String cookie, String projectId) {
         return scope.read(cookie, projectId, "VIEW_TRIAGE", (connection, context) ->
-                view(context, latestOrEmpty(connection, projectId)));
+                current(connection, context));
     }
 
     JsonNode save(String cookie, String projectId, int step, String keyHeader, String ifMatch, Mutation input) {
@@ -292,6 +292,10 @@ class ProjectTriageWizard {
                     ? "Revise as respostas e organize na preparação técnica o que precisa ser comprovado."
                     : "Salve as respostas e deixe em aberto o que ainda precisa confirmar.",
                 journey, ProjectJourney.METHODOLOGIES, guidance, ProjectTriageDiagnosis.evaluate(answers, guidance));
+    }
+
+    View current(Connection connection, DynamicProjectScope.Context context) throws SQLException {
+        return view(context, latestOrEmpty(connection, context.id()));
     }
 
     static String savedCandidate(Connection connection, String projectId) throws SQLException {

@@ -69,7 +69,7 @@ class PdReviews {
         });
     }
 
-    private Item item(Connection c,DynamicProjectScope.Context scope,ProjectGuides.Guide guide,PdSections.Version section) throws SQLException {
+    Item item(Connection c,DynamicProjectScope.Context scope,ProjectGuides.Guide guide,PdSections.Version section) throws SQLException {
         var history=events(c,scope.id(),guide.id(),section.number());
         State state=history.isEmpty()?State.DRAFT:history.getLast().state();
         boolean outdated=guide.version()!=section.guideVersion();

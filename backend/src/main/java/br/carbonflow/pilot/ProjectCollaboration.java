@@ -11,13 +11,18 @@ import java.util.UUID;
 
 final class ProjectCollaboration {
     private record Grant(String role, Set<String> activities) {}
+    record Access(String role, Set<String> actions) {}
 
-    static final Set<String> OWNER_TECHNICAL_ACTIONS = Set.of("VIEW_PROJECT_METADATA", "VIEW_CAPABILITIES",
+    static final Set<String> OWNER_TECHNICAL_ACTIONS = Set.of("VIEW_PROJECT_METADATA", "VIEW_CAPABILITIES", "VIEW_JOURNEY",
             "VIEW_PD_REVIEW", "VIEW_GUIDES", "SAVE_GUIDE", "VIEW_INTAKE", "SAVE_INTAKE", "VIEW_DOSSIER", "PREPARE_DOSSIER", "DOWNLOAD_DOSSIER");
 
     private ProjectCollaboration() {}
 
     static Set<String> actions(Connection connection, String project, UUID actor) throws SQLException {
+        return access(connection, project, actor).actions();
+    }
+
+    static Access access(Connection connection, String project, UUID actor) throws SQLException {
         List<Grant> grants = query(connection, """
                 SELECT role, activities FROM app_project_collaborator_grant
                 WHERE project_id = ? AND identity_id = ? AND revoked_at IS NULL
@@ -30,10 +35,9 @@ final class ProjectCollaboration {
                 array.free();
             }
         }, project, actor);
-        if (grants.isEmpty()) return Set.of();
-        if (grants.stream().map(Grant::role).distinct().count() != 1) return Set.of();
+        if (grants.stream().map(Grant::role).distinct().count() != 1) return new Access(null, Set.of());
 
-        var actions = new LinkedHashSet<>(List.of("VIEW_PROJECT_METADATA", "VIEW_CAPABILITIES"));
+        var actions = new LinkedHashSet<>(List.of("VIEW_PROJECT_METADATA", "VIEW_CAPABILITIES", "VIEW_JOURNEY"));
         for (var grant : grants) {
             boolean preparer = "PREP".equals(grant.role());
             for (String activity : grant.activities()) {
@@ -54,6 +58,6 @@ final class ProjectCollaboration {
                 if (preparer) actions.add("PREPARE_DOSSIER");
             }
         }
-        return Set.copyOf(actions);
+        return new Access(grants.getFirst().role(), Set.copyOf(actions));
     }
 }

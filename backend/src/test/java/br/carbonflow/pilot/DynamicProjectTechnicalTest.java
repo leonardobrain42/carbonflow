@@ -494,6 +494,80 @@ class DynamicProjectTechnicalTest {
 
     }
 
+    @Test
+    void workJourneyProjectsCanonicalRevisionsWithoutGrantingBroaderAccess() throws Exception {
+        Actor owner = actor();
+        Actor reviewer = actor();
+        Actor preparer = actor();
+        UUID org = organization(owner.id());
+        String project = body(call("POST", PROJECTS, owner.cookie(), key(), null,
+                "{\"organizationId\":\"" + org + "\",\"title\":\"Projeto acompanhado\"}")).path("projectId").asText();
+        String root = PROJECTS + "/" + project;
+        String journey = root + "/journey";
+        String technical = root + "/technical";
+        var initial = call("GET", journey, owner.cookie(), null, null, null);
+        assertEquals(200, initial.statusCode(), initial.body());
+        assertEquals("DRAFT_OWNER", body(initial).path("role").asText());
+        assertEquals("triage", body(initial).path("nextTask").asText());
+        assertEquals(body(initial), body(call("GET", journey, owner.cookie(), null, null, null)));
+        assertEquals(1L, database.read(c -> first(c, """
+                SELECT count(*) FROM app_project_journey_instance WHERE project_id = ?
+                """, row -> row.getLong(1), project)).longValue());
+        assertEquals(404, call("GET", journey, actor().cookie(), null, null, null).statusCode());
+        assertEquals(401, call("GET", journey, null, null, null, null).statusCode());
+
+        assertEquals(200, call("PUT", technical + "/intake", owner.cookie(), key(), "\"0\"",
+                "{\"candidateMethodology\":\"VM0038\"}").statusCode());
+        var configured = body(call("GET", journey, owner.cookie(), null, null, null));
+        assertEquals("NOT_STARTED", task(configured, "guide-monitoring").path("state").asText());
+        assertTrue(task(configured, "guide-monitoring").path("actionable").asBoolean());
+        assertEquals("NOT_STARTED", task(configured, "guide-additionality").path("state").asText());
+
+        String baseline = technical + "/guides/baseline";
+        assertEquals(200, call("PUT", baseline, owner.cookie(), key(), "\"0\"", "{\"scenario\":\"Cenário A\"}").statusCode());
+        assertEquals(200, call("PUT", technical + "/guides/quantification", owner.cookie(), key(), "\"0\"",
+                "{\"vintage\":\"2030\"}").statusCode());
+        String document = technical + "/pd-sections/baseline";
+        assertEquals(200, call("PUT", document, owner.cookie(), key(), "\"0\"",
+                "{\"guideVersion\":1,\"narrative\":\"Linha de base\"}").statusCode());
+        String review = technical + "/pd-reviews/baseline/versions/1";
+        assertEquals(200, decision(review, owner, 0, "SUBMITTED").statusCode());
+        UUID reviewerActivity = grant(project, org, reviewer, owner, "REV", "BASELINE");
+        grant(project, org, reviewer, owner, "REV", "DOCUMENTATION");
+        grant(project, org, preparer, owner, "PREP", "MONITORING");
+        var reviewerView = body(call("GET", journey, reviewer.cookie(), null, null, null));
+        assertEquals("REV", reviewerView.path("role").asText());
+        assertEquals("review-baseline", reviewerView.path("nextTask").asText());
+        assertEquals("IN_REVIEW", task(reviewerView, "review-baseline").path("state").asText());
+        assertTrue(task(reviewerView, "guide-quantification").isMissingNode());
+        assertTrue(task(reviewerView, "triage").isMissingNode());
+        var prepView = body(call("GET", journey, preparer.cookie(), null, null, null));
+        assertEquals(java.util.List.of("guide-monitoring"), prepView.path("tasks").findValuesAsText("id"));
+
+        assertEquals(200, call("PUT", baseline, owner.cookie(), key(), "\"1\"", "{\"scenario\":\"Cenário B\"}").statusCode());
+        var changed = body(call("GET", journey, owner.cookie(), null, null, null));
+        assertEquals("REQUIRES_RECHECK", task(changed, "guide-quantification").path("state").asText());
+        assertEquals("REQUIRES_RECHECK", task(changed, "section-baseline").path("state").asText());
+        assertEquals("REQUIRES_RECHECK", task(changed, "review-baseline").path("state").asText());
+        assertEquals("NOT_STARTED", task(changed, "guide-monitoring").path("state").asText());
+        assertEquals("Cenário A", body(call("GET", baseline + "/revisions/1", owner.cookie(), null, null, null))
+                .at("/answers/scenario").asText());
+
+        database.transaction(c -> update(c, """
+                UPDATE app_project_collaborator_grant SET revoked_at=statement_timestamp(),revoked_by=? WHERE id=?
+                """, owner.id(), reviewerActivity));
+        var afterRevocation = body(call("GET", journey, reviewer.cookie(), null, null, null));
+        assertTrue(task(afterRevocation, "review-baseline").isMissingNode());
+        assertTrue(afterRevocation.path("nextTask").isNull());
+    }
+
+    private static JsonNode task(JsonNode journey, String id) {
+        for (JsonNode task : journey.path("tasks")) {
+            if (id.equals(task.path("id").asText())) return task;
+        }
+        return com.fasterxml.jackson.databind.node.MissingNode.getInstance();
+    }
+
     private HttpResponse<String> decision(String url,Actor actor,int revision,String state) throws Exception {
         return call("POST",url,actor.cookie(),key(),"\""+revision+"\"",
                 "{\"state\":\""+state+"\",\"reason\":\"Parecer fundamentado\"}");
