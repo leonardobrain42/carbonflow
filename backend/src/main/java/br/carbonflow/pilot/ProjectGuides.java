@@ -107,12 +107,7 @@ class ProjectGuides {
     }
 
     Catalog catalog(Connection c, DynamicProjectScope.Context scope) throws SQLException {
-        String candidate = ProjectTriageWizard.savedCandidate(c, scope.id());
-        if (candidate == null) candidate = first(c, """
-                SELECT payload->>'candidateMethodology' FROM app_project_intake_draft_revision
-                WHERE project_id=? ORDER BY version DESC LIMIT 1
-                """, r -> r.getString(1), scope.id());
-        String method = ProjectJourney.profile(candidate).id();
+        String method = ProjectJourney.profile(candidate(c, scope.id())).id();
         List<Guide> guides = query(c, """
                 SELECT g.*, r.version, r.answers FROM app_technical_guide g
                 LEFT JOIN LATERAL (SELECT version,answers FROM app_technical_guide_revision
@@ -128,6 +123,15 @@ class ProjectGuides {
                             r.getInt("version"), answers,scope.owner() || scope.actions().contains("SAVE_GUIDE"));
                 },scope.id(),method);
         return new Catalog(method,guides.stream().filter(Objects::nonNull).toList());
+    }
+
+    static String candidate(Connection c, String project) throws SQLException {
+        String candidate = ProjectTriageWizard.savedCandidate(c, project);
+        if (candidate == null) candidate = first(c, """
+                SELECT payload->>'candidateMethodology' FROM app_project_intake_draft_revision
+                WHERE project_id=? ORDER BY version DESC LIMIT 1
+                """, r -> r.getString(1), project);
+        return candidate;
     }
 
     static List<String> supportedActivities(Connection c) throws SQLException {

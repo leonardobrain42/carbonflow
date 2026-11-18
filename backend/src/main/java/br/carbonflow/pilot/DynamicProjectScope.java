@@ -17,7 +17,7 @@ import jakarta.enterprise.context.ApplicationScoped;
  */
 @ApplicationScoped
 class DynamicProjectScope {
-    record Context(AccountAccess.Identity actor, ProjectContext.Draft project, boolean owner, Set<String> actions) {
+    record Context(AccountAccess.Identity actor, ProjectContext.Draft project, boolean owner, String role, Set<String> actions) {
         String id() { return project.projectId(); }
         UUID organization() { return project.organizationId(); }
         String environment() { return project.environment(); }
@@ -84,10 +84,10 @@ class DynamicProjectScope {
                     AND (valid_until IS NULL OR valid_until > statement_timestamp()) FOR SHARE
                     """, row -> true, target.project().organizationId(), actor.id()) : null;
             if (Boolean.TRUE.equals(owns)) {
-                return new Context(actor, target.project(), true, ProjectCollaboration.OWNER_TECHNICAL_ACTIONS);
+                return new Context(actor, target.project(), true, "DRAFT_OWNER", ProjectCollaboration.OWNER_TECHNICAL_ACTIONS);
             }
-            Set<String> actions = ProjectCollaboration.actions(connection, project, actor.id());
-            if (actions.contains(action)) return new Context(actor, target.project(), false, actions);
+            var access = ProjectCollaboration.access(connection, project, actor.id());
+            if (access.actions().contains(action)) return new Context(actor, target.project(), false, access.role(), access.actions());
         }
         throw new PilotProblem(404, "RECURSO_NAO_VISIVEL", "project", "CF-IMP-008", "Recurso indisponível.");
     }
