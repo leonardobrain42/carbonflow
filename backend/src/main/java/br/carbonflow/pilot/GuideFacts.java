@@ -6,6 +6,8 @@ import java.sql.SQLException;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.UUID;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -53,13 +55,15 @@ class GuideFacts {
     }
 
     View view(String token, String project, String section) {
-        return scopes.read(token,project,"VIEW_GUIDES",(connection,scope) -> {
-            var guide = visibleGuide(connection,scope,section);
-            var rows = query(connection,CANDIDATES+" ORDER BY f.proposed_at DESC, f.id",GuideFacts::row,project,section);
-            var result = new ArrayList<Candidate>();
-            for (Row row : rows) result.add(candidate(connection,scope,section,row));
-            return new View(List.copyOf(result),guide.editable());
-        });
+        return scopes.read(token,project,"VIEW_GUIDES",(connection,scope) -> view(connection,scope,section));
+    }
+
+    View view(Connection connection, DynamicProjectScope.Context scope, String section) throws SQLException {
+        var guide = visibleGuide(connection,scope,section);
+        var rows = query(connection,CANDIDATES+" ORDER BY f.proposed_at DESC, f.id",GuideFacts::row,scope.id(),section);
+        var result = new ArrayList<Candidate>();
+        for (Row row : rows) result.add(candidate(connection,scope,section,row));
+        return new View(List.copyOf(result),guide.editable());
     }
 
     Candidate propose(String token, String project, String section, Proposal proposal) {
@@ -132,6 +136,30 @@ class GuideFacts {
             }
             return candidate(connection,scope,section,find(connection,project,section,id));
         });
+    }
+
+    static Map<String,SectionAssessment.Link> assessmentLinks(Connection connection, String project, String section,
+                                                               int guideVersion) throws SQLException {
+        String sql = """
+                SELECT DISTINCT ON (f.field) f.field,f.id,e.id AS evidence_id,e.guide_version,e.sha256,
+                    d.outcome,v.version AS fact_version,
+                    (SELECT MAX(latest.version) FROM app_project_fact_version latest
+                     WHERE latest.project_id=f.project_id AND latest.section=f.section AND latest.field=f.field) AS current_version
+                FROM app_fact_candidate f
+                JOIN app_evidence_object e ON e.id=f.evidence_id
+                LEFT JOIN app_fact_candidate_decision d ON d.candidate_id=f.id
+                LEFT JOIN app_project_fact_version v ON v.candidate_id=f.id
+                WHERE f.project_id=? AND f.section=? AND (e.guide_version=? OR v.version IS NOT NULL)
+                ORDER BY f.field,(e.guide_version=?) DESC,v.version DESC NULLS LAST
+                """;
+        return query(connection,sql,row -> {
+            String field = row.getString("field");
+            String outcome = row.getString("outcome");
+            return Map.entry(field,new SectionAssessment.Link(row.getObject("id",UUID.class),
+                    row.getObject("evidence_id",UUID.class),row.getInt("guide_version"),row.getString("sha256"),
+                    "/answers/"+field,outcome == null ? Status.PENDING : Status.valueOf(outcome),
+                    row.getObject("fact_version",Integer.class),row.getObject("current_version",Integer.class)));
+        },project,section,guideVersion,guideVersion).stream().collect(Collectors.toMap(Map.Entry::getKey,Map.Entry::getValue));
     }
 
     private Integer requestVersion(Connection connection, DynamicProjectScope.Context scope, String section,

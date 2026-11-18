@@ -784,9 +784,10 @@ class DynamicProjectTechnicalTest {
                 "{\"organizationId\":\"" + org + "\",\"title\":\"Fatos versionados\"}")).path("projectId").asText();
         String root = PROJECTS + "/" + project;
         String guide = root+"/technical/guides/baseline";
+        String assessment = root+"/sections/baseline/assessment";
         String facts = root+"/sections/baseline/facts";
         assertEquals(200,call("PUT",root+"/technical/intake",owner.cookie(),key(),"\"0\"",
-                "{\"candidateMethodology\":\"VM0038\"}").statusCode());
+                "{\"candidateMethodology\":\"VM0038\",\"referenceActDate\":\"2029-12-01\"}").statusCode());
         assertEquals(200,call("PUT",root+"/sections/baseline/acquisition/PD/scenario",owner.cookie(),null,"\"0\"",
                 "{\"kind\":\"TECHNICAL_INFORMATION\",\"purpose\":\"Origem do cenário\",\"criteria\":{}}").statusCode());
         var lists = body(call("GET",root+"/sections/baseline/acquisition/PD",owner.cookie(),null,null,null));
@@ -794,9 +795,16 @@ class DynamicProjectTechnicalTest {
         String first = "{\"guideVersion\":1,\"field\":\"scenario\",\"requestId\":\""+ requestId +"\"}";
         assertEquals(404,call("POST",facts,owner.cookie(),null,null,first).statusCode());
         assertEquals(200,call("PUT",guide,owner.cookie(),key(),"\"0\"","{\"scenario\":\"Referência original\"}").statusCode());
+        var recorded = body(call("GET",assessment,owner.cookie(),null,null,null));
+        assertEquals("RECORDED",recorded.at("/assessment/results/0/data").asText());
+        assertEquals("UNLINKED",recorded.at("/assessment/results/0/proof").asText());
         var proposed = call("POST",facts,owner.cookie(),null,null,first);
         assertEquals(200,proposed.statusCode(),proposed.body());
         assertEquals(body(proposed),body(call("POST",facts,owner.cookie(),null,null,first)));
+        var pending = body(call("GET",assessment,owner.cookie(),null,null,null));
+        assertEquals("PENDING",pending.at("/assessment/results/0/proof").asText());
+        assertNotEquals(recorded.path("sha256"),pending.path("sha256"));
+        assertEquals(pending,body(call("GET",assessment,owner.cookie(),null,null,null)));
         assertEquals(requestId,body(proposed).path("requestId").asText());
         assertEquals(1,body(proposed).path("requestVersion").asInt());
         assertEquals("/answers/scenario",body(proposed).at("/evidence/locator").asText());
@@ -806,13 +814,22 @@ class DynamicProjectTechnicalTest {
         assertEquals(404,call("POST",facts+"/"+firstId+"/decision",owner.cookie(),null,"\"0\"",accept).statusCode());
         grant(project,org,scopedElsewhere,owner,"REV","MONITORING");
         assertEquals(404,call("GET",facts,scopedElsewhere.cookie(),null,null,null).statusCode());
+        assertEquals(404,call("GET",assessment,scopedElsewhere.cookie(),null,null,null).statusCode());
         UUID revGrant = grant(project,org,reviewer,owner,"REV","BASELINE");
         var visible = body(call("GET",facts,reviewer.cookie(),null,null,null));
         assertTrue(visible.at("/candidates/0/requestId").isNull());
         assertTrue(visible.at("/candidates/0/canReview").asBoolean());
         assertEquals(200,call("POST",facts+"/"+firstId+"/decision",reviewer.cookie(),null,"\"0\"",accept).statusCode());
 
+        var accepted = body(call("GET",assessment,owner.cookie(),null,null,null));
+        assertEquals("ACCEPTED_INTERNAL",accepted.at("/assessment/results/0/proof").asText());
+        assertTrue(accepted.at("/assessment/results/0/humanReviewRequired").asBoolean());
+        assertEquals(64,accepted.at("/assessment/results/0/ruleSha256").asText().length());
+
         assertEquals(200,call("PUT",guide,owner.cookie(),key(),"\"1\"","{\"scenario\":\"Referência corrigida\"}").statusCode());
+        var stale = body(call("GET",assessment,owner.cookie(),null,null,null));
+        assertEquals("RECHECK_REQUIRED",stale.at("/assessment/results/0/proof").asText());
+        assertEquals(1,stale.at("/assessment/results/0/evidence/guideVersion").asInt());
         var conflict = body(call("POST",facts,owner.cookie(),null,null,first.replace("Version\":1","Version\":2")));
         assertTrue(conflict.path("divergent").asBoolean());
         assertEquals(1,conflict.path("currentVersion").asInt());

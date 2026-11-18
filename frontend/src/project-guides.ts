@@ -1,3 +1,4 @@
+import {SectionAssessmentComponent} from './section-assessment';
 import {EvidenceRequestLink, GuideFactsPanelComponent} from './guide-facts-panel';
 import {AcquisitionPanelComponent} from './acquisition-panel';
 import {Component, inject, input, OnInit, output, signal} from '@angular/core';
@@ -13,7 +14,7 @@ interface Guide {
 
 @Component({
   selector: 'carbonflow-project-guides',
-  imports: [GuideReferencesComponent, AcquisitionPanelComponent, GuideFactsPanelComponent],
+  imports: [GuideReferencesComponent, AcquisitionPanelComponent, GuideFactsPanelComponent, SectionAssessmentComponent],
   templateUrl: './project-guides.html',
 })
 export class ProjectGuidesComponent implements OnInit {
