@@ -1,3 +1,4 @@
+import {TechnicalGlossaryComponent} from './technical-glossary';
 import {PdReviewsComponent} from './pd-reviews';
 import {PdSectionsComponent} from './pd-sections';
 import {ProjectGuidesComponent} from './project-guides';
@@ -104,7 +105,7 @@ function formValues(data: IntakeData | null): IntakeForm {
 
 @Component({
   selector: 'carbonflow-project-technical',
-  imports: [RouterLink, WorkspaceNavigationComponent, ProjectGuidesComponent, PdSectionsComponent, PdReviewsComponent],
+  imports: [RouterLink, WorkspaceNavigationComponent, ProjectGuidesComponent, PdSectionsComponent, PdReviewsComponent, TechnicalGlossaryComponent],
   templateUrl: './project-technical.html',
 })
 export class ProjectTechnicalComponent {

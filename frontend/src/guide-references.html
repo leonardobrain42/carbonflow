@@ -1,0 +1,105 @@
+<details class="cf-journey-context">
+  <summary>Requisitos e fontes desta etapa</summary>
+  <p>Consulte as referências e pendências da revisão salva do guia.</p>
+  <label [for]="'reference-act-' + section()">Documento de referência</label>
+  <select #referenceAct [id]="'reference-act-' + section()" [value]="act()" (change)="selectAct(referenceAct.value)">
+    <option value="PD">PD · Descrição do projeto</option>
+    <option value="MR">MR · Relatório de monitoramento</option>
+  </select>
+  <div class="cf-triage-actions">
+    <button type="button" class="cf-workspace-outline" (click)="reload()" [disabled]="state().kind === 'loading'">Consultar ou atualizar referências</button>
+  </div>
+
+  @if (state(); as current) {
+    @switch (current.kind) {
+      @case ('loading') { <p role="status">Consultando referências e pendências…</p> }
+      @case ('error') { <p role="alert">Não foi possível consultar as referências. Tente novamente.</p> }
+      @case ('unavailable') { <p role="alert">As referências desta seção estão indisponíveis para esta conta.</p> }
+      @case ('loaded') {
+        @if (current.report.guideRevision !== revision()) {
+          <p role="status">Há uma revisão mais recente do guia. Recarregue o guia para conferir os campos atuais.</p>
+        }
+        <h4>Catálogo de requisitos</h4>
+        @if (current.report.packEdition !== null) {
+          <p><strong>Demonstração sintética</strong> · {{ current.report.packId }} · edição {{ current.report.packEdition }}</p>
+        }
+        @if (current.report.dateUsed; as day) {
+          <p>{{ current.report.dateBasis === 'ACT_DATE' ? 'Data de referência do ato' : 'Início do período' }} · {{ date(day) }}</p>
+        }
+        @if (current.report.window; as window) {
+          <p>Vigência do pacote de exemplo desde {{ date(window.from) }}
+            @if (window.until; as end) { · próxima edição a partir de {{ date(end) }} }
+          </p>
+        }
+        @if (current.previousEdition !== undefined) {
+          <p role="status">A edição consultada mudou da {{ current.previousEdition }} para a {{ current.report.packEdition }}. Confira as referências antes de preparar outra revisão.</p>
+        }
+        @if (current.report.catalogState !== 'RESOLVED_SYNTHETIC') {
+          <p>{{ current.report.catalogReason }} Consulte os metadados e o glossário disponíveis.</p>
+        }
+        @for (requirement of current.report.requirements; track requirement.code) {
+          <article class="cf-journey-context">
+            <h5>{{ requirement.title }}</h5>
+            <p>{{ requirement.interpretation ? 'Avaliação interpretativa' : 'Regra de demonstração' }} · {{ classification[requirement.classification] }}</p>
+            <p><strong>{{ requirementStatus[requirement.status] }}</strong> · {{ requirement.reason }}</p>
+            <p>{{ requirement.code }} · {{ requirement.source.id }} v{{ requirement.source.edition }} · {{ requirement.locator }}</p>
+            @if (requirement.dependencies.length) { <p>Depende de {{ requirement.dependencies.join(', ') }}</p> }
+            @if (requirement.field === 'referenceActDate') {
+              <p>Campo em Preparar informações · Data de referência do ato</p>
+            } @else {
+              <a class="cf-workspace-link" [href]="'#guide-' + requirement.field">Localizar campo no guia</a>
+            }
+          </article>
+        } @empty {
+          @if (current.report.catalogState === 'RESOLVED_SYNTHETIC') {
+            <p>Esta seção ainda está sem requisitos cadastrados no catálogo de exemplo para {{ act() }}.</p>
+          }
+        }
+
+        <details class="cf-journey-context">
+          <summary>Etapas de avaliação</summary>
+          <ul class="cf-tech-gates">
+            @for (gate of current.report.gates; track gate.code) {
+              <li>{{ gate.title }} <small>{{ gateStatus[gate.status] }}</small></li>
+            }
+          </ul>
+        </details>
+        @if (current.report.acquisitionPlan.length) {
+          <details class="cf-journey-context">
+            <summary>Dados a reunir</summary>
+            <ul class="cf-tech-gates">
+              @for (item of current.report.acquisitionPlan; track item.field) {
+                <li>
+                  @if (item.editable && item.screen === 'guias') {
+                    <a class="cf-workspace-link" [href]="'#guide-' + item.field">{{ item.label }}</a>
+                  } @else if (item.editable && item.screen === 'preparar' && canOpenIntake()) {
+                    <button type="button" class="cf-workspace-outline" (click)="prepare.emit()">{{ item.label }}</button>
+                  } @else {
+                    {{ item.label }}
+                  }
+                  <small>{{ item.reason }}</small>
+                </li>
+              }
+            </ul>
+          </details>
+        }
+        <h4>Metadados das fontes</h4>
+        <ul class="cf-tech-gates">
+          @for (source of current.sources; track source.id + '/' + source.edition) {
+            <li>
+              <strong>{{ source.title }}</strong>
+              <small>{{ source.id }} · edição {{ source.edition }} · titular {{ source.rightsHolder }}</small>
+              <small>{{ source.origin === 'OWN_SYNTHETIC' ? 'Material próprio de demonstração' : 'Referência normativa · metadados' }}
+                @if (!source.requirementReferenceAvailable) { · direito de referência a comprovar }
+              </small>
+              @if (source.officialUri; as url) {
+                <a class="cf-workspace-link" [href]="url" target="_blank" rel="noopener noreferrer">Consultar origem de {{ source.id }}</a>
+              }
+            </li>
+          } @empty { <li>Fonte ainda a confirmar.</li> }
+        </ul>
+      }
+    }
+  }
+</details>
+<carbonflow-technical-glossary [section]="section()" />

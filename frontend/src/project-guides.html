@@ -30,6 +30,10 @@
       @if (guide.id === 'additionality' && answers()['commitment'] && answers()['considered'] && answers()['commitment'] < answers()['considered']) {
         <p class="cf-workspace-note">O compromisso informado antecede a consideração do carbono. Encaminhe a cronologia e as provas para revisão.</p>
       }
+      @for (section of [guide.id]; track section) {
+        <carbonflow-guide-references [projectId]="projectId()" [section]="section" [revision]="guide.version"
+          [canOpenIntake]="canOpenIntake()" (prepare)="prepare.emit()" />
+      }
       <fieldset class="cf-journey-fieldset" [disabled]="!guide.editable || busy()">
         @for (field of guide.fields; track field.key) {
           @if (field.key !== 'justification' || answers()['incidence'] === 'Não aplicável' || answers()['justification']) {
