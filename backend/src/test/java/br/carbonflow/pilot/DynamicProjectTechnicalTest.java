@@ -625,7 +625,7 @@ class DynamicProjectTechnicalTest {
 
     private ContentLicensePolicy.Authorization license(Actor actor, String project, ContentLicensePolicy.SourceRef source,
                                                        ContentLicensePolicy.Operation operation) {
-        return scopes.read(actor.cookie(), project, "VIEW_GUIDES", (connection, scope) ->
+        return scopes.read(actor.cookie().substring(AccountAccess.COOKIE.length() + 1), project, "VIEW_GUIDES", (connection, scope) ->
                 licenses.authorize(connection, scope, source, ContentLicensePolicy.Purpose.REQUIREMENT_CATALOG, operation, null));
     }
 
