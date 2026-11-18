@@ -9,6 +9,7 @@
       <a routerLink="/workspace">Meus projetos</a>
       <a [routerLink]="['/workspace/projects',projectId,'triage']">Triagem guiada</a>
       <a [routerLink]="['/workspace/projects',projectId,'technical']" aria-current="page">Preparação técnica</a>
+      <a [routerLink]="['/workspace/projects',projectId,'experience']">Preferências e equipe</a>
     </nav>
   </aside>
 
@@ -128,7 +129,18 @@
             }
 
             @case ('analisar') {
-              <p>Confira o que falta comprovar antes de executar análises do projeto.</p>
+              @if (saved.experienceMode === 'TECHNICAL') {
+                <div class="cf-journey-context">
+                  <strong>Modo técnico</strong>
+                  <dl class="cf-tech-capabilities">
+                    <div><dt>Escopo</dt><dd>{{ saved.environment }} · {{ saved.state }}</dd></div>
+                    <div><dt>Metodologia de referência</dt><dd>{{ saved.journey.title }}</dd></div>
+                    <div><dt>Capacidade de cálculo</dt><dd>{{ capabilities()?.modules?.['calculation'] === 'NOT_ENABLED' ? 'Indisponível neste projeto' : 'Consulte a disponibilidade' }}</dd></div>
+                  </dl>
+                </div>
+              } @else {
+                <p>Use esta tela para entender o que falta antes da análise. Depois, volte às informações técnicas para atualizar o rascunho com o que reuniu.</p>
+              }
               <dl class="cf-tech-capabilities">
                 <div><dt>Preparação</dt><dd>{{ saved.version ? 'Rascunho salvo' : 'A iniciar' }}</dd></div>
                 <div><dt>Evidências</dt><dd>{{ capabilities()?.modules?.['evidence'] === 'NOT_ENABLED' ? 'Coleta indisponível neste projeto' : 'A confirmar' }}</dd></div>

@@ -1,0 +1,73 @@
+<a class="cf-skip-link" href="#experience-main">Pular para as preferências</a>
+<div class="cf-workspace-shell">
+  <aside class="cf-workspace-sidebar" aria-label="Navegação do projeto">
+    <a routerLink="/workspace" class="cf-workspace-brand">Carbon<span>Flow</span></a>
+    <nav class="cf-workspace-nav" aria-label="Espaço de trabalho">
+      <a routerLink="/workspace">Meus projetos</a>
+      <a [routerLink]="['/workspace/projects',projectId,'triage']">Triagem guiada</a>
+      <a [routerLink]="['/workspace/projects',projectId,'technical']">Preparação técnica</a>
+      <a [routerLink]="['/workspace/projects',projectId,'experience']" aria-current="page">Preferências e equipe</a>
+    </nav>
+  </aside>
+
+  <div class="cf-workspace-stage">
+    <main id="experience-main" class="cf-workspace-content">
+      <header class="cf-workspace-heading">
+        <h1>Preferências e equipe</h1>
+        <p>Escolha como acompanhar a preparação e planeje quem pode ajudar no projeto.</p>
+      </header>
+      @if (error()) { <div role="alert" class="cf-workspace-alert">{{ error() }}</div> }
+      @if (notice()) { <div role="status" class="cf-workspace-note">{{ notice() }}</div> }
+
+      @if (loading()) {
+        <p role="status">Carregando preferências…</p>
+      } @else if (draft(); as input) {
+        <form (submit)="save($event)">
+          <section class="cf-workspace-card" aria-labelledby="cf-exp-mode">
+            <h2 id="cf-exp-mode">Experiência na preparação técnica</h2>
+            <label for="cf-exp-view">Modo de visualização</label>
+            <select id="cf-exp-view" #mode [value]="input.mode" [disabled]="saving()"
+              (change)="selectMode(mode.value === 'TECHNICAL' ? 'TECHNICAL' : 'GUIDED')">
+              <option value="GUIDED">Guiado · orientações para cada etapa</option>
+              <option value="TECHNICAL">Técnico · escopo, referências e detalhes dos requisitos</option>
+            </select>
+            <label for="cf-exp-profile">Meu perfil no projeto</label>
+            <select id="cf-exp-profile" #profile [value]="input.declaredProfile || ''" [disabled]="saving()"
+              (change)="update({declaredProfile: profile.value || null})">
+              <option value="">Ainda não definido</option>
+              <option value="PROPONENT">Proponente ou responsável pelo projeto</option>
+              <option value="TECHNICAL">Preparação ou revisão técnica</option>
+              <option value="OPERATIONS">Operação e monitoramento</option>
+              <option value="OTHER">Outro perfil</option>
+            </select>
+            <label for="cf-exp-competence">Experiência técnica declarada · sem verificação</label>
+            <textarea id="cf-exp-competence" #competence rows="3" maxlength="400" [disabled]="saving()"
+              [value]="input.declaredCompetence || ''"
+              (input)="update({declaredCompetence: competence.value})"></textarea>
+          </section>
+
+          <section class="cf-workspace-card" aria-labelledby="cf-exp-roles">
+            <h2 id="cf-exp-roles">Responsáveis planejados</h2>
+            <p>Registre uma pessoa, equipe ou organização para cada responsabilidade. Você pode completar o mapa depois. As indicações são para planejamento.</p>
+            <div class="cf-journey-fields">
+              @for (role of roles; track role.id) {
+                <div>
+                  <label [for]="'cf-exp-' + role.id">{{ role.title }}</label>
+                  <input #assignee [id]="'cf-exp-' + role.id" maxlength="120" [disabled]="saving()"
+                    [attr.aria-describedby]="'cf-exp-help-' + role.id"
+                    [value]="input.responsibilities[role.id] || ''" (input)="assign(role.id, assignee.value)" />
+                  <p class="cf-workspace-helper cf-journey-field-help" [id]="'cf-exp-help-' + role.id">{{ role.description }}</p>
+                </div>
+              }
+            </div>
+            <div class="cf-triage-actions">
+              <button type="submit" class="cf-workspace-primary" [disabled]="saving()">Salvar preferências</button>
+              <a [routerLink]="['/workspace/projects',projectId,'technical']" [queryParams]="{secao:'analisar'}"
+                class="cf-workspace-link">Voltar à análise técnica</a>
+            </div>
+          </section>
+        </form>
+      }
+    </main>
+  </div>
+</div>

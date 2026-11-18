@@ -3,6 +3,7 @@ import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {ActivatedRoute, Router, RouterLink} from '@angular/router';
 import {toSignal} from '@angular/core/rxjs-interop';
 import {firstValueFrom} from 'rxjs';
+import type {ExperienceMode} from './project-experience';
 import {JourneyOption, JourneyProfile, methodologyOption, OTHER_METHODOLOGY} from './project-journey';
 
 interface ProjectMetadata {
@@ -43,6 +44,7 @@ interface TechnicalIntake {
   triageCandidate: string | null;
   journey: JourneyProfile;
   methodologies: JourneyOption[];
+  experienceMode?: ExperienceMode;
 }
 
 interface PreliminaryDossier {
