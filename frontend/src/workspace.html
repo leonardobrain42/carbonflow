@@ -157,6 +157,7 @@
                   <p class="cf-workspace-helper">Rascunho versão {{ details.version }}. Suas respostas de triagem ficam salvas neste projeto.</p>
                   <a class="cf-workspace-primary cf-workspace-link" [routerLink]="['/workspace/projects',selected.projectId,'triage']">Iniciar ou retomar triagem</a>
                   <a class="cf-workspace-primary cf-workspace-link" [routerLink]="['/workspace/projects', selected.projectId, 'technical']">Preparar informações técnicas</a>
+                  <a class="cf-workspace-link" [routerLink]="['/workspace/projects', selected.projectId, 'experience']">Preferências e equipe</a>
                 } @else {
                   <p role="status">Consultando metadados autorizados do rascunho…</p>
                 }
