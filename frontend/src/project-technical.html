@@ -179,6 +179,7 @@
             }
 
             @case ('redigir') {
+              <carbonflow-pd-sections [projectId]="projectId" [editable]="can('PREPARE_DOSSIER')" />
               <p>{{ can('PREPARE_DOSSIER') ? 'Gere o roteiro das seções do dossiê a partir da revisão técnica salva.' : 'Consulte a prévia preparada para revisão.' }}</p>
               @if (dossier(); as prepared) {
                 <div class="cf-journey-context">

@@ -1,3 +1,4 @@
+import {PdSectionsComponent} from './pd-sections';
 import {ProjectGuidesComponent} from './project-guides';
 import {WorkspaceNavigationComponent} from './workspace-navigation';
 import {afterNextRender, Component, computed, ElementRef, inject, Injector, signal, viewChild} from '@angular/core';
@@ -102,7 +103,7 @@ function formValues(data: IntakeData | null): IntakeForm {
 
 @Component({
   selector: 'carbonflow-project-technical',
-  imports: [RouterLink, WorkspaceNavigationComponent, ProjectGuidesComponent],
+  imports: [RouterLink, WorkspaceNavigationComponent, ProjectGuidesComponent, PdSectionsComponent],
   templateUrl: './project-technical.html',
 })
 export class ProjectTechnicalComponent {
@@ -111,7 +112,8 @@ export class ProjectTechnicalComponent {
   private readonly router = inject(Router);
   private readonly injector = inject(Injector);
   private readonly guideEditor = viewChild(ProjectGuidesComponent);
-  readonly canLeaveGuides = () => this.guideEditor()?.canLeave() ?? true;
+  private readonly pdEditor = viewChild(PdSectionsComponent);
+  readonly canLeaveGuides = () => (this.guideEditor()?.canLeave() ?? true) && (this.pdEditor()?.canLeave() ?? true);
   private readonly heading = viewChild<ElementRef<HTMLHeadingElement>>('sectionHeading');
   private readonly query = toSignal(this.route.queryParamMap);
   readonly projectId = this.route.snapshot.paramMap.get('projectId') ?? '';
