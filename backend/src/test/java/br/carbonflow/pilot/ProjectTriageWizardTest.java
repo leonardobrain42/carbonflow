@@ -285,13 +285,38 @@ class ProjectTriageWizardTest {
         assertEquals("NAO_AVALIADO", summary.path("analysisState").asText());
         var findings = summary.at("/diagnosis/findings");
         assertTrue(findings.findValuesAsText("code").containsAll(
-                java.util.List.of("DATE", "COMMITTED_INVESTMENT", "RIGHTS")));
+                java.util.List.of("BASELINE", "REFERENCE_DATE", "DATE", "COMMITTED_INVESTMENT", "RIGHTS")));
+        assertFalse(findings.findValuesAsText("code").contains("RIGHTS_DECLARATION"));
+        var commitment = findings.valueStream().filter(item -> "COMMITTED_INVESTMENT".equals(item.path("code").asText()))
+                .findFirst().orElseThrow();
+        assertEquals("TECHNICAL", commitment.path("kind").asText());
+        assertEquals(0, commitment.path("step").asInt());
+        assertTrue(commitment.path("fields").isEmpty());
         var outside = call("PUT", endpoint + "/steps/3", owner.cookie(), UUID.randomUUID().toString(), "\"4\"",
                 """
-                {"answers":{"chargerType":"AC"},"nextStep":5}
+                {"answers":{"chargerType":"AC","associatedInfrastructure":"YES"},"nextStep":5}
                 """);
         assertEquals(200, outside.statusCode(), outside.body());
-        assertEquals("UNSUPPORTED_MVP", json(outside).at("/diagnosis/classification").asText());
+        var outsideView = json(outside);
+        assertEquals("UNSUPPORTED_MVP", outsideView.at("/diagnosis/classification").asText());
+        assertEquals(2, outsideView.at("/guidance/outsidePilot").size());
+        var infrastructure = outsideView.at("/diagnosis/findings").valueStream()
+                .filter(item -> "OUTSIDE_MVP_associatedInfrastructure".equals(item.path("code").asText()))
+                .findFirst().orElseThrow();
+        assertEquals("PILOT_SCOPE", infrastructure.path("kind").asText());
+        assertEquals(3, infrastructure.path("step").asInt());
+        assertEquals("associatedInfrastructure", infrastructure.at("/fields/0").asText());
+
+        var dateAndInvestment = call("PUT", endpoint + "/steps/4", owner.cookie(), UUID.randomUUID().toString(),
+                "\"5\"", """
+                {"answers":{"country":"BR","state":"DF","locality":"Brasília","referenceDate":"2027-09-27",
+                  "investmentCommitted":"NO","rightsStatus":"DECLARADO"},"nextStep":5}
+                """);
+        assertEquals(200, dateAndInvestment.statusCode(), dateAndInvestment.body());
+        var updatedFindings = json(dateAndInvestment).at("/diagnosis/findings").findValuesAsText("code");
+        assertTrue(updatedFindings.containsAll(java.util.List.of("DATE", "ADDITIONALITY", "RIGHTS")));
+        assertFalse(updatedFindings.stream().anyMatch(java.util.Set.of(
+                "REFERENCE_DATE", "COMMITTED_INVESTMENT", "PRIOR_CARBON_DECLARATION")::contains));
     }
 
     @Test

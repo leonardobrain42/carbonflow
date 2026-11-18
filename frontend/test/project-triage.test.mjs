@@ -34,10 +34,16 @@ async function setup(page) {
     journey: journeys[state.answers['1']?.methodologyCandidate === 'VM0038' ? 'VM0038' : 'GENERAL'],
     methodologies: [{value:'VM0038',label:vmTitle}],
     diagnosis: {
-      ruleVersion:'REG-E2 / CF-IMP-010 v1',
+      ruleVersion:'REG-E2 / CF-IMP-010 v2',
       classification:state.answers['3']?.chargerType === 'AC' ? 'UNSUPPORTED_MVP' : 'UNKNOWN_REVIEW_REQUIRED',
       reason:'A configuração precisa de análise.',
-      findings:[{code:'DATE',title:'Documente a cronologia do projeto',detail:'Reúna documentos.',step:4,fields:['referenceDate']}],
+      findings:[
+        ...(!state.answers['4']?.referenceDate ? [{code:'REFERENCE_DATE',kind:'ANSWER',
+          title:'Informe a data de referência pretendida',detail:'Registre a data.',step:4,fields:['referenceDate']}] : []),
+        ...(state.answers['3']?.chargerType === 'AC' ? [{code:'OUTSIDE_MVP_chargerType',kind:'PILOT_SCOPE',
+          title:null,detail:'O piloto cobre estações DCFC.',step:3,fields:['chargerType']}] : []),
+        {code:'DATE',kind:'TECHNICAL',title:'Documente a cronologia do projeto',detail:'Reúna documentos.',step:0,fields:[]},
+      ],
     },
     guidance: {
       state:'A_CONFIRMAR', outsideMethodology:[],
@@ -183,10 +189,21 @@ test('triagem só oferece recarga na VM0038 e mantém AC como resposta fora do p
     await page.getByRole('heading',{name:'Respostas fora do recorte do piloto'}).waitFor();
     assert.equal(state.answers['3'].chargerType,'AC');
     await page.getByText('Configuração fora do recorte implementado',{exact:true}).waitFor();
-    await page.getByRole('button',{name:'Abrir etapa · Documente a cronologia do projeto'}).click();
-    await page.getByLabel('Data de referência pretendida').waitFor();
-    await page.getByRole('button',{name:/Resumo da triagem/}).click();
+    await page.getByRole('button',{name:'Conferir · Tipo de recarga'}).click();
+    const chargerType = page.getByLabel('Tipo de recarga');
+    await page.locator('#cf-wz-chargerType:focus').waitFor();
+    assert.equal(await chargerType.inputValue(),'AC');
+    await page.getByRole('button',{name:'Salvar e voltar ao resumo'}).click();
+    await page.getByRole('button',{name:'Revisar · Data de referência'}).click();
+    await page.locator('#cf-wz-date:focus').waitFor();
+    await page.getByLabel('Data de referência pretendida').fill('2027-09-27');
+    await page.getByRole('button',{name:'Salvar e voltar ao resumo'}).click();
     await page.getByRole('heading',{name:'Diagnóstico preliminar'}).waitFor();
+    assert.equal(state.answers['4'].referenceDate,'2027-09-27');
+    assert.equal(await page.getByRole('button',{name:'Revisar · Data de referência'}).count(),0);
+    await page.getByText('Documente a cronologia do projeto',{exact:true}).waitFor();
+    assert.equal(await page.getByRole('link',{name:'Registrar observações na preparação técnica'}).getAttribute('href'),
+      '/workspace/projects/' + projectId + '/technical?secao=preparar');
     await page.reload();
     await page.getByRole('button',{name:'Editar frota, recarga e medição'}).click();
     assert.equal(await page.getByLabel('Tipo de recarga').inputValue(),'AC');

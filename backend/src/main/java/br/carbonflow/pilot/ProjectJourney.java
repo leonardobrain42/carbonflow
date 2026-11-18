@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 
 /** Product journeys keyed by methodology edition. Matching a journey does not assess eligibility. */
@@ -12,7 +14,13 @@ final class ProjectJourney {
     record Question(String key, String label, String type, String help, List<Option> options) {}
     record Profile(String id, String candidate, String edition, String title, String activitiesTitle, String detailsTitle,
                    String description, String sourceUrl, List<String> technicalTopics, List<Question> questions) {}
-    record Guidance(String state, List<String> outsideMethodology, List<String> outsidePilot) {}
+    record PilotLimit(int step, String field, String message) {}
+    record Guidance(String state, List<String> outsideMethodology, @JsonIgnore List<PilotLimit> pilotLimits) {
+        @JsonProperty("outsidePilot")
+        List<String> outsidePilot() {
+            return pilotLimits.stream().map(PilotLimit::message).toList();
+        }
+    }
 
     private static final String UNKNOWN = "DESCONHECIDO";
     private static final Option UNKNOWN_OPTION = new Option(UNKNOWN, "Ainda não sei");
@@ -92,7 +100,7 @@ final class ProjectJourney {
             return new Guidance("SEM_JORNADA_CONFIGURADA", List.of(), List.of());
         }
         List<String> method = new ArrayList<>();
-        List<String> pilot = new ArrayList<>();
+        List<PilotLimit> pilot = new ArrayList<>();
         JsonNode details = answers.path("3");
         JsonNode location = answers.path("4");
         String activity = answers.path("1").path("activityType").asText();
@@ -111,37 +119,39 @@ final class ProjectJourney {
             method.add("Para veículos leves híbridos plug-in, a VM0038 v1.1 prevê recarga de nível 1 ou 2.");
         }
 
-        compare(pilot, location, "country", "BR", "O piloto foi implementado para o Brasil.");
+        compare(pilot, 4, location, "country", "BR", "O piloto foi implementado para o Brasil.");
         if (!"Distrito Federal".equalsIgnoreCase(location.path("state").asText())) {
-            compare(pilot, location, "state", "DF", "O piloto foi implementado para o Distrito Federal.");
+            compare(pilot, 4, location, "state", "DF", "O piloto foi implementado para o Distrito Federal.");
         }
-        compare(pilot, details, "design", "INDIVIDUAL", "O piloto cobre projetos individuais.");
-        compare(pilot, details, "vehicleClass", "LDV", "O piloto cobre veículos leves.");
-        compare(pilot, details, "propulsion", "BEV", "O piloto cobre frotas BEV.");
-        compare(pilot, details, "chargerType", "DCFC", "O piloto cobre estações DCFC.");
-        compare(pilot, details, "network", "CLOSED", "O piloto usa rede fechada, com frota identificada.");
-        compare(pilot, details, "access", "PRIVATE", "O piloto usa acesso restrito à frota.");
+        compare(pilot, 3, details, "design", "INDIVIDUAL", "O piloto cobre projetos individuais.");
+        compare(pilot, 3, details, "vehicleClass", "LDV", "O piloto cobre veículos leves.");
+        compare(pilot, 3, details, "propulsion", "BEV", "O piloto cobre frotas BEV.");
+        compare(pilot, 3, details, "chargerType", "DCFC", "O piloto cobre estações DCFC.");
+        compare(pilot, 3, details, "network", "CLOSED", "O piloto usa rede fechada, com frota identificada.");
+        compare(pilot, 3, details, "access", "PRIVATE", "O piloto usa acesso restrito à frota.");
         String source = details.path("electricitySource").asText();
         if (List.of("OTHER_GRID", "ON_SITE", "MIXED").contains(source)) {
-            pilot.add("O piloto usa exclusivamente eletricidade do SIN.");
+            pilot.add(new PilotLimit(3, "electricitySource", "O piloto usa exclusivamente eletricidade do SIN."));
         }
-        compare(pilot, details, "associatedInfrastructure", "NO", "Infraestrutura associada exige uma rota fora do piloto.");
-        compare(pilot, details, "metering", "SEGREGATED", "O piloto exige medição a montante em circuito exclusivo.");
+        compare(pilot, 3, details, "associatedInfrastructure", "NO", "Infraestrutura associada exige uma rota fora do piloto.");
+        compare(pilot, 3, details, "metering", "SEGREGATED", "O piloto exige medição a montante em circuito exclusivo.");
         checkCount(pilot, details, "vehicleCount", IntakeRules.MAX_VEHICLES, "veículos");
         checkCount(pilot, details, "chargerCount", IntakeRules.MAX_STATIONS, "carregadores");
         return new Guidance(method.isEmpty() ? "A_CONFIRMAR" : "DIVERGENCIA_METODOLOGICA",
                 List.copyOf(method), List.copyOf(pilot));
     }
 
-    private static void compare(List<String> reasons, JsonNode answers, String field, String expected, String message) {
+    private static void compare(List<PilotLimit> reasons, int step, JsonNode answers, String field, String expected, String message) {
         JsonNode value = answers.path(field);
-        if (known(value) && !expected.equalsIgnoreCase(value.asText())) reasons.add(message);
+        if (known(value) && !expected.equalsIgnoreCase(value.asText())) {
+            reasons.add(new PilotLimit(step, field, message));
+        }
     }
 
-    private static void checkCount(List<String> reasons, JsonNode answers, String field, int max, String label) {
+    private static void checkCount(List<PilotLimit> reasons, JsonNode answers, String field, int max, String label) {
         JsonNode value = answers.path(field);
         if (value.isIntegralNumber() && (value.asInt() == 0 || value.asInt() > max)) {
-            reasons.add("O piloto aceita de 1 a " + max + " " + label + ".");
+            reasons.add(new PilotLimit(3, field, "O piloto aceita de 1 a " + max + " " + label + "."));
         }
     }
 

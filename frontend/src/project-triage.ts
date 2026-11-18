@@ -19,11 +19,20 @@ interface TriageStage {
   missingFields: string[];
 }
 
+interface Finding {
+  code: string;
+  kind?: 'ANSWER' | 'PILOT_SCOPE' | 'TECHNICAL';
+  title: string | null;
+  detail: string;
+  step: number;
+  fields: string[];
+}
+
 interface Diagnosis {
   ruleVersion: string;
   classification: 'SUPPORTED_MVP_CONFIGURATION' | 'UNSUPPORTED_MVP' | 'UNKNOWN_REVIEW_REQUIRED';
   reason: string;
-  findings: {code: string; title: string; detail: string; step: number; fields: string[]}[];
+  findings: Finding[];
 }
 
 interface TriageView {
@@ -56,6 +65,7 @@ export class ProjectTriageComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly injector = inject(Injector);
   private readonly heading = viewChild<ElementRef<HTMLHeadingElement>>('stepHeading');
+  private readonly form = viewChild<ElementRef<HTMLFormElement>>('stepForm');
   readonly projectId = this.route.snapshot.paramMap.get('projectId') ?? '';
   private readonly base = '/v1/projects/' + encodeURIComponent(this.projectId);
   private readonly endpoint = this.base + '/triage';
@@ -70,6 +80,15 @@ export class ProjectTriageComponent {
   readonly notice = signal('');
   readonly dirty = signal(false);
   readonly step = computed(() => this.view()?.currentStep ?? 1);
+  readonly editingFinding = signal(false);
+  readonly findings = computed(() => {
+    const items = this.view()?.diagnosis?.findings ?? [];
+    return {
+      answers: items.filter(item => item.step > 0 && item.kind !== 'PILOT_SCOPE'),
+      scope: items.filter(item => item.kind === 'PILOT_SCOPE' || (item.step === 0 && !item.kind)),
+      technical: items.filter(item => item.kind === 'TECHNICAL'),
+    };
+  });
   readonly otherMethodology = signal(false);
   readonly methodologyChoice = computed(() => {
     const current = this.view();
@@ -117,6 +136,7 @@ export class ProjectTriageComponent {
     this.draft.set(answers);
     this.view.set(value);
     this.dirty.set(false);
+    this.editingFinding.set(false);
     this.otherMethodology.set(false);
     this.pendingKey = '';
     this.pendingPayload = '';
@@ -169,7 +189,7 @@ export class ProjectTriageComponent {
     event.preventDefault();
     const current = this.view();
     if (!current || current.currentStep > 4) return;
-    await this.save(current.currentStep, Math.min(current.currentStep + 1, 5));
+    await this.save(current.currentStep, this.editingFinding() ? 5 : Math.min(current.currentStep + 1, 5));
   }
 
   async saveHere() {
@@ -178,14 +198,17 @@ export class ProjectTriageComponent {
     await this.save(current.currentStep, current.currentStep);
   }
 
-  async navigate(destination: number) {
+  openFinding(item: Finding) {
+    return this.navigate(item.step, item.fields[0]);
+  }
+
+  async navigate(destination: number, field?: string) {
     const current = this.view();
     if (!current || this.busy() || destination === current.currentStep || destination < 1 || destination > 5) return;
-    if (current.currentStep <= 4) {
-      if (this.dirty()) await this.save(current.currentStep, destination);
-      else await this.commit('PATCH', this.endpoint + '/cursor', {nextStep: destination}, current.version);
+    if (current.currentStep <= 4 && this.dirty()) {
+      await this.save(current.currentStep, destination);
     } else {
-      await this.commit('PATCH', this.endpoint + '/cursor', {nextStep: destination}, current.version);
+      await this.commit('PATCH', this.endpoint + '/cursor', {nextStep: destination}, current.version, field);
     }
   }
 
@@ -204,7 +227,7 @@ export class ProjectTriageComponent {
     await this.commit('POST', this.endpoint + '/examples/bev-df-2027', {}, current.version);
   }
 
-  private async commit(method: 'PUT' | 'PATCH' | 'POST', url: string, body: object, version: number) {
+  private async commit(method: 'PUT' | 'PATCH' | 'POST', url: string, body: object, version: number, field?: string) {
     if (this.busy()) return;
     this.busy.set(true);
     this.error.set('');
@@ -223,13 +246,22 @@ export class ProjectTriageComponent {
         : method === 'PATCH' ? this.http.patch<TriageView>(url, body, options)
         : this.http.post<TriageView>(url, body, options));
       const changedStep = this.view()?.currentStep !== result.currentStep;
+      const keepEditing = this.editingFinding() && !changedStep;
       this.apply(result);
+      this.editingFinding.set(keepEditing || (changedStep && !!field));
       if (changedStep) {
-        afterNextRender(() => this.heading()?.nativeElement.focus(), {injector: this.injector});
+        afterNextRender(() => {
+          const control = field ? this.form()?.nativeElement.elements.namedItem(field) : null;
+          if (control instanceof HTMLElement) {
+            control.focus();
+          } else {
+            this.heading()?.nativeElement.focus();
+          }
+        }, {injector: this.injector});
       }
       this.notice.set(method === 'POST'
         ? 'Exemplo ilustrativo de 25 BEVs preenchido. Nenhuma redução foi calculada ou verificada.'
-        : 'Respostas salvas na revisão ' + result.version + '.');
+        : method === 'PUT' ? 'Respostas salvas na revisão ' + result.version + '.' : '');
     } catch (reason: unknown) {
       this.error.set(this.message(reason, 'Não foi possível salvar. Tente novamente.'));
       // Keep the same idempotency key for uncertain network/5xx outcomes.

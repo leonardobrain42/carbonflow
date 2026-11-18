@@ -56,7 +56,7 @@
             <h2 id="cf-triage-heading" #stepHeading tabindex="-1">{{ current.stages[current.currentStep - 1].title }}</h2>
             @if (current.currentStep <= 4) {
               <p>Preencha o que souber e deixe em branco o que ainda precisa confirmar.</p>
-              <form (submit)="submit($event)" class="cf-triage-form" novalidate>
+              <form #stepForm (submit)="submit($event)" class="cf-triage-form" novalidate>
                 @switch (current.currentStep) {
                   @case (1) {
                     <label for="cf-wz-objective">O que você quer alcançar com o projeto?</label>
@@ -64,7 +64,7 @@
                       placeholder="Ex.: substituir veículos de combustão por veículos elétricos"
                       (input)="input(1,'objective',$event)"></textarea>
                     <label for="cf-wz-type">Qual atividade descreve melhor sua ideia?</label>
-                    <select id="cf-wz-type" [value]="field(1,'activityType')" (change)="input(1,'activityType',$event)">
+                    <select id="cf-wz-type" name="activityType" [value]="field(1,'activityType')" (change)="input(1,'activityType',$event)">
                       <option value="">Ainda não sei</option>
                       <option value="MOBILIDADE_ELETRICA">Mobilidade elétrica e recarga</option>
                       <option value="RESIDUOS">Resíduos e economia circular</option>
@@ -74,7 +74,7 @@
                       <option value="DESCONHECIDO">Preciso de orientação</option>
                     </select>
                     <label for="cf-wz-methodology">Metodologia candidata</label>
-                    <select id="cf-wz-methodology" #method [value]="methodologyChoice()"
+                    <select id="cf-wz-methodology" name="methodologyCandidate" #method [value]="methodologyChoice()"
                       (change)="chooseMethodology(method.value)" aria-describedby="cf-wz-method-help">
                       <option value="" [selected]="!methodologyChoice()">Ainda não sei</option>
                       @for (option of current.methodologies; track option.value) {
@@ -98,7 +98,7 @@
                   @case (2) {
                     @if (vm0038()) {
                       <label for="cf-wz-installs">O projeto inclui instalar sistemas de recarga?</label>
-                      <select id="cf-wz-installs" [value]="field(2,'installsChargers')" (change)="input(2,'installsChargers',$event)">
+                      <select id="cf-wz-installs" name="installsChargers" [value]="field(2,'installsChargers')" (change)="input(2,'installsChargers',$event)">
                         <option value="">Ainda não informado</option>
                         <option value="YES">Sim</option>
                         <option value="NO">Não</option>
@@ -134,7 +134,7 @@
                           <label [for]="'cf-wz-' + item.key">{{ item.label }}</label>
                           @switch (item.type) {
                             @case ('choice') {
-                              <select [id]="'cf-wz-' + item.key" [value]="field(3,item.key)"
+                              <select [id]="'cf-wz-' + item.key" [name]="item.key" [value]="field(3,item.key)"
                                 [attr.aria-describedby]="item.help ? 'cf-wz-help-' + item.key : null"
                                 (change)="input(3,item.key,$event)">
                                 <option value="" [selected]="!field(3,item.key)">Ainda não informado</option>
@@ -147,11 +147,11 @@
                               </select>
                             }
                             @case ('number') {
-                              <input type="number" [id]="'cf-wz-' + item.key" min="0" max="100000" step="1"
+                              <input type="number" [id]="'cf-wz-' + item.key" [name]="item.key" min="0" max="100000" step="1"
                                 [value]="field(3,item.key)" (input)="input(3,item.key,$event)" />
                             }
                             @default {
-                              <textarea [id]="'cf-wz-' + item.key" rows="3" maxlength="400"
+                              <textarea [id]="'cf-wz-' + item.key" [name]="item.key" rows="3" maxlength="400"
                                 [attr.aria-describedby]="item.help ? 'cf-wz-help-' + item.key : null"
                                 [value]="field(3,item.key)" (input)="input(3,item.key,$event)"></textarea>
                             }
@@ -168,20 +168,20 @@
                   }
                   @case (4) {
                     <label for="cf-wz-country">País (código de duas letras)</label>
-                    <input id="cf-wz-country" maxlength="2" placeholder="BR" [value]="field(4,'country')"
+                    <input id="cf-wz-country" name="country" maxlength="2" placeholder="BR" [value]="field(4,'country')"
                       (input)="input(4,'country',$event)"/>
                     <label for="cf-wz-state">Estado ou região</label>
-                    <input id="cf-wz-state" maxlength="400" placeholder="DF"
+                    <input id="cf-wz-state" name="state" maxlength="400" placeholder="DF"
                       [value]="field(4,'state')" (input)="input(4,'state',$event)"/>
                     <label for="cf-wz-locality">Cidade/localidade</label>
-                    <input id="cf-wz-locality" maxlength="400" placeholder="Brasília"
+                    <input id="cf-wz-locality" name="locality" maxlength="400" placeholder="Brasília"
                       [value]="field(4,'locality')" (input)="input(4,'locality',$event)"/>
                     <label for="cf-wz-date">Data de referência pretendida</label>
-                    <input id="cf-wz-date" type="date" [value]="field(4,'referenceDate')"
+                    <input id="cf-wz-date" name="referenceDate" type="date" [value]="field(4,'referenceDate')"
                       (change)="input(4,'referenceDate',$event)"/>
                     @if (vm0038()) {
                       <label for="cf-wz-investment">Já houve compromisso de investimento, como contrato ou pedido firme?</label>
-                      <select id="cf-wz-investment" [value]="field(4,'investmentCommitted')"
+                      <select id="cf-wz-investment" name="investmentCommitted" [value]="field(4,'investmentCommitted')"
                         (change)="input(4,'investmentCommitted',$event)">
                         <option value="">Ainda não informado</option>
                         <option value="YES">Sim</option>
@@ -190,7 +190,7 @@
                       </select>
                       @if (field(4,'investmentCommitted') === 'YES') {
                         <label for="cf-wz-prior-carbon">A receita de carbono foi considerada antes desse compromisso?</label>
-                        <select id="cf-wz-prior-carbon" [value]="field(4,'carbonConsideredBeforeInvestment')"
+                        <select id="cf-wz-prior-carbon" name="carbonConsideredBeforeInvestment" [value]="field(4,'carbonConsideredBeforeInvestment')"
                           (change)="input(4,'carbonConsideredBeforeInvestment',$event)">
                           <option value="">Ainda não informado</option>
                           <option value="YES">Sim</option>
@@ -200,7 +200,7 @@
                       }
                     }
                     <label for="cf-wz-evidence">Situação dos dados de origem</label>
-                    <select id="cf-wz-evidence" [value]="field(4,'evidenceStatus')"
+                    <select id="cf-wz-evidence" name="evidenceStatus" [value]="field(4,'evidenceStatus')"
                       (change)="input(4,'evidenceStatus',$event)">
                       <option value="">Ainda não informado</option>
                       <option value="DESCONHECIDO">Não sei quais dados tenho</option>
@@ -208,7 +208,7 @@
                       <option value="DISPONIVEL_DECLARADO">Declaro possuir dados, sem conferência</option>
                     </select>
                     <label for="cf-wz-rights">Situação de direitos e titularidade</label>
-                    <select id="cf-wz-rights" [value]="field(4,'rightsStatus')"
+                    <select id="cf-wz-rights" name="rightsStatus" [value]="field(4,'rightsStatus')"
                       (change)="input(4,'rightsStatus',$event)">
                       <option value="">Ainda não informado</option>
                       <option value="DESCONHECIDO">Ainda não sei</option>
@@ -238,7 +238,7 @@
                     (click)="navigate(current.currentStep - 1)">Voltar</button>
                   <button type="button" class="cf-workspace-outline" [disabled]="busy()" (click)="saveHere()">Salvar e continuar depois</button>
                   <button type="submit" class="cf-workspace-primary" [disabled]="busy()">
-                    {{ current.currentStep === 4 ? 'Salvar e ver resumo' : 'Salvar e avançar' }}
+                    {{ editingFinding() ? 'Salvar e voltar ao resumo' : current.currentStep === 4 ? 'Salvar e ver resumo' : 'Salvar e avançar' }}
                   </button>
                 </div>
               </form>
@@ -253,25 +253,51 @@
                   <strong>{{ diagnosisLabel(diagnosis.classification) }}</strong>
                   <p>{{ diagnosis.reason }}</p>
                   <p class="cf-workspace-helper">Referência do recorte {{ diagnosis.ruleVersion }}</p>
-                  <h4>Pendências e próximas ações</h4>
-                  <ul class="cf-tech-gates">
-                    @for (item of diagnosis.findings; track item.code) {
-                      <li>
-                        <strong>{{ item.title }}</strong>
-                        <p>{{ item.detail }}</p>
-                        @if (item.fields.length) {
-                          <small>{{ missingLabels(item.fields) }}</small>
-                        }
-                        @if (item.step) {
+                  @if (findings().answers.length) {
+                    <h4>Respostas para completar ou revisar</h4>
+                    <ul class="cf-tech-gates">
+                      @for (item of findings().answers; track item.code) {
+                        <li>
+                          <strong>{{ item.title }}</strong>
+                          <p>{{ item.detail }}</p>
+                          @if (item.fields.length > 1) {
+                            <small>{{ missingLabels(item.fields) }}</small>
+                          }
                           <button class="cf-workspace-outline" type="button" [disabled]="busy()"
-                            (click)="navigate(item.step)">Abrir etapa · {{ item.title }}</button>
-                        } @else {
-                          <a class="cf-workspace-link" [routerLink]="['/workspace/projects',projectId,'technical']"
-                            [queryParams]="{secao:'analisar'}">Ver pendências técnicas</a>
-                        }
-                      </li>
-                    }
-                  </ul>
+                            (click)="openFinding(item)">Revisar · {{ fieldLabel(item.fields[0]) }}</button>
+                        </li>
+                      }
+                    </ul>
+                  }
+                  @if (findings().scope.length) {
+                    <h4>Respostas fora do recorte do piloto</h4>
+                    <p>Confira se as respostas descrevem o projeto. Se estiverem corretas, a aplicabilidade precisa ser avaliada separadamente.</p>
+                    <ul class="cf-tech-gates">
+                      @for (item of findings().scope; track item.code) {
+                        <li>
+                          @if (item.fields[0]; as key) {
+                            <strong>{{ fieldLabel(key) }} · {{ valueLabel(field(item.step, key), key) }}</strong>
+                          }
+                          <p>{{ item.detail }}</p>
+                          @if (item.step) {
+                            <button class="cf-workspace-outline" type="button" [disabled]="busy()"
+                              (click)="openFinding(item)">Conferir · {{ fieldLabel(item.fields[0]) }}</button>
+                          }
+                        </li>
+                      }
+                    </ul>
+                  }
+                  @if (findings().technical.length) {
+                    <h4>Preparação técnica pendente</h4>
+                    <p>Você já pode salvar observações iniciais. As análises e o envio de evidências ainda estão indisponíveis nesta jornada.</p>
+                    <ul class="cf-tech-gates">
+                      @for (item of findings().technical; track item.code) {
+                        <li><strong>{{ item.title }}</strong><p>{{ item.detail }}</p></li>
+                      }
+                    </ul>
+                    <a class="cf-workspace-link" [routerLink]="['/workspace/projects',projectId,'technical']"
+                      [queryParams]="{secao:'preparar'}">Registrar observações na preparação técnica</a>
+                  }
                 </section>
               }
               @if (current.exampleKind) {
@@ -286,7 +312,7 @@
                     @for (item of current.guidance.outsideMethodology; track item) { <li>{{ item }}</li> }
                   </ul>
                 }
-                @if (current.guidance.outsidePilot.length) {
+                @if (!findings().scope.length && current.guidance.outsidePilot.length) {
                   <h4>Respostas fora do recorte do piloto</h4>
                   <ul class="cf-tech-gates">
                     @for (item of current.guidance.outsidePilot; track item) { <li>{{ item }}</li> }
