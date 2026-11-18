@@ -1,0 +1,7 @@
+Fonte CF-ECA-DEMO edição 1
+Material original de demonstração do CarbonFlow para testes em ambiente de teste.
+Uso autorizado no catálogo sintético de requisitos. As regras abaixo são exemplos próprios.
+
+DEMO-01. Documentação inicial. Use a data do ato para selecionar o conjunto de exemplo.
+DEMO-02. Monitoramento. Use o início do período para selecionar o conjunto de exemplo.
+DEMO-03. Uma condição sem dados fica indeterminada. Um parecer interpretativo depende de revisão humana.
