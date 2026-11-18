@@ -6,7 +6,23 @@ const base = process.env.CARBONFLOW_TEST_URL ?? 'http://127.0.0.1:8080';
 const executablePath = process.env.CARBONFLOW_CHROME ?? '/usr/bin/google-chrome';
 const projectId = '20000000-0000-4000-8000-000000000010';
 const organizationId = '10000000-0000-4000-8000-000000000010';
-const labels = ['Planejamento','Atividade','Frota e recarga','Local, dados e direitos','Resumo da triagem'];
+const labels = ['Planejamento','Atividade','Escopo e lacunas','Local, dados e direitos','Resumo da triagem'];
+const vmTitle = 'VM0038 v1.1 · Recarga de veículos elétricos';
+const journeys = {
+  GENERAL: {
+    id:'GENERAL', candidate:null, title:'Triagem inicial', description:'Registre dúvidas sobre o escopo.',
+    questions:[{key:'scopeNotes',label:'O que precisa ser confirmado sobre o escopo?',type:'text',options:[]}],
+  },
+  VM0038: {
+    id:'VM0038_V1_1', candidate:'VM0038', title:vmTitle, description:'O piloto usa veículos leves e estações DCFC.',
+    questions:[
+      {key:'vehicleCount',label:'Quantidade estimada de veículos',type:'number',options:[]},
+      {key:'chargerType',label:'Tipo de recarga',type:'choice',options:[
+        {value:'DCFC',label:'DCFC'}, {value:'AC',label:'Recarga AC'},
+      ]},
+    ],
+  },
+};
 
 async function setup(page) {
   let countPilot = 0;
@@ -15,8 +31,14 @@ async function setup(page) {
     projectId, environment: 'SANDBOX', version: state.version, currentStep: state.currentStep,
     analysisState: 'NAO_AVALIADO', exampleKind: state.exampleKind,
     answers: state.answers,
+    journey: journeys[state.answers['1']?.methodologyCandidate === 'VM0038' ? 'VM0038' : 'GENERAL'],
+    methodologies: [{value:'VM0038',label:vmTitle}],
+    guidance: {
+      state:'A_CONFIRMAR', outsideMethodology:[],
+      outsidePilot:state.answers['3']?.chargerType === 'AC' ? ['O piloto cobre estações DCFC.'] : [],
+    },
     stages: labels.map((title,i) => ({
-      title, number: i+1, status: i === 4 ? 'RESUMO_SEM_PARECER'
+      title: i === 2 && state.answers['1']?.methodologyCandidate === 'VM0038' ? 'Frota, recarga e medição' : title, number: i+1, status: i === 4 ? 'RESUMO_SEM_PARECER'
         : state.answers[String(i+1)] && Object.keys(state.answers[String(i+1)]).length > 0
           ? 'PENDENTE' : 'NAO_INICIADO',
       missingFields: [],
@@ -117,6 +139,7 @@ test('CF-IMP-009: exemplo 25 BEVs Brasília/DF em 27-09-2027 gera resumo sem ER 
     const {state,pilotRequests} = await setup(page);
     await page.goto(base + '/workspace/projects/' + projectId + '/triage');
     await page.getByRole('heading',{name:'Conheça seu projeto'}).waitFor();
+    await page.getByText('Testar com um exemplo sintético',{exact:true}).click();
     await page.getByRole('button',{name:'Preencher exemplo de 25 BEVs'}).click();
     await page.getByText('Exemplo ilustrativo de 25 BEVs preenchido.',{exact:false}).waitFor();
     await page.getByText('Este cenário contém somente dados de demonstração:',{exact:false}).waitFor();
@@ -130,6 +153,32 @@ test('CF-IMP-009: exemplo 25 BEVs Brasília/DF em 27-09-2027 gera resumo sem ER 
     await page.getByRole('status').filter({hasText:'EXEMPLO SINTÉTICO · 25 BEVs'}).waitFor();
     await page.setViewportSize({width:390,height:844});
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth),false);
+  } finally {
+    await browser.close();
+  }
+});
+
+test('triagem só oferece recarga na VM0038 e mantém AC como resposta fora do piloto', async () => {
+  const browser = await chromium.launch({executablePath});
+  try {
+    const page = await browser.newPage({viewport:{width:1360,height:850}});
+    const {state} = await setup(page);
+    await page.goto(base + '/workspace/projects/' + projectId + '/triage');
+    await page.getByRole('button',{name:/Escopo e lacunas/}).click();
+    await page.getByLabel('O que precisa ser confirmado sobre o escopo?').waitFor();
+    assert.equal(await page.getByLabel('Tipo de recarga').count(),0);
+    await page.getByRole('button',{name:/Planejamento/}).click();
+    await page.getByLabel('Metodologia candidata').selectOption('VM0038');
+    await page.getByRole('button',{name:'Salvar e avançar'}).click();
+    await page.getByLabel('O projeto inclui instalar sistemas de recarga?').selectOption('YES');
+    await page.getByRole('button',{name:'Salvar e avançar'}).click();
+    await page.getByLabel('Tipo de recarga').selectOption('AC');
+    await page.getByRole('button',{name:/Resumo da triagem/}).click();
+    await page.getByRole('heading',{name:'Respostas fora do recorte do piloto'}).waitFor();
+    assert.equal(state.answers['3'].chargerType,'AC');
+    await page.reload();
+    await page.getByRole('button',{name:'Editar frota, recarga e medição'}).click();
+    assert.equal(await page.getByLabel('Tipo de recarga').inputValue(),'AC');
   } finally {
     await browser.close();
   }

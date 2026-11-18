@@ -179,7 +179,7 @@ class ProjectTriageWizardTest {
     }
 
     @Test
-    void nonMobilityNeedsExplicitJustificationInsteadOfAutoApproval() throws Exception {
+    void unconfiguredJourneyCollectsScopeAndAcceptsPreviousJustification() throws Exception {
         Actor owner = actor();
         String project = project(owner, organization(owner.id()));
         String endpoint = "/v1/projects/" + project + "/triage";
@@ -191,7 +191,12 @@ class ProjectTriageWizardTest {
                 UUID.randomUUID().toString(), "\"1\"",
                 "{\"answers\":{},\"nextStep\":3}");
         assertEquals(200, missingReason.statusCode(), missingReason.body());
-        assertTrue(json(missingReason).path("pending").toString().contains("notApplicableReason"));
+        assertTrue(json(missingReason).path("pending").toString().contains("scopeNotes"));
+        assertEquals("GENERAL", json(missingReason).at("/journey/id").asText());
+        assertEquals("Escopo e lacunas", json(missingReason).at("/stages/2/title").asText());
+        var foreignAnswer = call("PUT", endpoint + "/steps/3", owner.cookie(),
+                UUID.randomUUID().toString(), "\"2\"", "{\"answers\":{\"chargerType\":\"AC\"},\"nextStep\":4}");
+        assertEquals(400, foreignAnswer.statusCode(), foreignAnswer.body());
         assertNotEquals("NAO_APLICAVEL_JUSTIFICADO",
                 json(missingReason).at("/stages/2/status").asText());
 
@@ -201,6 +206,49 @@ class ProjectTriageWizardTest {
         assertEquals(200, justified.statusCode(), justified.body());
         assertEquals("NAO_APLICAVEL_JUSTIFICADO", json(justified).at("/stages/2/status").asText());
         assertEquals("NAO_AVALIADO", json(justified).path("analysisState").asText());
+    }
+
+    @Test
+    void vm0038SeparatesPilotExclusionsFromMethodConditionsAndRejectsUnknownCodes() throws Exception {
+        Actor owner = actor();
+        String project = project(owner, organization(owner.id()));
+        String endpoint = "/v1/projects/" + project + "/triage";
+        var plan = call("PUT", endpoint + "/steps/1", owner.cookie(), UUID.randomUUID().toString(), "\"0\"", """
+                {"answers":{"activityType":"MOBILIDADE_ELETRICA","methodologyCandidate":"VM0038 v1.1"},"nextStep":3}
+                """);
+        assertEquals(200, plan.statusCode(), plan.body());
+        assertEquals("VM0038_V1_1", json(plan).at("/journey/id").asText());
+        var outsidePilot = call("PUT", endpoint + "/steps/3", owner.cookie(), UUID.randomUUID().toString(),
+                "\"1\"", """
+                {"answers":{"vehicleClass":"LDV","propulsion":"PHEV","chargerType":"AC",
+                            "electricitySource":"ON_SITE","associatedInfrastructure":"YES"},"nextStep":5}
+                """);
+        assertEquals(200, outsidePilot.statusCode(), outsidePilot.body());
+        assertEquals(0, json(outsidePilot).at("/guidance/outsideMethodology").size());
+        assertEquals(4, json(outsidePilot).at("/guidance/outsidePilot").size());
+        assertEquals("NAO_AVALIADO", json(outsidePilot).path("analysisState").asText());
+        var invalid = call("PUT", endpoint + "/steps/3", owner.cookie(), UUID.randomUUID().toString(),
+                "\"2\"", """
+                {"answers":{"propulsion":"Código inventado"},"nextStep":5}
+                """);
+        assertEquals(400, invalid.statusCode(), invalid.body());
+        var incompatible = call("PUT", endpoint + "/steps/3", owner.cookie(), UUID.randomUUID().toString(),
+                "\"2\"", """
+                {"answers":{"vehicleClass":"LDV","propulsion":"PHEV","chargerType":"DCFC"},"nextStep":5}
+                """);
+        assertEquals(200, incompatible.statusCode(), incompatible.body());
+        assertEquals(1, json(incompatible).at("/guidance/outsideMethodology").size());
+        assertEquals("DCFC", json(incompatible).at("/answers/3/chargerType").asText());
+        var technical = call("GET", "/v1/projects/" + project + "/technical/intake", owner.cookie(), null, null, null);
+        assertEquals(200, technical.statusCode(), technical.body());
+        assertEquals("VM0038_V1_1", json(technical).at("/journey/id").asText());
+        assertTrue(json(technical).path("data").isNull());
+        var notes = call("PUT", "/v1/projects/" + project + "/technical/intake", owner.cookie(),
+                UUID.randomUUID().toString(), "\"0\"", """
+                {"candidateMethodology":"VM0038 v1.1", "notes":"Levantar os registros de medição."}
+                """);
+        assertEquals(200, notes.statusCode(), notes.body());
+        assertTrue(json(notes).at("/data/activity").isNull());
     }
 
     @Test

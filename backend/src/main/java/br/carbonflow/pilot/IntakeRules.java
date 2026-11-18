@@ -12,6 +12,8 @@ import java.util.function.Function;
 import static br.carbonflow.pilot.IntakeModel.*;
 
 final class IntakeRules {
+    static final int MAX_VEHICLES = 100;
+    static final int MAX_STATIONS = 10;
     static final List<RecordType> RIGHTS = List.of(RecordType.DIREITOS, RecordType.EXCEDENTE, RecordType.SOBREPOSICAO);
     static final List<RecordType> PRIOR = List.of(RecordType.ENGAJAMENTO, RecordType.MECANISMO, RecordType.ESG);
     static final List<Reason> REAL_GATES = List.of(
@@ -57,9 +59,9 @@ final class IntakeRules {
 
     private static void validateInventory(Inventory inventory) {
         var sites = ids(inventory.sites(), Function.identity(), 3, "pátios");
-        var stations = ids(inventory.stations(), Station::id, 10, "DCFCs");
+        var stations = ids(inventory.stations(), Station::id, MAX_STATIONS, "DCFCs");
         var models = ids(inventory.models(), Model::id, 5, "modelos");
-        ids(inventory.vehicles(), Vehicle::id, 100, "BEVs");
+        ids(inventory.vehicles(), Vehicle::id, MAX_VEHICLES, "BEVs");
         ids(inventory.ecCircuits(), Circuit::id, 10, "canais EC");
         if (inventory.stations().stream().anyMatch(station -> !sites.contains(station.site())
                 || !text(station.model()) || !decimal(station.powerKw()) || new BigDecimal(station.powerKw()).signum() <= 0)

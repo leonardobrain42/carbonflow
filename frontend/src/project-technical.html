@@ -1,133 +1,206 @@
-<a class="cf-skip-link" href="#technical-main">Pular para o conteúdo</a>
-<div class="cf-workspace-shell">
-  <aside class="cf-workspace-sidebar" aria-label="Navegação do espaço da conta">
+<a class="cf-skip-link" href="#technical-main">Pular para a preparação técnica</a>
+<div class="cf-workspace-shell cf-journey-shell">
+  <aside class="cf-workspace-sidebar" aria-label="Navegação da conta">
     <a routerLink="/workspace" class="cf-workspace-brand">Carbon<span>Flow</span></a>
-    <p class="cf-workspace-kicker">AMBIENTE DE TESTE · SANDBOX</p>
-    <nav aria-label="Áreas da conta" class="cf-workspace-nav">
+    <button type="button" class="cf-workspace-outline cf-journey-menu" aria-controls="cf-tech-sidebar"
+      [attr.aria-expanded]="menuOpen()" (click)="menuOpen.set(!menuOpen())">Menu</button>
+    <nav id="cf-tech-sidebar" class="cf-workspace-nav" aria-label="Espaço de trabalho"
+      [class.cf-journey-menu-open]="menuOpen()">
       <a routerLink="/workspace">Meus projetos</a>
-      <a routerLink="/workspace/projects/new">Novo projeto</a>
-      <a href="/pilot">Piloto sintético separado</a>
+      <a [routerLink]="['/workspace/projects',projectId,'triage']">Triagem guiada</a>
+      <a [routerLink]="['/workspace/projects',projectId,'technical']" aria-current="page">Preparação técnica</a>
     </nav>
-    <p class="cf-workspace-disclaimer">PREPARAÇÃO
-      <small>Esta área não executa cálculos, não confere elegibilidade e não concede poderes PP, REV ou VVB.</small>
-    </p>
   </aside>
 
   <div class="cf-workspace-stage">
     <header class="cf-workspace-topbar">
-      <span>Projeto próprio · preparação técnica</span>
-      <a routerLink="/workspace" class="cf-workspace-link">Voltar aos meus projetos</a>
-      <a [routerLink]="['/workspace/projects', projectId, 'triage']" class="cf-workspace-link">Triagem guiada</a>
+      <span>Meus projetos / {{ project()?.title ?? 'Preparação técnica' }}</span>
+      <span>Ambiente de teste</span>
     </header>
     <main id="technical-main" class="cf-workspace-content">
       @if (loading()) {
-        <p role="status">Verificando o acesso e carregando os dados do projeto…</p>
-      } @else if (project(); as current) {
+        <p role="status">Carregando a preparação técnica…</p>
+      } @else if (project() && intake(); as saved) {
         <header class="cf-workspace-heading">
-          <span class="cf-workspace-chip">SANDBOX · RASCUNHO SEM AVALIAÇÃO</span>
           <h1>Preparação técnica</h1>
-          <p><strong>{{ current.title }}</strong></p>
-          <p class="cf-workspace-helper">Projeto {{ current.projectId }} · {{ current.environment }} · {{ current.state }}</p>
-          <p>Registre as primeiras informações e obtenha uma estrutura preliminar de dossiê. O enquadramento metodológico e as evidências ainda exigem revisão técnica.</p>
+          <p>{{ saved.journey.title }}</p>
+          <p class="cf-workspace-helper">
+            @if (saved.version) { Rascunho salvo · Revisão {{ saved.version }} }
+            @else { Rascunho técnico ainda não iniciado }
+            @if (dirty()) { · Alterações a salvar }
+          </p>
         </header>
+
+        <nav class="cf-triage-steps cf-technical-steps" aria-label="Seções da preparação técnica">
+          @for (item of sections; track item.id) {
+            <button type="button" class="cf-triage-step" [disabled]="saving()"
+              [class.cf-triage-step-active]="section().id === item.id"
+              [attr.aria-current]="section().id === item.id ? 'page' : null"
+              (click)="open(item.id)">{{ item.title }}</button>
+          }
+        </nav>
 
         @if (error()) { <div role="alert" class="cf-workspace-alert">{{ error() }}</div> }
         @if (notice()) { <div role="status" class="cf-workspace-note">{{ notice() }}</div> }
 
-        @if (intake(); as saved) {
-          <section class="cf-workspace-card" aria-labelledby="cf-tech-intake-title">
-            <span class="cf-workspace-step">1 · INFORMAÇÕES TÉCNICAS</span>
-            <h2 id="cf-tech-intake-title">Descreva a atividade do projeto</h2>
-            <p>Revisão {{ saved.version }} · {{ saved.state }} · Análise: {{ saved.reviewState }}.</p>
-            <p class="cf-workspace-helper">Campos em branco permanecem desconhecidos, não são respostas negativas nem evidência de conformidade.</p>
-            <form (submit)="save($event, activity.value, country.value, state.value, locality.value, methodology.value, date.value, notes.value)">
-              <label for="cf-tech-activity">Atividade planejada</label>
-              <input #activity id="cf-tech-activity" name="activity" required maxlength="400"
-                placeholder="Ex.: operação de infraestrutura para recarga de veículos elétricos"
-                [value]="saved.data?.activity ?? ''" />
-              <label for="cf-tech-country">País (sigla de duas letras, se conhecido)</label>
-              <input #country id="cf-tech-country" name="country" maxlength="2"
-                placeholder="Ex.: BR" [value]="saved.data?.country ?? ''" />
-              <label for="cf-tech-state">Estado ou região (se conhecido)</label>
-              <input #state id="cf-tech-state" name="state" maxlength="80"
-                placeholder="Ex.: DF" [value]="saved.data?.state ?? ''" />
-              <label for="cf-tech-locality">Localidade (se conhecida)</label>
-              <input #locality id="cf-tech-locality" name="locality" maxlength="200"
-                placeholder="Ex.: Brasília" [value]="saved.data?.locality ?? ''" />
-              <label for="cf-tech-methodology">Metodologia candidata (opcional)</label>
-              <input #methodology id="cf-tech-methodology" name="candidateMethodology" maxlength="80"
-                placeholder="Ex.: VM0038" [value]="saved.data?.candidateMethodology ?? ''" />
-              <p class="cf-workspace-helper">Uma metodologia indicada pelo usuário é uma hipótese; não significa que a atividade esteja enquadrada nela.</p>
-              <label for="cf-tech-date">Data de referência da atividade (se conhecida)</label>
-              <input #date id="cf-tech-date" type="date" name="referenceActDate"
-                [value]="saved.data?.referenceActDate ?? ''" />
-              <label for="cf-tech-notes">Observações iniciais</label>
-              <textarea #notes id="cf-tech-notes" name="notes" rows="4" maxlength="2000"
-                [value]="saved.data?.notes ?? ''"></textarea>
-              <button class="cf-workspace-primary" type="submit" [disabled]="saving()">Salvar informações</button>
-            </form>
-          </section>
-
-          <section class="cf-workspace-card" aria-labelledby="cf-tech-gates-title">
-            <span class="cf-workspace-step">2 · REQUISITOS A COMPROVAR</span>
-            <h2 id="cf-tech-gates-title">Pendências para utilização técnica</h2>
-            <p>Esses bloqueios não são um diagnóstico de elegibilidade. Nenhum resultado de carbono foi calculado.</p>
-            <ul class="cf-tech-gates">
-              @for (item of saved.outstandingGates; track item.code) {
-                <li><strong>{{ item.code }}</strong> — {{ item.message }}
-                  <small>Referência de regra: {{ item.rule }}</small>
-                </li>
+        <section class="cf-workspace-card" aria-labelledby="cf-tech-section-title">
+          <h2 id="cf-tech-section-title" #sectionHeading tabindex="-1">{{ section().title }}</h2>
+          @switch (section().id) {
+            @case ('entender') {
+              <p>{{ saved.journey.description }}</p>
+              @if (!saved.journey.candidate && form().candidateMethodology) {
+                <p>Hipótese registrada: {{ form().candidateMethodology }}. A jornada específica está indisponível.</p>
               }
-            </ul>
-          </section>
-        }
-
-        <section class="cf-workspace-card" aria-labelledby="cf-tech-dossier-title">
-          <span class="cf-workspace-step">3 · DOSSIÊ PRELIMINAR</span>
-          <h2 id="cf-tech-dossier-title">Estrutura do dossiê</h2>
-          <p>Essa prévia é uma lista de seções e lacunas, não um PD ou MR homologado e não contém texto protegido de documentos normativos.</p>
-          @if (dossier(); as prepared) {
-            <div class="cf-workspace-info">
-              <strong>Prévia {{ prepared.revision }} · rascunho preliminar, sem admissibilidade validada</strong>
-              <p>Baseada na revisão {{ prepared.intakeVersion }} das informações técnicas.</p>
-              <p>Referência de template: {{ prepared.sourceTemplate }} · edição: {{ prepared.sourceEdition }}</p>
-              <h3>Seções a desenvolver</h3>
+              @if (saved.journey.sourceUrl; as source) {
+                <a class="cf-workspace-link" [href]="source">Consultar metodologia na Verra</a>
+              } @else {
+                <a class="cf-workspace-link" [routerLink]="['/workspace/projects',projectId,'triage']">Revisar metodologia na triagem</a>
+              }
+              <h3>O que preparar</h3>
               <ul class="cf-tech-gates">
-                @for (section of prepared.sections; track section) { <li>{{ section }}</li> }
+                @for (topic of saved.journey.technicalTopics; track topic) { <li>{{ topic }}</li> }
               </ul>
-              <h3>Condições ainda não satisfeitas</h3>
-              <ul class="cf-tech-gates">
-                @for (item of prepared.blockers; track item.code) {
-                  <li><strong>{{ item.code }}</strong> — {{ item.message }}</li>
+              <div class="cf-triage-actions">
+                <button type="button" class="cf-workspace-primary" (click)="open('preparar')">Preparar informações</button>
+              </div>
+            }
+
+            @case ('preparar') {
+              <p>Registre a atividade, a localização e o que ainda precisa confirmar. Você pode salvar só as observações.</p>
+              <form (submit)="save($event)">
+                <fieldset [disabled]="saving()" class="cf-journey-fieldset">
+                  <label for="cf-tech-activity">Atividade planejada</label>
+                  <input #activity id="cf-tech-activity" name="activity" maxlength="400"
+                    [placeholder]="saved.journey.id === 'VM0038_V1_1' ? 'Ex.: instalar carregadores para uma frota definida' : 'Descreva o que o projeto vai realizar'"
+                    [value]="form().activity" (input)="update('activity', activity.value)" />
+                  <div class="cf-journey-fields">
+                    <div>
+                      <label for="cf-tech-country">País (código de duas letras)</label>
+                      <input #country id="cf-tech-country" name="country" maxlength="2" pattern="[a-zA-Z]{2}"
+                        placeholder="Ex.: BR" [value]="form().country" (input)="update('country', country.value)" />
+                    </div>
+                    <div>
+                      <label for="cf-tech-state">Estado ou região</label>
+                      <input #state id="cf-tech-state" name="state" maxlength="80"
+                        placeholder="Ex.: DF" [value]="form().state" (input)="update('state', state.value)" />
+                    </div>
+                    <div>
+                      <label for="cf-tech-locality">Cidade/localidade</label>
+                      <input #locality id="cf-tech-locality" name="locality" maxlength="200"
+                        placeholder="Ex.: Brasília" [value]="form().locality" (input)="update('locality', locality.value)" />
+                    </div>
+                    <div>
+                      <label for="cf-tech-date">Data de referência da atividade</label>
+                      <input #date id="cf-tech-date" type="date" name="referenceActDate"
+                        [value]="form().referenceActDate" (input)="update('referenceActDate', date.value)" />
+                    </div>
+                  </div>
+                  @if (saved.triageCandidate) {
+                    <div class="cf-journey-context">
+                      <strong>Metodologia indicada na triagem · {{ saved.triageCandidate }}</strong>
+                      <p>Ao salvar, essa indicação será vinculada à revisão técnica. A atividade e as demais informações são preenchidas separadamente.</p>
+                      <a [routerLink]="['/workspace/projects',projectId,'triage']" class="cf-workspace-link">Alterar na triagem</a>
+                    </div>
+                  } @else {
+                    <label for="cf-tech-methodology">Metodologia candidata</label>
+                    <select id="cf-tech-methodology" #method [value]="methodologyChoice()" (change)="chooseMethodology(method.value)">
+                      <option value="" [selected]="!methodologyChoice()">Ainda não sei</option>
+                      @for (option of saved.methodologies; track option.value) {
+                        <option [value]="option.value" [selected]="methodologyChoice() === option.value">{{ option.label }}</option>
+                      }
+                      <option [value]="otherOption" [selected]="methodologyChoice() === otherOption">Outra metodologia</option>
+                    </select>
+                    @if (methodologyChoice() === otherOption) {
+                      <label for="cf-tech-methodology-other">Código da outra metodologia</label>
+                      <input #other id="cf-tech-methodology-other" maxlength="80" [value]="form().candidateMethodology"
+                        (input)="update('candidateMethodology', other.value)" />
+                    }
+                  }
+                  <label for="cf-tech-notes">Observações iniciais</label>
+                  <textarea #notes id="cf-tech-notes" name="notes" rows="4" maxlength="2000"
+                    [value]="form().notes" (input)="update('notes', notes.value)"></textarea>
+                </fieldset>
+                <div class="cf-triage-actions">
+                  <button class="cf-workspace-primary" type="submit" [disabled]="saving()">Salvar informações</button>
+                  <button class="cf-workspace-outline" type="button" (click)="open('analisar')">Ver pendências</button>
+                </div>
+              </form>
+            }
+
+            @case ('analisar') {
+              <p>Confira o que falta comprovar antes de executar análises do projeto.</p>
+              <dl class="cf-tech-capabilities">
+                <div><dt>Preparação</dt><dd>{{ saved.version ? 'Rascunho salvo' : 'A iniciar' }}</dd></div>
+                <div><dt>Evidências</dt><dd>{{ capabilities()?.modules?.['evidence'] === 'NOT_ENABLED' ? 'Coleta indisponível neste projeto' : 'A confirmar' }}</dd></div>
+                <div><dt>Decisões metodológicas</dt><dd>Avaliação pendente</dd></div>
+                <div><dt>Revisão</dt><dd>Avaliação interna pendente</dd></div>
+              </dl>
+              <details class="cf-journey-context" open>
+                <summary>Requisitos a comprovar</summary>
+                <ul class="cf-tech-gates">
+                  @for (item of saved.outstandingGates; track item.code) {
+                    <li>{{ item.message }} <small>{{ item.code }} · {{ item.rule }}</small></li>
+                  }
+                </ul>
+              </details>
+              <div class="cf-triage-actions">
+                <button class="cf-workspace-outline" type="button" (click)="open('preparar')">Atualizar informações</button>
+                <a [routerLink]="['/workspace/projects',projectId,'triage']" class="cf-workspace-link">Consultar respostas da triagem</a>
+              </div>
+            }
+
+            @case ('redigir') {
+              <p>Gere o roteiro das seções do dossiê a partir da revisão técnica salva.</p>
+              @if (dossier(); as prepared) {
+                <div class="cf-journey-context">
+                  <strong>Prévia {{ prepared.revision }} · revisão técnica {{ prepared.intakeVersion }}</strong>
+                  <p>Modelo {{ prepared.sourceTemplate }} · edição {{ prepared.sourceEdition }}</p>
+                  <h3>Seções a desenvolver</h3>
+                  <ul class="cf-tech-gates">
+                    @for (item of prepared.sections; track item) { <li>{{ item }}</li> }
+                  </ul>
+                </div>
+              }
+              @if (dirty() || !saved.version) {
+                <p>Salve as informações técnicas para gerar a prévia.</p>
+                <button class="cf-workspace-outline" type="button" (click)="open('preparar')">Abrir informações técnicas</button>
+              } @else if (dossier() && dossier()!.intakeVersion !== saved.version) {
+                <p>A prévia disponível pertence a uma revisão anterior. Gere outra para incluir as alterações.</p>
+              }
+              <div class="cf-triage-actions">
+                <button type="button" class="cf-workspace-primary" (click)="prepare()" [disabled]="saving() || !canPrepare()">
+                  Preparar prévia da revisão atual
+                </button>
+                @if (dossier()) {
+                  <button type="button" class="cf-workspace-outline" (click)="open('revisar')">Consultar revisão</button>
                 }
-              </ul>
-            </div>
-          } @else {
-            <p role="status">Ainda não há dossiê preliminar para este projeto.</p>
-          }
-          @if (dossier() && intake() && dossier()!.intakeVersion !== intake()!.version) {
-            <p class="cf-workspace-helper">A prévia anterior não reflete a revisão atual. É possível preparar outra revisão preservando o histórico.</p>
-          }
-          <button type="button" class="cf-workspace-primary" (click)="prepare()" [disabled]="saving() || !canPrepare()">
-            Preparar prévia da revisão atual
-          </button>
-        </section>
+              </div>
+            }
 
-        <section class="cf-workspace-card" aria-labelledby="cf-tech-next-title">
-          <h2 id="cf-tech-next-title">O que ainda não está habilitado?</h2>
-          <p>As interfaces de evidências, cálculo de BE/PE/LE/ER, monitoramento, PD/MR final e atos externos continuarão bloqueadas até que suas dependências técnicas e de autoridade estejam satisfeitas.</p>
-          @if (capabilities(); as cap) {
-            <dl class="cf-tech-capabilities">
-              @for (item of [{label:'Evidências', key:'evidence'}, {label:'Cálculo', key:'calculation'},
-                {label:'Monitoramento', key:'monitoring'}, {label:'Atos externos', key:'externalActs'}]; track item.key) {
-                <div><dt>{{ item.label }}</dt><dd>{{ cap.modules[item.key] }}</dd></div>
+            @case ('revisar') {
+              <p>Confira as condições que ainda impedem o encaminhamento do dossiê para análise técnica.</p>
+              @if (dossier(); as prepared) {
+                <div class="cf-journey-context">
+                  <strong>Prévia {{ prepared.revision }} · revisão técnica {{ prepared.intakeVersion }}</strong>
+                  <p>{{ dirty() || prepared.intakeVersion !== saved.version ? 'A prévia está desatualizada.' : 'Prévia preliminar, aguardando comprovação.' }}</p>
+                  <ul class="cf-tech-gates">
+                    @for (item of prepared.blockers; track item.code) {
+                      <li>{{ item.message }} <small>{{ item.code }} · {{ item.rule }}</small></li>
+                    }
+                  </ul>
+                </div>
+              } @else {
+                <p>Prepare a primeira prévia para consultar suas pendências de revisão.</p>
               }
-            </dl>
+              <div class="cf-triage-actions">
+                <button type="button" class="cf-workspace-outline" (click)="open('redigir')">Abrir prévia do dossiê</button>
+              </div>
+            }
           }
         </section>
       } @else {
-        <div role="alert" class="cf-workspace-alert">{{ error() || 'Projeto não disponível para esta conta.' }}</div>
-        <a routerLink="/workspace" class="cf-workspace-link">Voltar ao espaço da conta</a>
+        <div role="alert" class="cf-workspace-alert">{{ error() || 'Projeto indisponível para esta conta.' }}</div>
+        <a routerLink="/workspace" class="cf-workspace-link">Voltar a meus projetos</a>
       }
     </main>
   </div>
