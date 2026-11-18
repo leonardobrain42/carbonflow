@@ -25,7 +25,16 @@ test('CF-IMP-008: rascunho da conta cruza intake e prévia sem adquirir autorida
   try {
     const page = await browser.newPage({viewport: {width: 1440, height: 900}});
     const state = {intake: null, dossier: null};
-    const technical = '/v1/projects/' + projectId + '/technical';
+    const initialExperience = {mode:'GUIDED', declaredProfile:null, declaredCompetence:null,
+      responsibilities:{pp:null, prep:null, rev:null, op:null, vvb:null}};
+    let experience = {projectId, environment:'SANDBOX', version:0, preferences:initialExperience};
+    await page.route('**/v1/projects/*/experience', async route => {
+      if (route.request().method() === 'PUT') {
+        assert.equal(route.request().headers()['if-match'], '"' + experience.version + '"');
+        experience = {...experience, version:experience.version + 1, preferences:route.request().postDataJSON()};
+      }
+      await route.fulfill({status:200,json:experience});
+    });
     let pilotAccessAttempts = 0;
 
     await page.route('**/v1/account-session', async route => {
@@ -57,7 +66,7 @@ test('CF-IMP-008: rascunho da conta cruza intake e prévia sem adquirir autorida
     await page.route('**/v1/projects/*/technical/intake', async route => {
       if (route.request().method() === 'GET') {
         await route.fulfill({status: 200, headers: {ETag: '"' + (state.intake?.version ?? 0) + '"'}, json:
-          state.intake ?? {projectId, organizationId: orgId, environment: 'SANDBOX', version: 0,
+          state.intake ? {...state.intake,experienceMode:experience.preferences.mode} : {projectId, organizationId: orgId, environment: 'SANDBOX', version: 0,
             state: 'NAO_INICIADO', reviewState: 'NAO_AVALIADO', data: null,
             triageCandidate: null, journey:general, methodologies,
             outstandingGates: [{code: 'ANALISE_NAO_EXECUTADA', rule: 'CF-IMP-008',
@@ -158,6 +167,17 @@ test('CF-IMP-008: rascunho da conta cruza intake e prévia sem adquirir autorida
     assert.equal(await page.getByLabel('Atividade planejada').inputValue(),
       'Recarga elétrica em ambiente urbano');
     assert.equal(await page.getByLabel('País (código de duas letras)').inputValue(), 'BR');
+    await page.getByRole('link',{name:'Preferências e equipe'}).click();
+    await page.getByLabel('Modo de visualização').selectOption('TECHNICAL');
+    await page.getByLabel('Preparação técnica (PREP)').fill('Equipe de engenharia');
+    await page.getByRole('button',{name:'Salvar preferências'}).click();
+    await page.getByText('Preferências e responsabilidades salvas.').waitFor();
+    assert.equal(experience.preferences.responsibilities.prep, 'Equipe de engenharia');
+    await page.reload();
+    assert.equal(await page.getByLabel('Modo de visualização').inputValue(), 'TECHNICAL');
+    await page.getByRole('link',{name:'Voltar à análise técnica'}).click();
+    await page.getByText('Modo técnico',{exact:true}).waitFor();
+    await page.getByText('PEN-004',{exact:false}).waitFor();
     await page.setViewportSize({width: 390, height: 844});
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth), false);
   } finally {

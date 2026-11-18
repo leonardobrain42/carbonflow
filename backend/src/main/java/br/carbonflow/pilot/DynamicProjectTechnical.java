@@ -32,7 +32,8 @@ class DynamicProjectTechnical {
     record IntakeView(String projectId, UUID organizationId, String environment, int version,
                       String state, String reviewState, IntakeData data,
                       List<IntakeModel.Reason> outstandingGates, String triageCandidate,
-                      ProjectJourney.Profile journey, List<ProjectJourney.Option> methodologies) {}
+                      ProjectJourney.Profile journey, List<ProjectJourney.Option> methodologies,
+                      ProjectExperience.Mode experienceMode) {}
     record PreliminaryDossier(UUID id, String projectId, UUID organizationId, String environment,
                               int revision, int intakeVersion, String state, String documentKind,
                               String sourceTemplate, String sourceEdition,
@@ -73,7 +74,7 @@ class DynamicProjectTechnical {
     IntakeView intake(String cookie, String project) {
         return scopes.read(cookie, project, "VIEW_INTAKE",
                 (connection, scope) -> view(scope, latestIntake(connection, project),
-                        ProjectTriageWizard.savedCandidate(connection, project)));
+                        ProjectTriageWizard.savedCandidate(connection, project), ProjectExperience.mode(connection, project)));
     }
 
     JsonNode saveIntake(String cookie, String project, String keyHeader, String ifMatch, IntakeData input) {
@@ -97,7 +98,7 @@ class DynamicProjectTechnical {
                     VALUES (?, ?, ?, ?, ?, ?::jsonb)
                     """, project, scope.organization(), scope.environment(), next, scope.actor().id(), encode(data));
             JsonNode result = mapper.valueToTree(view(scope, new IntakeRow(next, data),
-                    ProjectTriageWizard.savedCandidate(connection, project)));
+                    ProjectTriageWizard.savedCandidate(connection, project), ProjectExperience.mode(connection, project)));
             storeReceipt(connection, scope, key, "SAVE_INTAKE", fingerprint, result);
             return result;
         });
@@ -165,13 +166,15 @@ class DynamicProjectTechnical {
         });
     }
 
-    private IntakeView view(DynamicProjectScope.Context scope, IntakeRow row, String triageCandidate) {
+    private IntakeView view(DynamicProjectScope.Context scope, IntakeRow row, String triageCandidate,
+                            ProjectExperience.Mode experienceMode) {
         IntakeData data = row == null ? null : row.data();
         String candidate = triageCandidate != null ? triageCandidate : data == null ? null : data.candidateMethodology();
         var journey = ProjectJourney.profile(candidate);
         return new IntakeView(scope.id(), scope.organization(), scope.environment(),
                 row == null ? 0 : row.version(), row == null ? "NAO_INICIADO" : "RASCUNHO",
-                "NAO_AVALIADO", data, blockers(candidate), triageCandidate, journey, ProjectJourney.METHODOLOGIES);
+                "NAO_AVALIADO", data, blockers(candidate), triageCandidate, journey, ProjectJourney.METHODOLOGIES,
+                experienceMode);
     }
 
     private static List<IntakeModel.Reason> blockers(String candidate) {

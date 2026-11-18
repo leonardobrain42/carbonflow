@@ -191,6 +191,48 @@ class DynamicProjectTechnicalTest {
         assertEquals("DRAFT", body(metadata).path("state").asText());
     }
 
+    @Test
+    void planningResponsibilitiesAndExperienceArePrivateAndKeepTheSameTechnicalGates() throws Exception {
+        Actor owner = actor();
+        Actor coworker = actor();
+        UUID org = organization(owner.id());
+        membership(org, coworker.id());
+        var created = call("POST", PROJECTS, owner.cookie(), key(), null,
+                "{\"organizationId\":\"" + org + "\",\"title\":\"Projeto com equipe em planejamento\"}");
+        assertEquals(201, created.statusCode(), created.body());
+        String project = PROJECTS + "/" + body(created).path("projectId").asText();
+        String experience = project + "/experience";
+        var blank = call("GET", experience, owner.cookie(), null, null, null);
+        assertEquals(200, blank.statusCode(), blank.body());
+        assertEquals("GUIDED", body(blank).at("/preferences/mode").asText());
+        var before = body(call("GET", project + "/technical/intake", owner.cookie(), null, null, null));
+        assertEquals("GUIDED", before.path("experienceMode").asText());
+        String planning = """
+                {"mode":"TECHNICAL","declaredProfile":"TECHNICAL","declaredCompetence":"Experiência declarada.",
+                "responsibilities":{"prep":"Equipe de engenharia"}}
+                """;
+        var cmd = request("PUT", experience, owner.cookie(), null, "\"0\"", planning);
+        var first = client.sendAsync(cmd, HttpResponse.BodyHandlers.ofString());
+        var second = client.sendAsync(cmd, HttpResponse.BodyHandlers.ofString());
+        var saved = first.join();
+        assertEquals(200, saved.statusCode(), saved.body());
+        assertEquals("\"1\"", saved.headers().firstValue("ETag").orElseThrow());
+        assertEquals(body(saved), body(second.join()));
+        assertEquals("Equipe de engenharia", body(saved).at("/preferences/responsibilities/prep").asText());
+        assertTrue(body(saved).at("/preferences/responsibilities/rev").isNull());
+        assertEquals(412, call("PUT", experience, owner.cookie(), null, "\"0\"",
+                "{\"mode\":\"GUIDED\"}").statusCode());
+        assertEquals(404, call("GET", experience, coworker.cookie(), null, null, null).statusCode());
+        assertEquals(404, call("PUT", experience, coworker.cookie(), null, "\"1\"", planning).statusCode());
+        var after = body(call("GET", project + "/technical/intake", owner.cookie(), null, null, null));
+        assertEquals("TECHNICAL", after.path("experienceMode").asText());
+        assertEquals(before.path("outstandingGates"), after.path("outstandingGates"));
+        assertEquals(before.path("reviewState"), after.path("reviewState"));
+        assertEquals("NOT_ENABLED", body(call("GET", project + "/technical/capabilities",
+                owner.cookie(), null, null, null)).at("/modules/externalActs").asText());
+        assertEquals("DRAFT", body(call("GET", project + "/metadata", owner.cookie(), null, null, null)).path("state").asText());
+    }
+
     private Actor actor() {
         UUID id = UUID.randomUUID();
         String token = AccessSecrets.newToken();
