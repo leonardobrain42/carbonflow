@@ -179,6 +179,26 @@
                     <label for="cf-wz-date">Data de referência pretendida</label>
                     <input id="cf-wz-date" type="date" [value]="field(4,'referenceDate')"
                       (change)="input(4,'referenceDate',$event)"/>
+                    @if (vm0038()) {
+                      <label for="cf-wz-investment">Já houve compromisso de investimento, como contrato ou pedido firme?</label>
+                      <select id="cf-wz-investment" [value]="field(4,'investmentCommitted')"
+                        (change)="input(4,'investmentCommitted',$event)">
+                        <option value="">Ainda não informado</option>
+                        <option value="YES">Sim</option>
+                        <option value="NO">Não</option>
+                        <option value="DESCONHECIDO">Ainda não sei</option>
+                      </select>
+                      @if (field(4,'investmentCommitted') === 'YES') {
+                        <label for="cf-wz-prior-carbon">A receita de carbono foi considerada antes desse compromisso?</label>
+                        <select id="cf-wz-prior-carbon" [value]="field(4,'carbonConsideredBeforeInvestment')"
+                          (change)="input(4,'carbonConsideredBeforeInvestment',$event)">
+                          <option value="">Ainda não informado</option>
+                          <option value="YES">Sim</option>
+                          <option value="NO">Não</option>
+                          <option value="DESCONHECIDO">Ainda não sei</option>
+                        </select>
+                      }
+                    }
                     <label for="cf-wz-evidence">Situação dos dados de origem</label>
                     <select id="cf-wz-evidence" [value]="field(4,'evidenceStatus')"
                       (change)="input(4,'evidenceStatus',$event)">
@@ -227,6 +247,33 @@
                 Resumo de respostas; análise de elegibilidade ainda não realizada.
                 Não há reduções de CO₂e verificadas nem VCUs emitidas.
               </div>
+              @if (current.diagnosis; as diagnosis) {
+                <section class="cf-journey-context" aria-labelledby="cf-triage-diagnosis">
+                  <h3 id="cf-triage-diagnosis">Diagnóstico preliminar</h3>
+                  <strong>{{ diagnosisLabel(diagnosis.classification) }}</strong>
+                  <p>{{ diagnosis.reason }}</p>
+                  <p class="cf-workspace-helper">Referência do recorte {{ diagnosis.ruleVersion }}</p>
+                  <h4>Pendências e próximas ações</h4>
+                  <ul class="cf-tech-gates">
+                    @for (item of diagnosis.findings; track item.code) {
+                      <li>
+                        <strong>{{ item.title }}</strong>
+                        <p>{{ item.detail }}</p>
+                        @if (item.fields.length) {
+                          <small>{{ missingLabels(item.fields) }}</small>
+                        }
+                        @if (item.step) {
+                          <button class="cf-workspace-outline" type="button" [disabled]="busy()"
+                            (click)="navigate(item.step)">Abrir etapa · {{ item.title }}</button>
+                        } @else {
+                          <a class="cf-workspace-link" [routerLink]="['/workspace/projects',projectId,'technical']"
+                            [queryParams]="{secao:'analisar'}">Ver pendências técnicas</a>
+                        }
+                      </li>
+                    }
+                  </ul>
+                </section>
+              }
               @if (current.exampleKind) {
                 <p>Este cenário contém somente dados de demonstração: 25 veículos BEV, localidade Brasília/DF e data de referência 27/09/2027.</p>
               }

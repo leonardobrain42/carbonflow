@@ -34,7 +34,7 @@ class ProjectTriageWizard {
                 String analysisState, String exampleKind, JsonNode answers,
                 List<StepSummary> stages, List<String> pending,
                 String nextAction, ProjectJourney.Profile journey, List<ProjectJourney.Option> methodologies,
-                ProjectJourney.Guidance guidance) {}
+                ProjectJourney.Guidance guidance, ProjectTriageDiagnosis.Result diagnosis) {}
     private record Snapshot(int version, int currentStep, ObjectNode answers) {}
     private record Receipt(String action, String projectId, byte[] fingerprint, String response) {}
 
@@ -46,7 +46,7 @@ class ProjectTriageWizard {
             Set.of("activityDescription", "baselinePractice", "expectedBenefit", "installsChargers"),
             journeyFields(),
             Set.of("country", "state", "locality", "referenceDate", "evidenceStatus",
-                   "rightsStatus", "rightsJustification")
+                   "rightsStatus", "rightsJustification", "investmentCommitted", "carbonConsideredBeforeInvestment")
     );
     private static final List<List<String>> REQUIRED = List.of(
             List.of("objective", "activityType"),
@@ -206,6 +206,8 @@ class ProjectTriageWizard {
                         "DISPONIVEL_DECLARADO").contains(content)) throw invalid(name);
                 if ("rightsStatus".equals(name) && !Set.of("DESCONHECIDO", "DECLARADO",
                         "NAO_APLICAVEL_JUSTIFICADO").contains(content)) throw invalid(name);
+                if (Set.of("investmentCommitted", "carbonConsideredBeforeInvestment").contains(name)
+                        && !Set.of("YES", "NO", "DESCONHECIDO").contains(content)) throw invalid(name);
                 result.put(name, content);
             } else {
                 throw invalid(name);
@@ -283,12 +285,13 @@ class ProjectTriageWizard {
             stages.add(new StepSummary(i, title, state, missing));
         }
         stages.add(new StepSummary(5, TITLES.get(4), "RESUMO_SEM_PARECER", List.of()));
+        var guidance = ProjectJourney.guidance(answers);
         return new View(context.id(), context.environment(), snapshot.version(), snapshot.currentStep(),
                 "NAO_AVALIADO", answers.path("_example").asText(null), answers.deepCopy(), List.copyOf(stages),
                 List.copyOf(pending), snapshot.currentStep() == 5
                     ? "Revise as respostas e organize na preparação técnica o que precisa ser comprovado."
                     : "Salve as respostas e deixe em aberto o que ainda precisa confirmar.",
-                journey, ProjectJourney.METHODOLOGIES, ProjectJourney.guidance(answers));
+                journey, ProjectJourney.METHODOLOGIES, guidance, ProjectTriageDiagnosis.evaluate(answers, guidance));
     }
 
     static String savedCandidate(Connection connection, String projectId) throws SQLException {

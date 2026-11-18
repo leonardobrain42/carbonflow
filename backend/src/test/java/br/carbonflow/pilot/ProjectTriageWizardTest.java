@@ -252,6 +252,49 @@ class ProjectTriageWizardTest {
     }
 
     @Test
+    void diagnosisRecognizesTheDeclaredScopeAndFlagsInvestmentWithoutApprovingIt() throws Exception {
+        Actor owner = actor();
+        String project = project(owner, organization(owner.id()));
+        String endpoint = "/v1/projects/" + project + "/triage";
+        var empty = call("GET", endpoint, owner.cookie(), null, null, null);
+        assertEquals("UNKNOWN_REVIEW_REQUIRED", json(empty).at("/diagnosis/classification").asText());
+        String[] steps = {
+            """
+            {"answers":{"activityType":"MOBILIDADE_ELETRICA","methodologyCandidate":"VM0038"},"nextStep":2}
+            """,
+            """
+            {"answers":{"installsChargers":"YES"},"nextStep":3}
+            """,
+            """
+            {"answers":{"vehicleClass":"LDV","propulsion":"BEV","chargerType":"DCFC","network":"CLOSED","access":"PRIVATE",
+              "electricitySource":"SIN","associatedInfrastructure":"NO","metering":"SEGREGATED","design":"INDIVIDUAL",
+              "vehicleCount":25,"chargerCount":1},"nextStep":4}
+            """,
+            """
+            {"answers":{"country":"BR","state":"DF","locality":"Brasília","investmentCommitted":"YES",
+              "carbonConsideredBeforeInvestment":"NO","rightsStatus":"DECLARADO"},"nextStep":5}
+            """
+        };
+        for (int index = 0; index < steps.length; index++) {
+            var saved = call("PUT", endpoint + "/steps/" + (index + 1), owner.cookie(),
+                    UUID.randomUUID().toString(), "\"" + index + "\"", steps[index]);
+            assertEquals(200, saved.statusCode(), saved.body());
+        }
+        var summary = json(call("GET", endpoint, owner.cookie(), null, null, null));
+        assertEquals("SUPPORTED_MVP_CONFIGURATION", summary.at("/diagnosis/classification").asText());
+        assertEquals("NAO_AVALIADO", summary.path("analysisState").asText());
+        var findings = summary.at("/diagnosis/findings");
+        assertTrue(findings.findValuesAsText("code").containsAll(
+                java.util.List.of("DATE", "COMMITTED_INVESTMENT", "RIGHTS")));
+        var outside = call("PUT", endpoint + "/steps/3", owner.cookie(), UUID.randomUUID().toString(), "\"4\"",
+                """
+                {"answers":{"chargerType":"AC"},"nextStep":5}
+                """);
+        assertEquals(200, outside.statusCode(), outside.body());
+        assertEquals("UNSUPPORTED_MVP", json(outside).at("/diagnosis/classification").asText());
+    }
+
+    @Test
     void rejectsInvalidDatesCountsRightJustificationAndUndeclaredFields() throws Exception {
         Actor owner = actor();
         String project = project(owner, organization(owner.id()));
