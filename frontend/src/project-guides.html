@@ -14,6 +14,12 @@
       <h3>{{ guide.title }}</h3>
       <p>{{ guide.guidance }}</p>
       <p>{{ guide.version ? 'Revisão salva · ' + guide.version : 'Rascunho a iniciar' }} · Revisão técnica pendente</p>
+      @if (guide.id === 'monitoring') {
+        @if (!answers()['calibration'] || !answers()['validUntil']) {
+          <p class="cf-workspace-note">Calibração pendente. Identifique o certificado e sua validade antes de encaminhar o plano.</p>
+        }
+        <a class="cf-workspace-link" href="/pilot#cf-imports">Consultar lotes ED/EC no piloto sintético</a>
+      }
       @if (guide.id === 'additionality' && answers()['commitment'] && answers()['considered'] && answers()['commitment'] < answers()['considered']) {
         <p class="cf-workspace-note">O compromisso informado antecede a consideração do carbono. Encaminhe a cronologia e as provas para revisão.</p>
       }
