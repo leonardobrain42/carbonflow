@@ -14,6 +14,9 @@
       <h3>{{ guide.title }}</h3>
       <p>{{ guide.guidance }}</p>
       <p>{{ guide.version ? 'Revisão salva · ' + guide.version : 'Rascunho a iniciar' }} · Revisão técnica pendente</p>
+      @if (guide.id === 'additionality' && answers()['commitment'] && answers()['considered'] && answers()['commitment'] < answers()['considered']) {
+        <p class="cf-workspace-note">O compromisso informado antecede a consideração do carbono. Encaminhe a cronologia e as provas para revisão.</p>
+      }
       <fieldset class="cf-journey-fieldset" [disabled]="!guide.editable || busy()">
         @for (field of guide.fields; track field.key) {
           @if (field.key !== 'justification' || answers()['incidence'] === 'Não aplicável' || answers()['justification']) {
