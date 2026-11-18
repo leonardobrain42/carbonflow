@@ -1,6 +1,7 @@
 import {Component, inject, input, OnInit, output, signal} from '@angular/core';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {firstValueFrom} from 'rxjs';
+import {GuideReferencesComponent} from './guide-references';
 
 interface Field { key: string; label: string; type: string; options: string[] }
 interface Guide {
@@ -10,11 +11,14 @@ interface Guide {
 
 @Component({
   selector: 'carbonflow-project-guides',
+  imports: [GuideReferencesComponent],
   templateUrl: './project-guides.html',
 })
 export class ProjectGuidesComponent implements OnInit {
   readonly projectId = input.required<string>();
   readonly initialGuide = input<string|null>(null);
+  readonly canOpenIntake = input(false);
+  readonly prepare = output<void>();
   readonly canOpenDocument = input(false);
   readonly document = output<string>();
   readonly saved = output<Guide>();

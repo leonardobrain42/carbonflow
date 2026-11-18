@@ -40,3 +40,59 @@ test('preparador retoma o guia e a revisão vê o conteúdo somente para leitura
     assert.equal(await page.getByRole('button',{name:'Salvar guia'}).count(),0);
   } finally { await browser.close(); }
 });
+
+test('guia mostra a referência da regra, a edição consultada e o fallback após revogação', async () => {
+  const browser = await chromium.launch({executablePath});
+  try {
+    const page = await browser.newPage({viewport:{width:390,height:844}});
+    const route = '/v1/projects/' + projectId;
+    let edition = 1;
+    let authorized = true;
+    let related = true;
+    const guide = {id:'baseline', title:'Linha de base', guidance:'Descreva a hipótese de referência.',
+      fields:[{key:'scenario',label:'Cenário',type:'text',options:[]}],
+      version:1, answers:{scenario:'Comparável inicial'}, missing:[], editable:false};
+    const requirement = {code:'DEMO-PD-02',title:'Revisar a hipótese de linha de base do exemplo',
+      field:'scenario',classification:'INDETERMINATE',status:'REVIEW_REQUIRED',reason:'Exige parecer humano.',
+      dependencies:[],source:{id:'CF-ECA-DEMO',edition:'1'},locator:'DEMO-03',interpretation:true};
+    await page.route('**' + route + '/metadata', r => r.fulfill({json:{projectId,environment:'SANDBOX',title:'Frota'}}));
+    await page.route('**' + route + '/technical/capabilities', r => r.fulfill({json:{
+      projectId,environment:'SANDBOX',owner:false,actions:['VIEW_GUIDES'],modules:{}
+    }}));
+    await page.route('**' + route + '/technical/guides', r => r.fulfill({json:{methodology:'VM0038_V1_1',guides:[guide]}}));
+    await page.route('**' + route + '/sections/baseline/readiness?act=PD', r => related
+      ? r.fulfill({json:{guideRevision:1,catalogState:authorized ? 'RESOLVED_SYNTHETIC' : 'SOURCE_USAGE_BLOCKED',
+          catalogReason:'A autorização de uso precisa de revisão.', dateBasis:'ACT_DATE',dateUsed:'2029-09-01',
+          window: authorized ? {from:'2020-01-01',until:'2030-01-01'} : null,
+          packId:authorized ? 'CF-DEMO-'+edition : null,packEdition:authorized ? edition : null,
+          requirements:authorized ? [requirement] : [],gates:[],acquisitionPlan:[]}})
+      : r.fulfill({status:404,body:''}));
+    await page.route('**' + route + '/source-policy', r => r.fulfill({json:{sources:[
+      {id:'VM0038',edition:'1.1',category:'METHODOLOGY',title:'VM0038',rightsHolder:'Verra',
+        origin:'EXTERNAL',officialUri:'https://verra.org/methodologies/vm0038-electric-vehicle-charging-systems-v1-1/',
+        requirementReferenceAvailable:false}
+    ]}}));
+
+    await page.goto(base + '/workspace/projects/' + projectId + '/technical?secao=guias&guia=baseline');
+    await page.getByText('Requisitos e fontes desta etapa',{exact:true}).click();
+    const check = page.getByRole('button',{name:'Consultar ou atualizar referências'});
+    await check.click();
+    await page.getByText('Avaliação humana pendente',{exact:true}).waitFor();
+    assert.equal(await page.getByRole('link',{name:'Localizar campo no guia'}).getAttribute('href'),'#guide-scenario');
+    await page.getByText('Glossário técnico',{exact:true}).click();
+    await page.getByText('Emissões estimadas no cenário de referência',{exact:false}).waitFor();
+
+    edition = 2;
+    await check.click();
+    await page.getByText('A edição consultada mudou da 1 para a 2',{exact:false}).waitFor();
+    authorized = false;
+    await check.click();
+    await page.getByText('A autorização de uso precisa de revisão.',{exact:false}).waitFor();
+    assert.equal(await page.getByText(requirement.title,{exact:true}).count(),0);
+    await page.getByRole('link',{name:'Consultar origem de VM0038'}).waitFor();
+    related = false;
+    await check.click();
+    await page.getByRole('alert').filter({hasText:'indisponíveis para esta conta'}).waitFor();
+    assert.equal(await page.getByRole('link',{name:'Consultar origem de VM0038'}).count(),0);
+  } finally { await browser.close(); }
+});

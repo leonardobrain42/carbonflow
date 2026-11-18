@@ -46,6 +46,7 @@
               } @else if (owner()) {
                 <a class="cf-workspace-link" [routerLink]="['/workspace/projects',projectId,'triage']">Revisar metodologia na triagem</a>
               }
+              <carbonflow-technical-glossary />
               <h3>O que preparar</h3>
               <ul class="cf-tech-gates">
                 @for (topic of saved.journey.technicalTopics; track topic) { <li>{{ topic }}</li> }
@@ -176,7 +177,7 @@
 
             @case ('guias') {
               <carbonflow-project-guides [projectId]="projectId" [initialGuide]="selectedGuide()" [canOpenDocument]="can('VIEW_DOSSIER')"
-                (document)="open('redigir', $event)" (saved)="updateGuide($event)" />
+                [canOpenIntake]="can('VIEW_INTAKE')" (prepare)="open('preparar')" (document)="open('redigir', $event)" (saved)="updateGuide($event)" />
             }
 
             @case ('redigir') {
