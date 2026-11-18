@@ -673,6 +673,62 @@ class DynamicProjectTechnicalTest {
         assertEquals(404,call("POST",preview,actor().cookie(),null,null,pd).statusCode());
     }
 
+    @Test
+    void readinessUsesSavedRevisionsAndProjectsOnlyAuthorizedNodes() throws Exception {
+        Actor owner = actor();
+        Actor operator = actor();
+        Actor reviewer = actor();
+        UUID org = organization(owner.id());
+        String project = body(call("POST",PROJECTS,owner.cookie(),key(),null,
+                "{\"organizationId\":\"" + org + "\",\"title\":\"Prontidão por seção\"}")).path("projectId").asText();
+        String root = PROJECTS + "/" + project;
+        String intake = root + "/technical/intake";
+        String readiness = root + "/sections/";
+        String technical = root + "/technical";
+        assertEquals(200,call("PUT",intake,owner.cookie(),key(),"\"0\"",
+                "{\"candidateMethodology\":\"VM0038\"}").statusCode());
+        var empty = body(call("GET",readiness+"applicability/readiness",owner.cookie(),null,null,null));
+        assertEquals("UNKNOWN_REVIEW_REQUIRED",empty.path("catalogState").asText());
+        assertTrue(empty.path("acquisitionPlan").findValuesAsText("field").contains("referenceActDate"));
+        assertTrue(empty.path("counts").isNull());
+
+        assertEquals(200,call("PUT",intake,owner.cookie(),key(),"\"1\"",
+                "{\"candidateMethodology\":\"VM0038\",\"referenceActDate\":\"2029-12-01\"}").statusCode());
+        var show = call("GET",readiness+"baseline/readiness",owner.cookie(),null,null,null);
+        assertEquals(200,show.statusCode(),show.body());
+        assertEquals("CF-DEMO-1",body(show).path("packId").asText());
+        assertEquals("REVIEW_REQUIRED",body(show).at("/requirements/0/status").asText());
+        assertEquals("DEMO-PD-01",body(show).at("/requirements/0/dependencies/0").asText());
+        assertEquals("NOT_EVALUATED",body(show).at("/gates/5/status").asText());
+        assertEquals(0,body(show).at("/counts/applicableMandatoryOrConditional").asInt(-1));
+        assertEquals(1,body(show).at("/counts/indeterminate").asInt(-1));
+
+        grant(project,org,reviewer,owner,"REV","BASELINE");
+        grant(project,org,reviewer,owner,"REV","DOCUMENTATION");
+        var restricted = body(call("GET",readiness+"baseline/readiness",reviewer.cookie(),null,null,null));
+        assertEquals("DEPENDENCY_PENDING",restricted.at("/requirements/0/status").asText());
+        assertEquals(0,restricted.at("/requirements/0/dependencies").size());
+        assertEquals(404,call("GET",readiness+"applicability/readiness",reviewer.cookie(),null,null,null).statusCode());
+
+        grant(project,org,operator,owner,"PREP","MONITORING");
+        String monitoring = readiness+"monitoring/readiness?act=MR";
+        var collect = body(call("GET",monitoring,operator.cookie(),null,null,null));
+        assertTrue(collect.path("acquisitionPlan").findValuesAsText("field").contains("ed"));
+        assertEquals("NEEDS_DATA",collect.at("/gates/1/status").asText());
+        assertEquals(404,call("GET",monitoring,actor().cookie(),null,null,null).statusCode());
+
+        assertEquals(200,call("PUT",technical+"/guides/baseline",owner.cookie(),key(),"\"0\"",
+                "{\"scenario\":\"Comparável A\"}").statusCode());
+        assertEquals(200,call("PUT",technical+"/pd-sections/baseline",owner.cookie(),key(),"\"0\"",
+                "{\"guideVersion\":1,\"narrative\":\"Texto ligado à primeira revisão\"}").statusCode());
+        assertEquals(200,call("PUT",technical+"/guides/baseline",owner.cookie(),key(),"\"1\"",
+                "{\"scenario\":\"Comparável B\"}").statusCode());
+        var revised = body(call("GET",readiness+"baseline/readiness",owner.cookie(),null,null,null));
+        assertEquals("RECHECK_REQUIRED",revised.at("/requirements/0/status").asText());
+        assertEquals(2,revised.path("guideRevision").asInt());
+        assertEquals(200,call("GET",technical+"/pd-sections/baseline/versions/1/download",owner.cookie(),null,null,null).statusCode());
+    }
+
     private static JsonNode task(JsonNode journey, String id) {
         for (JsonNode task : journey.path("tasks")) {
             if (id.equals(task.path("id").asText())) return task;

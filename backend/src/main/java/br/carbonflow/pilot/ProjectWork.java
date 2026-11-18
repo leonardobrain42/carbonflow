@@ -121,7 +121,7 @@ class ProjectWork {
                 guide.editable() && state != State.COMPLETED);
     }
 
-    private static boolean quantificationInputsChanged(Connection connection, String project, ProjectGuides.Guide guide,
+    static boolean quantificationInputsChanged(Connection connection, String project, ProjectGuides.Guide guide,
                                                         Set<String> visibleGuides) throws SQLException {
         if (!"quantification".equals(guide.id()) || guide.version() == 0) return false;
         List<String> changed = query(connection, """
