@@ -1,18 +1,6 @@
 <a class="cf-skip-link" href="#workspace-main">Pular para o conteúdo</a>
 <div class="cf-workspace-shell">
-  <aside class="cf-workspace-sidebar" aria-label="Navegação do espaço da conta">
-    <a routerLink="/workspace" class="cf-workspace-brand" aria-label="CarbonFlow — minha conta">Carbon<span>Flow</span></a>
-    <p class="cf-workspace-kicker">AMBIENTE DE TESTE</p>
-    <nav aria-label="Áreas do espaço da conta" class="cf-workspace-nav">
-      <a routerLink="/workspace">Meus projetos</a>
-      <a routerLink="/workspace/projects/new">Novo projeto</a>
-      <a href="/pilot">Piloto sintético</a>
-    </nav>
-    <p class="cf-workspace-disclaimer">
-      SANDBOX
-      <small>Rascunhos não equivalem a projetos registrados ou créditos emitidos.</small>
-    </p>
-  </aside>
+  <aside cfWorkspaceNavigation [projectId]="selectedProject()?.projectId ?? null"></aside>
   <div class="cf-workspace-stage">
     <header class="cf-workspace-topbar">
       <span>Espaço do cliente</span>
@@ -52,7 +40,6 @@
           } @else {
             <h1>Meus projetos</h1>
             <p>Consulte somente os projetos vinculados à sua conta. Nenhum projeto é selecionado automaticamente.</p>
-            <a routerLink="/workspace/invitations" class="cf-workspace-link">Convites recebidos</a>
           }
         </header>
 

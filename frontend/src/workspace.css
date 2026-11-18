@@ -7,8 +7,6 @@
 .cf-workspace-nav { display: grid; gap: .35rem; }
 .cf-workspace-nav a { padding: .65rem .7rem; border-radius: .65rem; text-decoration: none; color: #bfd0c6; }
 .cf-workspace-nav a:hover, .cf-workspace-nav a:focus-visible { background: #1d3829; color: #a2e5bf; }
-.cf-workspace-disclaimer { margin: auto 0 0; border: 1px solid #365543; border-radius: .8rem; background: #152921; padding: .9rem; color: #8adaad; font-size: .73rem; font-weight: 800; }
-.cf-workspace-disclaimer small { display: block; color: #a7c0b2; font-weight: 400; font-size: .73rem; line-height: 1.5; margin-top: .3rem; }
 .cf-workspace-stage { min-width: 0; }
 .cf-workspace-topbar { min-height: 72px; border-bottom: 1px solid #263a32; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem clamp(1rem,3vw,3rem); color: #bfd1c8; }
 .cf-workspace-account { display: flex; align-items: center; flex-wrap: wrap; gap: .9rem; font-size: .85rem; }
@@ -46,7 +44,7 @@
 @media(max-width:740px) {
   .cf-workspace-shell { display: block; }
   .cf-workspace-sidebar { position: static; height: auto; padding: .8rem 1rem; gap: .55rem; }
-  .cf-workspace-kicker, .cf-workspace-disclaimer { display: none; }
+  .cf-workspace-kicker { display: none; }
   .cf-workspace-brand { font-size: 1.2rem; }
   .cf-workspace-nav { display: flex; flex-wrap: wrap; gap: .2rem; }
   .cf-workspace-nav a { font-size: .85rem; }
@@ -92,8 +90,6 @@
 @media(max-width:900px) { .cf-triage-steps { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media(max-width:440px) { .cf-triage-steps { grid-template-columns: 1fr; } .cf-triage-step { display:flex; gap: .7rem; flex-wrap:wrap; align-items:center; } .cf-triage-step-number { margin-bottom:0; } }
 
-.cf-journey-shell .cf-workspace-nav a[aria-current="page"] { color: #b9f2cf; background: #1d3829; }
-.cf-journey-menu { display: none; }
 .cf-journey-shell .cf-workspace-primary { background: #23724b; }
 .cf-journey-shell .cf-workspace-primary:hover { background: #287c52; }
 .cf-journey-context { margin: 1.1rem 0; border: 1px solid #365543; border-radius: .8rem; background: #10201b; padding: 1rem; }
@@ -108,12 +104,6 @@
 .cf-journey-shell .cf-workspace-card form .cf-triage-actions .cf-workspace-primary { margin-top: 0; }
 .cf-technical-steps .cf-triage-step { text-align: center; min-height: 44px; font-weight: 700; }
 .cf-journey-example { margin-top: 1.1rem; }
-@media (max-width: 740px) {
-  .cf-journey-shell .cf-workspace-sidebar { display: grid; grid-template-columns: 1fr auto; align-items: center; }
-  .cf-journey-menu { display: block; min-height: 44px; }
-  .cf-journey-shell .cf-workspace-nav { grid-column: 1 / -1; display: none; }
-  .cf-journey-shell .cf-journey-menu-open { display: flex; }
-}
 @media (max-width: 520px) {
   .cf-journey-fields { grid-template-columns: minmax(0, 1fr); }
   .cf-technical-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -121,3 +111,24 @@
 
 .cf-workspace-card .cf-plan-choice { display: flex; gap: .55rem; align-items: center; }
 .cf-workspace-card .cf-plan-choice input { display: inline; width: 1.15rem; height: 1.15rem; accent-color: #64c48e; }
+
+/* The account and project use the same navigation at every viewport. */
+.cf-workspace-navigation { overflow-y: auto; }
+.cf-workspace-navigation .cf-workspace-nav { gap: .9rem; }
+.cf-workspace-nav-group { display: grid; gap: .2rem; }
+.cf-workspace-nav-group + .cf-workspace-nav-group { padding-top: .85rem; border-top: 1px solid #2c3c37; }
+.cf-workspace-nav-group .cf-workspace-kicker { margin-bottom: .2rem; }
+.cf-workspace-nav a.cf-workspace-current {
+  color: #ecfff3; background: #1d3829; font-weight: 700;
+  box-shadow: inset 3px 0 #8adaad;
+}
+.cf-workspace-menu-toggle { display: none; }
+
+@media (max-width: 740px) {
+  .cf-workspace-navigation { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+  .cf-workspace-navigation .cf-workspace-kicker { display: block; }
+  .cf-workspace-menu-toggle { display: block; min-height: 44px; }
+  .cf-workspace-navigation .cf-workspace-nav { display: none; grid-column: 1 / -1; }
+  .cf-workspace-navigation .cf-workspace-menu-open { display: grid; }
+  .cf-workspace-nav-group a { min-height: 44px; display: flex; align-items: center; }
+}

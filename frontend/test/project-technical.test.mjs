@@ -123,8 +123,12 @@ test('CF-IMP-008: rascunho da conta cruza intake e prévia sem adquirir autorida
     assert.equal(await selector.inputValue(), '');
     await selector.selectOption(projectId);
     await page.getByRole('heading', {name: 'Recarga urbana'}).waitFor();
+    const menu = page.getByRole('navigation', {name:'Menu principal'});
+    const menuItems = await menu.getByRole('link').allTextContents();
+    assert.deepEqual(menuItems, ['Meus projetos', 'Novo projeto', 'Convites recebidos', 'Triagem guiada',
+      'Preparação técnica', 'Preferências e equipe', 'Planos de convite', 'Comprovação de poderes', 'Piloto sintético']);
     await page.getByRole('link', {name: 'Preparar informações técnicas'}).click();
-    assert.ok(page.url().includes('/workspace/projects/' + projectId + '/technical'));
+    await page.waitForURL('**/workspace/projects/' + projectId + '/technical');
     await page.getByRole('heading', {name: 'Preparação técnica'}).waitFor();
     const sections = page.getByRole('navigation', {name:'Seções da preparação técnica'});
     await page.getByText('Rascunho técnico ainda não iniciado').waitFor();
@@ -138,6 +142,8 @@ test('CF-IMP-008: rascunho da conta cruza intake e prévia sem adquirir autorida
     await page.getByLabel('Metodologia candidata').selectOption('VM0038');
     await page.getByLabel('Data de referência da atividade').fill('2027-09-27');
     await sections.getByRole('button',{name:'Redigir'}).click();
+    assert.deepEqual(await menu.getByRole('link').allTextContents(), menuItems);
+    assert.equal(await menu.getByRole('link', {name:'Preparação técnica'}).getAttribute('aria-current'), 'page');
     await page.getByRole('heading',{name:'Redigir'}).waitFor();
     assert.equal(await page.getByLabel('Atividade planejada').count(), 0);
     assert.equal(await page.getByRole('button',{name:'Preparar prévia da revisão atual'}).isDisabled(), true);
@@ -168,6 +174,8 @@ test('CF-IMP-008: rascunho da conta cruza intake e prévia sem adquirir autorida
       'Recarga elétrica em ambiente urbano');
     assert.equal(await page.getByLabel('País (código de duas letras)').inputValue(), 'BR');
     await page.getByRole('link',{name:'Preferências e equipe'}).click();
+    assert.deepEqual(await menu.getByRole('link').allTextContents(), menuItems);
+    assert.equal(await menu.getByRole('link', {name:'Preferências e equipe'}).getAttribute('aria-current'), 'page');
     await page.getByLabel('Modo de visualização').selectOption('TECHNICAL');
     await page.getByLabel('Preparação técnica (PREP)').fill('Equipe de engenharia');
     await page.getByRole('button',{name:'Salvar preferências'}).click();
@@ -179,7 +187,36 @@ test('CF-IMP-008: rascunho da conta cruza intake e prévia sem adquirir autorida
     await page.getByText('Modo técnico',{exact:true}).waitFor();
     await page.getByText('PEN-004',{exact:false}).waitFor();
     await page.setViewportSize({width: 390, height: 844});
+    const menuButton = page.getByRole('button', {name:'Menu',exact:true});
+    assert.equal(await menu.isVisible(), false);
+    await menuButton.click();
+    await menu.waitFor();
+    assert.equal(await menuButton.getAttribute('aria-expanded'), 'true');
+    assert.deepEqual(await menu.getByRole('link').allTextContents(), menuItems);
+    await menu.getByRole('link', {name:'Planos de convite'}).focus();
+    await page.keyboard.press('Escape');
+    await menu.waitFor({state:'hidden'});
+    assert.equal(await menuButton.evaluate(button => document.activeElement === button), true);
+    await menuButton.click();
+    await menu.getByRole('link', {name:'Planos de convite'}).click();
+    await page.getByRole('heading', {name:'Planos de convite'}).waitFor();
+    assert.equal(await menu.isVisible(), false);
+    await menuButton.click();
+    await menu.waitFor();
+    assert.deepEqual(await menu.getByRole('link').allTextContents(), menuItems);
+    assert.equal(await menu.getByRole('link', {name:'Planos de convite'}).getAttribute('aria-current'), 'page');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth), false);
+
+    await page.route('**/v1/projects/*/technical/capabilities', route => route.fulfill({
+      json:{projectId, environment:'SANDBOX', owner:false, actions:['VIEW_INTAKE'], modules:{}},
+    }));
+    await page.goto(base + '/workspace/projects/' + projectId + '/technical');
+    await page.getByRole('heading', {name:'Preparação técnica'}).waitFor();
+    await menuButton.click();
+    await menu.waitFor();
+    assert.deepEqual(await menu.getByRole('link').allTextContents(),
+      ['Meus projetos', 'Novo projeto', 'Convites recebidos', 'Preparação técnica', 'Piloto sintético']);
+
   } finally {
     await browser.close();
   }

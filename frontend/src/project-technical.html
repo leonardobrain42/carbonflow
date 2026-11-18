@@ -1,18 +1,6 @@
 <a class="cf-skip-link" href="#technical-main">Pular para a preparação técnica</a>
 <div class="cf-workspace-shell cf-journey-shell">
-  <aside class="cf-workspace-sidebar" aria-label="Navegação da conta">
-    <a routerLink="/workspace" class="cf-workspace-brand">Carbon<span>Flow</span></a>
-    <button type="button" class="cf-workspace-outline cf-journey-menu" aria-controls="cf-tech-sidebar"
-      [attr.aria-expanded]="menuOpen()" (click)="menuOpen.set(!menuOpen())">Menu</button>
-    <nav id="cf-tech-sidebar" class="cf-workspace-nav" aria-label="Espaço de trabalho"
-      [class.cf-journey-menu-open]="menuOpen()">
-      <a routerLink="/workspace">Meus projetos</a>
-      @if (!owner() && capabilities()) { <a routerLink="/workspace/invitations">Convites recebidos</a> }
-      @if (owner()) { <a [routerLink]="['/workspace/projects',projectId,'triage']">Triagem guiada</a> }
-      <a [routerLink]="['/workspace/projects',projectId,'technical']" aria-current="page">Preparação técnica</a>
-      @if (owner()) { <a [routerLink]="['/workspace/projects',projectId,'experience']">Preferências e equipe</a> }
-    </nav>
-  </aside>
+  <aside cfWorkspaceNavigation [projectId]="capabilities() ? projectId : null" [owner]="owner()"></aside>
 
   <div class="cf-workspace-stage">
     <header class="cf-workspace-topbar">

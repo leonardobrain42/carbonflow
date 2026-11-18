@@ -1,3 +1,4 @@
+import {WorkspaceNavigationComponent} from './workspace-navigation';
 import {Component, inject, signal} from '@angular/core';
 import {DatePipe} from '@angular/common';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
@@ -56,7 +57,7 @@ const INDEPENDENCE = {
 
 @Component({
   selector: 'carbonflow-project-invitation-plans',
-  imports: [RouterLink, DatePipe],
+  imports: [RouterLink, WorkspaceNavigationComponent, DatePipe],
   templateUrl: './project-invitation-plans.html',
 })
 export class ProjectInvitationPlansComponent {

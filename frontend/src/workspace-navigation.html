@@ -1,0 +1,43 @@
+<a routerLink="/workspace" class="cf-workspace-brand" (click)="open.set(false)">Carbon<span>Flow</span></a>
+<button #toggle type="button" class="cf-workspace-outline cf-workspace-menu-toggle"
+  aria-controls="workspace-navigation" [attr.aria-expanded]="open()"
+  (click)="open.set(!open())" (keydown.escape)="closeOnEscape($event, toggle)">Menu</button>
+<nav id="workspace-navigation" class="cf-workspace-nav" aria-label="Menu principal"
+  [class.cf-workspace-menu-open]="open()" (keydown.escape)="closeOnEscape($event, toggle)">
+  <div class="cf-workspace-nav-group" role="group" aria-label="Minha conta">
+    <p class="cf-workspace-kicker" aria-hidden="true">Minha conta</p>
+    <a routerLink="/workspace" routerLinkActive="cf-workspace-current" ariaCurrentWhenActive="page"
+      [routerLinkActiveOptions]="activeOptions" (click)="open.set(false)">Meus projetos</a>
+    <a routerLink="/workspace/projects/new" routerLinkActive="cf-workspace-current" ariaCurrentWhenActive="page"
+      [routerLinkActiveOptions]="activeOptions" (click)="open.set(false)">Novo projeto</a>
+    <a routerLink="/workspace/invitations" routerLinkActive="cf-workspace-current" ariaCurrentWhenActive="page"
+      [routerLinkActiveOptions]="activeOptions" (click)="open.set(false)">Convites recebidos</a>
+  </div>
+
+  @if (projectId(); as id) {
+    <div class="cf-workspace-nav-group" role="group" aria-label="Projeto">
+      <p class="cf-workspace-kicker" aria-hidden="true">Projeto</p>
+      @if (owner()) {
+        <a [routerLink]="['/workspace/projects', id, 'triage']" routerLinkActive="cf-workspace-current"
+          ariaCurrentWhenActive="page" [routerLinkActiveOptions]="activeOptions" (click)="open.set(false)">Triagem guiada</a>
+      }
+      <a [routerLink]="['/workspace/projects', id, 'technical']" routerLinkActive="cf-workspace-current"
+        ariaCurrentWhenActive="page" [routerLinkActiveOptions]="activeOptions" (click)="open.set(false)">Preparação técnica</a>
+    </div>
+    @if (owner()) {
+      <div class="cf-workspace-nav-group" role="group" aria-label="Equipe e governança">
+        <p class="cf-workspace-kicker" aria-hidden="true">Equipe e governança</p>
+        <a [routerLink]="['/workspace/projects', id, 'experience']" routerLinkActive="cf-workspace-current"
+          ariaCurrentWhenActive="page" [routerLinkActiveOptions]="activeOptions" (click)="open.set(false)">Preferências e equipe</a>
+        <a [routerLink]="['/workspace/projects', id, 'invitation-plans']" routerLinkActive="cf-workspace-current"
+          ariaCurrentWhenActive="page" [routerLinkActiveOptions]="activeOptions" (click)="open.set(false)">Planos de convite</a>
+        <a [routerLink]="['/workspace/projects', id, 'authority-requests']" routerLinkActive="cf-workspace-current"
+          ariaCurrentWhenActive="page" [routerLinkActiveOptions]="activeOptions" (click)="open.set(false)">Comprovação de poderes</a>
+      </div>
+    }
+  }
+
+  <div class="cf-workspace-nav-group">
+    <a href="/pilot">Piloto sintético</a>
+  </div>
+</nav>
