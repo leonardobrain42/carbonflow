@@ -87,6 +87,12 @@ class VehicleRatingIntegrationTest {
             assertEquals(ids[idx],ok(send("POST",ROOT+"/ratings",manager,key,null,payload),201)
                 .path("id").asText());
         }
+        // A source line cannot be silently assigned to two different canonical models.
+        String repeatedRow="{\\"organizationId\\":\\""+ORG+"\\",\\"modelId\\":\\""+BEV_B+
+            "\\",\\"sourceObjectId\\":\\""+PBEV_OBJECT+
+            "\\",\\"sourceRow\\":2,\\"role\\":\\"BEV\\",\\"fuel\\":\\"ELECTRICITY\\","+
+            "\\"cycle\\":\\"COMBINED\\",\\"seats\\":5,\\"cycleEvidence\\":\\"PBEV same row 2\\"}";
+        assertEquals(409,send("POST",ROOT+"/ratings",manager,key(),null,repeatedRow).statusCode());
         assertEquals(404,send("POST",ROOT+"/ratings",outsider,key(),null,
             "{\"organizationId\":\""+ORG+"\"}").statusCode());
 
@@ -122,8 +128,10 @@ class VehicleRatingIntegrationTest {
         JsonNode ready=ok(send("GET",ROOT+"/fleets/"+FLEET_SNAPSHOT+"/composition",
             manager,null,null,null),200);
         assertTrue(ready.path("canSavePreparatory").asBoolean(),ready.toString());
-        assertEquals("20.000000000000",ready.path("afecKwh100mi").asText());
-        assertEquals("30.000000000000",ready.path("mpgUs").asText());
+        assertEquals(0,new java.math.BigDecimal("20")
+            .compareTo(ready.path("afecKwh100mi").decimalValue()));
+        assertEquals(0,new java.math.BigDecimal("30")
+            .compareTo(ready.path("mpgUs").decimalValue()));
         assertFalse(ready.path("usableForE8").asBoolean());
         String freezeKey=key();
         JsonNode frozen=ok(send("POST",ROOT+"/fleets/"+FLEET_SNAPSHOT+"/snapshots",
