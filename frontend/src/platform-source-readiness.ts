@@ -41,6 +41,7 @@ interface SourceReadiness {
   standalone: true,
   imports: [RouterLink],
   templateUrl: './platform-source-readiness.html',
+  styleUrl: './platform-source-readiness.css',
 })
 export class PlatformSourceReadinessComponent {
   private readonly http = inject(HttpClient);
