@@ -79,6 +79,20 @@
       }
 
       @if (currentData(); as view) {
+        <nav class="cf-platform-tabs" aria-label="Áreas do painel de fontes">
+          @for (item of tabs; track item.id) {
+            <button type="button" class="cf-platform-tab" [attr.aria-pressed]="tab() === item.id"
+              (click)="selectTab(item.id)">{{ item.label }}</button>
+          }
+        </nav>
+        @if (tab() === 'acquisition' || tab() === 'history' || tab() === 'impacts') {
+          <section class="cf-workspace-card">
+            <carbonflow-platform-source-operations [methodology]="view.methodology"
+              [edition]="view.edition" [scenario]="view.scenario" [needs]="view.needs"
+              [mode]="tab() === 'history' ? 'history' : tab() === 'impacts' ? 'impacts' : 'acquisition'">
+            </carbonflow-platform-source-operations>
+          </section>
+        } @else {
         <section class="cf-workspace-card">
           <div class="cf-platform-heading-line">
             <div>
@@ -109,7 +123,11 @@
         </section>
 
         <section class="cf-workspace-card">
-          <h2>Necessidades por etapa e situação</h2>
+          <h2>{{ tab() === 'normative' ? 'Documentos normativos' :
+            tab() === 'datasets' ? 'Bases de dados e parâmetros' :
+            tab() === 'project' ? 'Evidências que cada projeto deve fornecer' :
+            tab() === 'admissibility' ? 'Admissibilidade e direitos de uso' :
+            'Necessidades por etapa e situação' }}</h2>
           <div class="cf-platform-filters">
             <div>
               <label for="cf-source-stage">Etapa da jornada</label>
@@ -131,12 +149,12 @@
             </div>
           </div>
           <p class="cf-platform-meta" role="status">
-            {{ visibleNeeds().length }} registros exibidos nesta página · {{ view.total }} correspondem aos filtros.
+            {{ tabNeeds().length }} registros exibidos nesta página · {{ view.total }} correspondem aos filtros.
             As contagens de lacunas acima consideram todo o cenário; itens condicionais não são automaticamente obrigatórios.
           </p>
 
           <div class="cf-platform-list" aria-label="Necessidades de fontes e documentos">
-            @for (item of visibleNeeds(); track item.code) {
+            @for (item of tabNeeds(); track item.code) {
               <article class="cf-platform-need">
                 <div class="cf-platform-heading-line">
                   <div>
@@ -189,12 +207,21 @@
           </div>
         </section>
 
-        <section class="cf-workspace-card">
-          <h2>Próximos módulos de operação</h2>
-          <p>Esta etapa permite inventariar e diagnosticar. Alimentação de documentos, seleção de edições por ano,
-            parecer técnico e publicação de fatores serão implementados em #92 e nas issues de baseline.
-            Um registro de fonte ou direito de referência não equivale a decisão técnica, validação pelo VVB ou VCU emitida.</p>
-        </section>
+        @if (tab() === 'admissibility') {
+          <section class="cf-workspace-card">
+            <h2>Limites da admissão técnica</h2>
+            <p>As permissões exibidas são restritas a operações e escopos. Metadados e autorizações de referência
+              não constituem parecer técnico, fonte aprovada ou parâmetro elegível para o E8.
+              A avaliação formal de edição, fator e fronteira depende do pipeline #92.</p>
+          </section>
+        } @else {
+          <section class="cf-workspace-card">
+            <h2>Distinção entre necessidades e fontes aprovadas</h2>
+            <p>Documentos normativos, bases nacionais e evidências dos projetos possuem responsáveis diferentes.
+              Uma referência presente no catálogo não equivale à publicação de parâmetros nem a créditos verificados.</p>
+          </section>
+        }
+        }
       }
     </main>
   </div>
