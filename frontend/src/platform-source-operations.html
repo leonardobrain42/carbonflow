@@ -1,0 +1,169 @@
+<section class="cf-platform-operations" aria-label="Operação de fontes">
+  @if (loading()) {
+    <p role="status">Atualizando a fila de fontes e os responsáveis…</p>
+  }
+  @if (error()) {
+    <p class="cf-workspace-alert" role="alert">{{ error() }}</p>
+  }
+  @if (notice()) {
+    <p class="cf-platform-success" role="status">{{ notice() }}</p>
+  }
+
+  @if (board(); as snapshot) {
+    @if (mode === 'impacts') {
+      <h2>Impactos por capacidade da jornada</h2>
+      <p>Estes números contam requisitos catalogados, não fontes admitidas nem reduções certificadas.
+        As solicitações abertas são demandas internas, não bloqueios resolvidos.</p>
+      <div class="cf-platform-list">
+        @for (impact of snapshot.impacts; track impact.capability) {
+          <article class="cf-platform-need">
+            <h3>{{ impact.capability }}</h3>
+            <p><strong>{{ impact.required }}</strong> necessidades obrigatórias;
+              <strong>{{ impact.conditional }}</strong> condicionais;
+              <strong>{{ impact.projectEvidence }}</strong> evidências por projeto;
+              <strong>{{ impact.requestsOpen }}</strong> solicitações internas registradas.</p>
+            <p class="cf-platform-meta">Prontidão desta capacidade: pendente até revisão normativa, fontes admitidas e integração técnica.</p>
+          </article>
+        } @empty {
+          <p role="status">Nenhum requisito foi registrado para este cenário.</p>
+        }
+      </div>
+    }
+
+    @if (mode === 'acquisition') {
+      <div class="cf-platform-heading-line">
+        <div>
+          <h2>Alimentação — solicitações internas</h2>
+          <p>Registre, atribua e acompanhe a busca de documentos e bases de dados.
+            A ingestão e a aprovação técnica pertencem ao pipeline de fontes e não são executadas por esta fila.</p>
+        </div>
+        <button type="button" class="cf-workspace-outline" (click)="refresh()" [disabled]="loading() || busy()">
+          Atualizar fila
+        </button>
+      </div>
+      @if (!snapshot.canManage) {
+        <p class="cf-platform-warning">Você possui acesso de consulta. Criar ou alterar demandas exige permissão de gestor de fontes, além do MFA.</p>
+      }
+      <div class="cf-platform-work-layout">
+        <div class="cf-platform-work-list">
+          <h3>Necessidades desta página</h3>
+          @for (need of needs; track need.code) {
+            <article class="cf-platform-work-row">
+              <p class="cf-platform-meta">{{ need.priority }} · {{ need.stage }} · {{ need.kind }}</p>
+              <strong>{{ need.title }}</strong>
+              <p class="cf-platform-meta">Diagnóstico: {{ need.status }}</p>
+              @if (need.kind === 'PROJECT_EVIDENCE') {
+                <p class="cf-platform-meta">Prova do titular/operador — obtenção somente na jornada do projeto.</p>
+              } @else {
+                <button type="button" class="cf-workspace-outline" (click)="selectNeed(need.code)"
+                  [disabled]="loading() || busy()" [attr.aria-pressed]="selectedCode() === need.code">
+                  {{ snapshot.work.length && existing()?.needCode === need.code ? 'Abrir solicitação' : 'Solicitar/acompanhar fonte' }}
+                </button>
+              }
+            </article>
+          } @empty {
+            <p>Não há necessidades nesta página. Verifique os filtros de etapa e situação.</p>
+          }
+        </div>
+
+        <div class="cf-platform-work-editor">
+          @if (selectedNeed(); as need) {
+            <h3>{{ need.title }}</h3>
+            <p class="cf-platform-meta">Necessidade {{ need.code }}. A criação de uma tarefa não altera sua situação documental.</p>
+            @if (detail(); as current) {
+              <p><strong>Progresso:</strong> {{ statusLabel(current.work.status) }}
+                · versão {{ current.work.version }}
+                · responsável {{ current.work.ownerName || 'não atribuído' }}</p>
+              @if (snapshot.canManage) {
+                <form (ngSubmit)="revise()">
+                  <label for="cf-work-status">Próxima situação da busca</label>
+                  <select id="cf-work-status" name="status" [(ngModel)]="selectedStatus" required>
+                    @for (status of statusOptions; track status.id) {
+                      <option [value]="status.id">{{ status.label }}</option>
+                    }
+                  </select>
+                  <label for="cf-work-owner">Responsável interno</label>
+                  <select id="cf-work-owner" name="owner" [(ngModel)]="selectedOwner">
+                    <option value="">Não atribuído</option>
+                    @for (person of assignees(); track person.id) {
+                      <option [value]="person.id">{{ person.name }}</option>
+                    }
+                  </select>
+                  <label for="cf-work-note">Justificativa desta atualização</label>
+                  <textarea id="cf-work-note" name="note" [(ngModel)]="editNote"
+                    maxlength="2000" rows="3" required placeholder="Registre o próximo passo ou o motivo da alteração"></textarea>
+                  <button type="submit" class="cf-workspace-primary"
+                    [disabled]="busy() || loading()">Registrar nova revisão</button>
+                </form>
+              }
+            } @else if (!existing()) {
+              @if (snapshot.canManage) {
+                <form (ngSubmit)="create()">
+                  <label for="cf-new-owner">Responsável interno</label>
+                  <select id="cf-new-owner" name="owner" [(ngModel)]="selectedOwner">
+                    <option value="">Não atribuído</option>
+                    @for (person of assignees(); track person.id) {
+                      <option [value]="person.id">{{ person.name }}</option>
+                    }
+                  </select>
+                  <label for="cf-new-note">Objetivo da solicitação e evidência esperada</label>
+                  <textarea id="cf-new-note" name="note" [(ngModel)]="newNote"
+                    maxlength="2000" rows="4" required placeholder="Descreva a fonte, ano, edição e finalidade da aquisição"></textarea>
+                  <button type="submit" class="cf-workspace-primary" [disabled]="busy() || loading()">
+                    Abrir solicitação
+                  </button>
+                </form>
+              } @else {
+                <p>Esta fonte ainda não tem uma solicitação. Procure a equipe gestora de fontes.</p>
+              }
+            }
+          } @else {
+            <h3>Detalhes da solicitação</h3>
+            <p>Selecione uma necessidade para abrir uma solicitação ou acompanhar o trabalho existente.</p>
+          }
+          <p class="cf-platform-meta">Não é possível aprovar a admissão técnica, registrar uma licença ou ingerir um PDF nesta área. Essas decisões terão fluxos específicos de autorização e revisão.</p>
+        </div>
+      </div>
+    }
+
+    @if (mode === 'history') {
+      <h2>Revisões e histórico da alimentação</h2>
+      <p>Eventos de trabalho são persistidos por versão, com responsável, autor e justificativa. Isso não constitui parecer normativo.</p>
+      <div class="cf-platform-work-layout">
+        <div class="cf-platform-work-list">
+          @for (item of snapshot.work; track item.needCode) {
+            <article class="cf-platform-work-row">
+              <strong>{{ item.title }}</strong>
+              <p class="cf-platform-meta">{{ statusLabel(item.status) }} · versão {{ item.version }} ·
+                {{ item.ownerName || 'Não atribuído' }}</p>
+              <button type="button" class="cf-workspace-outline" (click)="selectNeed(item.needCode)"
+                [disabled]="loading() || busy()" [attr.aria-pressed]="selectedCode() === item.needCode">
+                Consultar histórico
+              </button>
+            </article>
+          } @empty {
+            <p role="status">Ainda não existem solicitações registradas neste cenário.</p>
+          }
+        </div>
+        <div class="cf-platform-work-editor">
+          @if (detail(); as selected) {
+            <h3>{{ selected.work.title }}</h3>
+            <ol class="cf-platform-revisions">
+              @for (event of selected.history; track event.version) {
+                <li>
+                  <strong>Revisão {{ event.version }}</strong> · {{ statusLabel(event.status) }}
+                  <p>{{ event.note }}</p>
+                  <p class="cf-platform-meta">{{ event.actorName }} · {{ event.recordedAt }}
+                    · responsável: {{ event.ownerName || 'Não atribuído' }}</p>
+                </li>
+              }
+            </ol>
+          } @else {
+            <h3>Histórico de uma necessidade</h3>
+            <p>Selecione uma solicitação para consultar as versões registradas.</p>
+          }
+        </div>
+      </div>
+    }
+  }
+</section>
