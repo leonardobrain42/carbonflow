@@ -55,8 +55,8 @@ export class PlatformFleetComponent implements OnChanges {
   readonly busy=signal(false);
   readonly error=signal('');
   readonly message=signal('');
-  readonly available= computed(()=>this.methodology==='VM0038' && this.edition==='1.1'
-    && this.scenario==='OPEN_LDV_DCFC_SIN_BR');
+  available(){return this.methodology==='VM0038' && this.edition==='1.1'
+    && this.scenario==='OPEN_LDV_DCFC_SIN_BR';}
   readonly candidates= computed(()=>(this.board()?.sources??[]).filter(s=>s.rightsActive));
   readonly aliasesThisYear= computed(()=>this.board()?.aliases.filter(a=>a.observationYear===Number(this.year))??[]);
   readonly missingAliases= computed(()=>this.preview()?.rows.filter(row=>!row.modelId)??[]);
