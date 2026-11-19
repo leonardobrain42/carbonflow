@@ -88,10 +88,11 @@ class VehicleRatingIntegrationTest {
                 .path("id").asText());
         }
         // A source line cannot be silently assigned to two different canonical models.
-        String repeatedRow="{\\"organizationId\\":\\""+ORG+"\\",\\"modelId\\":\\""+BEV_B+
-            "\\",\\"sourceObjectId\\":\\""+PBEV_OBJECT+
-            "\\",\\"sourceRow\\":2,\\"role\\":\\"BEV\\",\\"fuel\\":\\"ELECTRICITY\\","+
-            "\\"cycle\\":\\"COMBINED\\",\\"seats\\":5,\\"cycleEvidence\\":\\"PBEV same row 2\\"}";
+        String repeatedRow = """
+            {"organizationId":"%s","modelId":"%s","sourceObjectId":"%s",
+             "sourceRow":2,"role":"BEV","fuel":"ELECTRICITY","cycle":"COMBINED",
+             "seats":5,"cycleEvidence":"PBEV same row 2"}
+            """.formatted(ORG,BEV_B,PBEV_OBJECT);
         assertEquals(409,send("POST",ROOT+"/ratings",manager,key(),null,repeatedRow).statusCode());
         assertEquals(404,send("POST",ROOT+"/ratings",outsider,key(),null,
             "{\"organizationId\":\""+ORG+"\"}").statusCode());
