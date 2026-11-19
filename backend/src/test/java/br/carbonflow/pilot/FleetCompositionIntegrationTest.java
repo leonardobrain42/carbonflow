@@ -34,6 +34,9 @@ class FleetCompositionIntegrationTest {
     static final UUID SUBMISSION=UUID.fromString("ff5c0000-0000-4000-8000-000000000006");
     static final UUID LICENSE=UUID.fromString("ff5c0000-0000-4000-8000-000000000007");
     static final UUID SOURCE_OBJECT=UUID.fromString("ff5c0000-0000-4000-8000-000000000008");
+    static final UUID SUBMISSION2=UUID.fromString("ff5c0000-0000-4000-8000-000000000011");
+    static final UUID LICENSE2=UUID.fromString("ff5c0000-0000-4000-8000-000000000012");
+    static final UUID SOURCE_OBJECT2=UUID.fromString("ff5c0000-0000-4000-8000-000000000013");
     static final byte[] SECRET="23456789012345678901".getBytes(StandardCharsets.US_ASCII);
     static final String ROOT="/v1/platform/fleet";
     static final int YEAR=2081;
@@ -136,6 +139,21 @@ class FleetCompositionIntegrationTest {
         String imported=first.at("/snapshot/ingestionId").asText();
         assertEquals(404,request("GET",ROOT+"/imports/"+imported,outsider,null,null).statusCode());
 
+        // An independently approved later edition creates another immutable snapshot.
+        seedSecondEdition();
+        JsonNode secondPreview=read(request("GET",ROOT+"/sources/"+SOURCE_OBJECT2+
+            "/preview?year="+YEAR,manager,null,null),200);
+        assertTrue(secondPreview.path("canCreateSnapshot").asBoolean(),secondPreview.toString());
+        JsonNode newer=read(request("POST",ROOT+"/imports",manager,key(),
+            "{\"sourceObjectId\":\""+SOURCE_OBJECT2+"\",\"year\":"+YEAR+"}"),201);
+        assertEquals(100,newer.at("/snapshot/denominator").asInt());
+        assertEquals(2L,count("app_fleet_composition_snapshot"));
+        assertEquals("STALE_REFERENCE",read(request("GET",ROOT+"/imports/"+imported,
+            manager,null,null),200).at("/snapshot/state").asText());
+        assertEquals(25,read(request("GET",ROOT+"/imports/"+imported,
+            manager,null,null),200).path("weights").get(0).path("evr").asInt());
+        assertEquals("PREPARATORY",newer.at("/snapshot/state").asText());
+
         // Source rights revocation must purge snapshots AND observations, not only the original.
         db.transaction(c->{
             update(c, """
@@ -144,18 +162,93 @@ class FleetCompositionIntegrationTest {
                 """,LICENSE,REVIEWER);
             return null;
         });
-        assertEquals(0L,count("app_fleet_composition_weight"));
-        assertEquals(0L,count("app_fleet_stock_observation"));
+        assertEquals(2L,count("app_fleet_composition_weight"),
+            "O snapshot da outra licença permanece; o revogado foi expurgado.");
+        assertEquals(2L,count("app_fleet_stock_observation"));
         assertEquals(0L,count("app_fleet_sales_observation"));
-        assertEquals(1L,count("app_fleet_composition_snapshot"));
-        assertNull(db.read(c->first(c,"SELECT denominator FROM app_fleet_composition_snapshot",
-            r->(Long)r.getObject(1))));
+        assertEquals(2L,count("app_fleet_composition_snapshot"));
+        assertNull(db.read(c->first(c, """
+            SELECT s.denominator FROM app_fleet_composition_snapshot s
+            JOIN app_fleet_ingestion i ON i.id=s.ingestion_id
+            WHERE i.source_license_id=?
+            """,r->(Long)r.getObject(1),LICENSE)));
+        assertNull(db.read(c->first(c, """
+            SELECT s.number_of_models FROM app_fleet_composition_snapshot s
+            JOIN app_fleet_ingestion i ON i.id=s.ingestion_id
+            WHERE i.source_license_id=?
+            """,r->(Integer)r.getObject(1),LICENSE)));
         assertEquals(404,request("GET",ROOT+"/imports/"+imported,manager,null,null).statusCode());
+        assertEquals(200,request("GET",ROOT+"/imports/"+newer.at("/snapshot/ingestionId").asText(),
+            manager,null,null).statusCode());
         JsonNode postRevocation=read(request("GET",ROOT+"/board",manager,null,null),200);
-        assertEquals("RIGHTS_UNAVAILABLE",postRevocation.path("snapshots").get(0).path("state").asText());
-        assertTrue(postRevocation.path("snapshots").get(0).path("denominator").isNull());
+        JsonNode oldStatus=postRevocation.path("snapshots").valueStream()
+            .filter(n->imported.equals(n.path("ingestionId").asText())).findFirst().orElseThrow();
+        assertEquals("RIGHTS_UNAVAILABLE",oldStatus.path("state").asText());
+        assertTrue(oldStatus.path("denominator").isNull());
         assertEquals(404,request("GET",ROOT+"/sources/"+SOURCE_OBJECT+"/preview?year="+YEAR,
             manager,null,null).statusCode());
+    }
+
+    private void seedSecondEdition() {
+        db.transaction(c->{
+            update(c, """
+                INSERT INTO app_source_version
+                (source_id,edition,category,title,rights_holder,official_uri,origin)
+                VALUES('BR-LDV-BEV-STOCK-BY-MODEL','2081-R2','EXTERNAL_SOURCE',
+                       'Base EVR sintética corrigida','Editorial de teste',
+                       'https://example.org/evr-v2','EXTERNAL')
+                """);
+            update(c, """
+                INSERT INTO app_platform_source_submission
+                (id,need_code,source_id,edition,category,title,rights_holder,publisher,
+                 official_uri,reference_year,locator,metadata_fingerprint,state,
+                 submitted_by,reviewed_by)
+                VALUES(?,'OPEN-EVR','BR-LDV-BEV-STOCK-BY-MODEL','2081-R2','EXTERNAL_SOURCE',
+                       'Base EVR sintética corrigida','Editorial de teste','Gerador de testes',
+                       'https://example.org/evr-v2',?,'Tabela 2',?,'METADATA_ACCEPTED',?,?)
+                """,SUBMISSION2,YEAR,AccessSecrets.digest("fleet metadata r2"),
+                MANAGER,REVIEWER);
+            update(c, """
+                INSERT INTO app_content_license
+                (id,source_id,edition,organization_id,submitted_by,environment,purpose,
+                 authorization_ref,proof_sha256,starts_at,ends_at)
+                VALUES (?,'BR-LDV-BEV-STOCK-BY-MODEL','2081-R2',?,?,'SANDBOX',
+                  'AUTHORIZED_PROCESSING','Autorização R2 somente fixture',?,
+                  '2020-01-01',statement_timestamp()+interval '1 hour')
+                """,LICENSE2,ORG,MANAGER,"c".repeat(64));
+            update(c, """
+                INSERT INTO app_content_license_decision(license_id,version,outcome,decided_by,reason)
+                VALUES(?,1,'APPROVED',?,'Aprovação R2 de teste para dados fictícios')
+                """,LICENSE2,REVIEWER);
+            update(c, """
+                INSERT INTO app_content_license_capability(license_id,decision_version,operation)
+                VALUES (?,1,'STORE_ORIGINAL'),(?,1,'EXTRACT_TEXT'),
+                       (?,1,'SHOW_EXCERPTS'),(?,1,'EXPORT_DERIVATIVES')
+                """,LICENSE2,LICENSE2,LICENSE2,LICENSE2);
+            update(c, """
+                INSERT INTO app_platform_source_object
+                (id,submission_id,organization_id,uploaded_by,license_id,license_version,
+                 file_name,file_format,sha256,bytes_count,nonce,encrypted,state,parsed_rows,parser_version)
+                VALUES (?,?,?,?,?,1,'evr-fixture-v2.csv','CSV',?,16,?,?,
+                        'APPROVED_FOR_SCOPE',2,'TEST-FIXTURE')
+                """,SOURCE_OBJECT2,SUBMISSION2,ORG,MANAGER,LICENSE2,
+                AccessSecrets.digest("fictional bytes version 2"),new byte[12],new byte[32]);
+            update(c, """
+                INSERT INTO app_platform_source_candidate
+                (object_id,row_index,record_key,metric,period_year,geography,unit,value_numeric,locator)
+                VALUES(?,2,'MODEL_A','stock',?,'BR','vehicles',20,'TEST-R2:ROW2'),
+                      (?,3,'MODEL_B','stock',?,'BR','vehicles',80,'TEST-R2:ROW3')
+                """,SOURCE_OBJECT2,YEAR,SOURCE_OBJECT2,YEAR);
+            update(c, """
+                INSERT INTO app_platform_source_assessment
+                (id,object_id,outcome,methodology,methodology_edition,scenario,
+                 blocked_capability,metric,period_year,geography,unit,evidence_locator,reason,reviewed_by)
+                VALUES (?,?,'APPROVED_FOR_SCOPE','VM0038','1.1','OPEN_LDV_DCFC_SIN_BR',
+                 'BASELINE_BE','stock',?,'BR','vehicles','Tabular R2 line 2',
+                 'Parecer sintético independente versão R2',?)
+                """,UUID.randomUUID(),SOURCE_OBJECT2,YEAR,REVIEWER);
+            return null;
+        });
     }
 
     private void seed(boolean alternative) {
