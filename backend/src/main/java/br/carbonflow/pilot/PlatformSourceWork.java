@@ -142,7 +142,7 @@ class PlatformSourceWork {
     Detail revise(String token, String code, int expectedVersion, Change change) {
         return database.transaction(connection -> {
             var actor = manager(connection, token);
-            if (change == null || !Set.of("REQUESTED","SOURCING","WAITING_RIGHTS",
+            if (change == null || change.status() == null || !Set.of("REQUESTED","SOURCING","WAITING_RIGHTS",
                     "READY_FOR_HANDOFF","ON_HOLD").contains(change.status())) {
                 throw bad("status","Situação de solicitação inválida.");
             }
