@@ -89,7 +89,7 @@ CREATE TABLE app_fleet_composition_snapshot (
   observation_year integer NOT NULL,
   geography text NOT NULL DEFAULT 'BR' CHECK (geography='BR'),
   denominator bigint CHECK (denominator>0),
-  number_of_models integer NOT NULL CHECK(number_of_models BETWEEN 1 AND 2000),
+  number_of_models integer CHECK(number_of_models IS NULL OR number_of_models BETWEEN 1 AND 2000),
   coverage_state text NOT NULL DEFAULT 'OFFICIAL_TOTAL_NOT_VERIFIED'
     CHECK (coverage_state IN ('OFFICIAL_TOTAL_NOT_VERIFIED','SUSPENDED')),
   rating_state text NOT NULL DEFAULT 'RATINGS_NOT_LINKED'
@@ -137,7 +137,7 @@ BEGIN
       app_fleet_ingestion i
     WHERE w.snapshot_id=s.id AND s.ingestion_id=i.id AND i.source_license_id=NEW.license_id;
    UPDATE app_fleet_composition_snapshot s
-      SET denominator=NULL,coverage_state='SUSPENDED',rating_state='SUSPENDED',
+      SET denominator=NULL,number_of_models=NULL,coverage_state='SUSPENDED',rating_state='SUSPENDED',
           purged_at=statement_timestamp()
      FROM app_fleet_ingestion i
      WHERE s.ingestion_id=i.id AND i.source_license_id=NEW.license_id
