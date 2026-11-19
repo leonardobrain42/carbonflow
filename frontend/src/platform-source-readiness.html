@@ -1,0 +1,153 @@
+<a class="cf-skip-link" href="#cf-platform-sources-main">Pular para o conteúdo</a>
+<div class="cf-workspace-shell">
+  <aside class="cf-workspace-sidebar" aria-label="Navegação administrativa">
+    <a routerLink="/workspace" class="cf-workspace-brand">Carbon<span>Flow</span></a>
+    <p class="cf-workspace-kicker">ADMIN CARBONFLOW</p>
+    <nav class="cf-workspace-nav" aria-label="Console interno">
+      <a routerLink="/workspace">Meus projetos</a>
+      <a routerLink="/workspace/compliance">Conformidade</a>
+      <a routerLink="/workspace/platform/sources" aria-current="page">Fontes e prontidão</a>
+    </nav>
+    <p class="cf-platform-sidebar-note">Inventário interno consultivo. Não substitui revisão técnica nem constitui certificação Verra.</p>
+  </aside>
+
+  <div class="cf-workspace-stage">
+    <header class="cf-workspace-topbar">
+      <span>Admin CarbonFlow</span>
+      <a routerLink="/workspace" class="cf-workspace-link">Voltar à conta</a>
+    </header>
+    <main id="cf-platform-sources-main" class="cf-workspace-content cf-platform-content">
+      <header class="cf-workspace-heading">
+        <span class="cf-workspace-chip">PAINEL INTERNO · INVENTÁRIO DE FONTES</span>
+        <h1>Fontes, documentos e prontidão</h1>
+        <p>Identifique os documentos e dados ainda necessários para uma jornada metodológica completa.
+          A disponibilidade de metadados ou de licença de referência não equivale à aprovação técnica.</p>
+      </header>
+
+      @if (error()) {
+        <p class="cf-workspace-alert" role="alert">{{ error() }}</p>
+      }
+      @if (loading()) {
+        <p role="status">Conferindo acesso e consultando o inventário…</p>
+      }
+      @if (!loading() && !session()) {
+        <section class="cf-workspace-card">
+          <h2>Acesso interno indisponível</h2>
+          <p>Entre na sua conta e utilize uma identidade autorizada da equipe interna CarbonFlow.</p>
+          <a routerLink="/workspace" class="cf-workspace-link">Ir para minha conta</a>
+          <button type="button" class="cf-workspace-outline" (click)="refresh()">Verificar novamente</button>
+        </section>
+      } @else if (!loading() && session() && !currentData()) {
+        @if (!session()?.verified) {
+          <section class="cf-workspace-card">
+            <h2>Verificação da equipe interna</h2>
+            <p>A leitura deste inventário exige uma sessão de staff com segundo fator. O acesso a um projeto não concede acesso ao console.</p>
+            <form (submit)="verify($event, code)">
+              <label for="cf-source-admin-mfa">Código de seis dígitos do autenticador</label>
+              <input #code id="cf-source-admin-mfa" inputmode="numeric" type="text"
+                pattern="[0-9]{6}" autocomplete="one-time-code" maxlength="6" required
+                [disabled]="loading()"/>
+              <button type="submit" class="cf-workspace-primary" [disabled]="loading()">Desbloquear inventário</button>
+            </form>
+          </section>
+        } @else {
+          <section class="cf-workspace-card">
+            <h2>Inventário temporariamente indisponível</h2>
+            <p>Confira se sua autenticação continua válida e consulte novamente.</p>
+            <button type="button" class="cf-workspace-outline" (click)="refresh()">Consultar novamente</button>
+          </section>
+        }
+      }
+
+      @if (currentData(); as view) {
+        <section class="cf-workspace-card">
+          <div class="cf-platform-heading-line">
+            <div>
+              <h2>VM0038 · edição {{ view.edition }}</h2>
+              <p>Brasil · rede aberta · veículos leves BEV · DCFC · SIN</p>
+              <p class="cf-platform-meta">Referência temporal da consulta: {{ view.asOf }} · Cenário: {{ view.scenario }}</p>
+            </div>
+            <button type="button" class="cf-workspace-outline" (click)="refresh()" [disabled]="loading()">Atualizar</button>
+          </div>
+          <p role="status" class="cf-platform-warning">
+            Regras normativas: {{ view.normativeRuleStatus === 'ONLY_SYNTHETIC_RULE_PACKS'
+              ? 'apenas pacote sintético demonstrativo — regras reais ainda não publicadas'
+              : 'nenhum pacote real publicado confirmado' }}.
+            Nenhuma fonte abaixo está automaticamente admitida para cálculo.
+          </p>
+          <div class="cf-platform-metrics" aria-label="Situação do inventário">
+            <div class="cf-platform-metric"><strong>{{ view.missingSourceCount }}</strong><span>fontes obrigatórias sem metadados</span></div>
+            <div class="cf-platform-metric"><strong>{{ view.missingReferenceRightsCount }}</strong><span>fontes obrigatórias só com metadados</span></div>
+            <div class="cf-platform-metric"><strong>{{ view.reviewPendingCount }}</strong><span>referências autorizadas, ainda sem admissão</span></div>
+            <div class="cf-platform-metric"><strong>{{ view.projectEvidenceCount }}</strong><span>tipos de evidência exigidos por projeto</span></div>
+          </div>
+        </section>
+
+        <section class="cf-workspace-card">
+          <h2>Explorar necessidades por etapa</h2>
+          <div class="cf-platform-filters">
+            <div>
+              <label for="cf-source-stage">Etapa da jornada</label>
+              <select id="cf-source-stage" [value]="stage()" (change)="onStage($event)">
+                <option value="ALL">Todas as etapas</option>
+                @for (part of stages; track part.id) {
+                  <option [value]="part.id">{{ part.label }}</option>
+                }
+              </select>
+            </div>
+            <div>
+              <label for="cf-source-status">Situação da fonte</label>
+              <select id="cf-source-status" [value]="statusFilter()" (change)="onStatus($event)">
+                <option value="ALL">Todas as situações</option>
+                @for (item of statuses; track item.id) {
+                  <option [value]="item.id">{{ item.label }}</option>
+                }
+              </select>
+            </div>
+          </div>
+          <p class="cf-platform-meta" role="status">
+            {{ filtered().length }} de {{ view.needs.length }} necessidades exibidas.
+            Itens condicionais não são automaticamente obrigatórios em todos os projetos.
+          </p>
+
+          <div class="cf-platform-list" aria-label="Necessidades de fontes e documentos">
+            @for (item of filtered(); track item.code) {
+              <article class="cf-platform-need">
+                <div class="cf-platform-heading-line">
+                  <div>
+                    <p class="cf-platform-meta">{{ stageLabel(item.stage) }} · {{ item.kind === 'PROJECT_EVIDENCE'
+                      ? 'Evidência do projeto' : item.kind === 'NORMATIVE' ? 'Documento normativo' : 'Base de dados' }}
+                      · {{ item.mandatory ? 'Obrigatório para a rota indicada' : 'Condicional' }}</p>
+                    <h3>{{ item.title }}</h3>
+                  </div>
+                  <span class="cf-platform-status">{{ statusLabel(item.status) }}</span>
+                </div>
+                <p>{{ item.purpose }}</p>
+                @if (item.sourceId) {
+                  <p class="cf-platform-meta">Identificador previsto: <code>{{ item.sourceId }} · {{ item.sourceEdition }}</code></p>
+                }
+                @if (item.conditionNote) {
+                  <p><strong>Condição e ressalva:</strong> {{ item.conditionNote }}</p>
+                }
+                <p><strong>Próxima ação:</strong> {{ item.nextAction }}</p>
+                @if (item.officialUri) {
+                  <a class="cf-workspace-link" [href]="item.officialUri" target="_blank"
+                    rel="noopener noreferrer">Consultar publicação oficial</a>
+                }
+              </article>
+            } @empty {
+              <p role="status">Nenhuma necessidade corresponde aos filtros. Altere a etapa ou a situação.</p>
+            }
+          </div>
+        </section>
+
+        <section class="cf-workspace-card">
+          <h2>O que este painel ainda não faz</h2>
+          <p>Esta primeira fatia é somente consulta ao banco. Ingestão de documentos, revisão de admissibilidade,
+            seleção de parâmetros por projeto, acompanhamento de importações e ações de publicação estão planejados
+            nas próximas etapas. A lista não comprova prontidão de redução de emissões ou autorização de uso de textos protegidos.</p>
+        </section>
+      }
+    </main>
+  </div>
+</div>
