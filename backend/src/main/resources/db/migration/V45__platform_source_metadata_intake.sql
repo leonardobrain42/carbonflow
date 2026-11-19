@@ -5,6 +5,8 @@ CREATE TABLE app_platform_source_submission (
     need_code text NOT NULL REFERENCES app_methodology_source_need(code),
     source_id text NOT NULL,
     edition text NOT NULL,
+    category text NOT NULL CHECK (category IN
+        ('PROGRAM_DOCUMENT','METHODOLOGY','MODULE','TOOL','TEMPLATE','EXTERNAL_SOURCE')),
     title text NOT NULL CHECK (char_length(btrim(title)) BETWEEN 3 AND 200),
     rights_holder text NOT NULL CHECK (char_length(btrim(rights_holder)) BETWEEN 2 AND 200),
     publisher text NOT NULL CHECK (char_length(btrim(publisher)) BETWEEN 2 AND 200),
