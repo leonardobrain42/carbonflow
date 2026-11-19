@@ -85,7 +85,15 @@
               (click)="selectTab(item.id)">{{ item.label }}</button>
           }
         </nav>
-        @if (tab() === 'acquisition' || tab() === 'history' || tab() === 'impacts') {
+        @if (tab() === 'ingestion') {
+          <section class="cf-workspace-card">
+            <carbonflow-platform-source-ingestion
+              [methodology]="view.methodology" [edition]="view.edition"
+              [scenario]="view.scenario" [needs]="view.needs"
+              (published)="loadReadiness()">
+            </carbonflow-platform-source-ingestion>
+          </section>
+        } @else if (tab() === 'acquisition' || tab() === 'history' || tab() === 'impacts') {
           <section class="cf-workspace-card">
             <carbonflow-platform-source-operations [methodology]="view.methodology"
               [edition]="view.edition" [scenario]="view.scenario" [needs]="view.needs"
