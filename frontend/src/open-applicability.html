@@ -1,0 +1,159 @@
+<section class="cf-journey-context" aria-label="Aplicabilidade de rede aberta">
+  <h3>Rede aberta — aplicabilidade VM0038 v1.1 (preparação)</h3>
+  <p>Esta ficha permite preparar a análise enquanto as fontes da equipe CarbonFlow são obtidas.
+    As declarações são hipóteses versionadas e não substituem provas, parecer normativo, Verra ou VVB.
+    Uma rede não deixa de ser aberta por estar em terreno particular ou por cobrar pela recarga:
+    verifique se o uso é restrito a veículos nominados.</p>
+
+  @if (loading()){<p role="status">Carregando a ficha de aplicabilidade…</p>}
+  @if (error()){<p role="alert" class="cf-workspace-alert">{{error()}}</p>}
+  @if (notice()){<p role="status" class="cf-workspace-note">{{notice()}}</p>}
+  @if (view();as state){
+    <dl class="cf-tech-capabilities">
+      <div><dt>Declaração</dt><dd>{{state.version ? 'Revisão '+state.version : 'Não iniciada'}}</dd></div>
+      <div><dt>Rede</dt><dd>{{state.readiness.network}}</dd></div>
+      <div><dt>Direitos</dt><dd>{{state.readiness.rights}}</dd></div>
+      <div><dt>Análise normativa</dt><dd>{{state.readiness.norm}}</dd></div>
+      <div><dt>Cálculo real</dt><dd>Não liberado enquanto faltarem fontes, provas e revisão</dd></div>
+    </dl>
+    @if (state.readiness.stale){
+      <p role="alert" class="cf-workspace-alert">A triagem foi alterada após esta revisão. Confirme a declaração e salve outra versão antes de avaliar o projeto.</p>
+    }
+    @if (editable) {
+      <form (submit)="save($event)" class="cf-open-applicability-form">
+        <fieldset [disabled]="busy()">
+          <legend>Como funciona o acesso aos carregadores?</legend>
+          <p>As informações abaixo são independentes: terreno privado não equivale a frota fechada.</p>
+          <div class="cf-journey-fields">
+            <div>
+              <label for="cf-open-access">Qualquer BEV compatível pode utilizar?</label>
+              <select id="cf-open-access" [value]="bool(form().unrestrictedBevAccess)"
+                (change)="update('unrestrictedBevAccess',$any($event.target).value)">
+                @for (o of yesNo;track o.value){<option [value]="o.value">{{o.label}}</option>}
+              </select>
+            </div>
+            <div>
+              <label for="cf-open-fleet">Restringe o uso a veículos identificados?</label>
+              <select id="cf-open-fleet" [value]="bool(form().restrictedToIdentifiedVehicles)"
+                (change)="update('restrictedToIdentifiedVehicles',$any($event.target).value)">
+                @for (o of yesNo;track o.value){<option [value]="o.value">{{o.label}}</option>}
+              </select>
+            </div>
+            <div>
+              <label for="cf-open-land">O ponto fica em terreno particular?</label>
+              <select id="cf-open-land" [value]="bool(form().privateLand)"
+                (change)="update('privateLand',$any($event.target).value)">
+                @for (o of yesNo;track o.value){<option [value]="o.value">{{o.label}}</option>}
+              </select>
+            </div>
+            <div>
+              <label for="cf-open-charger">Tecnologia de recarga</label>
+              <select id="cf-open-charger" [value]="form().chargerType ?? ''"
+                (change)="update('chargerType',$any($event.target).value)">
+                <option value="">Ainda não sei</option><option value="DCFC">DCFC</option>
+                <option value="AC">AC</option><option value="MIXED">Mista</option>
+                <option value="UNKNOWN">A confirmar</option>
+              </select>
+            </div>
+            <div>
+              <label for="cf-open-propulsion">Veículos atendidos</label>
+              <select id="cf-open-propulsion" [value]="form().propulsion ?? ''"
+                (change)="update('propulsion',$any($event.target).value)">
+                <option value="">Ainda não sei</option><option value="BEV">BEV (bateria)</option>
+                <option value="PHEV">PHEV</option><option value="MIXED">Misturados</option>
+                <option value="UNKNOWN">A confirmar</option>
+              </select>
+            </div>
+            <div>
+              <label for="cf-open-sin">Energia do sistema</label>
+              <select id="cf-open-sin" [value]="form().electricitySource ?? ''"
+                (change)="update('electricitySource',$any($event.target).value)">
+                <option value="">Ainda não sei</option><option value="SIN">Somente SIN</option>
+                <option value="OTHER_GRID">Outra rede</option>
+                <option value="ON_SITE">Geração local</option>
+                <option value="MIXED">Origens combinadas</option>
+                <option value="UNKNOWN">A confirmar</option>
+              </select>
+            </div>
+            <div>
+              <label for="cf-open-associated">Existe armazenamento/geração associada?</label>
+              <select id="cf-open-associated" [value]="bool(form().associatedInfrastructure)"
+                (change)="update('associatedInfrastructure',$any($event.target).value)">
+                @for (o of yesNo;track o.value){<option [value]="o.value">{{o.label}}</option>}
+              </select>
+            </div>
+            <div>
+              <label for="cf-open-v2g">O carregador devolve energia à rede (V2G)?</label>
+              <select id="cf-open-v2g" [value]="bool(form().v2g)"
+                (change)="update('v2g',$any($event.target).value)">
+                @for (o of yesNo;track o.value){<option [value]="o.value">{{o.label}}</option>}
+              </select>
+            </div>
+          </div>
+        </fieldset>
+        <fieldset [disabled]="busy()">
+          <legend>Quem possui os direitos sobre as reduções?</legend>
+          <p>Contrato com o proprietário não substitui a prova de divulgação aos motoristas.</p>
+          <label for="cf-open-owner">Proprietário do sistema de recarga</label>
+          <input id="cf-open-owner" maxlength="200" [value]="form().chargingOwner ?? ''"
+            (input)="update('chargingOwner',$any($event.target).value)"/>
+          <label for="cf-open-contract">Referência verificável do contrato de direitos</label>
+          <input id="cf-open-contract" maxlength="300" [value]="form().carbonRightsContractRef ?? ''"
+            (input)="update('carbonRightsContractRef',$any($event.target).value)"
+            placeholder="ID de evidência/documento ou contrato; não cole texto protegido"/>
+          <label for="cf-open-channel">Como a informação chega aos motoristas?</label>
+          <select id="cf-open-channel" [value]="form().driverDisclosureChannel ?? 'NOT_DECLARED'"
+            (change)="update('driverDisclosureChannel',$any($event.target).value)">
+            <option value="NOT_DECLARED">Ainda não foi informado</option>
+            <option value="ON_CHARGER">Aviso no próprio carregador</option>
+            <option value="APP_OR_WEBSITE">Aplicativo ou página de serviço</option>
+            <option value="TERMS_OF_SERVICE">Termos acessíveis antes da recarga</option>
+          </select>
+          <label for="cf-open-disclosure">Evidência da divulgação publicada</label>
+          <input id="cf-open-disclosure" maxlength="300" [value]="form().driverDisclosureEvidenceRef ?? ''"
+            (input)="update('driverDisclosureEvidenceRef',$any($event.target).value)"
+            placeholder="Referência de versão e evidência da publicação"/>
+          <div class="cf-journey-fields">
+            <div>
+              <label for="cf-open-disclosure-date">Desde quando a divulgação vale?</label>
+              <input id="cf-open-disclosure-date" type="date"
+                [value]="form().driverDisclosureEffectiveOn ?? ''"
+                (change)="update('driverDisclosureEffectiveOn',$any($event.target).value)"/>
+            </div>
+            <div>
+              <label for="cf-open-start">Início declarado da operação</label>
+              <input id="cf-open-start" type="date" [value]="form().effectiveFrom ?? ''"
+                (change)="update('effectiveFrom',$any($event.target).value)"/>
+            </div>
+          </div>
+          <label for="cf-open-overlap">Risco de dupla reivindicação de créditos</label>
+          <select id="cf-open-overlap" [value]="form().doubleClaimingCheck ?? 'UNKNOWN'"
+            (change)="update('doubleClaimingCheck',$any($event.target).value)">
+            <option value="UNKNOWN">Não avaliado</option>
+            <option value="REVIEW_REQUIRED">Exige consulta jurídica</option>
+            <option value="POTENTIAL_OVERLAP">Possível sobreposição identificada</option>
+            <option value="NO_OVERLAP_DECLARED">Declaração de ausência de sobreposição (revisão pendente)</option>
+          </select>
+          <label for="cf-open-explanation">Observações e limitações da declaração</label>
+          <textarea id="cf-open-explanation" rows="3" maxlength="1500"
+            [value]="form().explanation ?? ''"
+            (input)="update('explanation',$any($event.target).value)"></textarea>
+        </fieldset>
+        <button type="submit" class="cf-workspace-primary" [disabled]="busy()">
+          {{busy() ? 'Salvando…' : 'Salvar declaração sem aprovação automática'}}
+        </button>
+      </form>
+    }
+    <details open class="cf-journey-context">
+      <summary>O que ainda precisa ser comprovado?</summary>
+      <ul class="cf-tech-gates">
+        @for (item of state.readiness.findings;track item.code){
+          <li><strong>{{item.code}}</strong> — {{item.text}} <small>{{item.state}}</small></li>
+        }
+      </ul>
+      <p>Fontes dependentes: {{state.readiness.sourceDependencies.join(', ')}}.</p>
+      <p>O preenchimento não depende de todas essas fontes estarem disponíveis; a habilitação
+        para cálculo real continua separada e não usa dados sintéticos como fallback.</p>
+    </details>
+  }
+</section>
