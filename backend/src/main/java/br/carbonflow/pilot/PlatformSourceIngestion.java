@@ -35,7 +35,7 @@ class PlatformSourceIngestion {
     record Event(int version, String state, UUID actorId, String actorName,
                  String reason, OffsetDateTime recordedAt) {}
     record Detail(Intake intake, List<Event> history) {}
-    record Board(boolean canSubmit, boolean canReview, List<Intake> submissions) {}
+    record Board(UUID actorId, boolean canSubmit, boolean canReview, List<Intake> submissions) {}
     record Submit(String needCode, String edition, String category, String title,
                   String rightsHolder, String publisher, String officialUri,
                   LocalDate publicationDate, Integer referenceYear, String locator,
@@ -86,7 +86,7 @@ class PlatformSourceIngestion {
                     ORDER BY s.created_at DESC,s.id DESC LIMIT 100
                     """, PlatformSourceIngestion::map, method,edition,scenario);
             ComplianceStaff.audit(connection, actor.id(), null, "VIEW_PLATFORM_SOURCE_INGESTION");
-            return new Board(work.canManage(actor.id()), reviewers.contains(actor.id()), List.copyOf(entries));
+            return new Board(actor.id(), work.canManage(actor.id()), reviewers.contains(actor.id()), List.copyOf(entries));
         });
     }
 
