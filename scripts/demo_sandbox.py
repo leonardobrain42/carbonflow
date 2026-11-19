@@ -47,10 +47,32 @@ def compose(*args: str, capture: bool = False) -> str:
     # Keep Docker's published host port and the HTTP client on the same port.
     # Without this override, Compose falls back to 8080 while this script
     # connects to its own default of 18088 (connection refused on first run).
+    env = {**os.environ, "CARBONFLOW_PORT": PORT}
+    roster = SECRET_DIR / "admin-roster.json"
+    if roster.exists():
+        if roster.is_symlink() or roster.stat().st_mode & 0o077:
+            raise ValueError("Configuração administrativa não é privada (0600).")
+        payload = json.loads(roster.read_text(encoding="utf-8"))
+        identity = payload["identity"]
+        secret = payload["secret"]
+        organization = payload["organization"]
+        # The roster is never printed to output or added to a committed file.
+        import uuid
+        import base64
+        uuid.UUID(identity)
+        uuid.UUID(organization)
+        if len(base64.urlsafe_b64decode(secret + "=" * (-len(secret) % 4))) != 20:
+            raise ValueError("Credencial MFA local inválida.")
+        env.update({
+            "CARBONFLOW_COMPLIANCE_STAFF": f"{identity}:{secret}:{organization}",
+            "CARBONFLOW_PLATFORM_SOURCE_READINESS_VIEWERS": identity,
+            "CARBONFLOW_PLATFORM_SOURCE_WORK_MANAGERS": identity,
+            "CARBONFLOW_PLATFORM_SOURCE_INGESTION_REVIEWERS": identity,
+            "CARBONFLOW_PLATFORM_SOURCE_TECHNICAL_REVIEWERS": identity,
+        })
     result = subprocess.run(
         command, cwd=ROOT, check=True,
-        capture_output=capture, text=True,
-        env={**os.environ, "CARBONFLOW_PORT": PORT},
+        capture_output=capture, text=True, env=env,
     )
     return result.stdout if capture else ""
 
