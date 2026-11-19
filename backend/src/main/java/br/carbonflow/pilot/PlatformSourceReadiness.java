@@ -64,7 +64,7 @@ class PlatformSourceReadiness {
 
     List<Context> contexts(String token) {
         return database.transaction(connection -> {
-            ComplianceStaff.Staff actor = viewer(connection, token);
+            ComplianceStaff.Staff actor = requireViewer(connection, token);
             List<Context> rows = query(connection, """
                     SELECT methodology,methodology_edition,scenario,title,country,network_mode,
                            vehicle_category,charger_type,energy_system,catalog_state
@@ -81,7 +81,7 @@ class PlatformSourceReadiness {
     View read(String token, String methodology, String edition, String scenario,
               String stage, String status, int offset, int limit) {
         return database.transaction(connection -> {
-            ComplianceStaff.Staff actor = viewer(connection, token);
+            ComplianceStaff.Staff actor = requireViewer(connection, token);
             if (methodology == null || !methodology.matches("[A-Z][A-Z0-9_-]{2,39}")) throw invisible();
             if (offset < 0 || offset > 100000 || limit < 1 || limit > 100) throw invalid("page");
             if (stage != null && !stage.isBlank() && !Set.of("APPLICABILITY", "BASELINE", "ADDITIONALITY",
@@ -233,7 +233,7 @@ class PlatformSourceReadiness {
         };
     }
 
-    private ComplianceStaff.Staff viewer(Connection connection, String token) throws SQLException {
+    ComplianceStaff.Staff requireViewer(Connection connection, String token) throws SQLException {
         ComplianceStaff.Staff actor = staff.require(connection, token);
         if (!viewers.contains(actor.id())) throw new PilotProblem(404, "RECURSO_NAO_VISIVEL",
                 "viewer", "CF-OPEN-001", "Painel administrativo não disponível para este perfil.");
