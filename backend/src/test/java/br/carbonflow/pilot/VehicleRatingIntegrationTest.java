@@ -345,7 +345,7 @@ class VehicleRatingIntegrationTest {
         assertEquals(code,r.statusCode(),r.body());
         return mapper.readTree(r.body());
     }
-    static class Settings extends AccountAccessTest.Inbox {
+    public static class Settings extends AccountAccessTest.Inbox {
         @Override public Map<String,String> start(){
             var props=new HashMap<>(super.start());
             var secret=Base64.getUrlEncoder().withoutPadding().encodeToString(SECRET);
