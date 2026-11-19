@@ -168,9 +168,9 @@ class FleetCompositionService {
             String maker=label(requested.manufacturer(),120,"manufacturer"),
                     name=label(requested.modelName(),120,"modelName"),
                     variant=label(requested.variant(),120,"variant");
-            if(!(("LDV".equals(requested.vehicleClass()) || "HDV".equals(requested.vehicleClass())
-                    || "UNKNOWN".equals(requested.vehicleClass())) ||
-                !("BEV".equals(requested.propulsion()) || "PHEV".equals(requested.propulsion())
+            if (!("LDV".equals(requested.vehicleClass()) || "HDV".equals(requested.vehicleClass())
+                    || "UNKNOWN".equals(requested.vehicleClass()))
+                || !("BEV".equals(requested.propulsion()) || "PHEV".equals(requested.propulsion())
                     || "OTHER".equals(requested.propulsion()) || "UNKNOWN".equals(requested.propulsion())))
                 throw invalid("classification","Informe categoria e propulsão sem inferir BEV.");
             String command=PilotCommands.key(key);
