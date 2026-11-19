@@ -28,3 +28,35 @@
  .cf-platform-need, .cf-workspace-card { min-width:0; }
  .cf-platform-heading-line { flex-direction:column; }
 }
+
+
+.cf-platform-tabs { display:flex; flex-wrap:wrap; gap:.45rem; margin:0 0 1rem; }
+.cf-platform-tab { border:1px solid #4d6957; background:#14251d; color:#d7eadb;
+  padding:.65rem .9rem; border-radius:.5rem; font:inherit; font-size:.85rem; cursor:pointer; }
+.cf-platform-tab[aria-pressed="true"] { background:#264e36; color:#fff; border-color:#90bca1; font-weight:700; }
+.cf-platform-tab:focus-visible,.cf-platform-work-row button:focus-visible,.cf-platform-work-editor button:focus-visible {
+  outline:3px solid #83d8a5; outline-offset:2px; }
+.cf-platform-work-layout {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:1rem;margin:1rem 0;}
+.cf-platform-work-list,.cf-platform-work-editor {min-width:0;max-height:42rem;overflow:auto;
+  border:1px solid #33503d;border-radius:.6rem;padding:1rem;background:#102119;}
+.cf-platform-work-row {border-bottom:1px solid #36503f;padding:.8rem 0;}
+.cf-platform-work-row:last-child {border-bottom:0;}
+.cf-platform-work-row strong {display:block;line-height:1.35;margin:.35rem 0;}
+.cf-platform-work-row button {margin:.4rem 0;}
+.cf-platform-work-editor form {display:grid;gap:.55rem;margin:1rem 0;}
+.cf-platform-work-editor label {font-weight:600;margin-top:.35rem;}
+.cf-platform-work-editor textarea,.cf-platform-work-editor select {
+  box-sizing:border-box;display:block;width:100%;min-width:0;border:1px solid #769884;
+  border-radius:.45rem;color:#e8f7ee;background:#162e23;padding:.65rem;font:inherit;}
+.cf-platform-work-editor textarea:focus-visible,.cf-platform-work-editor select:focus-visible {
+  outline:3px solid #83d8a5;outline-offset:2px;}
+.cf-platform-work-editor button {justify-self:start;margin-top:.5rem;}
+.cf-platform-success {border:1px solid #3d7456;background:#193c27;color:#d2f4d9;border-radius:.5rem;padding:.8rem;}
+.cf-platform-revisions {padding-left:1.4rem;}
+.cf-platform-revisions li {margin-bottom:1.1rem;border-bottom:1px solid #36503f;padding-bottom:.7rem;}
+.cf-platform-pagination {margin-top:1rem;}
+@media(max-width:760px){
+ .cf-platform-work-layout{grid-template-columns:1fr;}
+ .cf-platform-work-list,.cf-platform-work-editor{max-height:none;}
+ .cf-platform-tab{flex:1 1 auto;}
+}
