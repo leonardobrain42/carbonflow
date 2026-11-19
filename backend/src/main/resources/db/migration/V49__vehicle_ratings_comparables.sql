@@ -79,6 +79,7 @@ CREATE TABLE app_vehicle_rating_snapshot (
  fleet_snapshot_id uuid NOT NULL,
  year integer NOT NULL,
  cycle text NOT NULL CHECK (cycle IN ('URBAN','HIGHWAY','COMBINED')),
+ lineage_digest bytea NOT NULL CHECK(octet_length(lineage_digest)=32),
  afec_kwh_per_100mi numeric(30,12) CHECK (afec_kwh_per_100mi>0),
  mpg_us numeric(30,12) CHECK (mpg_us>0),
  model_count integer CHECK (model_count BETWEEN 1 AND 2000),
@@ -89,7 +90,8 @@ CREATE TABLE app_vehicle_rating_snapshot (
  purged_at timestamptz,
  FOREIGN KEY(fleet_snapshot_id,organization_id)
   REFERENCES app_fleet_composition_snapshot(id,organization_id),
- UNIQUE(id,organization_id)
+ UNIQUE(id,organization_id),
+ UNIQUE(fleet_snapshot_id,lineage_digest)
 );
 CREATE TABLE app_vehicle_rating_snapshot_line (
  snapshot_id uuid NOT NULL,
