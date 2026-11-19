@@ -117,15 +117,13 @@ class PlatformSourceFiles {
             if(!"METADATA_ACCEPTED".equals(source.state()) || !"DATASET".equals(source.kind())) {
                 throw invalid("submission","Somente metadados aceitos de um dataset permitem upload protegido.");
             }
-            fileName=filename(fileName);
-            format=format(format,fileName,original);
+            String safeName=filename(fileName);
+            String fileFormat=format(format,safeName,original);
             if(original==null || original.length<16 || original.length>MAX_BYTES) {
                 throw new PilotProblem(413,"ARQUIVO_FORA_DO_LIMITE","file",RULE,
                         "Selecione arquivo CSV/XLSX de 16 bytes a 2 MiB.");
             }
-            byte[] sha=AccessSecrets.digest(HexFormat.of().formatHex(original));
-            // AccessSecrets.digest(String) hashes text. The original file hash must hash raw bytes.
-            sha=hash(original);
+            byte[] sha=hash(original);
             String actual=HexFormat.of().formatHex(sha);
             if(source.declaredSha256()!=null &&
                     !MessageDigest.isEqual(actual.getBytes(StandardCharsets.US_ASCII),
@@ -156,7 +154,7 @@ class PlatformSourceFiles {
                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
                 ON CONFLICT DO NOTHING RETURNING id
                 """,r->r.getObject(1,UUID.class),id,submission,grant.organization(),actor.id(),
-                grant.license(),grant.decisionVersion(),fileName,format,sha,original.length,nonce,encrypted);
+                grant.license(),grant.decisionVersion(),safeName,fileFormat,sha,original.length,nonce,encrypted);
             if(created==null) {
                 var duplicate=first(connection,VIEW_SQL+"""
                     WHERE o.submission_id=? AND o.organization_id=? AND o.sha256=?
