@@ -8,7 +8,7 @@
       <a routerLink="/workspace/compliance">Conformidade</a>
       <a routerLink="/workspace/platform/sources" aria-current="page">Fontes e prontidão</a>
     </nav>
-    <p class="cf-platform-sidebar-note">Inventário interno consultivo. Não substitui revisão técnica nem constitui certificação Verra.</p>
+    <p class="cf-platform-sidebar-note">Inventário consultivo. Fonte cadastrada não significa metodologia aprovada ou certificado Verra.</p>
   </aside>
 
   <div class="cf-workspace-stage">
@@ -18,30 +18,29 @@
     </header>
     <main id="cf-platform-sources-main" class="cf-workspace-content cf-platform-content">
       <header class="cf-workspace-heading">
-        <span class="cf-workspace-chip">PAINEL INTERNO · INVENTÁRIO DE FONTES</span>
+        <span class="cf-workspace-chip">PAINEL INTERNO · PRONTIDÃO DOCUMENTAL</span>
         <h1>Fontes, documentos e prontidão</h1>
-        <p>Identifique os documentos e dados ainda necessários para uma jornada metodológica completa.
-          A disponibilidade de metadados ou de licença de referência não equivale à aprovação técnica.</p>
+        <p>Identifique as fontes faltantes e as dependências de cada metodologia. Permissões de referência restritas a uma organização não conferem direitos ao CarbonFlow nem autorizam cálculo ou IA.</p>
       </header>
 
       @if (error()) {
         <p class="cf-workspace-alert" role="alert">{{ error() }}</p>
       }
       @if (loading()) {
-        <p role="status">Conferindo acesso e consultando o inventário…</p>
+        <p role="status">Conferindo acesso e consultando o catálogo…</p>
       }
       @if (!loading() && !session()) {
         <section class="cf-workspace-card">
           <h2>Acesso interno indisponível</h2>
-          <p>Entre na sua conta e utilize uma identidade autorizada da equipe interna CarbonFlow.</p>
+          <p>Entre na conta e utilize uma identidade com permissão de visualização de fontes.</p>
           <a routerLink="/workspace" class="cf-workspace-link">Ir para minha conta</a>
           <button type="button" class="cf-workspace-outline" (click)="refresh()">Verificar novamente</button>
         </section>
-      } @else if (!loading() && session() && !currentData()) {
+      } @else if (!loading() && session() && !currentData() && !loadingReadiness()) {
         @if (!session()?.verified) {
           <section class="cf-workspace-card">
             <h2>Verificação da equipe interna</h2>
-            <p>A leitura deste inventário exige uma sessão de staff com segundo fator. O acesso a um projeto não concede acesso ao console.</p>
+            <p>Este inventário exige autenticação multifator e autorização específica de leitura. Acesso a projetos ou à fila de conformidade não concede esta permissão.</p>
             <form (submit)="verify($event, code)">
               <label for="cf-source-admin-mfa">Código de seis dígitos do autenticador</label>
               <input #code id="cf-source-admin-mfa" inputmode="numeric" type="text"
@@ -50,44 +49,67 @@
               <button type="submit" class="cf-workspace-primary" [disabled]="loading()">Desbloquear inventário</button>
             </form>
           </section>
-        } @else {
+        } @else if (contexts().length === 0 && !error()) {
           <section class="cf-workspace-card">
-            <h2>Inventário temporariamente indisponível</h2>
-            <p>Confira se sua autenticação continua válida e consulte novamente.</p>
-            <button type="button" class="cf-workspace-outline" (click)="refresh()">Consultar novamente</button>
+            <h2>Nenhum contexto metodológico cadastrado</h2>
+            <p>Cadastre uma metodologia, edição e cenário no catálogo interno para iniciar o inventário. Não há registros fictícios de disponibilidade.</p>
           </section>
         }
+      }
+
+      @if (session()?.verified && contexts().length > 0) {
+        <section class="cf-workspace-card">
+          <h2>Contexto de avaliação</h2>
+          <label for="cf-source-context">Metodologia, versão e cenário</label>
+          <select id="cf-source-context" [value]="selectedKey()" (change)="onContext($event)">
+            @for (context of contexts(); track key(context)) {
+              <option [value]="key(context)">{{ context.methodology }} v{{ context.edition }} — {{ context.title }}</option>
+            }
+          </select>
+          @if (selectedContext(); as selected) {
+            <p class="cf-platform-meta">Catálogo {{ selected.catalogState === 'ACTIVE' ? 'ativo para planejamento' : 'suspenso' }} ·
+              {{ selected.country }} · {{ selected.networkMode }} · {{ selected.vehicleCategory }} ·
+              {{ selected.chargerType }} · {{ selected.energySystem }}</p>
+          }
+        </section>
+      }
+
+      @if (loadingReadiness()) {
+        <p role="status">Consultando fontes e licenças do cenário selecionado…</p>
       }
 
       @if (currentData(); as view) {
         <section class="cf-workspace-card">
           <div class="cf-platform-heading-line">
             <div>
-              <h2>VM0038 · edição {{ view.edition }}</h2>
-              <p>Brasil · rede aberta · veículos leves BEV · DCFC · SIN</p>
-              <p class="cf-platform-meta">Referência temporal da consulta: {{ view.asOf }} · Cenário: {{ view.scenario }}</p>
+              <h2>{{ view.methodology }} · edição {{ view.edition }}</h2>
+              <p>Contexto selecionado: {{ selectedContext()?.title }}</p>
+              <p class="cf-platform-meta">Consultado em {{ view.asOf }} · {{ view.scenario }}</p>
             </div>
-            <button type="button" class="cf-workspace-outline" (click)="refresh()" [disabled]="loading()">Atualizar</button>
+            <button type="button" class="cf-workspace-outline" (click)="loadReadiness()" [disabled]="loadingReadiness()">Atualizar</button>
           </div>
           <p role="status" class="cf-platform-warning">
-            Regras normativas: {{ view.normativeRuleStatus === 'ONLY_SYNTHETIC_RULE_PACKS'
-              ? 'apenas pacote sintético demonstrativo — regras reais ainda não publicadas'
-              : 'nenhum pacote real publicado confirmado' }}.
-            Nenhuma fonte abaixo está automaticamente admitida para cálculo.
+            {{ view.normativeRuleStatus === 'ONLY_SYNTHETIC_RULE_PACKS'
+              ? 'Há somente regras sintéticas demonstrativas, sem pacote real admitido.'
+              : 'Não há pacote normativo real publicado para este contexto.' }}
+            Nenhuma fonte abaixo pode ser considerada automaticamente aprovada para cálculo.
           </p>
-          <p class="cf-platform-meta"><strong>Cálculo de projetos novos:</strong> {{ view.dynamicCalculationStatus === 'NOT_ENABLED_FOR_DYNAMIC_PROJECTS'
-            ? 'ainda não conectado ao motor E8' : view.dynamicCalculationStatus }}. <strong>IA sobre normas:</strong>
-            {{ view.normativeAiDisabled ? 'desabilitada por segurança/licença' : 'sujeita a autorizações por operação e projeto' }}.</p>
-          <div class="cf-platform-metrics" aria-label="Situação do inventário">
+          <p class="cf-platform-meta"><strong>Cálculo para projeto novo:</strong>
+            {{ view.dynamicCalculationStatus === 'NOT_ENABLED_FOR_DYNAMIC_PROJECTS'
+              ? 'ainda não conectado ao E8' : view.dynamicCalculationStatus }}.
+            <strong>IA normativa:</strong>
+            {{ view.normativeAiDisabled ? 'desabilitada por política de segurança/licença'
+              : 'sujeita à autorização por fonte, operação e projeto' }}.</p>
+          <div class="cf-platform-metrics" aria-label="Lacunas do contexto completo">
             <div class="cf-platform-metric"><strong>{{ view.missingSourceCount }}</strong><span>fontes obrigatórias sem metadados</span></div>
-            <div class="cf-platform-metric"><strong>{{ view.missingReferenceRightsCount }}</strong><span>fontes obrigatórias só com metadados</span></div>
-            <div class="cf-platform-metric"><strong>{{ view.reviewPendingCount }}</strong><span>referências autorizadas, ainda sem admissão</span></div>
-            <div class="cf-platform-metric"><strong>{{ view.projectEvidenceCount }}</strong><span>tipos de evidência exigidos por projeto</span></div>
+            <div class="cf-platform-metric"><strong>{{ view.missingReferenceRightsCount }}</strong><span>fontes sem edição selecionada ou direitos utilizáveis</span></div>
+            <div class="cf-platform-metric"><strong>{{ view.reviewPendingCount }}</strong><span>referências com direito restrito, sem admissão</span></div>
+            <div class="cf-platform-metric"><strong>{{ view.projectEvidenceCount }}</strong><span>tipos de evidência por projeto</span></div>
           </div>
         </section>
 
         <section class="cf-workspace-card">
-          <h2>Explorar necessidades por etapa</h2>
+          <h2>Necessidades por etapa e situação</h2>
           <div class="cf-platform-filters">
             <div>
               <label for="cf-source-stage">Etapa da jornada</label>
@@ -109,46 +131,69 @@
             </div>
           </div>
           <p class="cf-platform-meta" role="status">
-            {{ filtered().length }} de {{ view.needs.length }} necessidades exibidas.
-            Itens condicionais não são automaticamente obrigatórios em todos os projetos.
+            {{ view.needs.length }} registros nesta página · {{ view.total }} correspondem aos filtros.
+            As contagens de lacunas acima consideram todo o cenário; itens condicionais não são automaticamente obrigatórios.
           </p>
 
           <div class="cf-platform-list" aria-label="Necessidades de fontes e documentos">
-            @for (item of filtered(); track item.code) {
+            @for (item of view.needs; track item.code) {
               <article class="cf-platform-need">
                 <div class="cf-platform-heading-line">
                   <div>
-                    <p class="cf-platform-meta">{{ stageLabel(item.stage) }} · {{ item.kind === 'PROJECT_EVIDENCE'
-                      ? 'Evidência do projeto' : item.kind === 'NORMATIVE' ? 'Documento normativo' : 'Base de dados' }}
-                      · {{ item.mandatory ? 'Obrigatório para a rota indicada' : 'Condicional' }}</p>
+                    <p class="cf-platform-meta">{{ item.priority }} · {{ stageLabel(item.stage) }} ·
+                      {{ item.kind === 'PROJECT_EVIDENCE' ? 'Evidência do projeto'
+                        : item.kind === 'NORMATIVE' ? 'Documento normativo' : 'Base de dados' }}
+                      · {{ item.mandatory ? 'Obrigatório na rota indicada' : 'Condicional' }}</p>
                     <h3>{{ item.title }}</h3>
                   </div>
                   <span class="cf-platform-status">{{ statusLabel(item.status) }}</span>
                 </div>
                 <p>{{ item.purpose }}</p>
+                <p class="cf-platform-meta"><strong>Bloqueia:</strong> {{ item.blockedCapability }} ·
+                  <strong>Responsável:</strong> {{ item.responsibleParty }}</p>
                 @if (item.sourceId) {
-                  <p class="cf-platform-meta">Identificador previsto: <code>{{ item.sourceId }} · {{ item.sourceEdition }}</code></p>
+                  <p class="cf-platform-meta">Referência esperada: <code>{{ item.sourceId }} · {{ item.sourceEdition }}</code> ·
+                    seleção: {{ item.editionPolicy }}.
+                    @if (item.observedEdition) { Versão encontrada: <strong>{{ item.observedEdition }}</strong>. }</p>
                 }
                 @if (item.conditionNote) {
                   <p><strong>Condição e ressalva:</strong> {{ item.conditionNote }}</p>
                 }
+                @if (item.referenceAllowedInStaffOrganization) {
+                  <p class="cf-platform-warning">Existe direito de referência somente em escopo organizacional autorizado.
+                    Isso não concede permissão global de plataforma nem admissão para cálculo.</p>
+                }
+                @if (item.extractionAllowedInStaffOrganization || item.ragAllowedInStaffOrganization || item.modelAllowedInStaffOrganization) {
+                  <p class="cf-platform-meta"><strong>Operações restritas no escopo autenticado:</strong>
+                    extração {{ item.extractionAllowedInStaffOrganization ? 'permitida pelo registro' : 'não permitida' }};
+                    RAG {{ item.ragAllowedInStaffOrganization ? 'permitido pela política' : 'não permitido' }};
+                    inferência {{ item.modelAllowedInStaffOrganization ? 'permitida pela política' : 'não permitida' }}.
+                    A consulta operacional exige autorização adicional por projeto e finalidade.</p>
+                }
                 <p><strong>Próxima ação:</strong> {{ item.nextAction }}</p>
                 @if (item.officialUri) {
                   <a class="cf-workspace-link" [href]="item.officialUri" target="_blank"
-                    rel="noopener noreferrer">Consultar publicação oficial</a>
+                    rel="noopener noreferrer">Consultar publicação indicada</a>
                 }
               </article>
             } @empty {
               <p role="status">Nenhuma necessidade corresponde aos filtros. Altere a etapa ou a situação.</p>
             }
           </div>
+          <div class="cf-platform-heading-line cf-platform-pagination">
+            <button type="button" class="cf-workspace-outline" (click)="previous()"
+              [disabled]="!canPrevious() || loadingReadiness()">Página anterior</button>
+            <p class="cf-platform-meta">A partir do registro {{ view.total ? pageOffset()+1 : 0 }} de {{ view.total }}</p>
+            <button type="button" class="cf-workspace-outline" (click)="next()"
+              [disabled]="!canNext() || loadingReadiness()">Próxima página</button>
+          </div>
         </section>
 
         <section class="cf-workspace-card">
-          <h2>O que este painel ainda não faz</h2>
-          <p>Esta primeira fatia é somente consulta ao banco. Ingestão de documentos, revisão de admissibilidade,
-            seleção de parâmetros por projeto, acompanhamento de importações e ações de publicação estão planejados
-            nas próximas etapas. A lista não comprova prontidão de redução de emissões ou autorização de uso de textos protegidos.</p>
+          <h2>Próximos módulos de operação</h2>
+          <p>Esta etapa permite inventariar e diagnosticar. Alimentação de documentos, seleção de edições por ano,
+            parecer técnico e publicação de fatores serão implementados em #92 e nas issues de baseline.
+            Um registro de fonte ou direito de referência não equivale a decisão técnica, validação pelo VVB ou VCU emitida.</p>
         </section>
       }
     </main>
