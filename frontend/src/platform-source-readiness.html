@@ -131,12 +131,12 @@
             </div>
           </div>
           <p class="cf-platform-meta" role="status">
-            {{ view.needs.length }} registros nesta página · {{ view.total }} correspondem aos filtros.
+            {{ visibleNeeds().length }} registros exibidos nesta página · {{ view.total }} correspondem aos filtros.
             As contagens de lacunas acima consideram todo o cenário; itens condicionais não são automaticamente obrigatórios.
           </p>
 
           <div class="cf-platform-list" aria-label="Necessidades de fontes e documentos">
-            @for (item of view.needs; track item.code) {
+            @for (item of visibleNeeds(); track item.code) {
               <article class="cf-platform-need">
                 <div class="cf-platform-heading-line">
                   <div>
