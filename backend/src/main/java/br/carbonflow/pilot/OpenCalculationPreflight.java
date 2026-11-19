@@ -2,7 +2,6 @@ package br.carbonflow.pilot;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 /**
  * CF-OPEN-008 / #97: deterministic fail-closed preflight for dynamic OPEN
@@ -17,10 +16,10 @@ final class OpenCalculationPreflight {
     static final String SCENARIO = "OPEN_LDV_DCFC_SIN_BR";
     static final String ENGINE = "vm0038-open-preflight@1";
 
-    record Applicability(int version, int triageVersion, boolean unrestrictedBevAccess,
-            boolean restrictedToIdentifiedVehicles, String chargerType,
+    record Applicability(int version, int triageVersion, Boolean unrestrictedBevAccess,
+            Boolean restrictedToIdentifiedVehicles, String chargerType,
             String propulsion, String electricitySource,
-            boolean associatedInfrastructure, boolean v2g) {}
+            Boolean associatedInfrastructure, Boolean v2g) {}
 
     record Context(String projectId, String environment, String methodology,
             int latestTriageVersion, Applicability applicability) {}
@@ -59,19 +58,34 @@ final class OpenCalculationPreflight {
                     "Triagem posterior à declaração: reconfirme a configuração antes do cálculo.",
                     "Rever e salvar aplicabilidade OPEN", "PREP"));
             }
-            if (!a.unrestrictedBevAccess() || a.restrictedToIdentifiedVehicles()) {
+            if (Boolean.FALSE.equals(a.unrestrictedBevAccess()) ||
+                Boolean.TRUE.equals(a.restrictedToIdentifiedVehicles())) {
                 outside = true;
                 gates.add(new Gate("NETWORK_MODE", "OUT_OF_SCOPE",
-                    "Rede CLOSED ou acesso não comprovadamente OPEN exige outro modelo de frota.",
+                    "Rede CLOSED exige outro modelo de frota.",
                     "Rever modalidade e restrições de acesso", "PP/PREP"));
+            } else if (!Boolean.TRUE.equals(a.unrestrictedBevAccess()) ||
+                       !Boolean.FALSE.equals(a.restrictedToIdentifiedVehicles())) {
+                gates.add(new Gate("NETWORK_MODE", "MISSING",
+                    "Ainda não se sabe se a rede atende BEVs não identificados.",
+                    "Confirmar acesso efetivo OPEN", "PP/PREP"));
             }
-            if (!"DCFC".equals(a.chargerType()) || !"BEV".equals(a.propulsion()) ||
-                !"SIN".equals(a.electricitySource()) || a.associatedInfrastructure() ||
-                a.v2g()) {
+            if ("AC".equals(a.chargerType()) || "MIXED".equals(a.chargerType()) ||
+                "PHEV".equals(a.propulsion()) || "MIXED".equals(a.propulsion()) ||
+                "OTHER_GRID".equals(a.electricitySource()) ||
+                "ON_SITE".equals(a.electricitySource()) || "MIXED".equals(a.electricitySource()) ||
+                Boolean.TRUE.equals(a.associatedInfrastructure()) || Boolean.TRUE.equals(a.v2g())) {
                 outside = true;
                 gates.add(new Gate("TECHNICAL_BRANCH", "OUT_OF_SCOPE",
                     "Este ramo exige LDV BEV/DCFC/SIN sem geração, bateria ou V2G associados.",
                     "Selecionar outro ramo metodológico ou rever declaração", "PREP"));
+            } else if (!"DCFC".equals(a.chargerType()) || !"BEV".equals(a.propulsion()) ||
+                       !"SIN".equals(a.electricitySource()) ||
+                       !Boolean.FALSE.equals(a.associatedInfrastructure()) ||
+                       !Boolean.FALSE.equals(a.v2g())) {
+                gates.add(new Gate("TECHNICAL_BRANCH", "MISSING",
+                    "A configuração declarada está incompleta; o ramo ainda não foi definido.",
+                    "Confirmar carregador, propulsão, origem e infraestrutura", "PREP"));
             }
         }
 
