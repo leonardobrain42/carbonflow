@@ -61,11 +61,11 @@ class OpenCalculationReadiness {
                 WHERE project_id=? ORDER BY version DESC LIMIT 1
                 """, row -> new OpenCalculationPreflight.Applicability(
                     row.getInt("version"), row.getInt("triage_version"),
-                    Boolean.TRUE.equals(row.getObject("unrestricted_bev_access")),
-                    Boolean.TRUE.equals(row.getObject("restricted_to_identified_vehicles")),
+                    (Boolean) row.getObject("unrestricted_bev_access"),
+                    (Boolean) row.getObject("restricted_to_identified_vehicles"),
                     row.getString("charger_type"), row.getString("propulsion"),
                     row.getString("electricity_source"),
-                    Boolean.TRUE.equals(row.getObject("associated_infrastructure")),
-                    Boolean.TRUE.equals(row.getObject("v2g"))), project);
+                    (Boolean) row.getObject("associated_infrastructure"),
+                    (Boolean) row.getObject("v2g")), project);
     }
 }
