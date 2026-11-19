@@ -165,9 +165,11 @@ test('PBEV navegação mobile, revisão segregada e AFEC/MPG sem E8',async()=>{
       await record.getByRole('button',{name:'Registrar decisão da revisão'}).click();
       await page.getByText('Parecer de comparabilidade registrado.',{exact:false}).waitFor();
     }
-    await page.getByText('AFEC:',{exact:false}).waitFor();
-    await page.getByText('20',{exact:true}).first().waitFor();
-    await page.getByText('30',{exact:true}).first().waitFor();
+    const afec=page.getByText('AFEC:',{exact:false}).first();
+    const mpg=page.getByText('MPG:',{exact:false}).first();
+    await afec.waitFor();await mpg.waitFor();
+    assert.match(await afec.textContent(),/20/);
+    assert.match(await mpg.textContent(),/30/);
     assert.equal(pairs.every(p=>p.status==='ACCEPTED'),true);
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth),false);
   }finally{await browser.close();}
