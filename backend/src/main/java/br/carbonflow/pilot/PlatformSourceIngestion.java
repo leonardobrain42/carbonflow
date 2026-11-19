@@ -44,7 +44,7 @@ class PlatformSourceIngestion {
 
     private record Need(String code, String sourceId, String expectedEdition,
                         String kind, String editionPolicy, String catalogState) {}
-    private record Published(String category, String title, String rightsHolder, String officialUri) {}
+    private record Published(String category, String title, String rightsHolder, String officialUri, String origin) {}
 
     private final PilotDatabase database;
     private final PlatformSourceReadiness readiness;
@@ -190,12 +190,13 @@ class PlatformSourceIngestion {
                 first(connection, "SELECT pg_advisory_xact_lock(hashtextextended(?, 0))",
                         row -> true,intake.sourceId()+"@"+intake.edition());
                 Published published = first(connection, """
-                    SELECT category,title,rights_holder,official_uri
+                    SELECT category,title,rights_holder,official_uri,origin
                     FROM app_source_version WHERE source_id = ? AND edition = ? AND project_id IS NULL
                     FOR UPDATE
-                    """,row -> new Published(row.getString(1),row.getString(2),row.getString(3),row.getString(4)),
+                    """,row -> new Published(row.getString(1),row.getString(2),row.getString(3),row.getString(4),row.getString(5)),
                     intake.sourceId(),intake.edition());
-                if (published != null && (!published.category().equals(intake.category()) ||
+                if (published != null && (!"EXTERNAL".equals(published.origin()) ||
+                        !published.category().equals(intake.category()) ||
                         !published.title().equals(intake.title()) ||
                         !published.rightsHolder().equals(intake.rightsHolder()) ||
                         !java.util.Objects.equals(published.officialUri(),intake.officialUri()))) {
