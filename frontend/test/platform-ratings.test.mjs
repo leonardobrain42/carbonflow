@@ -165,8 +165,8 @@ test('PBEV navegação mobile, revisão segregada e AFEC/MPG sem E8',async()=>{
       await record.getByRole('button',{name:'Registrar decisão da revisão'}).click();
       await page.getByText('Parecer de comparabilidade registrado.',{exact:false}).waitFor();
     }
-    const afec=page.getByText('AFEC:',{exact:false}).first();
-    const mpg=page.getByText('MPG:',{exact:false}).first();
+    const afec=page.getByText('AFEC:',{exact:false}).first().locator('..');
+    const mpg=page.getByText('MPG:',{exact:false}).first().locator('..');
     await afec.waitFor();await mpg.waitFor();
     assert.match(await afec.textContent(),/20/);
     assert.match(await mpg.textContent(),/30/);
