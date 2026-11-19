@@ -22,6 +22,7 @@ import io.quarkus.test.common.http.TestHTTPResource;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterEach;
 
 @QuarkusTest
 @QuarkusTestResource(value = PlatformSourceIngestionIntegrationTest.Settings.class, restrictToAnnotatedClass = true)
@@ -131,6 +132,25 @@ class PlatformSourceIngestionIntegrationTest {
             SELECT count(*) FROM app_source_version
             WHERE source_id='BR-LDV-BEV-STOCK-BY-MODEL' AND edition='2023'
             """,row -> row.getInt(1))).intValue());
+    }
+
+    @AfterEach
+    void cleanPublishedTestMetadata() {
+        database.transaction(connection -> {
+            update(connection, """
+                DELETE FROM app_platform_source_submission_event
+                WHERE submission_id IN
+                  (SELECT id FROM app_platform_source_submission WHERE submitted_by = ?)
+                """, MANAGER);
+            update(connection, """
+                DELETE FROM app_platform_source_submission WHERE submitted_by = ?
+                """, MANAGER);
+            update(connection, """
+                DELETE FROM app_source_version WHERE source_id = ?
+                  AND edition = ? AND title = ?
+                """, "BR-LDV-BEV-STOCK-BY-MODEL", "2024", "Teste frota por modelo 2024");
+            return null;
+        });
     }
 
     private static JsonNode lookupNeed(JsonNode page,String code) {
