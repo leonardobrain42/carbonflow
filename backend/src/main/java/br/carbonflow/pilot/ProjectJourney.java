@@ -33,7 +33,7 @@ final class ProjectJourney {
     static final Profile VM0038 = new Profile(
             "VM0038_V1_1", "VM0038", "1.1", "VM0038 v1.1 · Recarga de veículos elétricos",
             "Instalação e cenário sem o projeto", "Frota, recarga e medição",
-            "A VM0038 trata da instalação de sistemas de recarga para frotas elegíveis. O piloto do CarbonFlow cobre um projeto individual no DF, com frota leve BEV, recarga rápida DC em rede fechada e privada, SIN exclusivo, sem infraestrutura associada e com medição segregada.",
+            "A VM0038 trata da instalação de sistemas de recarga para frotas elegíveis. O piloto sintético original cobre um projeto fechado. A jornada OPEN brasileira está em implantação: é possível preparar uma rede pública de recarga DCFC/BEV do SIN sem VIN dos visitantes, mas o cálculo real depende de fontes oficiais e revisão de direitos.",
             "https://verra.org/methodologies/vm0038-electric-vehicle-charging-systems-v1-1/",
             List.of("Instalação, fronteira e acesso à rede de recarga",
                     "Frota elegível e veículo a combustão comparável",

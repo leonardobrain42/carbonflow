@@ -127,6 +127,12 @@
             }
 
             @case ('analisar') {
+              @if (saved.journey.candidate === 'VM0038' && can('VIEW_OPEN_APPLICABILITY')) {
+                <carbonflow-open-applicability [projectId]="projectId"
+                  [editable]="can('SAVE_OPEN_APPLICABILITY')">
+                </carbonflow-open-applicability>
+              }
+
               @if ((owner() || capabilities()?.actions?.includes('GUIDE_INTAKE')) && capabilities()?.actions?.includes('VIEW_GUIDES') && saved.journey.candidate === 'VM0038') {
                 <section class="cf-journey-context">
                   <h3>Ficha de aplicabilidade</h3>
