@@ -45,7 +45,7 @@ class PlatformSourceReadiness {
                        EXISTS (
                          SELECT 1 FROM app_content_license l
                          JOIN LATERAL (
-                           SELECT d.version, d.outcome FROM app_content_license_decision d
+                           SELECT d.version, d.outcome, d.decided_by FROM app_content_license_decision d
                            WHERE d.license_id = l.id ORDER BY d.version DESC LIMIT 1
                          ) latest ON true
                          JOIN app_content_license_capability cap
