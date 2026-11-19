@@ -45,8 +45,8 @@ final class ProjectCollaboration {
                 if (!"DOCUMENTATION".equals(activity)) {
                     actions.add("GUIDE_" + activity);
                     actions.add("VIEW_GUIDES");
-                    if ("CALCULATION".equals(activity) || "BASELINE".equals(activity) ||
-                        "MONITORING".equals(activity)) actions.add("VIEW_OPEN_CALCULATION");
+                    if ("CALCULATION".equals(activity))
+                        actions.add("VIEW_OPEN_CALCULATION");
                     if ("APPLICABILITY".equals(activity)) {
                         actions.add("VIEW_OPEN_APPLICABILITY");
                         if (preparer) actions.add("SAVE_OPEN_APPLICABILITY");
