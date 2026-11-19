@@ -158,11 +158,17 @@ class VehicleRatingService {
                     FROM app_vehicle_rating_snapshot
                     WHERE organization_id=ANY(?) ORDER BY constructed_at DESC,id DESC LIMIT 100
                     """,VehicleRatingService::snapshotRow,scope);
-                var snapshots=existing.stream().map(s->s.status().equals("SUSPENDED")?
-                    s:new Snapshot(s.id(),s.organizationId(),s.fleetSnapshotId(),s.year(),s.cycle(),
-                        s.afecKwh100mi(),s.mpgUs(),s.modelCount(),s.status(),s.createdAt(),false))
-                    .filter(s->fleets.stream().anyMatch(f->f.id().equals(s.fleetSnapshotId())))
-                    .toList();
+                var snapshots=new ArrayList<Snapshot>();
+                for(var snapshot:existing){
+                    if(fleets.stream().noneMatch(f->f.id().equals(snapshot.fleetSnapshotId())))continue;
+                    try{
+                        snapshots.add(snapshot(c,snapshot.id(),orgs));
+                    }catch(PilotProblem denied){
+                        snapshots.add(new Snapshot(snapshot.id(),snapshot.organizationId(),
+                            snapshot.fleetSnapshotId(),snapshot.year(),snapshot.cycle(),
+                            null,null,null,"RIGHTS_UNAVAILABLE",snapshot.createdAt(),false));
+                    }
+                }
                 ComplianceStaff.audit(c,actor.id(),null,"VIEW_VEHICLE_RATINGS");
                 return new Board(actor.id(),managers.canManage(actor.id()),reviewers.contains(actor.id()),
                     List.copyOf(models),List.copyOf(sources),List.copyOf(fleets),
@@ -197,12 +203,12 @@ class VehicleRatingService {
             if(input.sourceObjectId()==null || input.modelId()==null ||
                input.sourceRow()==null || input.seats()==null ||
                input.seats()<1 || input.seats()>80 ||
-               !Set.of("URBAN","HIGHWAY","COMBINED").contains(input.cycle()))
+               !Set.of("URBAN","HIGHWAY","COMBINED").contains(Objects.toString(input.cycle(),"")))
                 throw invalid("rating","Informe modelo, linha, ciclo e capacidade verificados.");
             String evidence=required(input.cycleEvidence(),5,300,"cycleEvidence");
-            if(!Set.of("BEV","FOSSIL").contains(input.role()))
+            if(!Set.of("BEV","FOSSIL").contains(Objects.toString(input.role(),"")))
                 throw invalid("role","Informe BEV ou FOSSIL.");
-            if(!Set.of("ELECTRICITY","GASOLINE","DIESEL","ETHANOL","FLEX").contains(input.fuel()))
+            if(!Set.of("ELECTRICITY","GASOLINE","DIESEL","ETHANOL","FLEX").contains(Objects.toString(input.fuel(),"")))
                 throw invalid("fuel","Combustível não suportado.");
             if(("BEV".equals(input.role()) && !"ELECTRICITY".equals(input.fuel())) ||
                ("FOSSIL".equals(input.role()) && "ELECTRICITY".equals(input.fuel())))
@@ -312,7 +318,7 @@ class VehicleRatingService {
         return db.transaction(c->{
             var actor=readiness.requireViewer(c,token);
             if(!reviewers.contains(actor.id()))throw hidden();
-            if(review==null || !Set.of("ACCEPTED","REJECTED").contains(review.outcome()))
+            if(review==null || !Set.of("ACCEPTED","REJECTED").contains(Objects.toString(review.outcome(),"")))
                 throw invalid("outcome","Escolha aceitar ou rejeitar.");
             String reason=required(review.reason(),15,1500,"reason");
             Pair pair=pair(c,id,actor.organizations());
@@ -330,7 +336,7 @@ class VehicleRatingService {
             Fleet fleet=fleet(c,actor.organizations(),pair.fleetSnapshotId());
             requireFleetRights(c,fleet);
             if("ACCEPTED".equals(review.outcome())){
-                requireComparable(fleet,ev,fossil);
+                requireComparable(c,fleet,ev,fossil);
                 // Only one current comparison per BEV/fleet; earlier reviewed decisions survive.
                 first(c,"SELECT pg_advisory_xact_lock(hashtextextended(?,0))",
                     r->true,"rating-pair:"+fleet.id()+":"+pair.bevModelId());
@@ -460,7 +466,7 @@ class VehicleRatingService {
             try{
                 ev=rating(c,pair.bevRatingId(),orgs);
                 ff=rating(c,pair.fossilRatingId(),orgs);
-                requireComparable(fleet,ev,ff);
+                requireComparable(c,fleet,ev,ff);
             }catch(PilotProblem problem){
                 issues.add(name+": direitos ou comparabilidade precisam de revisão");
                 lines.add(new Line(modelId,name,evr,pair.id(),null,null,null,"PENDING_SOURCE"));
@@ -484,9 +490,10 @@ class VehicleRatingService {
             complete,false);
     }
 
-    private void requireComparable(Fleet fleet,Rating ev,Rating ff){
-        Model evModel=db.read(c->oneModel(c,ev.modelId(),fleet.organizationId()));
-        Model fossilModel=db.read(c->oneModel(c,ff.modelId(),fleet.organizationId()));
+    private void requireComparable(Connection c,Fleet fleet,Rating ev,Rating ff)
+        throws SQLException {
+        Model evModel=oneModel(c,ev.modelId(),fleet.organizationId());
+        Model fossilModel=oneModel(c,ff.modelId(),fleet.organizationId());
         if(!"BEV".equals(ev.role()) || !"FOSSIL".equals(ff.role()) ||
            !"BEV".equals(evModel.propulsion()) || !"OTHER".equals(fossilModel.propulsion()) ||
            !"LDV".equals(evModel.vehicleClass()) || !"LDV".equals(fossilModel.vehicleClass()) ||
