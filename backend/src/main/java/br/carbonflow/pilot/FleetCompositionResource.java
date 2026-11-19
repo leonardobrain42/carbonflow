@@ -4,6 +4,7 @@ import java.util.UUID;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.CookieParam;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
@@ -32,8 +33,9 @@ public class FleetCompositionResource {
     @Path("/models")
     @Consumes(MediaType.APPLICATION_JSON)
     public Response register(@CookieParam(AccountAccess.COOKIE) String token,
+                             @HeaderParam("Idempotency-Key") String commandKey,
                              FleetCompositionService.Registration input){
-        return Response.status(201).entity(service.register(token,input))
+        return Response.status(201).entity(service.register(token,commandKey,input))
             .header("Cache-Control","private, no-store").build();
     }
 
@@ -42,8 +44,9 @@ public class FleetCompositionResource {
     @Consumes(MediaType.APPLICATION_JSON)
     public Response alias(@CookieParam(AccountAccess.COOKIE) String token,
                           @PathParam("modelId") UUID model,
+                          @HeaderParam("Idempotency-Key") String commandKey,
                           FleetCompositionService.AliasInput input){
-        return ok(service.alias(token,model,input));
+        return ok(service.alias(token,commandKey,model,input));
     }
 
     @GET
@@ -58,8 +61,9 @@ public class FleetCompositionResource {
     @Path("/imports")
     @Consumes(MediaType.APPLICATION_JSON)
     public Response create(@CookieParam(AccountAccess.COOKIE) String token,
+                           @HeaderParam("Idempotency-Key") String commandKey,
                            FleetCompositionService.Create request){
-        return Response.status(201).entity(service.create(token,request))
+        return Response.status(201).entity(service.create(token,commandKey,request))
             .header("Cache-Control","private, no-store").build();
     }
 
