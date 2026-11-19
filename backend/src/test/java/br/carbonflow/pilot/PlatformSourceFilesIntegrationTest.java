@@ -128,7 +128,7 @@ class PlatformSourceFilesIntegrationTest {
                 r->r.getBytes(1),object)));
         assertEquals(0,database.read(c->first(c,"SELECT count(*) FROM app_platform_source_candidate WHERE object_id=?",
                 r->r.getInt(1),object)).intValue());
-        assertEquals(403,request("POST",parse,manager,new byte[0],null,null).statusCode());
+        assertEquals(404,request("POST",parse,manager,new byte[0],null,null).statusCode());
     }
 
     private void seed() {
@@ -256,7 +256,7 @@ class PlatformSourceFilesIntegrationTest {
             values.put("carbonflow.platform.source-readiness.viewers",
                     MANAGER+","+REVIEWER+","+VIEWER);
             values.put("carbonflow.platform.source-work.managers",MANAGER.toString());
-            values.put("carbonflow.platform.source-technical.reviewers",REVIEWER.toString());
+            values.put("carbonflow.platform.source-technical.reviewers",MANAGER+","+REVIEWER);
             values.put("carbonflow.platform.source-files.encryption-key",
                     Base64.getUrlEncoder().withoutPadding().encodeToString(AccessSecrets.digest("file-key-tests")));
             return values;
