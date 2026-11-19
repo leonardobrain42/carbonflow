@@ -83,7 +83,7 @@ final class VehicleRatingsMath {
             if(row.afec()==null || row.mpg()==null || row.afec().signum()<=0 || row.mpg().signum()<=0){
                 issues.add("Par sem dois ratings positivos e revistos.");continue;
             }
-            if(!Set.of("URBAN","HIGHWAY","COMBINED").contains(row.cycle())){
+            if(!Set.of("URBAN","HIGHWAY","COMBINED").contains(java.util.Objects.toString(row.cycle(),""))){
                 issues.add("Ciclo de ensaio inválido.");continue;
             }
             if(cycle==null)cycle=row.cycle();
