@@ -1,0 +1,32 @@
+<section class="cf-journey-context" aria-labelledby="cf-open-calc-title">
+  <h3 id="cf-open-calc-title">Pré-cálculo de emissões · rede aberta</h3>
+  <p>Este diagnóstico identifica o que falta para quantificar BE (linha de base),
+    PE (emissões do projeto) e ER (reduções). Dados preparatórios e o piloto sintético
+    não substituem parâmetros admissíveis de um projeto novo.</p>
+  @if (loading()) {
+    <p role="status">Verificando as dependências do cálculo…</p>
+  } @else if (error()) {
+    <p role="alert" class="cf-workspace-alert">{{ error() }}</p>
+    <button type="button" class="cf-workspace-outline" (click)="load()">Tentar novamente</button>
+  } @else if (readiness(); as state) {
+    <dl class="cf-tech-capabilities">
+      <div><dt>Situação</dt><dd>{{ stateLabel(state.calculationState) }}</dd></div>
+      <div><dt>Recorte</dt><dd>VM0038 · OPEN / BR / LDV / DCFC / SIN</dd></div>
+      <div><dt>BE, PE e ER</dt><dd>Indisponíveis — nenhum resultado foi calculado</dd></div>
+      <div><dt>Emissão de créditos</dt><dd>Não habilitada</dd></div>
+    </dl>
+    <p>É possível continuar organizando a preparação, mas o cálculo ainda não está liberado.
+      Valores ausentes não são emissões iguais a zero.</p>
+    <h4>Dependências e próximas ações</h4>
+    <ul class="cf-tech-gates">
+      @for (gate of state.gates; track gate.code) {
+        <li>
+          <strong>{{ gate.code }} · {{ stateLabel(gate.state) }}</strong>
+          <p>{{ gate.reason }}</p>
+          <small>{{ gate.nextAction }} · Responsável: {{ gate.owner }}</small>
+        </li>
+      }
+    </ul>
+    <button type="button" class="cf-workspace-outline" (click)="load()">Atualizar diagnóstico</button>
+  }
+</section>
