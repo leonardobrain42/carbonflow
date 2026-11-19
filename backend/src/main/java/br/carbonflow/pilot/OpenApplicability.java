@@ -145,9 +145,9 @@ class OpenApplicability {
                     || Set.of("OTHER_GRID","ON_SITE","MIXED").contains(Objects.toString(data.electricitySource(),""))
                     || Boolean.TRUE.equals(data.associatedInfrastructure())
                     || Boolean.TRUE.equals(data.v2g());
-            boolean incomplete = !Set.of("DCFC").contains(data.chargerType())
-                    || !Set.of("BEV").contains(data.propulsion())
-                    || !Set.of("SIN").contains(data.electricitySource())
+            boolean incomplete = !"DCFC".equals(data.chargerType())
+                    || !"BEV".equals(data.propulsion())
+                    || !"SIN".equals(data.electricitySource())
                     || data.associatedInfrastructure()==null || data.v2g()==null;
             if(outside) {
                 category="OUTSIDE_FIRST_IMPLEMENTED_SCOPE";
