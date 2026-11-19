@@ -26,7 +26,8 @@ class PlatformSourceWork {
     record Work(String needCode, String title, String kind, String stage, String blockedCapability,
                 String priority, String status, UUID ownerId, String ownerName, int version,
                 OffsetDateTime createdAt, OffsetDateTime updatedAt) {}
-    record Board(boolean canManage, List<Work> work) {}
+    record Impact(String capability, int required, int conditional, int projectEvidence, int requestsOpen) {}
+    record Board(boolean canManage, List<Work> work, List<Impact> impacts) {}
     record Assignee(UUID id, String name) {}
     record Event(int version, String status, UUID ownerId, String ownerName,
                  UUID actorId, String actorName, String note, OffsetDateTime recordedAt) {}
@@ -66,8 +67,20 @@ class PlatformSourceWork {
                 ORDER BY CASE n.priority WHEN 'P0' THEN 0 WHEN 'P1' THEN 1 ELSE 2 END,
                          w.updated_at DESC,w.need_code
                 """, PlatformSourceWork::workRow, method, edition, scenario);
+            var impacts = query(connection, """
+                SELECT n.blocked_capability,
+                       count(*) FILTER (WHERE n.mandatory)::integer,
+                       count(*) FILTER (WHERE NOT n.mandatory)::integer,
+                       count(*) FILTER (WHERE n.kind = 'PROJECT_EVIDENCE')::integer,
+                       count(w.need_code)::integer
+                FROM app_methodology_source_need n
+                LEFT JOIN app_platform_source_work w ON w.need_code = n.code
+                WHERE n.methodology = ? AND n.methodology_edition = ? AND n.scenario = ?
+                GROUP BY n.blocked_capability ORDER BY n.blocked_capability
+                """, r -> new Impact(r.getString(1),r.getInt(2),r.getInt(3),r.getInt(4),r.getInt(5)),
+                method,edition,scenario);
             ComplianceStaff.audit(connection, actor.id(), null, "VIEW_PLATFORM_SOURCE_WORK");
-            return new Board(managers.contains(actor.id()), List.copyOf(works));
+            return new Board(managers.contains(actor.id()), List.copyOf(works), List.copyOf(impacts));
         });
     }
 
