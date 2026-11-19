@@ -75,22 +75,22 @@
                 · versão {{ current.work.version }}
                 · responsável {{ current.work.ownerName || 'não atribuído' }}</p>
               @if (snapshot.canManage) {
-                <form (ngSubmit)="revise()">
+                <form (submit)="revise(); $event.preventDefault()">
                   <label for="cf-work-status">Próxima situação da busca</label>
-                  <select id="cf-work-status" name="status" [(ngModel)]="selectedStatus" required>
+                  <select id="cf-work-status" name="status" [value]="selectedStatus" (change)="setStatus($any($event.target).value)" required>
                     @for (status of statusOptions; track status.id) {
                       <option [value]="status.id">{{ status.label }}</option>
                     }
                   </select>
                   <label for="cf-work-owner">Responsável interno</label>
-                  <select id="cf-work-owner" name="owner" [(ngModel)]="selectedOwner">
+                  <select id="cf-work-owner" name="owner" [value]="selectedOwner" (change)="selectedOwner = $any($event.target).value">
                     <option value="">Não atribuído</option>
                     @for (person of assignees(); track person.id) {
                       <option [value]="person.id">{{ person.name }}</option>
                     }
                   </select>
                   <label for="cf-work-note">Justificativa desta atualização</label>
-                  <textarea id="cf-work-note" name="note" [(ngModel)]="editNote"
+                  <textarea id="cf-work-note" name="note" [value]="editNote" (input)="editNote = $any($event.target).value"
                     maxlength="2000" rows="3" required placeholder="Registre o próximo passo ou o motivo da alteração"></textarea>
                   <button type="submit" class="cf-workspace-primary"
                     [disabled]="busy() || loading()">Registrar nova revisão</button>
@@ -98,16 +98,16 @@
               }
             } @else if (!existing()) {
               @if (snapshot.canManage) {
-                <form (ngSubmit)="create()">
+                <form (submit)="create(); $event.preventDefault()">
                   <label for="cf-new-owner">Responsável interno</label>
-                  <select id="cf-new-owner" name="owner" [(ngModel)]="selectedOwner">
+                  <select id="cf-new-owner" name="owner" [value]="selectedOwner" (change)="selectedOwner = $any($event.target).value">
                     <option value="">Não atribuído</option>
                     @for (person of assignees(); track person.id) {
                       <option [value]="person.id">{{ person.name }}</option>
                     }
                   </select>
                   <label for="cf-new-note">Objetivo da solicitação e evidência esperada</label>
-                  <textarea id="cf-new-note" name="note" [(ngModel)]="newNote"
+                  <textarea id="cf-new-note" name="note" [value]="newNote" (input)="newNote = $any($event.target).value"
                     maxlength="2000" rows="4" required placeholder="Descreva a fonte, ano, edição e finalidade da aquisição"></textarea>
                   <button type="submit" class="cf-workspace-primary" [disabled]="busy() || loading()">
                     Abrir solicitação
