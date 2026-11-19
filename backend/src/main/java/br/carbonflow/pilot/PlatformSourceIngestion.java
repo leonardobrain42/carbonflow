@@ -165,7 +165,7 @@ class PlatformSourceIngestion {
         return database.transaction(connection -> {
             var actor = readiness.requireViewer(connection,token);
             if (!reviewers.contains(actor.id())) throw invisible();
-            if (input == null || !Set.of("ACCEPT_METADATA","REQUEST_CORRECTION","REJECT")
+            if (input == null || input.outcome() == null || !Set.of("ACCEPT_METADATA","REQUEST_CORRECTION","REJECT")
                     .contains(input.outcome())) {
                 throw invalid("outcome","Parecer de metadados inválido.");
             }
@@ -188,7 +188,7 @@ class PlatformSourceIngestion {
             if ("METADATA_ACCEPTED".equals(nextState)) {
                 // Serialize acceptance of the same source edition to prevent concurrent metadata overwrite.
                 first(connection, "SELECT pg_advisory_xact_lock(hashtextextended(?, 0))",
-                        row -> row.getObject(1),intake.sourceId()+"@"+intake.edition());
+                        row -> true,intake.sourceId()+"@"+intake.edition());
                 Published published = first(connection, """
                     SELECT category,title,rights_holder,official_uri
                     FROM app_source_version WHERE source_id = ? AND edition = ? AND project_id IS NULL
