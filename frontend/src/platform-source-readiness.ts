@@ -63,7 +63,7 @@ export class PlatformSourceReadinessComponent {
   readonly statuses: {id: SourceStatus; label: string}[] = [
     {id:'MISSING_SOURCE_METADATA',label:'Fonte ainda não cadastrada'},
     {id:'METADATA_ONLY',label:'Apenas metadados / sem autorização de referência'},
-    {id:'REFERENCE_AUTHORIZED_NOT_ADMITTED',label:'Referência autorizada; avaliação técnica pendente'},
+    {id:'REFERENCE_AUTHORIZED_NOT_ADMITTED',label:'Autorização restrita a algum escopo; admissão pendente'},
     {id:'PROJECT_SPECIFIC_EVIDENCE',label:'Documento a obter em cada projeto'},
   ];
   readonly filtered = computed(() => (this.readiness()?.needs ?? []).filter(
