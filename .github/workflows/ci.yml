@@ -136,6 +136,8 @@ jobs:
         run: python3 scripts/demo_sandbox.py start --quiet
       - name: Add a second account using the real confirmation API
         run: python3 scripts/demo_sandbox.py add-user --email segunda@carbonflow.test --name "Segunda conta demo" --quiet
+      - name: Provision local administrative staff using normal account registration
+        run: python3 scripts/admin_sandbox.py setup
       - name: Verify accounts and distinct sessions
         run: python3 scripts/demo_sandbox.py smoke
       - name: Rerun provisioning to prove repeatability without resetting passwords
