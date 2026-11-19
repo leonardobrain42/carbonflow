@@ -41,9 +41,8 @@
             <div class="cf-platform-filters">
               <div>
                 <label for="cf-evr-maker">Fabricante</label>
-                <input id="cf-evr-maker" [(value)]="manufacturer" hidden/>
-                <input maxlength="120" [value]="manufacturer"
-                  (input)="manufacturer=$any($event.target).value" aria-label="Fabricante do veículo" required/>
+                <input id="cf-evr-maker" maxlength="120" [value]="manufacturer"
+                  (input)="manufacturer=$any($event.target).value" required/>
               </div>
               <div>
                 <label for="cf-evr-model">Modelo</label>
