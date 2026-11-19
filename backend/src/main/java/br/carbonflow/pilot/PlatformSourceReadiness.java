@@ -51,7 +51,12 @@ class PlatformSourceReadiness {
                          JOIN app_content_license_capability cap
                            ON cap.license_id = l.id AND cap.decision_version = latest.version
                          WHERE l.source_id = n.source_id AND l.edition = n.source_edition
-                           AND l.organization_id IS NULL AND l.project_id IS NULL AND l.actor_id IS NULL
+                           AND l.organization_id IS NOT NULL AND l.project_id IS NULL AND l.actor_id IS NULL
+                           AND l.environment = 'SANDBOX' AND l.provider IS NULL
+                           AND l.proof_sha256 IS NOT NULL
+                           AND l.submitted_by IS NOT NULL
+                           AND latest.decided_by IS NOT NULL
+                           AND l.submitted_by <> latest.decided_by
                            AND l.purpose = 'REQUIREMENT_CATALOG'
                            AND l.starts_at <= statement_timestamp()
                            AND (l.ends_at IS NULL OR l.ends_at > statement_timestamp())
