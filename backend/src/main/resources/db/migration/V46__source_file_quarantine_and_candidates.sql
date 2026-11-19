@@ -22,11 +22,15 @@ CREATE TABLE app_platform_source_object (
  uploaded_at timestamptz NOT NULL DEFAULT statement_timestamp(),
  parsed_at timestamptz,
  purged_at timestamptz,
- UNIQUE(submission_id,organization_id,sha256),
  CHECK ((purged_at IS NOT NULL) = (nonce IS NULL AND encrypted IS NULL)),
  CHECK ((purged_at IS NOT NULL) OR octet_length(encrypted)=bytes_count+16),
  FOREIGN KEY(license_id,license_version) REFERENCES app_content_license_decision(license_id,version)
 );
+-- Uniqueness applies to retained objects only; a purged object may be re-imported
+-- under a newly and independently approved licence.
+CREATE UNIQUE INDEX app_platform_source_object_active_hash
+ ON app_platform_source_object(submission_id,organization_id,sha256)
+ WHERE purged_at IS NULL;
 CREATE INDEX app_platform_source_object_scope ON app_platform_source_object(submission_id,organization_id,uploaded_at DESC);
 CREATE INDEX app_platform_source_object_license ON app_platform_source_object(license_id);
 
