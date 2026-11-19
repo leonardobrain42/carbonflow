@@ -132,6 +132,9 @@
                   [editable]="can('SAVE_OPEN_APPLICABILITY')">
                 </carbonflow-open-applicability>
               }
+              @if (saved.journey.candidate === 'VM0038' && can('VIEW_OPEN_CALCULATION')) {
+                <carbonflow-open-calculation-readiness [projectId]="projectId" />
+              }
 
               @if ((owner() || capabilities()?.actions?.includes('GUIDE_INTAKE')) && capabilities()?.actions?.includes('VIEW_GUIDES') && saved.journey.candidate === 'VM0038') {
                 <section class="cf-journey-context">
