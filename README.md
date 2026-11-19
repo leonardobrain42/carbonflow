@@ -33,6 +33,20 @@ Abra **http://127.0.0.1:18088/workspace** e use o e-mail `demo@carbonflow.test` 
 
 Este modo usa `compose.demo.yaml`, é acessível apenas em `127.0.0.1`, guarda senhas localmente fora do Git e não concede poderes PP/REV/VVB. Veja [a documentação de segurança e operação](docs/CF-IMP-006-DEMO-SANDBOX.md). O fluxo ainda não cria projetos (CF-IMP-007).
 
+## Admin local de sandbox (conta separada do projeto SIM)
+
+Para criar uma conta local `admin@carbonflow.test`, com senha aleatória e MFA TOTP,
+execute `python3 scripts/admin_sandbox.py setup`. O comando usa cadastro real e
+recria apenas o container da aplicação com permissões internas de fontes, sem
+desligar o PostgreSQL. Consulte a senha no terminal com
+`python3 scripts/demo_sandbox.py show --email admin@carbonflow.test`
+e gere o código de MFA com `python3 scripts/admin_sandbox.py code`.
+Painel: `http://127.0.0.1:18088/workspace/platform/sources`.
+
+Esta conta é **local**, não existe automaticamente no deployment remoto,
+não recebe PP/PREP/REV/VVB e não pode revisar suas próprias submissões.
+Detalhes: [docs/CF-ADMIN-LOCAL-SANDBOX.md](docs/CF-ADMIN-LOCAL-SANDBOX.md).
+
 ## Demonstrar autorização
 
 As credenciais abaixo pertencem às contas fictícias da demonstração local.

@@ -128,12 +128,16 @@ jobs:
       CARBONFLOW_DEMO_PROJECT: carbonflow-demo-ci-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@v4
-      - name: Validate local credential safety without Docker
-        run: python3 -m unittest discover -s scripts -p 'test_demo_sandbox.py' -v
+      - name: Validate local credential and admin MFA safety without Docker
+        run: |
+          python3 -m unittest discover -s scripts -p 'test_demo_sandbox.py' -v
+          python3 -m unittest discover -s scripts -p 'test_admin_sandbox.py' -v
       - name: Start isolated sandbox and provision account
         run: python3 scripts/demo_sandbox.py start --quiet
       - name: Add a second account using the real confirmation API
         run: python3 scripts/demo_sandbox.py add-user --email segunda@carbonflow.test --name "Segunda conta demo" --quiet
+      - name: Provision local administrative staff using normal account registration
+        run: python3 scripts/admin_sandbox.py setup
       - name: Verify accounts and distinct sessions
         run: python3 scripts/demo_sandbox.py smoke
       - name: Rerun provisioning to prove repeatability without resetting passwords
