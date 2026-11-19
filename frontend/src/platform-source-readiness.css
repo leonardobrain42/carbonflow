@@ -60,3 +60,24 @@
  .cf-platform-work-list,.cf-platform-work-editor{max-height:none;}
  .cf-platform-tab{flex:1 1 auto;}
 }
+
+
+/* Source ingestion metadata workflow: no file bytes or protected source excerpts. */
+.cf-platform-ingestion {display:block; min-width:0;}
+.cf-platform-ingestion > .cf-platform-work-editor {margin:1rem 0;}
+.cf-platform-source-form {display:grid; gap:.55rem; margin:1rem 0; width:100%;}
+.cf-platform-source-form label {font-weight:600; margin-top:.25rem;}
+.cf-platform-source-form input,.cf-platform-source-form textarea,.cf-platform-source-form select {
+  box-sizing:border-box; width:100%; max-width:100%; min-width:0;
+  padding:.65rem; background:#142b20; color:#edf9f0; border:1px solid #708b79;
+  border-radius:.45rem; font:inherit;
+}
+.cf-platform-source-form input:focus-visible,.cf-platform-source-form textarea:focus-visible,
+.cf-platform-source-form select:focus-visible {outline:3px solid #83d8a5;outline-offset:2px;}
+.cf-platform-source-form button {justify-self:start; margin-top:.4rem;}
+.cf-platform-ingestion code {overflow-wrap:anywhere;}
+.cf-platform-ingestion .cf-platform-work-layout {margin-top:1.25rem;}
+@media (max-width:620px) {
+ .cf-platform-source-form .cf-platform-filters {grid-template-columns:1fr;}
+ .cf-platform-ingestion .cf-platform-work-editor,.cf-platform-ingestion .cf-platform-work-list {max-height:none;}
+}
