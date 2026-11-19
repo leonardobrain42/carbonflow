@@ -355,7 +355,7 @@ class VehicleRatingIntegrationTest {
             props.put("carbonflow.platform.source-readiness.viewers",
                 MANAGER+","+REVIEWER+","+OUTSIDER);
             props.put("carbonflow.platform.source-work.managers",MANAGER.toString());
-            props.put("carbonflow.platform.vehicle-ratings.reviewers",REVIEWER.toString());
+            props.put("carbonflow.platform.vehicle-ratings.reviewers",MANAGER+","+REVIEWER);
             return props;
         }
     }
