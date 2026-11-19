@@ -7,16 +7,14 @@ COPY frontend/angular.json frontend/tsconfig.json ./
 COPY frontend/src/ src/
 RUN npm run build
 
-FROM eclipse-temurin:21-jdk-noble AS quarkus-build
-RUN apt-get update && apt-get install -y --no-install-recommends unzip \
-    && rm -rf /var/lib/apt/lists/*
+FROM maven:3.9.12-eclipse-temurin-21 AS quarkus-build
 WORKDIR /build/backend
 COPY --chmod=755 backend/mvnw ./
 COPY backend/.mvn/ .mvn/
 COPY backend/pom.xml ./
 COPY backend/src/main/ src/main/
 COPY --from=angular-build /build/frontend/dist/piloto/browser/ /build/frontend/dist/piloto/browser/
-RUN --mount=type=cache,target=/root/.m2 ./mvnw -B -Dmaven.test.skip=true package
+RUN --mount=type=cache,target=/root/.m2 mvn -B -ntp -Dmaven.test.skip=true package
 
 FROM eclipse-temurin:21-jre-noble
 WORKDIR /app

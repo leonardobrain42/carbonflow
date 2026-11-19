@@ -1,0 +1,180 @@
+<section class="cf-platform-ingestion" aria-label="Cadastro e revisão de fontes">
+  <div class="cf-platform-heading-line">
+    <div>
+      <h2>Cadastro e revisão de origem documental</h2>
+      <p>Cadastre a referência oficial, identifique sua edição e submeta os metadados à revisão por outra pessoa autorizada.
+        Nenhum arquivo é transferido nesta etapa e nenhuma fonte é admitida automaticamente para cálculo ou IA.</p>
+    </div>
+    <button type="button" class="cf-workspace-outline" (click)="load()" [disabled]="busy()">Atualizar</button>
+  </div>
+
+  @if (error()) { <p class="cf-workspace-alert" role="alert">{{ error() }}</p> }
+  @if (feedback()) { <p class="cf-platform-success" role="status">{{ feedback() }}</p> }
+  @if (busy()) { <p role="status">Consultando ou registrando metadados…</p> }
+
+  @if (board(); as state) {
+    <p class="cf-platform-meta">Permissão de cadastro: {{ state.canSubmit ? 'autorizada' : 'somente consulta' }}
+      · Permissão de revisão independente: {{ state.canReview ? 'autorizada' : 'não autorizada' }}.
+      Apenas identidades staff com MFA e privilégios específicos podem executar comandos.</p>
+
+    @if (state.canSubmit) {
+      <div class="cf-platform-work-editor">
+        <h3>Nova submissão de metadados</h3>
+        <form (submit)="submit($event)" class="cf-platform-source-form">
+          <label for="cf-ingest-need">Necessidade documental</label>
+          <select id="cf-ingest-need" [value]="draftNeed()" (change)="selectNeed($any($event.target).value)" required>
+            <option value="">Selecione um requisito do inventário</option>
+            @for (need of candidateNeeds(); track need.code) {
+              <option [value]="need.code">{{ need.code }} — {{ need.title }}</option>
+            }
+          </select>
+          @if (draftNeed()) {
+            <div class="cf-platform-filters">
+              <div>
+                <label for="cf-ingest-edition">Edição concreta / ano</label>
+                <input id="cf-ingest-edition" [value]="sourceEdition"
+                  (input)="sourceEdition=$any($event.target).value"
+                  placeholder="Ex.: 2024 ou 1.1" maxlength="30" required/>
+              </div>
+              <div>
+                <label for="cf-ingest-category">Categoria</label>
+                <select id="cf-ingest-category" [value]="category"
+                  (change)="category=$any($event.target).value" required>
+                  @for (cat of categories; track cat.value) {
+                    <option [value]="cat.value">{{ cat.label }}</option>
+                  }
+                </select>
+              </div>
+            </div>
+            <label for="cf-ingest-title">Título oficial do documento ou conjunto de dados</label>
+            <input id="cf-ingest-title" [value]="title"
+              (input)="title=$any($event.target).value" maxlength="200" required/>
+            <div class="cf-platform-filters">
+              <div>
+                <label for="cf-ingest-rightsholder">Detentor dos direitos</label>
+                <input id="cf-ingest-rightsholder" [value]="rightsHolder"
+                  (input)="rightsHolder=$any($event.target).value" maxlength="200" required/>
+              </div>
+              <div>
+                <label for="cf-ingest-publisher">Órgão ou editor responsável</label>
+                <input id="cf-ingest-publisher" [value]="publisher"
+                  (input)="publisher=$any($event.target).value" maxlength="200" required/>
+              </div>
+            </div>
+            <label for="cf-ingest-url">URL oficial HTTPS (metadado, não autorização para copiar)</label>
+            <input id="cf-ingest-url" type="url" [value]="officialUri"
+              (input)="officialUri=$any($event.target).value" placeholder="https://..." maxlength="1000" required/>
+            <div class="cf-platform-filters">
+              <div>
+                <label for="cf-ingest-publication-date">Data da publicação (se conhecida)</label>
+                <input id="cf-ingest-publication-date" type="date" [value]="publicationDate"
+                  (change)="publicationDate=$any($event.target).value"/>
+              </div>
+              <div>
+                <label for="cf-ingest-reference-year">Ano dos dados (se conhecido)</label>
+                <input id="cf-ingest-reference-year" type="number" min="1900" max="2100"
+                  [value]="referenceYear" (input)="referenceYear=$any($event.target).value"/>
+              </div>
+            </div>
+            <label for="cf-ingest-locator">Localizador verificável (seção, aba, tabela ou caminho)</label>
+            <input id="cf-ingest-locator" [value]="locator"
+              (input)="locator=$any($event.target).value" placeholder="Ex.: Tabela 01, aba PBEV, ano 2024"
+              maxlength="300" required/>
+            <label for="cf-ingest-sha">SHA-256 informado da publicação (opcional e não verificado)</label>
+            <input id="cf-ingest-sha" [value]="declaredOriginalSha256"
+              (input)="declaredOriginalSha256=$any($event.target).value"
+              placeholder="64 caracteres hexadecimais, se obtidos" maxlength="64"/>
+            <label for="cf-ingest-note">Justificativa da submissão</label>
+            <textarea id="cf-ingest-note" [value]="note" (input)="note=$any($event.target).value"
+              minlength="3" maxlength="2000" rows="3" required
+              placeholder="Explique a origem, a finalidade e quais verificações ainda faltam"></textarea>
+            <button type="submit" class="cf-workspace-primary" [disabled]="busy()">
+              Submeter metadados à revisão
+            </button>
+          }
+        </form>
+        <p class="cf-platform-meta">Não envie textos protegidos, dados pessoais ou conteúdo de arquivos nesses campos.
+          CSV/XLSX/PDF e validações de direitos serão disponibilizados em etapa específica.</p>
+      </div>
+    }
+
+    <div class="cf-platform-work-layout">
+      <div class="cf-platform-work-list">
+        <h3>Submissões do cenário</h3>
+        @for (item of state.submissions; track item.id) {
+          <article class="cf-platform-work-row">
+            <strong>{{ item.title }}</strong>
+            <p class="cf-platform-meta">{{ item.sourceId }} · {{ item.edition }} · {{ item.needCode }}</p>
+            <p>{{ stateLabel(item.state) }}</p>
+            <p class="cf-platform-meta">Enviado por {{ item.submittedByName }} · revisão {{ item.version }}</p>
+            <button type="button" class="cf-workspace-outline" (click)="open(item.id)"
+              [disabled]="busy()" [attr.aria-pressed]="selected()?.intake?.id === item.id">
+              Abrir proveniência e histórico
+            </button>
+          </article>
+        } @empty {
+          <p role="status">Ainda não há fontes submetidas neste cenário. Use o formulário de cadastro autorizado.</p>
+        }
+      </div>
+      <div class="cf-platform-work-editor">
+        @if (selected(); as detail) {
+          <h3>Origem e decisão — {{ detail.intake.sourceId }}</h3>
+          <p><strong>Estado:</strong> {{ stateLabel(detail.intake.state) }}</p>
+          <p class="cf-platform-meta">Edição: {{ detail.intake.edition }} · categoria: {{ detail.intake.category }}
+            · versão da submissão: {{ detail.intake.version }}</p>
+          <p>Publicador: {{ detail.intake.publisher }} · detentor: {{ detail.intake.rightsHolder }}</p>
+          <p>Localizador: {{ detail.intake.locator }} ·
+            ano dos dados: {{ detail.intake.referenceYear ?? 'não informado' }}</p>
+          <p>Data da publicação: {{ detail.intake.publicationDate || 'não informada' }}</p>
+          @if (detail.intake.declaredOriginalSha256) {
+            <p class="cf-platform-meta">Digest original declarado, <strong>não verificado</strong>:
+              <code>{{ detail.intake.declaredOriginalSha256 }}</code></p>
+          }
+          <a class="cf-workspace-link" [href]="detail.intake.officialUri" target="_blank"
+            rel="noopener noreferrer">Consultar origem indicada</a>
+          @if (detail.intake.state === 'PENDING_REVIEW') {
+            @if (state.canReview && state.actorId !== detail.intake.submittedBy) {
+              <form (submit)="review($event)" class="cf-platform-source-form">
+                <label for="cf-ingest-decision">Decisão sobre os metadados</label>
+                <select id="cf-ingest-decision" [value]="reviewOutcome"
+                  (change)="reviewOutcome=$any($event.target).value" required>
+                  @for (outcome of outcomes; track outcome.value) {
+                    <option [value]="outcome.value">{{ outcome.label }}</option>
+                  }
+                </select>
+                <label for="cf-ingest-review-note">Fundamentação do revisor independente</label>
+                <textarea id="cf-ingest-review-note" [value]="reviewReason"
+                  (input)="reviewReason=$any($event.target).value"
+                  maxlength="2000" minlength="3" rows="3" required
+                  placeholder="Relate as verificações e as pendências de licenças ou dados"></textarea>
+                <button type="submit" class="cf-workspace-primary" [disabled]="busy()">
+                  Registrar parecer
+                </button>
+              </form>
+            } @else {
+              <p class="cf-platform-warning">Aguardando outra identidade autorizada para revisão independente.
+                Quem submeteu a fonte não pode aceitar os próprios metadados.</p>
+            }
+          }
+          <h4>Histórico imutável</h4>
+          <ol class="cf-platform-revisions">
+            @for (event of detail.history; track event.version) {
+              <li>
+                <strong>Versão {{ event.version }} · {{ stateLabel(event.state) }}</strong>
+                <p>{{ event.reason }}</p>
+                <p class="cf-platform-meta">{{ event.actorName }} · {{ event.recordedAt }}</p>
+              </li>
+            }
+          </ol>
+        } @else {
+          <h3>Proveniência e parecer</h3>
+          <p>Selecione uma submissão para ver a origem, a edição, as decisões e as pendências.</p>
+        }
+      </div>
+    </div>
+
+    <p class="cf-platform-warning">Mesmo com metadados aceitos, esta interface não valida legalidade de cópia,
+      qualidade de séries, compatibilidade de fatores, adicionalidade ou elegibilidade de créditos.
+      O uso de números e documentos por projetos exige autorização e avaliação técnica adicionais.</p>
+  }
+</section>

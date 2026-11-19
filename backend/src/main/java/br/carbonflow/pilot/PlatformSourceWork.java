@@ -86,7 +86,7 @@ class PlatformSourceWork {
 
     List<Assignee> assignees(String token) {
         return database.transaction(connection -> {
-            manager(connection, token);
+            requireManager(connection, token);
             var ids = connection.createArrayOf("uuid", managers.toArray(UUID[]::new));
             try {
                 return query(connection, """
@@ -111,7 +111,7 @@ class PlatformSourceWork {
 
     Detail request(String token, String code, NewRequest input) {
         return database.transaction(connection -> {
-            var actor = manager(connection, token);
+            var actor = requireManager(connection, token);
             Need need = requireNeed(connection, code);
             if ("PROJECT_EVIDENCE".equals(need.kind())) {
                 throw bad("needCode", "Evidência de projeto deve ser solicitada ao PP/operador no projeto.");
@@ -141,7 +141,7 @@ class PlatformSourceWork {
 
     Detail revise(String token, String code, int expectedVersion, Change change) {
         return database.transaction(connection -> {
-            var actor = manager(connection, token);
+            var actor = requireManager(connection, token);
             if (change == null || change.status() == null || !Set.of("REQUESTED","SOURCING","WAITING_RIGHTS",
                     "READY_FOR_HANDOFF","ON_HOLD").contains(change.status())) {
                 throw bad("status","Situação de solicitação inválida.");
@@ -188,7 +188,11 @@ class PlatformSourceWork {
         };
     }
 
-    private ComplianceStaff.Staff manager(Connection connection, String token) throws SQLException {
+    boolean canManage(UUID actorId) {
+        return managers.contains(actorId);
+    }
+
+    ComplianceStaff.Staff requireManager(Connection connection, String token) throws SQLException {
         var actor = readiness.requireViewer(connection,token);
         if (!managers.contains(actor.id())) {
             throw new PilotProblem(404,"RECURSO_NAO_VISIVEL","manager","CF-OPEN-002",
