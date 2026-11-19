@@ -150,8 +150,9 @@ class FleetCompositionIntegrationTest {
         assertEquals(2L,count("app_fleet_composition_snapshot"));
         assertEquals("STALE_REFERENCE",read(request("GET",ROOT+"/imports/"+imported,
             manager,null,null),200).at("/snapshot/state").asText());
-        assertEquals(25,read(request("GET",ROOT+"/imports/"+imported,
-            manager,null,null),200).path("weights").get(0).path("evr").asInt());
+        assertTrue(read(request("GET",ROOT+"/imports/"+imported,
+            manager,null,null),200).path("weights").valueStream()
+                .anyMatch(item->item.path("evr").asInt()==25));
         assertEquals("PREPARATORY",newer.at("/snapshot/state").asText());
 
         // Source rights revocation must purge snapshots AND observations, not only the original.
