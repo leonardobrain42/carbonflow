@@ -156,6 +156,10 @@
                 Quem submeteu a fonte não pode aceitar os próprios metadados.</p>
             }
           }
+          @if (detail.intake.state === 'METADATA_ACCEPTED') {
+            <carbonflow-source-file-quarantine [submissionId]="detail.intake.id">
+            </carbonflow-source-file-quarantine>
+          }
           <h4>Histórico imutável</h4>
           <ol class="cf-platform-revisions">
             @for (event of detail.history; track event.version) {
