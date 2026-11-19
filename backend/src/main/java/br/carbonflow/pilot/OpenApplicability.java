@@ -140,13 +140,23 @@ class OpenApplicability {
                 findings.add(new Finding("ACCESS_UNDETERMINED","PENDING",
                     "Declare se qualquer BEV compatível pode acessar e se há restrições à frota."));
             }
-            if(!"DCFC".equals(data.chargerType()) || !"BEV".equals(data.propulsion()) ||
-                    !"SIN".equals(data.electricitySource()) ||
-                    !Boolean.FALSE.equals(data.associatedInfrastructure()) ||
-                    !Boolean.FALSE.equals(data.v2g())) {
+            boolean outside = Set.of("AC","MIXED").contains(Objects.toString(data.chargerType(),""))
+                    || Set.of("PHEV","MIXED").contains(Objects.toString(data.propulsion(),""))
+                    || Set.of("OTHER_GRID","ON_SITE","MIXED").contains(Objects.toString(data.electricitySource(),""))
+                    || Boolean.TRUE.equals(data.associatedInfrastructure())
+                    || Boolean.TRUE.equals(data.v2g());
+            boolean incomplete = !Set.of("DCFC").contains(data.chargerType())
+                    || !Set.of("BEV").contains(data.propulsion())
+                    || !Set.of("SIN").contains(data.electricitySource())
+                    || data.associatedInfrastructure()==null || data.v2g()==null;
+            if(outside) {
                 category="OUTSIDE_FIRST_IMPLEMENTED_SCOPE";
                 findings.add(new Finding("CONFIGURATION_BRANCH","OUTSIDE_FIRST_SCOPE",
                     "Primeira fatia cobre LDV BEV, DCFC, somente SIN, sem geração, bateria ou V2G."));
+            } else if(incomplete) {
+                category="CONFIGURATION_PENDING";
+                findings.add(new Finding("CONFIGURATION_PENDING","PENDING",
+                    "Complete tecnologia, propulsão, rede elétrica e infraestrutura antes de classificar o recorte."));
             }
             if(data.chargingOwner()==null || data.carbonRightsContractRef()==null) {
                 findings.add(new Finding("OWNER_CONTRACT","NEEDS_EVIDENCE",
