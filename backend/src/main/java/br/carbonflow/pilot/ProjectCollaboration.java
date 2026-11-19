@@ -14,7 +14,8 @@ final class ProjectCollaboration {
     record Access(String role, Set<String> actions) {}
 
     static final Set<String> OWNER_TECHNICAL_ACTIONS = Set.of("VIEW_PROJECT_METADATA", "VIEW_CAPABILITIES", "VIEW_JOURNEY",
-            "VIEW_PD_REVIEW", "VIEW_GUIDES", "SAVE_GUIDE", "VIEW_INTAKE", "SAVE_INTAKE", "VIEW_DOSSIER", "PREPARE_DOSSIER", "DOWNLOAD_DOSSIER");
+            "VIEW_PD_REVIEW", "VIEW_GUIDES", "SAVE_GUIDE", "VIEW_INTAKE", "SAVE_INTAKE", "VIEW_DOSSIER", "PREPARE_DOSSIER", "DOWNLOAD_DOSSIER",
+            "VIEW_OPEN_APPLICABILITY", "SAVE_OPEN_APPLICABILITY");
 
     private ProjectCollaboration() {}
 
@@ -44,6 +45,10 @@ final class ProjectCollaboration {
                 if (!"DOCUMENTATION".equals(activity)) {
                     actions.add("GUIDE_" + activity);
                     actions.add("VIEW_GUIDES");
+                    if ("APPLICABILITY".equals(activity)) {
+                        actions.add("VIEW_OPEN_APPLICABILITY");
+                        if (preparer) actions.add("SAVE_OPEN_APPLICABILITY");
+                    }
                     if (preparer) actions.add("SAVE_GUIDE");
                 }
             }
