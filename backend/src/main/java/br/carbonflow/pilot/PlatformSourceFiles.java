@@ -366,7 +366,7 @@ class PlatformSourceFiles {
         return source;
     }
 
-    private Grant requireGrant(Connection connection,Set<UUID> organizations,String source,
+    Grant requireGrant(Connection connection,Set<UUID> organizations,String source,
             String edition,UUID license,String operation) throws SQLException {
         var result=granted(connection,organizations,source,edition,license,operation);
         if(result==null)throw new PilotProblem(403,"DIREITOS_NAO_AUTORIZADOS","license",RULE,
@@ -374,7 +374,7 @@ class PlatformSourceFiles {
         return result;
     }
 
-    private Grant granted(Connection connection,Set<UUID> organizations,String source,
+    Grant granted(Connection connection,Set<UUID> organizations,String source,
             String edition,UUID bound,String operation) throws SQLException {
         var array=connection.createArrayOf("uuid",organizations.toArray(UUID[]::new));
         try {

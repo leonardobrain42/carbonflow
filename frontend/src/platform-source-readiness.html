@@ -85,7 +85,13 @@
               (click)="selectTab(item.id)">{{ item.label }}</button>
           }
         </nav>
-        @if (tab() === 'ingestion') {
+        @if (tab() === 'fleet') {
+          <section class="cf-workspace-card">
+            <carbonflow-platform-fleet [methodology]="view.methodology"
+              [edition]="view.edition" [scenario]="view.scenario">
+            </carbonflow-platform-fleet>
+          </section>
+        } @else if (tab() === 'ingestion') {
           <section class="cf-workspace-card">
             <carbonflow-platform-source-ingestion
               [methodology]="view.methodology" [edition]="view.edition"
