@@ -51,10 +51,11 @@ class PlatformSourceFiles {
                         String state,List<String> issues,int parsedRows,OffsetDateTime uploadedAt,
                         OffsetDateTime purgedAt,String sourceId,String edition,UUID submittedBy,
                         String submissionState,byte[] nonce,byte[] ciphertext) {}
-    record FileView(UUID id,UUID submissionId,String filename,String format,String sha256,
+    record FileView(UUID id,UUID submissionId,UUID uploadedBy,String filename,String format,String sha256,
                     int bytesCount,String state,List<String> issues,int parsedRows,
                     OffsetDateTime uploadedAt,boolean licenseActive,boolean usableForE8) {}
-    record Board(boolean canUpload,boolean canReview,List<FileView> files) {}
+    record Board(UUID actorId,boolean canUpload,boolean canReview,List<FileView> files) {}
+    record Preview(int total,List<TabularCandidateParser.Candidate> samples) {}
     record Decision(String outcome,String metric,Integer periodYear,String geography,String unit,
                     String evidenceLocator,String reason) {}
     record Assessment(UUID id,UUID objectId,String outcome,String methodology,
@@ -102,7 +103,7 @@ class PlatformSourceFiles {
                     } catch(SQLException exception) {throw new IllegalStateException(exception);}
                 }).toList();
                 ComplianceStaff.audit(connection,actor.id(),null,"VIEW_PLATFORM_SOURCE_OBJECTS");
-                return new Board(work.canManage(actor.id()),reviewers.contains(actor.id()),views);
+                return new Board(actor.id(),work.canManage(actor.id()),reviewers.contains(actor.id()),views);
             } finally {
                 organizations.free();
             }
@@ -214,6 +215,30 @@ class PlatformSourceFiles {
         });
     }
 
+    Preview preview(String token,UUID id) {
+        return database.transaction(connection->{
+            var actor=readiness.requireViewer(connection,token);
+            if(!reviewers.contains(actor.id()))throw forbidden("Visualização de valores exige revisão técnica.");
+            var stored=file(connection,id,actor.organizations());
+            if(stored.purgedAt()!=null || !Set.of("NORMALIZED_CANDIDATE",
+                    "APPROVED_FOR_SCOPE","REJECTED_FOR_SCOPE").contains(stored.state())) {
+                throw forbidden("Prévia técnica indisponível.");
+            }
+            requireGrant(connection,actor.organizations(),stored.sourceId(),stored.edition(),
+                    stored.licenseId(),"EXTRACT_TEXT");
+            requireGrant(connection,actor.organizations(),stored.sourceId(),stored.edition(),
+                    stored.licenseId(),"SHOW_EXCERPTS");
+            List<TabularCandidateParser.Candidate> samples=query(connection, """
+                SELECT row_index,record_key,period_year,metric,value_numeric,unit,geography,locator
+                FROM app_platform_source_candidate WHERE object_id=? ORDER BY row_index LIMIT 50
+                """,r->new TabularCandidateParser.Candidate(r.getInt(1),r.getString(2),
+                    r.getInt(3),r.getString(4),r.getBigDecimal(5),r.getString(6),
+                    r.getString(7),r.getString(8)),id);
+            ComplianceStaff.audit(connection,actor.id(),null,"VIEW_PLATFORM_SOURCE_CANDIDATES");
+            return new Preview(stored.parsedRows(),List.copyOf(samples));
+        });
+    }
+
     Assessment assess(String token,UUID id,Decision decision) {
         return database.transaction(connection->{
             var actor=readiness.requireViewer(connection,token);
@@ -235,6 +260,10 @@ class PlatformSourceFiles {
                     stored.licenseId(),"EXTRACT_TEXT");
             requireGrant(connection,actor.organizations(),stored.sourceId(),stored.edition(),
                     stored.licenseId(),"STORE_ORIGINAL");
+            if("APPROVED_FOR_SCOPE".equals(decision.outcome())) {
+                requireGrant(connection,actor.organizations(),stored.sourceId(),stored.edition(),
+                        stored.licenseId(),"SHOW_EXCERPTS");
+            }
             var scope=first(connection, """
                 SELECT n.methodology,n.methodology_edition,n.scenario,n.blocked_capability
                 FROM app_platform_source_submission s
@@ -295,7 +324,7 @@ class PlatformSourceFiles {
         throws SQLException {
         boolean active=file.purgedAt()==null && granted(connection,organizations,
                 file.sourceId(),file.edition(),file.licenseId(),"STORE_ORIGINAL")!=null;
-        return new FileView(file.id(),file.submission(),file.name(),file.format(),
+        return new FileView(file.id(),file.submission(),file.uploadedBy(),file.name(),file.format(),
                 HexFormat.of().formatHex(file.sha256()),file.bytes(),
                 active?file.state():"SUSPENDED",active?file.issues():List.of(),active?file.parsedRows():0,
                 file.uploadedAt(),active,false);
