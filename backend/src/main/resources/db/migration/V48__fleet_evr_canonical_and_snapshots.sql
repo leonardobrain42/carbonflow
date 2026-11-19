@@ -26,6 +26,10 @@ CREATE TABLE app_fleet_model_alias (
 );
 
 -- STOCK_IN_CIRCULATION and NEW_SALES are disjoint domains even if published together.
+-- Composite keys bind a source object and its licence to the same tenant at DB level.
+ALTER TABLE app_platform_source_object ADD CONSTRAINT app_source_object_tenant UNIQUE(id,organization_id);
+ALTER TABLE app_platform_source_object ADD CONSTRAINT app_source_object_licence UNIQUE(id,license_id);
+
 CREATE TABLE app_fleet_ingestion (
   id uuid PRIMARY KEY,
   organization_id uuid NOT NULL REFERENCES app_organization(id),
@@ -41,7 +45,11 @@ CREATE TABLE app_fleet_ingestion (
   imported_at timestamptz NOT NULL DEFAULT statement_timestamp(),
   purged_at timestamptz,
   UNIQUE(id,organization_id),
-  UNIQUE(organization_id,source_object_id,data_kind,observation_year,geography)
+  UNIQUE(organization_id,source_object_id,data_kind,observation_year,geography),
+  FOREIGN KEY(source_object_id,organization_id)
+    REFERENCES app_platform_source_object(id,organization_id),
+  FOREIGN KEY(source_object_id,source_license_id)
+    REFERENCES app_platform_source_object(id,license_id)
 );
 
 CREATE TABLE app_fleet_stock_observation (
@@ -89,7 +97,8 @@ CREATE TABLE app_fleet_composition_snapshot (
   source_sha256 bytea NOT NULL CHECK (octet_length(source_sha256)=32),
   constructed_at timestamptz NOT NULL DEFAULT statement_timestamp(),
   purged_at timestamptz,
-  FOREIGN KEY(ingestion_id,organization_id) REFERENCES app_fleet_ingestion(id,organization_id)
+  FOREIGN KEY(ingestion_id,organization_id) REFERENCES app_fleet_ingestion(id,organization_id),
+  UNIQUE(id,organization_id)
 );
 
 CREATE TABLE app_fleet_composition_weight (
@@ -101,8 +110,21 @@ CREATE TABLE app_fleet_composition_weight (
   weight numeric(22,18) NOT NULL CHECK (weight>=0 AND weight<=1),
   source_locator text NOT NULL,
   PRIMARY KEY(snapshot_id,model_id),
-  FOREIGN KEY(model_id,organization_id) REFERENCES app_fleet_model(id,organization_id)
+  FOREIGN KEY(model_id,organization_id) REFERENCES app_fleet_model(id,organization_id),
+  FOREIGN KEY(snapshot_id,organization_id) REFERENCES app_fleet_composition_snapshot(id,organization_id)
 );
+
+-- Idempotency receipts for all staff commands, including retried requests.
+CREATE TABLE app_fleet_command (
+  actor_id uuid NOT NULL REFERENCES app_identity(id),
+  command_key text NOT NULL,
+  action text NOT NULL CHECK(action IN ('REGISTER_MODEL','MAP_ALIAS','CREATE_SNAPSHOT')),
+  fingerprint bytea NOT NULL CHECK(octet_length(fingerprint)=32),
+  record_id uuid NOT NULL,
+  recorded_at timestamptz NOT NULL DEFAULT statement_timestamp(),
+  PRIMARY KEY(actor_id,command_key)
+);
+
 CREATE INDEX app_fleet_ingestion_scope ON app_fleet_ingestion(organization_id,data_kind,observation_year,imported_at DESC);
 CREATE INDEX app_fleet_alias_lookup ON app_fleet_model_alias(organization_id,observation_year);
 
