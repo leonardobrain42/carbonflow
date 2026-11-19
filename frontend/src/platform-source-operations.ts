@@ -1,5 +1,4 @@
 import {Component, Input, OnChanges, SimpleChanges, computed, inject, signal} from '@angular/core';
-import {FormsModule} from '@angular/forms';
 import {HttpClient, HttpErrorResponse, HttpHeaders, HttpParams} from '@angular/common/http';
 import {firstValueFrom} from 'rxjs';
 
@@ -53,7 +52,7 @@ interface Detail {work: WorkItem; history: WorkEvent[]}
 @Component({
   selector: 'carbonflow-platform-source-operations',
   standalone: true,
-  imports: [FormsModule],
+  imports: [],
   templateUrl: './platform-source-operations.html',
   styleUrl: './platform-source-readiness.css',
 })
@@ -97,6 +96,12 @@ export class PlatformSourceOperationsComponent implements OnChanges {
       this.selectedCode.set('');
       this.detail.set(null);
       void this.refresh();
+    }
+  }
+
+  setStatus(value: string) {
+    if (this.statusOptions.some(option => option.id === value)) {
+      this.selectedStatus = value as WorkState;
     }
   }
 
