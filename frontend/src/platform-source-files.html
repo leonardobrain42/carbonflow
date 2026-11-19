@@ -1,0 +1,151 @@
+<section class="cf-platform-source-files" aria-label="Quarentena de dados tabulares">
+  <h3>Arquivo original protegido e conferência técnica</h3>
+  <p>Esta etapa trabalha exclusivamente com CSV UTF-8 ou XLSX (uma aba), até 2 MiB.
+    O arquivo é cifrado e mantido em quarentena. Só há extração com licença vigente e autorização
+    explícita para as operações <code>STORE_ORIGINAL</code> e <code>EXTRACT_TEXT</code>.</p>
+  @if (error()) {<p class="cf-workspace-alert" role="alert">{{error()}}</p>}
+  @if (message()) {<p class="cf-platform-success" role="status">{{message()}}</p>}
+  @if (busy()) {<p role="status">Consultando ou verificando o arquivo…</p>}
+
+  @if (board(); as state) {
+    <p class="cf-platform-meta">Upload: {{state.canUpload ? 'papel autorizado — sujeito à licença' : 'não autorizado'}}
+      · Revisão técnica: {{state.canReview ? 'papel autorizado — sujeito à licença' : 'não autorizada'}}.</p>
+
+    @if (state.canUpload) {
+      <div class="cf-platform-work-editor">
+        <h4>Armazenar original em quarentena</h4>
+        <label for="cf-source-original">Arquivo CSV ou XLSX com cabeçalho dimensional</label>
+        <input id="cf-source-original" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          (change)="chooseFile($event)" [disabled]="busy()"/>
+        @if (pendingFile) {
+          <p class="cf-platform-meta">{{pendingFile.name}} · {{pendingFile.size}} bytes · {{fileFormat}}</p>
+        }
+        <button type="button" class="cf-workspace-primary" [disabled]="!pendingFile || busy()"
+          (click)="upload()">Enviar para quarentena cifrada</button>
+        <p class="cf-platform-meta">O servidor confirma um SHA-256 calculado sobre os bytes. Um SHA informado no cadastro,
+          se houver, deve coincidir; nenhuma autorização pode ser presumida a partir do envio.</p>
+      </div>
+    }
+
+    <div class="cf-platform-work-layout">
+      <div class="cf-platform-work-list">
+        <h4>Arquivos desta fonte e organização</h4>
+        @for (file of state.files; track file.id) {
+          <article class="cf-platform-work-row">
+            <strong>{{file.filename}}</strong>
+            <p class="cf-platform-meta">{{file.format}} · {{file.bytesCount}} bytes · {{file.parsedRows}} linhas candidatas</p>
+            <p><strong>{{stateLabel(file.state)}}</strong></p>
+            <p class="cf-platform-meta">Licença de armazenamento:
+              {{file.licenseActive ? 'vigente para o escopo' : 'revogada, expirada ou indisponível'}}.</p>
+            <button type="button" class="cf-workspace-outline" [attr.aria-pressed]="selected()?.id===file.id"
+              [disabled]="busy()" (click)="selectFile(file)">Verificar arquivo</button>
+          </article>
+        } @empty {
+          <p role="status">Nenhum arquivo armazenado para esta organização. Permissões devem estar configuradas antes de iniciar.</p>
+        }
+      </div>
+
+      <div class="cf-platform-work-editor">
+        @if (selected(); as object) {
+          <h4>{{object.filename}}</h4>
+          <p>Estado: <strong>{{stateLabel(object.state)}}</strong></p>
+          <p class="cf-platform-meta">SHA-256 verificado: <code>{{object.sha256}}</code></p>
+          <p class="cf-platform-meta">Identificador: {{object.id}}</p>
+          @for (issue of object.issues; track $index) {
+            <p class="cf-workspace-alert">{{issue}}</p>
+          }
+          @if (state.canUpload && object.licenseActive &&
+            (object.state==='QUARANTINED' || object.state==='SCHEMA_REJECTED')) {
+            <p>O parser exige as colunas <code>record_key, period_year, metric, value, unit, geography</code>,
+              em CSV separado por vírgulas ou XLSX de aba única. Células com fórmulas, vintages diferentes
+              e dados incompletos são bloqueados sem preenchimentos automáticos.</p>
+            <button type="button" class="cf-workspace-primary" [disabled]="busy()"
+              (click)="parse()">Validar tabela e gerar candidatos</button>
+          }
+
+          @if (object.state==='NORMALIZED_CANDIDATE' && object.licenseActive &&
+            state.canReview && state.actorId!==object.uploadedBy) {
+            <h4>Parecer técnico independente</h4>
+            <p>Para consultar até 50 amostras, a licença também deve autorizar
+              <code>SHOW_EXCERPTS</code>. A seleção de um escopo não publica um fator no E8.</p>
+            <button type="button" class="cf-workspace-outline" (click)="inspect()"
+              [disabled]="busy()">Consultar amostras autorizadas</button>
+            @if (preview(); as result) {
+              <p class="cf-platform-meta">Prévia de {{result.samples.length}} entre {{result.total}} linhas; sem download do original.</p>
+              <div class="cf-platform-sample-scroll">
+                <table class="cf-platform-sample-table">
+                  <thead><tr><th>Linha</th><th>Chave</th><th>Indicador</th><th>Ano</th>
+                    <th>Valor</th><th>Unidade</th><th>Local</th></tr></thead>
+                  <tbody>
+                    @for (candidate of result.samples; track candidate.row) {
+                      <tr><td>{{candidate.row}}</td><td>{{candidate.recordKey}}</td>
+                        <td>{{candidate.metric}}</td><td>{{candidate.year}}</td>
+                        <td>{{candidate.value}}</td><td>{{candidate.unit}}</td>
+                        <td>{{candidate.geography}}</td></tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+            <form class="cf-platform-source-form" (submit)="assess($event)">
+              <label for="cf-source-decision">Decisão para o escopo declarado</label>
+              <select id="cf-source-decision" [value]="reviewOutcome"
+                (change)="reviewOutcome=$any($event.target).value" required>
+                <option value="NEEDS_INFORMATION">Exigir complementação</option>
+                <option value="REJECTED_FOR_SCOPE">Rejeitar este escopo</option>
+                <option value="APPROVED_FOR_SCOPE">Aceitar somente este escopo técnico</option>
+              </select>
+              <div class="cf-platform-filters">
+                <div>
+                  <label for="cf-source-metric">Indicador</label>
+                  <input id="cf-source-metric" [value]="metric"
+                    (input)="metric=$any($event.target).value" maxlength="80" required/>
+                </div>
+                <div>
+                  <label for="cf-source-year">Ano dos dados</label>
+                  <input id="cf-source-year" type="number" min="1900" max="2100"
+                    [value]="year" (input)="year=$any($event.target).value" required/>
+                </div>
+              </div>
+              <div class="cf-platform-filters">
+                <div>
+                  <label for="cf-source-geography">Geografia</label>
+                  <input id="cf-source-geography" [value]="geography"
+                    (input)="geography=$any($event.target).value" maxlength="64" required/>
+                </div>
+                <div>
+                  <label for="cf-source-unit">Unidade publicada</label>
+                  <select id="cf-source-unit" [value]="unit" (change)="unit=$any($event.target).value">
+                    @for (choice of units; track choice) {
+                      <option [value]="choice">{{choice}}</option>
+                    }
+                  </select>
+                </div>
+              </div>
+              <label for="cf-source-locator">Localizador oficial usado para conferir o escopo</label>
+              <input id="cf-source-locator" [value]="evidenceLocator"
+                (input)="evidenceLocator=$any($event.target).value"
+                maxlength="300" minlength="5" required/>
+              <label for="cf-source-technical-reason">Fundamentação técnica</label>
+              <textarea id="cf-source-technical-reason" [value]="reason"
+                (input)="reason=$any($event.target).value" rows="4" minlength="10"
+                maxlength="2000" required></textarea>
+              <button type="submit" class="cf-workspace-primary"
+                [disabled]="busy() || (reviewOutcome==='APPROVED_FOR_SCOPE' && !preview())">
+                Registrar parecer dimensional
+              </button>
+            </form>
+          } @else if (object.state==='NORMALIZED_CANDIDATE' && state.actorId===object.uploadedBy) {
+            <p class="cf-platform-warning">O responsável pelo upload não pode avaliar o próprio arquivo.</p>
+          }
+          <p class="cf-platform-warning"><strong>Nenhuma linha está liberada para o E8.</strong>
+            Publicar fatores ou calcular BE/PE/ER exige seleção de parâmetros por metodologia, edição,
+            finalidade e direitos de uso em projeto, ainda prevista nas próximas etapas.</p>
+        } @else {
+          <h4>Análise de um arquivo</h4>
+          <p>Selecione um arquivo para consultar seu digest, verificar licença, executar a validação ou revisar um escopo.</p>
+        }
+      </div>
+    </div>
+  }
+</section>
