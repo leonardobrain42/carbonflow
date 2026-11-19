@@ -82,7 +82,7 @@ class VehicleRatingService {
         this.db=db;this.readiness=readiness;this.managers=managers;this.rights=rights;
         try{
             this.reviewers=roster.map(x->Arrays.stream(x.split(","))
-                .map(String::strip).filter(x->!x.isEmpty()).map(UUID::fromString)
+                .map(String::strip).filter(value->!value.isEmpty()).map(UUID::fromString)
                 .collect(Collectors.toUnmodifiableSet())).orElse(Set.of());
         }catch(IllegalArgumentException ex){
             throw new IllegalStateException("Lista de revisores de ratings inválida.",ex);
