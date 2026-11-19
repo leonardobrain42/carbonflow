@@ -3,8 +3,9 @@ import {HttpClient, HttpErrorResponse, HttpParams} from '@angular/common/http';
 import {RouterLink} from '@angular/router';
 import {firstValueFrom} from 'rxjs';
 import {PlatformSourceOperationsComponent} from './platform-source-operations';
+import {PlatformSourceIngestionComponent} from './platform-source-ingestion';
 
-type SourceTab = 'overview' | 'normative' | 'datasets' | 'project' | 'admissibility' | 'acquisition' | 'history' | 'impacts';
+type SourceTab = 'overview' | 'normative' | 'datasets' | 'project' | 'admissibility' | 'acquisition' | 'ingestion' | 'history' | 'impacts';
 
 type SourceStatus = 'MISSING_SOURCE_METADATA' | 'METADATA_ONLY'
   | 'SCOPED_REFERENCE_NOT_ADMITTED' | 'VERSION_SELECTION_REQUIRED' | 'PROJECT_SPECIFIC_EVIDENCE';
@@ -62,7 +63,7 @@ interface SourceReadiness {
 @Component({
   selector: 'carbonflow-platform-source-readiness',
   standalone: true,
-  imports: [RouterLink, PlatformSourceOperationsComponent],
+  imports: [RouterLink, PlatformSourceOperationsComponent, PlatformSourceIngestionComponent],
   templateUrl: './platform-source-readiness.html',
   styleUrl: './platform-source-readiness.css',
 })
@@ -87,6 +88,7 @@ export class PlatformSourceReadinessComponent {
     {id:'project',label:'Documentos do projeto'},
     {id:'admissibility',label:'Admissibilidade'},
     {id:'acquisition',label:'Alimentação e tarefas'},
+    {id:'ingestion',label:'Cadastro de fontes'},
     {id:'history',label:'Histórico'},
     {id:'impacts',label:'Impactos na jornada'},
   ];
@@ -127,8 +129,10 @@ export class PlatformSourceReadinessComponent {
   constructor() { void this.loadSession(); }
 
   selectTab(tab: SourceTab) {
+    const before=this.tab();
     this.tab.set(tab);
-    if (this.stage() !== 'ALL' || this.statusFilter() !== 'ALL' || this.pageOffset() !== 0) {
+    if (this.stage() !== 'ALL' || this.statusFilter() !== 'ALL' ||
+        this.pageOffset() !== 0 || before === 'ingestion' || tab === 'ingestion') {
       this.stage.set('ALL');
       this.statusFilter.set('ALL');
       this.pageOffset.set(0);
@@ -212,7 +216,7 @@ export class PlatformSourceReadinessComponent {
     try {
       let params = new HttpParams()
         .set('edition',target.edition).set('scenario',target.scenario)
-        .set('limit',this.pageLimit).set('offset',this.pageOffset());
+        .set('limit',this.tab() === 'ingestion' ? 100 : this.pageLimit).set('offset',this.pageOffset());
       if (this.stage() !== 'ALL') params = params.set('stage',this.stage());
       if (this.statusFilter() !== 'ALL') params = params.set('status',this.statusFilter());
       const result = await firstValueFrom(this.http.get<SourceReadiness>(
