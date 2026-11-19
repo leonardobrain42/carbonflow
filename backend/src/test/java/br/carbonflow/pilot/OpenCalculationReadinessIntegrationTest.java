@@ -80,7 +80,7 @@ class OpenCalculationReadinessIntegrationTest {
         assertFalse(data.toString().contains("EF-SYN-v1"));
         assertFalse(data.toString().contains("SIM-DY"));
         assertEquals(0L,database.read(c -> first(c,
-            "SELECT count(*) FROM pilot_selected_calculation WHERE project_id = ?",
+            "SELECT count(*) FROM pilot_selected_run WHERE project_id = ?",
             r -> r.getLong(1),project)).longValue());
     }
 
