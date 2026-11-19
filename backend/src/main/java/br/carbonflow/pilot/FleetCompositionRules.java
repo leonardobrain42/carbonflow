@@ -32,7 +32,7 @@ final class FleetCompositionRules {
         var rows = new ArrayList<Row>();
         var seenModels = new HashSet<UUID>();
         var seenSourceRows = new HashSet<Integer>();
-        if (!Set.of(STOCK, SALES).contains(dataKind)) issues.add("Tipo desconhecido: estoque em circulação e vendas são domínios distintos.");
+        if (!STOCK.equals(dataKind) && !SALES.equals(dataKind)) issues.add("Tipo desconhecido: estoque em circulação e vendas são domínios distintos.");
         if (year < 1900 || year > 2100 || !"BR".equals(geography)) issues.add("O recorte v1 exige ano explícito e geografia BR nacional.");
         if (input == null || input.isEmpty()) issues.add("A série não possui observações; ausência não equivale a zero.");
         if (input != null && input.size() > 2000) issues.add("O limite da série é 2.000 observações.");
