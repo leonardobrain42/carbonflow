@@ -1,6 +1,7 @@
 import {Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject, signal} from '@angular/core';
 import {HttpClient, HttpErrorResponse, HttpHeaders, HttpParams} from '@angular/common/http';
 import {firstValueFrom} from 'rxjs';
+import {PlatformSourceFilesComponent} from './platform-source-files';
 
 interface Need {
   code: string;
@@ -27,6 +28,7 @@ type ReviewOutcome = 'ACCEPT_METADATA'|'REQUEST_CORRECTION'|'REJECT';
 @Component({
   selector: 'carbonflow-platform-source-ingestion',
   standalone:true,
+  imports:[PlatformSourceFilesComponent],
   templateUrl:'./platform-source-ingestion.html',
   styleUrl:'./platform-source-readiness.css',
 })
