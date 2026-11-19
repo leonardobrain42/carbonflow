@@ -24,6 +24,7 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
       await route.fulfill({json:{
         methodology:'VM0038',edition:'1.1',scenario:'OPEN_LDV_DCFC_SIN_BR',
         asOf:'2026-11-19T14:00:00Z',normativeRuleStatus:'ONLY_SYNTHETIC_RULE_PACKS',
+        dynamicCalculationStatus:'NOT_ENABLED_FOR_DYNAMIC_PROJECTS',normativeAiDisabled:true,
         missingSourceCount:1,missingReferenceRightsCount:1,reviewPendingCount:0,projectEvidenceCount:1,
         needs:[
           {code:'OPEN-EVR',stage:'BASELINE',kind:'DATASET',title:'Estoque BEV por modelo (EVR)',
