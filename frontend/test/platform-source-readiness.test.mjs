@@ -18,15 +18,16 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
       }
       await route.fulfill({json:{verified,expiresAt:verified ? new Date(Date.now()+60000).toISOString() : null}});
     });
-    await page.route('**/v1/platform/source-readiness/VM0038', async route => {
+    await page.route('**/v1/platform/source-readiness/contexts', route => route.fulfill({json:[
+      {methodology:'VM0038',edition:'1.1',scenario:'OPEN_LDV_DCFC_SIN_BR',title:'Brasil - DCFC',
+       country:'BR',networkMode:'OPEN',vehicleCategory:'LDV_BEV',chargerType:'DCFC',
+       energySystem:'SIN',catalogState:'ACTIVE'},
+    ]}));
+    await page.route('**/v1/platform/source-readiness/VM0038?*', async route => {
       sourceCalls++;
-      assert.equal(verified, true, 'api deve ser requisitada só depois de autenticação');
-      await route.fulfill({json:{
-        methodology:'VM0038',edition:'1.1',scenario:'OPEN_LDV_DCFC_SIN_BR',
-        asOf:'2026-11-19T14:00:00Z',normativeRuleStatus:'ONLY_SYNTHETIC_RULE_PACKS',
-        dynamicCalculationStatus:'NOT_ENABLED_FOR_DYNAMIC_PROJECTS',normativeAiDisabled:true,
-        missingSourceCount:1,missingReferenceRightsCount:1,reviewPendingCount:0,projectEvidenceCount:1,
-        needs:[
+      assert.equal(verified,true);
+      const params = new URL(route.request().url()).searchParams;
+      const all = [
           {code:'OPEN-EVR',stage:'BASELINE',kind:'DATASET',title:'Estoque BEV por modelo (EVR)',
             purpose:'Composição nacional',sourceId:'BR-LDV-BEV-STOCK-BY-MODEL',sourceEdition:'YEAR',
             officialUri:null,mandatory:true,conditionNote:'Não confundir vendas com estoque.',
@@ -40,7 +41,23 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
             purpose:'Direitos sobre reduções',sourceId:null,sourceEdition:null,
             officialUri:null,mandatory:true,conditionNote:'Prova do projeto.',
             status:'PROJECT_SPECIFIC_EVIDENCE',nextAction:'Solicitar ao proponente.'},
-        ],
+      ].map(n => ({priority:'P0',blockedCapability:'PREPARATION',responsibleParty:'CARBONFLOW',
+        editionPolicy:'EXACT',observedEdition:null,rightsScope:'NO_ACTIVE_SCOPED_RIGHTS',
+        referenceAllowedInStaffOrganization:false,extractionAllowedInStaffOrganization:false,
+        ragAllowedInStaffOrganization:false,modelAllowedInStaffOrganization:false,
+        technicalAdmissionConfirmed:false,...n}));
+      const filtered = all.filter(n => (!params.has('stage') || n.stage === params.get('stage'))
+        && (!params.has('status') || n.status === params.get('status')));
+      const offset = Number(params.get('offset') ?? 0);
+      const limit = Number(params.get('limit') ?? 10);
+      await route.fulfill({json:{
+        methodology:'VM0038',edition:'1.1',scenario:'OPEN_LDV_DCFC_SIN_BR',
+        asOf:'2026-11-19T14:00:00Z',normativeRuleStatus:'ONLY_SYNTHETIC_RULE_PACKS',
+        dynamicCalculationStatus:'NOT_ENABLED_FOR_DYNAMIC_PROJECTS',normativeAiDisabled:true,
+        missingSourceCount:1,missingReferenceRightsCount:1,reviewPendingCount:0,
+        projectEvidenceCount:1,total:filtered.length,
+        nextOffset:offset+limit<filtered.length?offset+limit:null,
+        needs:filtered.slice(offset,offset+limit),
       }});
     });
     await page.goto(base+'/workspace/platform/sources');
@@ -51,7 +68,7 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
     await page.getByRole('heading',{name:'VM0038 · edição 1.1'}).waitFor();
     await page.getByText('Estoque BEV por modelo (EVR)').waitFor();
     await page.getByText('Divulgação aos motoristas').waitFor();
-    assert.match(await page.getByRole('status').allTextContents().then(x=>x.join(' ')),/sintético/i);
+    assert.match(await page.getByRole('status').allTextContents().then(x=>x.join(' ')),/sintétic/i);
     await page.getByLabel('Etapa da jornada').selectOption('BASELINE');
     assert.equal(await page.getByRole('heading',{name:'Estoque BEV por modelo (EVR)'}).count(),1);
     assert.equal(await page.getByRole('heading',{name:'VM0038 v1.1'}).count(),0);
