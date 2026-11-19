@@ -75,6 +75,9 @@
               : 'nenhum pacote real publicado confirmado' }}.
             Nenhuma fonte abaixo está automaticamente admitida para cálculo.
           </p>
+          <p class="cf-platform-meta"><strong>Cálculo de projetos novos:</strong> {{ view.dynamicCalculationStatus === 'NOT_ENABLED_FOR_DYNAMIC_PROJECTS'
+            ? 'ainda não conectado ao motor E8' : view.dynamicCalculationStatus }}. <strong>IA sobre normas:</strong>
+            {{ view.normativeAiDisabled ? 'desabilitada por segurança/licença' : 'sujeita a autorizações por operação e projeto' }}.</p>
           <div class="cf-platform-metrics" aria-label="Situação do inventário">
             <div class="cf-platform-metric"><strong>{{ view.missingSourceCount }}</strong><span>fontes obrigatórias sem metadados</span></div>
             <div class="cf-platform-metric"><strong>{{ view.missingReferenceRightsCount }}</strong><span>fontes obrigatórias só com metadados</span></div>
