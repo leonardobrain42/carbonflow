@@ -22,6 +22,7 @@ import io.quarkus.test.common.http.TestHTTPResource;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterEach;
 
 @QuarkusTest
 @QuarkusTestResource(value=FleetCompositionIntegrationTest.Settings.class,restrictToAnnotatedClass=true)
@@ -188,6 +189,47 @@ class FleetCompositionIntegrationTest {
         assertTrue(oldStatus.path("denominator").isNull());
         assertEquals(404,request("GET",ROOT+"/sources/"+SOURCE_OBJECT+"/preview?year="+YEAR,
             manager,null,null).statusCode());
+    }
+
+    @AfterEach
+    void cleanupIsolatedFixtures() {
+        // These SOURCE_VERSION rows feed the global inventory. Deleting them prevents
+        // the platform-readiness integration tests from seeing our invented dataset.
+        db.transaction(c->{
+            update(c,"DELETE FROM app_fleet_command WHERE actor_id IN (?,?,?)",
+                MANAGER,REVIEWER,OUTSIDER);
+            update(c,"""
+                DELETE FROM app_fleet_composition_weight WHERE organization_id=?
+                """,ORG);
+            update(c,"DELETE FROM app_fleet_composition_snapshot WHERE organization_id=?",ORG);
+            update(c,"DELETE FROM app_fleet_stock_observation WHERE organization_id=?",ORG);
+            update(c,"DELETE FROM app_fleet_sales_observation WHERE organization_id=?",ORG);
+            update(c,"DELETE FROM app_fleet_ingestion WHERE organization_id=?",ORG);
+            update(c,"DELETE FROM app_fleet_model_alias WHERE organization_id=?",ORG);
+            update(c,"DELETE FROM app_fleet_model WHERE organization_id=?",ORG);
+            update(c,"DELETE FROM app_platform_source_assessment WHERE object_id IN (?,?)",
+                SOURCE_OBJECT,SOURCE_OBJECT2);
+            update(c,"DELETE FROM app_platform_source_candidate WHERE object_id IN (?,?)",
+                SOURCE_OBJECT,SOURCE_OBJECT2);
+            update(c,"DELETE FROM app_platform_source_object WHERE id IN (?,?)",
+                SOURCE_OBJECT,SOURCE_OBJECT2);
+            update(c,"DELETE FROM app_platform_source_submission_event WHERE submission_id IN (?,?)",
+                SUBMISSION,SUBMISSION2);
+            update(c,"DELETE FROM app_platform_source_submission WHERE id IN (?,?)",
+                SUBMISSION,SUBMISSION2);
+            update(c,"DELETE FROM app_content_license_capability WHERE license_id IN (?,?)",
+                LICENSE,LICENSE2);
+            update(c,"DELETE FROM app_content_license_decision WHERE license_id IN (?,?)",
+                LICENSE,LICENSE2);
+            update(c,"DELETE FROM app_content_license WHERE id IN (?,?)",
+                LICENSE,LICENSE2);
+            update(c,"""
+                DELETE FROM app_source_version
+                WHERE source_id='BR-LDV-BEV-STOCK-BY-MODEL'
+                  AND edition IN ('2081','2081-R2')
+                """);
+            return null;
+        });
     }
 
     private void seedSecondEdition() {
