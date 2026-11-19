@@ -81,3 +81,15 @@
  .cf-platform-source-form .cf-platform-filters {grid-template-columns:1fr;}
  .cf-platform-ingestion .cf-platform-work-editor,.cf-platform-ingestion .cf-platform-work-list {max-height:none;}
 }
+
+/* Source-object quarantine: responsive, without exposing raw file downloads. */
+.cf-platform-source-files {min-width:0; margin:1.2rem 0; border-top:1px solid #355841;padding-top:1rem;}
+.cf-platform-source-files > .cf-platform-work-layout {margin-top:1rem;}
+.cf-platform-source-files code {overflow-wrap:anywhere;}
+.cf-platform-source-files input[type=file]{max-width:100%;display:block;margin:.6rem 0;}
+.cf-platform-source-files .cf-platform-work-editor {max-height:none;}
+.cf-platform-sample-scroll {overflow-x:auto;max-width:100%;margin:1rem 0;}
+.cf-platform-sample-table {border-collapse:collapse; width:100%;min-width:490px;font-size:.82rem;}
+.cf-platform-sample-table th,.cf-platform-sample-table td{padding:.5rem;border:1px solid #4b6656;text-align:left;}
+.cf-platform-sample-table th{font-weight:700;background:#213d2c;}
+@media(max-width:760px){.cf-platform-source-files .cf-platform-work-layout{grid-template-columns:1fr;}}
