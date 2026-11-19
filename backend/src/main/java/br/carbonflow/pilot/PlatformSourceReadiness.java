@@ -21,15 +21,18 @@ class PlatformSourceReadiness {
                 String sourceId, String sourceEdition, String officialUri, boolean mandatory,
                 String conditionNote, String status, String nextAction) {}
     record View(String methodology, String edition, String scenario, OffsetDateTime asOf,
-                String normativeRuleStatus, int missingSourceCount, int missingReferenceRightsCount,
+                String normativeRuleStatus, String dynamicCalculationStatus, boolean normativeAiDisabled,
+                int missingSourceCount, int missingReferenceRightsCount,
                 int reviewPendingCount, int projectEvidenceCount, List<Need> needs) {}
 
     private final PilotDatabase database;
     private final ComplianceStaff staff;
+    private final ContentLicensePolicy licensePolicy;
 
-    PlatformSourceReadiness(PilotDatabase database, ComplianceStaff staff) {
+    PlatformSourceReadiness(PilotDatabase database, ComplianceStaff staff, ContentLicensePolicy licensePolicy) {
         this.database = database;
         this.staff = staff;
+        this.licensePolicy = licensePolicy;
     }
 
     View read(String token, String methodology) {
@@ -93,6 +96,7 @@ class PlatformSourceReadiness {
             ComplianceStaff.audit(connection, actor.id(), null, "VIEW_PLATFORM_SOURCE_READINESS");
             return new View(methodology, edition, SCENARIO, OffsetDateTime.now(ZoneOffset.UTC),
                     demoPacks != null && demoPacks > 0 ? "ONLY_SYNTHETIC_RULE_PACKS" : "NO_PUBLISHED_REAL_RULE_PACK",
+                    "NOT_ENABLED_FOR_DYNAMIC_PROJECTS", licensePolicy.normativeAiDisabled(),
                     (int) needs.stream().filter(n -> n.mandatory() && n.status().equals("MISSING_SOURCE_METADATA")).count(),
                     (int) needs.stream().filter(n -> n.mandatory() && n.status().equals("METADATA_ONLY")).count(),
                     (int) needs.stream().filter(n -> n.status().equals("REFERENCE_AUTHORIZED_NOT_ADMITTED")).count(),
