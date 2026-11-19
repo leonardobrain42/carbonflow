@@ -61,6 +61,12 @@ public class WorkspaceSpaRouteResource {
     }
 
     @GET
+    @Path("/platform/sources")
+    public Response platformSources() {
+        return html();
+    }
+
+    @GET
     @Path("/compliance")
     public Response compliance() {
         return html();

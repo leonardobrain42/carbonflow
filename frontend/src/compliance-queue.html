@@ -4,6 +4,9 @@
     <nav class="cf-workspace-nav" aria-label="Espaço de trabalho">
       <a routerLink="/workspace">Meus projetos</a>
       <a routerLink="/workspace/compliance" aria-current="page">Conformidade</a>
+      @if (session()?.verified) {
+        <a routerLink="/workspace/platform/sources">Fontes e prontidão</a>
+      }
     </nav>
   </aside>
   <div class="cf-workspace-stage">

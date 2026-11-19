@@ -1,0 +1,30 @@
+:host { display: block; }
+.cf-platform-content { max-width: 1260px; }
+.cf-platform-sidebar-note { margin: 1rem .7rem 0; font-size: .82rem; color: #a7bcb0; line-height: 1.5; }
+.cf-platform-heading-line { display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem; }
+.cf-platform-heading-line h2, .cf-platform-heading-line h3 { margin-top:.25rem; }
+.cf-platform-heading-line p { margin:.35rem 0; }
+.cf-platform-meta { color:#a7c3b4; font-size:.82rem; overflow-wrap:anywhere; }
+.cf-platform-warning { border-left: 3px solid #e2ba67; padding:.7rem 1rem; background:#30281b; color:#f6e5ba; line-height:1.5; border-radius:.25rem; }
+.cf-platform-metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:.75rem; margin-top:1.1rem; }
+.cf-platform-metric { display:flex; flex-direction:column; gap:.4rem; background:#13221b; border:1px solid #354c3d; border-radius:.7rem; padding:1rem; min-width:0; }
+.cf-platform-metric strong { font-size:2rem; line-height:1.1; color:#e8f5ee; font-variant-numeric:tabular-nums; }
+.cf-platform-metric span { color:#c4d8cc; font-size:.85rem; line-height:1.4; }
+.cf-platform-filters { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; margin-bottom:1rem; }
+.cf-platform-filters label { display:block; margin-bottom:.45rem; font-weight:600; }
+.cf-platform-filters select { display:block; width:100%; max-width:100%; padding:.65rem; color:#f1faf3; background:#14231b; border:1px solid #718d79; border-radius:.45rem; }
+.cf-platform-filters select:focus-visible, .cf-platform-need a:focus-visible { outline:3px solid #83d8a5; outline-offset:2px; }
+.cf-platform-list { display:grid; gap:.85rem; margin-top:1rem; }
+.cf-platform-need { border:1px solid #30483c; border-radius:.75rem; padding:1rem; background:#102019; overflow-wrap:anywhere; }
+.cf-platform-need h3 { margin:.3rem 0; font-size:1.12rem; color:#e6f2e8; }
+.cf-platform-need p { line-height:1.5; }
+.cf-platform-status { align-self:flex-start; border:1px solid #9c8b62; padding:.35rem .6rem; border-radius:.5rem; font-size:.79rem; color:#f5dba8; max-width:100%; }
+.cf-platform-need a { display:inline-block; margin-top:.25rem; }
+@media (max-width:1050px) {
+ .cf-platform-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media (max-width:620px) {
+ .cf-platform-metrics, .cf-platform-filters { grid-template-columns:minmax(0,1fr); }
+ .cf-platform-need, .cf-workspace-card { min-width:0; }
+ .cf-platform-heading-line { flex-direction:column; }
+}
