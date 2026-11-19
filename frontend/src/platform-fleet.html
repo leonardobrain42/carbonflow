@@ -1,0 +1,237 @@
+<section aria-label="Composição nacional da frota BEV" class="cf-platform-fleet">
+  <div class="cf-platform-heading-line">
+    <div>
+      <h2>Frota nacional BEV · EVR por modelo e ano</h2>
+      <p>Workbench preparatório para rede aberta LDV/DCFC/SIN. O estoque de veículos em
+        circulação é diferente de vendas, modelos etiquetados no PBEV ou lista de motoristas.</p>
+    </div>
+    <button type="button" class="cf-workspace-outline" [disabled]="busy()" (click)="refresh()">Atualizar frota</button>
+  </div>
+  @if (!available()) {
+    <p role="status">Esta fatia está configurada para VM0038 v1.1, rede aberta LDV BEV,
+      recarga DCFC, SIN nacional. Outros ramos dependem de parametrização.</p>
+  } @else {
+    @if (error()) {<p role="alert" class="cf-workspace-alert">{{error()}}</p>}
+    @if (message()) {<p role="status" class="cf-platform-success">{{message()}}</p>}
+    @if (busy()) {<p role="status">Conferindo o inventário de frota…</p>}
+
+    @if (board(); as boardData) {
+      <p class="cf-platform-warning">
+        Nenhuma composição é liberada ao E8 nesta fatia. É necessário comprovar
+        cobertura nacional BEV em circulação, classificação/modelos, compatibilidade de ratings,
+        período, direito de uso e revisão por finalidade.
+      </p>
+
+      <p><strong>Lacuna no inventário:</strong> {{boardData.missingNeed}} —
+        {{boardData.guidance}}</p>
+
+      @if (boardData.canManage) {
+        <div class="cf-platform-work-editor">
+          <h3>Cadastrar identidade canônica de modelo</h3>
+          <p class="cf-platform-meta">Cadastre fabricantes e versões por identidade; o registro
+            de um alias não comprova automaticamente propulsão nem estoque.</p>
+          <form (submit)="register($event)">
+            <label for="cf-evr-organization">Organização autorizada</label>
+            <select id="cf-evr-organization" [value]="organization"
+              (change)="organization=$any($event.target).value" required>
+              @for (org of boardData.organizations; track org) {
+                <option [value]="org">{{org}}</option>
+              }
+            </select>
+            <div class="cf-platform-filters">
+              <div>
+                <label for="cf-evr-maker">Fabricante</label>
+                <input id="cf-evr-maker" [(value)]="manufacturer" hidden/>
+                <input maxlength="120" [value]="manufacturer"
+                  (input)="manufacturer=$any($event.target).value" aria-label="Fabricante do veículo" required/>
+              </div>
+              <div>
+                <label for="cf-evr-model">Modelo</label>
+                <input id="cf-evr-model" maxlength="120" [value]="modelName"
+                  (input)="modelName=$any($event.target).value" required/>
+              </div>
+            </div>
+            <label for="cf-evr-variant">Versão do modelo</label>
+            <input id="cf-evr-variant" maxlength="120" [value]="variant"
+              (input)="variant=$any($event.target).value" required/>
+            <div class="cf-platform-filters">
+              <div>
+                <label for="cf-evr-class">Categoria</label>
+                <select id="cf-evr-class" [value]="vehicleClass"
+                  (change)="vehicleClass=$any($event.target).value">
+                  <option value="LDV">LDV · veículos leves</option>
+                  <option value="HDV">HDV · pesados (fora da primeira fatia)</option>
+                  <option value="UNKNOWN">A confirmar</option>
+                </select>
+              </div>
+              <div>
+                <label for="cf-evr-propulsion">Propulsão comprovável</label>
+                <select id="cf-evr-propulsion" [value]="propulsion"
+                  (change)="propulsion=$any($event.target).value">
+                  <option value="BEV">BEV · bateria</option>
+                  <option value="PHEV">PHEV (excluído do DCFC LDV)</option>
+                  <option value="OTHER">Outra (excluída)</option>
+                  <option value="UNKNOWN">Desconhecida</option>
+                </select>
+              </div>
+            </div>
+            <label for="cf-evr-record-key">Alias literal presente na fonte (opcional)</label>
+            <input id="cf-evr-record-key" maxlength="100"
+              [value]="recordKey" (input)="recordKey=$any($event.target).value"
+              placeholder="Ex.: MODEL_A_2024"/>
+            <p class="cf-platform-meta">Se informar o alias, ele será vinculado ao ano selecionado abaixo.
+              Identidades não devem ser deduzidas apenas por nomes semelhantes.</p>
+            <button type="submit" class="cf-workspace-primary" [disabled]="busy()">
+              Registrar modelo e alias do ano
+            </button>
+          </form>
+        </div>
+        @if (boardData.models.length) {
+          <div class="cf-platform-work-editor">
+            <h3>Vincular outro alias a um modelo já cadastrado</h3>
+            <form (submit)="mapAlias($event)">
+              <label for="cf-evr-alias-model">Modelo canônico</label>
+              <select id="cf-evr-alias-model" [value]="aliasModel"
+                (change)="aliasModel=$any($event.target).value" required>
+                <option value="">Selecione uma identidade</option>
+                @for (model of boardData.models; track model.id) {
+                  <option [value]="model.id">{{model.manufacturer}} {{model.modelName}}
+                    {{model.variant}} · {{model.propulsion}} · {{model.organizationId}}</option>
+                }
+              </select>
+              <label for="cf-evr-alias-year">Ano do alias</label>
+              <input id="cf-evr-alias-year" type="number" min="1900" max="2100"
+                [value]="aliasYear" (input)="aliasYear=$any($event.target).value" required/>
+              <label for="cf-evr-alias-key">Chave da linha da fonte</label>
+              <input id="cf-evr-alias-key" maxlength="100" [value]="aliasKey"
+                (input)="aliasKey=$any($event.target).value" required/>
+              <button type="submit" class="cf-workspace-primary" [disabled]="busy()">
+                Confirmar vínculo de alias
+              </button>
+            </form>
+          </div>
+        }
+      } @else {
+        <p class="cf-platform-warning">O acesso atual é de consulta. Cadastro e importação
+          exigem papel de gestor interno e MFA.</p>
+      }
+
+      <section class="cf-platform-work-editor">
+        <h3>Conferir fonte tabular já cadastrada</h3>
+        <p>Somente arquivos provenientes de <strong>OPEN-EVR</strong> (estoque)
+          ou <strong>OPEN-EV-SALES</strong> (vendas) aparecem aqui.
+          Arquivo sem licença de extração e prévia não libera linhas.</p>
+        <label for="cf-evr-year">Ano da observação</label>
+        <input id="cf-evr-year" type="number" min="1900" max="2100"
+          [value]="year" (input)="year=$any($event.target).value"/>
+        <label for="cf-evr-source">Fonte e edição em quarentena ou revisão</label>
+        <select id="cf-evr-source" [value]="sourceId" (change)="chooseSource($any($event.target).value)">
+          <option value="">Selecionar objeto licenciado</option>
+          @for (source of boardData.sources; track source.id) {
+            <option [value]="source.id">
+              {{source.needCode}} · {{source.sourceId}} / {{source.edition}}
+              · {{source.state}} · {{source.organizationId}}
+            </option>
+          }
+        </select>
+        @if (!boardData.sources.length) {
+          <p role="status">Nenhuma série tabular recebida. Continue a busca na aba
+            Cadastro de fontes; não importe vendas, PBEV nem números sintéticos para representar EVR.</p>
+        }
+        <button type="button" class="cf-workspace-outline"
+          [disabled]="!sourceId || busy()" (click)="analyze()">
+          Pré-validar valores e modelos por fonte
+        </button>
+      </section>
+
+      @if (preview(); as review) {
+        <section class="cf-platform-work-editor">
+          <h3>Prévia dimensional · {{labelKind(review.dataKind)}}</h3>
+          <p class="cf-platform-meta">Ano {{review.observationYear}} · BR ·
+            {{review.rows.length}} linhas. Parecer de fonte: {{review.sourceAssessed?'registrado':'pendente'}}.</p>
+          <p><strong>Denominador candidato:</strong>
+            {{review.valid && review.dataKind==='STOCK_IN_CIRCULATION'
+              ? review.denominator : 'Indisponível até resolver pendências'}}.</p>
+          <p>Validação: <strong>{{review.valid?'consistente':'pendências detectadas'}}</strong>
+            · E8: <strong>não permitido</strong>.</p>
+          @for(issue of review.issues; track $index) {
+            <p class="cf-platform-warning" role="status">{{issue}}</p>
+          }
+          @if (missingAliases().length) {
+            <p>Aliases sem identidade associada: {{missingAliases().length}}.
+              Cadastre os modelos e mapeie a chave no ano correto, depois execute novamente a prévia.</p>
+          }
+          <div class="cf-platform-sample-scroll">
+            <table class="cf-platform-sample-table">
+              <thead><tr><th>Referência</th><th>Chave da fonte</th><th>Modelo classificado</th>
+                <th>Valor declarado</th><th>Ano</th><th>Unidade</th></tr></thead>
+              <tbody>
+                @for(row of review.rows; track row.sourceRow) {
+                  <tr><td>{{row.locator}}</td><td>{{row.recordKey}}</td>
+                    <td>{{row.modelName || 'Não classificado'}}</td>
+                    <td>{{row.quantity}}</td><td>{{row.year}}</td><td>{{row.unit}}</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          @if (boardData.canManage) {
+            <button type="button" class="cf-workspace-primary"
+              [disabled]="!review.canCreateSnapshot || busy()" (click)="snapshot()">
+              {{review.dataKind==='NEW_SALES'
+                ? 'Arquivar série de vendas (nunca EVR)'
+                : 'Guardar retrato EVR preparatório com pesos'}}
+            </button>
+          }
+          <p class="cf-platform-warning">Os pesos refletem apenas as linhas desta fonte.
+            Até a reconciliação com estoque BEV nacional completo e ratings compatíveis,
+            a cobertura representativa permanece <strong>não verificada</strong>.</p>
+        </section>
+      }
+
+      <section class="cf-platform-work-editor">
+        <h3>Importações e snapshots anteriores</h3>
+        @for(item of boardData.snapshots; track item.ingestionId){
+          <article class="cf-platform-work-row">
+            <strong>{{labelKind(item.dataKind)}}</strong>
+            <p class="cf-platform-meta">{{item.year}} · {{item.geography}}
+              · {{item.state}} · {{item.createdAt}}</p>
+            <p>Estoque total: {{item.denominator ?? 'não disponível'}}
+              · modelos: {{item.modelCount ?? 'não disponível'}}
+              · cobertura: {{item.coverageState}} · ratings: {{item.ratingState}}</p>
+            <p class="cf-platform-meta">SHA-256 origem: <code>{{item.sha256}}</code></p>
+            <button type="button" class="cf-workspace-outline"
+              [disabled]="busy()||item.state==='RIGHTS_UNAVAILABLE'"
+              (click)="inspect(item.ingestionId)">Inspecionar pesos e locators</button>
+          </article>
+        } @empty {
+          <p role="status">Não existem snapshots. Isto não impede continuar a preparação do projeto.</p>
+        }
+      </section>
+
+      @if(detail(); as selected){
+        <section class="cf-platform-work-editor">
+          <h3>Snapshot {{selected.snapshot.id || 'série de vendas separada'}}</h3>
+          <p>Origem {{selected.snapshot.sha256}} ·
+            estado {{selected.snapshot.state}} ·
+            acesso para E8: <strong>não liberado</strong>.</p>
+          @if(selected.snapshot.id){
+            <p><strong>EVR total das linhas:</strong> {{selected.snapshot.denominator}}
+              · <strong>cobertura oficial:</strong> não verificada
+              · <strong>ratings:</strong> não vinculados.</p>
+            <div class="cf-platform-sample-scroll">
+              <table class="cf-platform-sample-table">
+                <thead><tr><th>Modelo</th><th>EVR (veículos)</th><th>Peso (fração)</th><th>Localizador</th></tr></thead>
+                <tbody>
+                  @for(weight of selected.weights; track weight.modelId){
+                    <tr><td>{{weight.modelName}}</td><td>{{weight.evr}}</td>
+                      <td>{{weight.weight}}</td><td>{{weight.locator}}</td></tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </section>
+      }
+    }
+  }
+</section>
