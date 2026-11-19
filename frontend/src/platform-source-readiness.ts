@@ -94,6 +94,10 @@ export class PlatformSourceReadinessComponent {
     {id:'PROJECT_SPECIFIC_EVIDENCE',label:'Documento a obter em cada projeto'},
   ];
   readonly selectedContext = computed(() => this.contexts().find(c => this.key(c) === this.selectedKey()) ?? null);
+  // Optimistic display while the canonical server-filtered page is fetched.
+  readonly visibleNeeds = computed(() => (this.readiness()?.needs ?? []).filter(need =>
+    (this.stage() === 'ALL' || this.stage() === need.stage)
+    && (this.statusFilter() === 'ALL' || this.statusFilter() === need.status)));
   readonly canPrevious = computed(() => this.pageOffset() > 0);
   readonly canNext = computed(() => this.readiness()?.nextOffset != null);
 
@@ -171,7 +175,6 @@ export class PlatformSourceReadinessComponent {
     if (!target) {this.readiness.set(null); return;}
     this.error.set('');
     this.loadingReadiness.set(true);
-    this.readiness.set(null);
     const request = ++this.requestEpoch;
     try {
       let params = new HttpParams()
@@ -196,6 +199,7 @@ export class PlatformSourceReadinessComponent {
   onContext(event: Event) {
     this.selectedKey.set((event.target as HTMLSelectElement).value);
     this.pageOffset.set(0);
+    this.readiness.set(null);
     void this.loadReadiness();
   }
 
