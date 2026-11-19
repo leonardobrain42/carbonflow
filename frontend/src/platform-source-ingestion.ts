@@ -19,8 +19,8 @@ interface Submission {
   submittedBy: string; submittedByName: string; reviewedBy: string|null;
   createdAt: string; updatedAt: string;
 }
-interface Event {version: number; state: State; actorName: string; reason: string; recordedAt: string}
-interface Detail {intake: Submission; history: Event[]}
+interface ReviewEvent {version: number; state: State; actorName: string; reason: string; recordedAt: string}
+interface Detail {intake: Submission; history: ReviewEvent[]}
 interface Board {actorId: string; canSubmit: boolean; canReview: boolean; submissions: Submission[]}
 type ReviewOutcome = 'ACCEPT_METADATA'|'REQUEST_CORRECTION'|'REJECT';
 
