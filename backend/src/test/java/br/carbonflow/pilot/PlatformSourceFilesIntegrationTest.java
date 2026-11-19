@@ -97,6 +97,10 @@ class PlatformSourceFilesIntegrationTest {
                 r->r.getInt(1),object));
         assertEquals(2,count.intValue());
         assertEquals(404,request("POST",parse,viewer,new byte[0],null,null).statusCode());
+        JsonNode preview=json(get(ROOT+"/objects/"+object+"/candidates",reviewer),200);
+        assertEquals(2,preview.path("total").asInt());
+        assertEquals(2,preview.path("samples").size());
+        assertEquals(404,get(ROOT+"/objects/"+object+"/candidates",viewer).statusCode());
         String approval="{\"outcome\":\"APPROVED_FOR_SCOPE\",\"metric\":\"stock\",\"periodYear\":2038,"+
                 "\"geography\":\"BR\",\"unit\":\"vehicles\",\"evidenceLocator\":\"Tabela BR 2038, linha 2\","+
                 "\"reason\":\"Valores e unidades conferidos manualmente na publicacao, sem vinculo E8\"}";
@@ -188,9 +192,9 @@ class PlatformSourceFilesIntegrationTest {
             update(c, """
                 INSERT INTO app_content_license_capability
                   (license_id,decision_version,operation)
-                VALUES (?,1,'STORE_ORIGINAL'),(?,1,'EXTRACT_TEXT')
+                VALUES (?,1,'STORE_ORIGINAL'),(?,1,'EXTRACT_TEXT'),(?,1,'SHOW_EXCERPTS')
                 ON CONFLICT DO NOTHING
-                """,LICENSE,LICENSE);
+                """,LICENSE,LICENSE,LICENSE);
             return null;
         });
     }
