@@ -2,6 +2,9 @@ import {Component, computed, inject, signal} from '@angular/core';
 import {HttpClient, HttpErrorResponse, HttpParams} from '@angular/common/http';
 import {RouterLink} from '@angular/router';
 import {firstValueFrom} from 'rxjs';
+import {PlatformSourceOperationsComponent} from './platform-source-operations';
+
+type SourceTab = 'overview' | 'normative' | 'datasets' | 'project' | 'admissibility' | 'acquisition' | 'history' | 'impacts';
 
 type SourceStatus = 'MISSING_SOURCE_METADATA' | 'METADATA_ONLY'
   | 'SCOPED_REFERENCE_NOT_ADMITTED' | 'VERSION_SELECTION_REQUIRED' | 'PROJECT_SPECIFIC_EVIDENCE';
@@ -59,7 +62,7 @@ interface SourceReadiness {
 @Component({
   selector: 'carbonflow-platform-source-readiness',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, PlatformSourceOperationsComponent],
   templateUrl: './platform-source-readiness.html',
   styleUrl: './platform-source-readiness.css',
 })
@@ -76,6 +79,17 @@ export class PlatformSourceReadinessComponent {
   readonly stage = signal('ALL');
   readonly statusFilter = signal('ALL');
   readonly pageOffset = signal(0);
+  readonly tab = signal<SourceTab>('overview');
+  readonly tabs: {id: SourceTab; label: string}[] = [
+    {id:'overview',label:'Visão geral'},
+    {id:'normative',label:'Documentos normativos'},
+    {id:'datasets',label:'Bases de dados'},
+    {id:'project',label:'Documentos do projeto'},
+    {id:'admissibility',label:'Admissibilidade'},
+    {id:'acquisition',label:'Alimentação e tarefas'},
+    {id:'history',label:'Histórico'},
+    {id:'impacts',label:'Impactos na jornada'},
+  ];
   readonly pageLimit = 10;
 
   readonly stages: {id: Stage; label: string}[] = [
@@ -98,10 +112,29 @@ export class PlatformSourceReadinessComponent {
   readonly visibleNeeds = computed(() => (this.readiness()?.needs ?? []).filter(need =>
     (this.stage() === 'ALL' || this.stage() === need.stage)
     && (this.statusFilter() === 'ALL' || this.statusFilter() === need.status)));
+  readonly tabNeeds = computed(() => this.visibleNeeds().filter(need => {
+    switch (this.tab()) {
+      case 'normative': return need.kind === 'NORMATIVE';
+      case 'datasets': return need.kind === 'DATASET';
+      case 'project': return need.kind === 'PROJECT_EVIDENCE';
+      case 'admissibility': return need.kind !== 'PROJECT_EVIDENCE';
+      default: return true;
+    }
+  }));
   readonly canPrevious = computed(() => this.pageOffset() > 0);
   readonly canNext = computed(() => this.readiness()?.nextOffset != null);
 
   constructor() { void this.loadSession(); }
+
+  selectTab(tab: SourceTab) {
+    this.tab.set(tab);
+    if (this.stage() !== 'ALL' || this.statusFilter() !== 'ALL' || this.pageOffset() !== 0) {
+      this.stage.set('ALL');
+      this.statusFilter.set('ALL');
+      this.pageOffset.set(0);
+      void this.loadReadiness();
+    }
+  }
 
   key(value: SourceContext): string {
     return [value.methodology,value.edition,value.scenario].join('|');
