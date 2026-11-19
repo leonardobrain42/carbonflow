@@ -319,6 +319,7 @@ class FleetCompositionService {
                     """,r->r.getObject(1,UUID.class),ingestion,array);
                 if(sourceId==null)throw invisible();
                 Source source=source(c,actor.organizations(),sourceId);
+                if(source.purgedAt()!=null)throw invisible();
                 rights.requireGrant(c,Set.of(source.organizationId()),source.sourceId(),
                     source.edition(),source.licenseId(),"SHOW_EXCERPTS");
                 rights.requireGrant(c,Set.of(source.organizationId()),source.sourceId(),
