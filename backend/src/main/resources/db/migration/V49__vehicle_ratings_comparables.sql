@@ -46,7 +46,7 @@ CREATE TABLE app_vehicle_comparable_pair (
  reason text NOT NULL CHECK (length(btrim(reason)) BETWEEN 20 AND 1500),
  service_description text NOT NULL CHECK (length(btrim(service_description)) BETWEEN 10 AND 250),
  status text NOT NULL DEFAULT 'PROPOSED'
-  CHECK (status IN ('PROPOSED','ACCEPTED','REJECTED','SUSPENDED')),
+  CHECK (status IN ('PROPOSED','ACCEPTED','REJECTED','SUPERSEDED','SUSPENDED')),
  version integer NOT NULL DEFAULT 1 CHECK (version IN (1,2)),
  proposed_by uuid NOT NULL REFERENCES app_identity(id),
  reviewed_by uuid REFERENCES app_identity(id),
