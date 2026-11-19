@@ -26,7 +26,7 @@ CREATE TABLE app_vehicle_rating (
  created_at timestamptz NOT NULL DEFAULT statement_timestamp(),
  purged_at timestamptz,
  UNIQUE(id,organization_id),
- UNIQUE(organization_id,source_object_id,source_row,model_id,cycle),
+ UNIQUE(organization_id,source_object_id,source_row,cycle),
  FOREIGN KEY(model_id,organization_id) REFERENCES app_fleet_model(id,organization_id),
  FOREIGN KEY(source_object_id,organization_id)
    REFERENCES app_platform_source_object(id,organization_id),
