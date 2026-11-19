@@ -117,3 +117,34 @@ CREATE TRIGGER app_open_parameter_source_revoked
 
 -- Deliberately absent: ProjectParameterBinding, run/snapshot E8 authorization,
 -- IR/Dy default values and any table of published official factors.
+
+
+-- Candidates are append-only; revocation is the only legal numeric mutation.
+-- Comparing all other columns prevents silently rewriting provenance or period.
+CREATE FUNCTION app_open_parameter_candidate_immutable() RETURNS trigger AS $$
+BEGIN
+ IF TG_OP = 'DELETE' THEN
+   RAISE EXCEPTION 'Parameter candidates cannot be deleted; record a successor';
+ END IF;
+ IF OLD.status = 'CANDIDATE' AND NEW.status = 'SUSPENDED'
+     AND NEW.purged_at IS NOT NULL
+     AND NEW.original_value IS NULL AND NEW.normalized_value IS NULL
+     AND (to_jsonb(NEW) - 'status' - 'purged_at' - 'original_value' - 'normalized_value')
+       = (to_jsonb(OLD) - 'status' - 'purged_at' - 'original_value' - 'normalized_value') THEN
+   RETURN NEW;
+ END IF;
+ RAISE EXCEPTION 'Parameter candidate is immutable; record a new version';
+END;
+$$ LANGUAGE plpgsql;
+CREATE TRIGGER app_open_parameter_candidate_no_mutation
+ BEFORE UPDATE OR DELETE ON app_open_parameter_candidate
+ FOR EACH ROW EXECUTE FUNCTION app_open_parameter_candidate_immutable();
+
+CREATE FUNCTION app_open_parameter_assessment_immutable() RETURNS trigger AS $$
+BEGIN
+ RAISE EXCEPTION 'Parameter assessment is immutable; record a new scoped decision';
+END;
+$$ LANGUAGE plpgsql;
+CREATE TRIGGER app_open_parameter_assessment_no_mutation
+ BEFORE UPDATE OR DELETE ON app_open_parameter_assessment
+ FOR EACH ROW EXECUTE FUNCTION app_open_parameter_assessment_immutable();
