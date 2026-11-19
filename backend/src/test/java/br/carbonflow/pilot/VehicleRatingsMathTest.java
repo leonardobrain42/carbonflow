@@ -46,7 +46,7 @@ class VehicleRatingsMathTest {
                 dec("27"),"COMBINED","GASOLINE"));
         var result=VehicleRatingsMath.compose(rows);
         assertTrue(result.valid(),result.issues().toString());
-        assertEquals(20,result.evrTotal());
+        assertEquals(20L,result.evrTotal().longValue());
         assertEquals(dec("20.000000000000"),result.afecKwhPer100mi());
         assertEquals(dec("30.000000000000"),result.mpgUs());
         assertEquals("COMBINED",result.cycle());
