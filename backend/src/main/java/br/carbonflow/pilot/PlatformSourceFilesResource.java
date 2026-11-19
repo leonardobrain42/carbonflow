@@ -49,6 +49,13 @@ public class PlatformSourceFilesResource {
         return noStore(files.parse(token,id));
     }
 
+    @GET
+    @Path("/objects/{objectId}/candidates")
+    public Response preview(@CookieParam(AccountAccess.COOKIE) String token,
+            @PathParam("objectId") UUID id) {
+        return noStore(files.preview(token,id));
+    }
+
     @POST
     @Path("/objects/{objectId}/assess")
     @Consumes(MediaType.APPLICATION_JSON)
