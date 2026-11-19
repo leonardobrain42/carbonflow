@@ -1,0 +1,261 @@
+<section aria-label="Ratings PBEV e veículos comparáveis" class="cf-platform-ratings">
+  <h2>Inmetro/PBEV · ratings e comparáveis fósseis</h2>
+  <p>Prepare a ponderação AFEC/MPG da rede aberta. Cada valor deve vir de uma linha licenciada e
+    avaliada de uma edição PBEV, com ciclo, unidade e modelo declarados. Um par precisa de revisão
+    independente: não há pareamento automático de marcas ou capacidade, nem defaults EUA/Canadá.</p>
+  @if (!validContext()) {
+    <p>Esta jornada está disponível somente para VM0038 v1.1, OPEN LDV DCFC SIN BR.</p>
+  } @else {
+    @if (error()) {<p class="cf-workspace-alert" role="alert">{{error()}}</p>}
+    @if (message()) {<p class="cf-platform-success" role="status">{{message()}}</p>}
+    @if (busy()) {<p role="status">Conferindo fontes, ratings e licenças…</p>}
+    @if (board(); as data) {
+      <p class="cf-platform-warning">Os resultados desta tela são <strong>PREPARATÓRIOS</strong>.
+        Uma fonte PBEV não constitui a frota EVR da Senatran. Falta de rating, ciclo ou
+        comparável mantém o cálculo real bloqueado.</p>
+      <button type="button" class="cf-workspace-outline" (click)="reload()"
+        [disabled]="busy()">Atualizar inventário de ratings</button>
+
+      <section class="cf-platform-work-editor">
+        <h3>1. Fonte e rating por modelo</h3>
+        @if (!data.sources.length) {
+          <p role="status">Ainda não existe arquivo <code>OPEN-PBEV</code> com metadados aceitos,
+            linha de fonte aprovada e direitos de extrair, exibir e guardar derivados. Cadastre e
+            revise sua fonte na aba <strong>Cadastro de fontes</strong>; não invente valores.</p>
+        }
+        <label for="cf-rating-source">Arquivo PBEV licenciado e edição</label>
+        <select id="cf-rating-source" [value]="sourceId"
+          (change)="sourceChanged($any($event.target).value)">
+          <option value="">Selecione uma edição licenciada</option>
+          @for(src of data.sources;track src.id){
+            <option [value]="src.id">{{src.edition}} · {{src.organizationId}} · {{src.state}}</option>
+          }
+        </select>
+        <button type="button" class="cf-workspace-outline" [disabled]="!sourceId || busy()"
+          (click)="loadCandidates()">Consultar linhas autorizadas</button>
+
+        @if (candidates().length) {
+          <div class="cf-platform-sample-scroll">
+            <table class="cf-platform-sample-table">
+              <thead><tr><th>Linha</th><th>Chave da fonte</th><th>Métrica</th>
+                <th>Valor</th><th>Unidade</th><th>Ano</th></tr></thead>
+              <tbody>
+                @for(candidate of candidates();track candidate.row){
+                  <tr><td>{{candidate.locator}}</td><td>{{candidate.key}}</td>
+                    <td>{{candidate.metric}}</td><td>{{candidate.value}}</td>
+                    <td>{{candidate.unit}}</td><td>{{candidate.year}}</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+        @if (data.canManage) {
+          <form (submit)="register($event)">
+            <label for="cf-rating-role">Tipo de veículo no PBEV</label>
+            <select id="cf-rating-role" [value]="ratingRole"
+              (change)="roleChanged($any($event.target).value)">
+              <option value="BEV">BEV · energia elétrica</option>
+              <option value="FOSSIL">Combustão · consumo fóssil</option>
+            </select>
+            <label for="cf-rating-model">Identidade canônica do veículo</label>
+            <select id="cf-rating-model" [value]="modelId"
+              (change)="modelId=$any($event.target).value" required>
+              <option value="">Selecione um modelo registrado na Frota EVR</option>
+              @for(model of eligibleModels();track model.id){
+                <option [value]="model.id">{{model.title}} · {{model.propulsion}}</option>
+              }
+            </select>
+            <label for="cf-rating-row">Linha exata da tabela autorizada</label>
+            <select id="cf-rating-row" [value]="rowIndex"
+              (change)="rowIndex=$any($event.target).value" required>
+              <option value="">Selecione a métrica da origem</option>
+              @for(c of candidates();track c.row) {
+                @if ((ratingRole==='BEV' && c.metric==='ev_energy') ||
+                     (ratingRole==='FOSSIL' && c.metric==='fuel_economy')) {
+                  <option [value]="c.row">{{c.locator}} · {{c.value}} {{c.unit}} · {{c.year}}</option>
+                }
+              }
+            </select>
+            <div class="cf-platform-filters">
+              <div>
+                <label for="cf-rating-cycle">Ciclo documentado</label>
+                <select id="cf-rating-cycle" [value]="cycle"
+                  (change)="cycle=$any($event.target).value">
+                  <option value="COMBINED">Misto / combinado</option>
+                  <option value="URBAN">Urbano</option>
+                  <option value="HIGHWAY">Estrada</option>
+                </select>
+              </div>
+              <div>
+                <label for="cf-rating-seats">Lugares / capacidade de transporte</label>
+                <input id="cf-rating-seats" type="number" min="1" max="80" required
+                  [value]="seats" (input)="seats=$any($event.target).value"/>
+              </div>
+            </div>
+            <label for="cf-rating-fuel">Tipo de combustível declarado</label>
+            <select id="cf-rating-fuel" [value]="fuel"
+              (change)="fuel=$any($event.target).value">
+              @if (ratingRole==='BEV') {
+                <option value="ELECTRICITY">Eletricidade</option>
+              } @else {
+                <option value="GASOLINE">Gasolina</option>
+                <option value="DIESEL">Diesel (não agrega com gasolina)</option>
+                <option value="ETHANOL">Etanol (rota própria)</option>
+                <option value="FLEX">Flex (requer prova de combustível)</option>
+              }
+            </select>
+            <label for="cf-rating-cycle-evidence">Referência verificável do ciclo e capacidade</label>
+            <input id="cf-rating-cycle-evidence" maxlength="300" minlength="5" required
+              placeholder="Tabela PBEV, seção, versão e linha do ensaio"
+              [value]="cycleEvidence" (input)="cycleEvidence=$any($event.target).value"/>
+            <p class="cf-platform-meta">Unidades elétricas: MJ/km, kWh/km, kWh/100km,
+              kWh/100mi; fóssil: km/L ou mi/USgal americano.
+              A conversão usa decimais, sem arredondar o valor de origem.</p>
+            <button type="submit" class="cf-workspace-primary"
+              [disabled]="!sourceId || !modelId || !rowIndex || busy()">Registrar rating candidato</button>
+          </form>
+        }
+      </section>
+
+      <section class="cf-platform-work-editor">
+        <h3>2. Propor comparável e obter parecer humano</h3>
+        <label for="cf-rating-fleet">Snapshot EVR do mesmo ano</label>
+        <select id="cf-rating-fleet" [value]="fleetId"
+          (change)="fleetChanged($any($event.target).value)">
+          <option value="">Selecione frota em circulação</option>
+          @for(f of data.fleets;track f.id){
+            <option [value]="f.id">{{f.year}} · {{f.denominator}} BEV · {{f.coverageState}}</option>
+          }
+        </select>
+        @if (!data.fleets.length) {
+          <p>Nenhum vetor EVR licenciado disponível. Pode preparar ratings primeiro;
+            a ausência de frota não será substituída por dados de vendas ou PBEV.</p>
+        }
+        @if (data.canManage) {
+          <form (submit)="propose($event)">
+            <label for="cf-rating-ev">Rating BEV candidato</label>
+            <select id="cf-rating-ev" [value]="evRatingId"
+              (change)="evRatingId=$any($event.target).value" required>
+              <option value="">Selecione o BEV</option>
+              @for(r of ratingsFor('BEV');track r.id){
+                <option [value]="r.id">{{modelTitle(r.modelId)}} · {{r.year}} · {{r.cycle}}
+                  · {{r.normalizedValue}} {{r.normalizedUnit}}</option>
+              }
+            </select>
+            <label for="cf-rating-fossil">Rating combustível de comparação</label>
+            <select id="cf-rating-fossil" [value]="fossilRatingId"
+              (change)="fossilRatingId=$any($event.target).value" required>
+              <option value="">Selecione combustível comparável</option>
+              @for(r of ratingsFor('FOSSIL');track r.id){
+                <option [value]="r.id">{{modelTitle(r.modelId)}} · {{r.year}} · {{r.cycle}}
+                  · {{r.normalizedValue}} {{r.normalizedUnit}} · {{r.fuel}}</option>
+              }
+            </select>
+            <label for="cf-rating-service">Categoria, serviço e capacidade equivalente</label>
+            <input id="cf-rating-service" minlength="10" maxlength="250" required
+              [value]="serviceDescription"
+              (input)="serviceDescription=$any($event.target).value"
+              placeholder="Serviço de passageiro, categoria LDV e lugares"/>
+            <label for="cf-rating-reason">Justificativa conservadora para propor o par</label>
+            <textarea id="cf-rating-reason" rows="3" minlength="20" maxlength="1500"
+              [value]="pairReason" (input)="pairReason=$any($event.target).value"
+              placeholder="Justifique potência, capacidade, serviço, mercado e diferenças observadas"
+              required></textarea>
+            <button type="submit" class="cf-workspace-primary"
+              [disabled]="busy() || !fleetId || !evRatingId || !fossilRatingId">
+              Submeter par à revisão independente
+            </button>
+          </form>
+        }
+
+        <h4>Pares e decisões registradas</h4>
+        @for(pair of data.pairs;track pair.id) {
+          <article class="cf-platform-work-row">
+            <strong>{{modelTitle(pair.bevModelId)}}</strong>
+            <p>{{pair.status}} · versão {{pair.version}}
+              · parecer {{pair.reviewedBy ? 'concluído por outra identidade' : 'pendente'}}</p>
+            <p class="cf-platform-meta">Justificativa: {{pair.reason}}</p>
+            <p class="cf-platform-meta">Serviço: {{pair.serviceDescription}}</p>
+            @if (pair.reviewReason) {<p class="cf-platform-meta">Parecer: {{pair.reviewReason}}</p>}
+            @if (pair.status==='PROPOSED' && data.canReview &&
+                  data.actorId!==pair.proposedBy) {
+              <div class="cf-platform-work-editor">
+                <label [for]="'cf-review-outcome-'+pair.id">Decisão do revisor</label>
+                <select [id]="'cf-review-outcome-'+pair.id"
+                  [value]="reviewDecision[pair.id]??'REJECTED'"
+                  (change)="reviewDecision[pair.id]=$any($event.target).value">
+                  <option value="REJECTED">Rejeitar / não comparável</option>
+                  <option value="ACCEPTED">Aceitar comparabilidade técnica interna</option>
+                </select>
+                <label [for]="'cf-review-reason-'+pair.id">Fundamentação independente</label>
+                <textarea [id]="'cf-review-reason-'+pair.id" rows="3" minlength="15"
+                  maxlength="1500" [value]="reviewReasons[pair.id]??''"
+                  (input)="reviewReasons[pair.id]=$any($event.target).value"></textarea>
+                <button type="button" class="cf-workspace-primary"
+                  (click)="review(pair)" [disabled]="busy()">
+                  Registrar decisão da revisão
+                </button>
+              </div>
+            } @else if (pair.status==='PROPOSED' && data.actorId===pair.proposedBy) {
+              <p class="cf-platform-warning">O proponente não pode aprovar o próprio par.</p>
+            }
+          </article>
+        } @empty {
+          <p>Não há comparáveis propostos. Nenhuma classificação ou correspondência é inferida.</p>
+        }
+      </section>
+
+      <section class="cf-platform-work-editor">
+        <h3>3. Cobertura do vetor EVR e valores ponderados</h3>
+        @if (composition(); as result) {
+          <p>Referência {{result.year}} · {{result.lines.length}} modelo(s)
+            · ciclo {{result.cycle ?? 'a confirmar'}}.</p>
+          @if (result.canSavePreparatory) {
+            <p><strong>AFEC:</strong> {{result.afecKwh100mi}} kWh/100mi</p>
+            <p><strong>MPG:</strong> {{result.mpgUs}} mi/USgal (gasolina)</p>
+            <p>Denominador {{result.total}} veículos EVR; **não liberado para E8**.</p>
+            @if (data.canManage) {
+              <button type="button" class="cf-workspace-primary" (click)="freeze()"
+                [disabled]="busy()">Congelar snapshot preparatório com linhagem</button>
+            }
+          } @else {
+            <p role="status"><strong>AFEC/MPG não disponíveis:</strong>
+              dados incompletos não geram média parcial ou zero substituto.</p>
+          }
+          @for(issue of result.issues;track $index){
+            <p class="cf-platform-warning">{{issue}}</p>
+          }
+          <div class="cf-platform-sample-scroll">
+            <table class="cf-platform-sample-table">
+              <thead><tr><th>BEV</th><th>EVR</th><th>Rating elétrico</th>
+                <th>Comparável MPG</th><th>Estado</th></tr></thead>
+              <tbody>
+                @for(row of result.lines;track row.modelId){
+                  <tr><td>{{row.modelName}}</td><td>{{row.evr}}</td>
+                    <td>{{row.kwh100mi ?? '—'}}</td><td>{{row.mpg ?? '—'}}</td>
+                    <td>{{row.status}}</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <p>Selecione um snapshot de frota para consultar os requisitos de pares, anos, ciclos
+            e direitos. A composição é bloqueada sem cobertura de 100% dos modelos do vetor.</p>
+        }
+        <h4>Snapshots preparatórios e versões anteriores</h4>
+        @for(saved of data.snapshots;track saved.id){
+          <article class="cf-platform-work-row">
+            <p><strong>{{saved.year}} · {{saved.cycle}}</strong> · {{saved.status}}</p>
+            <p>AFEC {{saved.afecKwh100mi ?? 'indisponível'}} ·
+              MPG {{saved.mpgUs ?? 'indisponível'}} ·
+              modelos {{saved.modelCount ?? 'redigidos'}}</p>
+            <p class="cf-platform-meta">Fonte EVR: {{saved.fleetSnapshotId}}
+              · permitido no E8: não</p>
+          </article>
+        } @empty {
+          <p>Nenhum snapshot de ratings. A preparação do projeto continua permitida.</p>
+        }
+      </section>
+    }
+  }
+</section>

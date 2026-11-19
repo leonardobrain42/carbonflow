@@ -69,6 +69,7 @@ def compose(*args: str, capture: bool = False) -> str:
             "CARBONFLOW_PLATFORM_SOURCE_WORK_MANAGERS": identity,
             "CARBONFLOW_PLATFORM_SOURCE_INGESTION_REVIEWERS": identity,
             "CARBONFLOW_PLATFORM_SOURCE_TECHNICAL_REVIEWERS": identity,
+            "CARBONFLOW_PLATFORM_VEHICLE_RATINGS_REVIEWERS": identity,
         })
     result = subprocess.run(
         command, cwd=ROOT, check=True,

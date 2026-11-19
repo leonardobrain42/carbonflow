@@ -5,8 +5,9 @@ import {firstValueFrom} from 'rxjs';
 import {PlatformSourceOperationsComponent} from './platform-source-operations';
 import {PlatformSourceIngestionComponent} from './platform-source-ingestion';
 import {PlatformFleetComponent} from './platform-fleet';
+import {PlatformRatingsComponent} from './platform-ratings';
 
-type SourceTab = 'overview' | 'normative' | 'datasets' | 'fleet' | 'project' | 'admissibility' | 'acquisition' | 'ingestion' | 'history' | 'impacts';
+type SourceTab = 'overview' | 'normative' | 'datasets' | 'fleet' | 'ratings' | 'project' | 'admissibility' | 'acquisition' | 'ingestion' | 'history' | 'impacts';
 
 type SourceStatus = 'MISSING_SOURCE_METADATA' | 'METADATA_ONLY'
   | 'SCOPED_REFERENCE_NOT_ADMITTED' | 'VERSION_SELECTION_REQUIRED' | 'PROJECT_SPECIFIC_EVIDENCE';
@@ -64,7 +65,7 @@ interface SourceReadiness {
 @Component({
   selector: 'carbonflow-platform-source-readiness',
   standalone: true,
-  imports: [RouterLink, PlatformSourceOperationsComponent, PlatformSourceIngestionComponent, PlatformFleetComponent],
+  imports: [RouterLink, PlatformSourceOperationsComponent, PlatformSourceIngestionComponent, PlatformFleetComponent, PlatformRatingsComponent],
   templateUrl: './platform-source-readiness.html',
   styleUrl: './platform-source-readiness.css',
 })
@@ -87,6 +88,7 @@ export class PlatformSourceReadinessComponent {
     {id:'normative',label:'Documentos normativos'},
     {id:'datasets',label:'Bases de dados'},
     {id:'fleet',label:'Frota EVR'},
+    {id:'ratings',label:'Eficiências e comparáveis'},
     {id:'project',label:'Documentos do projeto'},
     {id:'admissibility',label:'Admissibilidade'},
     {id:'acquisition',label:'Alimentação e tarefas'},
