@@ -57,3 +57,9 @@ UPDATE app_methodology_source_need SET priority = 'P1' WHERE NOT mandatory;
 
 CREATE INDEX app_method_source_need_status_filters
  ON app_methodology_source_need(methodology, methodology_edition, scenario, stage, priority);
+
+-- Audit actions extend the existing constrained event table without weakening MFA.
+ALTER TABLE app_compliance_access_event DROP CONSTRAINT app_compliance_access_event_action_check;
+ALTER TABLE app_compliance_access_event ADD CONSTRAINT app_compliance_access_event_action_check
+ CHECK (action IN ('MFA_VERIFIED','MFA_DENIED','VIEW_QUEUE','DOWNLOAD_DOCUMENT',
+                  'VIEW_PLATFORM_SOURCE_READINESS','VIEW_PLATFORM_SOURCE_CONTEXTS'));
