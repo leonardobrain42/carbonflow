@@ -3,6 +3,7 @@ import {PdReviewsComponent} from './pd-reviews';
 import {PdSectionsComponent} from './pd-sections';
 import {ProjectGuidesComponent} from './project-guides';
 import {OpenApplicabilityComponent} from './open-applicability';
+import {OpenCalculationReadinessComponent} from './open-calculation-readiness';
 import {WorkspaceNavigationComponent} from './workspace-navigation';
 import {afterNextRender, Component, computed, ElementRef, inject, Injector, signal, viewChild} from '@angular/core';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
@@ -106,7 +107,7 @@ function formValues(data: IntakeData | null): IntakeForm {
 
 @Component({
   selector: 'carbonflow-project-technical',
-  imports: [RouterLink, WorkspaceNavigationComponent, ProjectGuidesComponent, OpenApplicabilityComponent, PdSectionsComponent, PdReviewsComponent, TechnicalGlossaryComponent],
+  imports: [RouterLink, WorkspaceNavigationComponent, ProjectGuidesComponent, OpenApplicabilityComponent, OpenCalculationReadinessComponent, PdSectionsComponent, PdReviewsComponent, TechnicalGlossaryComponent],
   templateUrl: './project-technical.html',
 })
 export class ProjectTechnicalComponent {
