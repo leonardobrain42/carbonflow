@@ -154,7 +154,7 @@ class FleetCompositionIntegrationTest {
         JsonNode postRevocation=read(request("GET",ROOT+"/board",manager,null,null),200);
         assertEquals("RIGHTS_UNAVAILABLE",postRevocation.path("snapshots").get(0).path("state").asText());
         assertTrue(postRevocation.path("snapshots").get(0).path("denominator").isNull());
-        assertEquals(403,request("GET",ROOT+"/sources/"+SOURCE_OBJECT+"/preview?year="+YEAR,
+        assertEquals(404,request("GET",ROOT+"/sources/"+SOURCE_OBJECT+"/preview?year="+YEAR,
             manager,null,null).statusCode());
     }
 
