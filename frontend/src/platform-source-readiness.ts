@@ -29,6 +29,8 @@ interface SourceReadiness {
   scenario: string;
   asOf: string;
   normativeRuleStatus: string;
+  dynamicCalculationStatus: string;
+  normativeAiDisabled: boolean;
   missingSourceCount: number;
   missingReferenceRightsCount: number;
   reviewPendingCount: number;
