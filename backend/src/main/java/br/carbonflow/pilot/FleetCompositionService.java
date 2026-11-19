@@ -56,6 +56,7 @@ class FleetCompositionService {
                  List<Alias> aliases,List<SourceView> sources,List<Snapshot> snapshots,
                  String missingNeed,String guidance) {}
     record Create(UUID sourceObjectId,Integer year) {}
+    private record CommandReceipt(String action,byte[] fingerprint,UUID recordId) {}
 
     private final PilotDatabase database;
     private final PlatformSourceReadiness readiness;
@@ -158,7 +159,7 @@ class FleetCompositionService {
         });
     }
 
-    Model register(String token,Registration requested){
+    Model register(String token,String key,Registration requested){
         return database.transaction(c->{
             var actor=staffManagers.requireManager(c,token);
             if(requested==null || requested.organizationId()==null ||
@@ -170,6 +171,10 @@ class FleetCompositionService {
             if(!Set.of("LDV","HDV","UNKNOWN").contains(requested.vehicleClass()) ||
                 !Set.of("BEV","PHEV","OTHER","UNKNOWN").contains(requested.propulsion()))
                 throw invalid("classification","Informe categoria e propulsão sem inferir BEV.");
+            String command=PilotCommands.key(key);
+            byte[] fingerprint=AccessSecrets.digest("REGISTER_MODEL|"+requested);
+            var replay=receipt(c,actor.id(),command,"REGISTER_MODEL",fingerprint);
+            if(replay!=null)return findModel(c,replay.recordId(),requested.organizationId());
             UUID id=UUID.randomUUID();
             UUID created=first(c, """
                 INSERT INTO app_fleet_model
@@ -184,22 +189,24 @@ class FleetCompositionService {
                 addAlias(c,actor.id(),requested.organizationId(),created,requested.aliasYear(),
                     requested.sourceRecordKey());
             }
+            remember(c,actor.id(),command,"REGISTER_MODEL",fingerprint,created);
             ComplianceStaff.audit(c,actor.id(),null,"REGISTER_PLATFORM_FLEET_MODEL");
-            return first(c,"""
-                SELECT id,organization_id,manufacturer,model_name,variant,vehicle_class,
-                       propulsion,recorded_at FROM app_fleet_model WHERE id=?
-                """,r->new Model(r.getObject(1,UUID.class),r.getObject(2,UUID.class),
-                r.getString(3),r.getString(4),r.getString(5),r.getString(6),r.getString(7),
-                r.getObject(8,OffsetDateTime.class)),created);
+            return findModel(c,created,requested.organizationId());
         });
     }
 
-    Alias alias(String token,UUID modelId,AliasInput input){
+    Alias alias(String token,String key,UUID modelId,AliasInput input){
         return database.transaction(c->{
             var actor=staffManagers.requireManager(c,token);
             if(input==null || input.organizationId()==null ||
                 !actor.organizations().contains(input.organizationId()))throw invisible();
+            String command=PilotCommands.key(key);
+            byte[] fingerprint=AccessSecrets.digest("MAP_ALIAS|"+modelId+"|"+input);
+            var replay=receipt(c,actor.id(),command,"MAP_ALIAS",fingerprint);
+            if(replay!=null) return new Alias(input.organizationId(),input.year(),
+                normalizeKey(input.sourceRecordKey()),modelId);
             addAlias(c,actor.id(),input.organizationId(),modelId,input.year(),input.sourceRecordKey());
+            remember(c,actor.id(),command,"MAP_ALIAS",fingerprint,modelId);
             ComplianceStaff.audit(c,actor.id(),null,"MAP_PLATFORM_FLEET_ALIAS");
             return new Alias(input.organizationId(),input.year(),
                 normalizeKey(input.sourceRecordKey()),modelId);
@@ -215,7 +222,7 @@ class FleetCompositionService {
         });
     }
 
-    Detail create(String token,Create input){
+    Detail create(String token,String key,Create input){
         return database.transaction(c->{
             var actor=staffManagers.requireManager(c,token);
             if(input==null || input.sourceObjectId()==null || input.year()==null)
@@ -224,6 +231,9 @@ class FleetCompositionService {
             first(c,"SELECT pg_advisory_xact_lock(hashtextextended(?,0))",
                 r->true,"fleet:"+input.sourceObjectId()+":"+input.year());
             Source source=source(c,actor.organizations(),input.sourceObjectId());
+            String command=PilotCommands.key(key);
+            byte[] fingerprint=AccessSecrets.digest("CREATE_SNAPSHOT|"+input);
+            var replay=receipt(c,actor.id(),command,"CREATE_SNAPSHOT",fingerprint);
             Preview preview=analyze(c,actor.organizations(),input.sourceObjectId(),
                     input.year(),true);
             if(!preview.canCreateSnapshot())throw new PilotProblem(409,
@@ -232,12 +242,16 @@ class FleetCompositionService {
             rights.requireGrant(c,Set.of(source.organizationId()),source.sourceId(),source.edition(),
                 source.licenseId(),"EXPORT_DERIVATIVES");
             String kind=preview.dataKind();
+            if(replay!=null)return detail(c,replay.recordId(),source,actor.organizations());
             UUID existing=first(c,"""
                 SELECT id FROM app_fleet_ingestion
                 WHERE organization_id=? AND source_object_id=? AND data_kind=?
                   AND observation_year=? AND geography='BR'
                 """,r->r.getObject(1,UUID.class),source.organizationId(),source.id(),kind,input.year());
-            if(existing!=null) return detail(c,existing,source,actor.organizations());
+            if(existing!=null){
+                remember(c,actor.id(),command,"CREATE_SNAPSHOT",fingerprint,existing);
+                return detail(c,existing,source,actor.organizations());
+            }
             UUID ingestion=UUID.randomUUID();
             byte[] digest=HexFormat.of().parseHex(source.sha256());
             update(c,"""
@@ -286,6 +300,7 @@ class FleetCompositionService {
                         row.value().longValueExact(),row.recordKey(),row.locator());
                 }
             }
+            remember(c,actor.id(),command,"CREATE_SNAPSHOT",fingerprint,ingestion);
             ComplianceStaff.audit(c,actor.id(),null,"CREATE_PLATFORM_FLEET_SNAPSHOT");
             return detail(c,ingestion,source,actor.organizations());
         });
@@ -468,6 +483,44 @@ class FleetCompositionService {
     }
     private static String metric(String kind) {
         return FleetCompositionRules.STOCK.equals(kind)?"stock":"sales";
+    }
+
+
+    private static Model findModel(Connection c,UUID id,UUID organization)throws SQLException{
+        Model model=first(c,"""
+            SELECT id,organization_id,manufacturer,model_name,variant,vehicle_class,
+                   propulsion,recorded_at FROM app_fleet_model
+            WHERE id=? AND organization_id=?
+            """,r->new Model(r.getObject(1,UUID.class),r.getObject(2,UUID.class),
+            r.getString(3),r.getString(4),r.getString(5),r.getString(6),
+            r.getString(7),r.getObject(8,OffsetDateTime.class)),id,organization);
+        if(model==null)throw invisible();
+        return model;
+    }
+
+    private static CommandReceipt receipt(Connection c,UUID actor,String key,
+            String action,byte[] fingerprint)throws SQLException {
+        // Serialize retries from the same actor; separate payloads cannot share the key.
+        first(c,"SELECT pg_advisory_xact_lock(hashtextextended(?,0))",
+            r->true,"fleet-command:"+actor+":"+key);
+        var previous=first(c,"""
+            SELECT action,fingerprint,record_id FROM app_fleet_command
+            WHERE actor_id=? AND command_key=?
+            """,r->new CommandReceipt(r.getString(1),r.getBytes(2),
+            r.getObject(3,UUID.class)),actor,key);
+        if(previous!=null && (!action.equals(previous.action()) ||
+                !java.security.MessageDigest.isEqual(fingerprint,previous.fingerprint())))
+            throw new PilotProblem(409,"CHAVE_REUTILIZADA","Idempotency-Key",RULE,
+                "Esta chave já identifica outro comando de frota.");
+        return previous;
+    }
+
+    private static void remember(Connection c,UUID actor,String key,String action,
+            byte[] fingerprint,UUID recordId)throws SQLException {
+        update(c,"""
+            INSERT INTO app_fleet_command(actor_id,command_key,action,fingerprint,record_id)
+            VALUES (?,?,?,?,?)
+            """,actor,key,action,fingerprint,recordId);
     }
 
     private static void addAlias(Connection c,UUID actor,UUID org,UUID model,Integer year,
