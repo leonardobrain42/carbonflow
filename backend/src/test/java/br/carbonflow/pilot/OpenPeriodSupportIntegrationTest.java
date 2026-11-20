@@ -269,9 +269,8 @@ class OpenPeriodSupportIntegrationTest {
         assertEquals(404,call("GET",bindingUrl,outside.cookie(),null,null).statusCode());
         assertEquals(404,postMethod(bindingUrl,docsReviewer.cookie(),key(),
             "\"0\"",bindingBody).statusCode());
-        // A fresh command with an obsolete If-Match is rejected before
-        // any business-level duplicate-content check.
-        assertEquals(412,postMethod(bindingUrl,owner.cookie(),key(),
+        // An unreviewed candidate cannot be bound even with a valid ETag.
+        assertEquals(409,postMethod(bindingUrl,owner.cookie(),key(),
             "\"0\"",bindingBody).statusCode());
         String efelReviewUrl=efelUrl+"/"+efel.path("id").asText()+"/reviews";
         String efelReviewBody="""
@@ -320,8 +319,12 @@ class OpenPeriodSupportIntegrationTest {
         assertTrue(boundE8.path("gates").toString().contains("EVR_AND_COMPARABLES_NOT_ADMITTED"));
         assertEquals(boundE8Response.body(),postMethod(bindingUrl,owner.cookie(),
             bindKey,"\"0\"",bindingBody).body());
-        assertEquals(409,postMethod(bindingUrl,owner.cookie(),key(),
+        // A fresh command with an obsolete If-Match is rejected before
+        // duplicate-content validation.
+        assertEquals(412,postMethod(bindingUrl,owner.cookie(),key(),
             "\"0\"",bindingBody).statusCode());
+        assertEquals(409,postMethod(bindingUrl,owner.cookie(),key(),
+            "\"1\"",bindingBody).statusCode());
         assertEquals(1,json(call("GET",bindingUrl,owner.cookie(),null,null)).size());
         String bindingDetailUrl=bindingUrl+"/"+boundE8.path("id").asText();
         var bindingDetail=call("GET",bindingDetailUrl,owner.cookie(),null,null);
