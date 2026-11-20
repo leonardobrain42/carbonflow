@@ -43,6 +43,9 @@ class OpenCalculationReadiness {
     private static OpenCalculationPreflight.Result withMrDependencies(
             Connection connection,String project,OpenCalculationPreflight.Result base)
         throws SQLException {
+        // Do not impose VM0038/OPEN MR requirements on a different
+        // methodology or on projects still choosing their methodology.
+        if(!"VM0038".equals(base.methodology()))return base;
         var gates=new ArrayList<>(base.gates());
         var manifest=OpenMonitoringDossiers.manifest(connection,project);
         if(manifest.dossiers().isEmpty()) {
