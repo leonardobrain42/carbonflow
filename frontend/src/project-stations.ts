@@ -1,4 +1,5 @@
-import {Component, Input, OnChanges, SimpleChanges, inject, signal} from '@angular/core';
+import {Component, Input, OnChanges, SimpleChanges, inject, signal, viewChild} from '@angular/core';
+import {AssetEvidenceComponent} from './asset-evidence';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {firstValueFrom} from 'rxjs';
 
@@ -20,12 +21,14 @@ const NEW_SITE:SiteDraft={code:'',name:'',municipality:'',state:'DF',address:'',
 const NEW_CHARGER:ChargerDraft={code:'',siteCode:'',powerKw:'',timeZone:'America/Sao_Paulo',sourceReference:''};
 
 /** UX-03A: guided inputs backed by V67 sites and V52 canonical chargers, not guide text. */
-@Component({selector:'carbonflow-project-stations',templateUrl:'./project-stations.html'})
+@Component({selector:'carbonflow-project-stations',imports:[AssetEvidenceComponent],templateUrl:'./project-stations.html'})
 export class ProjectStationsComponent implements OnChanges {
   @Input({required:true}) projectId='';
   @Input() editable=false;
   private readonly http=inject(HttpClient);
   readonly data=signal<Catalog|null>(null);
+  readonly evidenceTarget=signal<{type:'SITE'|'CHARGER';code:string;version:number}|null>(null);
+  private readonly proofEditor=viewChild(AssetEvidenceComponent);
   readonly mode=signal<'sites'|'chargers'|'boundary'>('sites');
   readonly site=signal<SiteDraft>({...NEW_SITE});
   readonly siteVersion=signal(0);
@@ -52,7 +55,7 @@ export class ProjectStationsComponent implements OnChanges {
     }
   }
   canLeave(){
-    if(this.busy())return false;
+    if(this.busy()||!(this.proofEditor()?.canLeave()??true))return false;
     if(!this.dirtySite()&&!this.dirtyCharger()&&!this.boundaryDirty())return true;
     return confirm('Descartar as alterações não salvas das estações ou da fronteira?');
   }
@@ -61,8 +64,18 @@ export class ProjectStationsComponent implements OnChanges {
     this.resetForms();
     this.selected.set(this.data()?.boundary.selected.map(x=>x.chargerCode)??[]);
     this.mode.set(next);
+    this.evidenceTarget.set(null);
     this.error.set('');
     this.notice.set('');
+  }
+  openEvidence(type:'SITE'|'CHARGER',code:string,version:number){
+    if(!(this.proofEditor()?.canLeave()??true))return;
+    const active=this.evidenceTarget();
+    if(active?.type===type&&active.code===code&&active.version===version){
+      this.evidenceTarget.set(null);
+      return;
+    }
+    this.evidenceTarget.set({type,code,version});
   }
   resetSite(){this.site.set({...NEW_SITE});this.siteVersion.set(0);this.dirtySite.set(false);this.siteRetry='';}
   resetCharger(){this.charger.set({...NEW_CHARGER});this.chargerVersion.set(0);this.dirtyCharger.set(false);this.chargerRetry='';}
@@ -80,6 +93,7 @@ export class ProjectStationsComponent implements OnChanges {
       if(id!==this.requestId)return;
       if(state.projectId!==this.projectId||state.environment!=='SANDBOX')throw new Error('Escopo inválido');
       this.data.set(state);
+      this.evidenceTarget.set(null);
       this.selected.set(state.boundary.selected.map(x=>x.chargerCode));
       this.resetForms();
     }catch(reason){

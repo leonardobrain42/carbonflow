@@ -14,7 +14,18 @@ COPY backend/.mvn/ .mvn/
 COPY backend/pom.xml ./
 COPY backend/src/main/ src/main/
 COPY --from=angular-build /build/frontend/dist/piloto/browser/ /build/frontend/dist/piloto/browser/
-RUN --mount=type=cache,target=/root/.m2 mvn -B -ntp -Dmaven.test.skip=true package
+# Central occasionally rate-limits simultaneous CI builds (HTTP 429).
+# Retry only the dependency/build step with forced metadata refresh; fail closed
+# after the bounded attempts. No dependency versions or tests are skipped beyond
+# the original packaged image build contract.
+RUN --mount=type=cache,target=/root/.m2 \
+    set -eu; attempt=1; \
+    until mvn -B -ntp -U -Dmaven.test.skip=true package; do \
+      if [ "$attempt" -ge 4 ]; then echo "Maven build failed after 4 attempts"; exit 1; fi; \
+      echo "Maven repository unavailable; retry attempt $((attempt + 1))/4"; \
+      sleep $((attempt * 15)); \
+      attempt=$((attempt + 1)); \
+    done
 
 FROM eclipse-temurin:21-jre-noble
 WORKDIR /app

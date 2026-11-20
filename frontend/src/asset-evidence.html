@@ -1,0 +1,90 @@
+<section class="cf-journey-context" [attr.aria-label]="'Provas de '+subjectCode">
+  <h4>Comprovações de {{subjectType==='SITE'?'estação':'carregador'}} · {{subjectCode}}</h4>
+  <p class="cf-workspace-helper">Versão selecionada v{{subjectVersion}}.
+    O PDF é armazenado com hash SHA-256 e vinculado à revisão do cadastro.
+    Anexo recebido não comprova localização, acesso público, conexão SIN ou elegibilidade.
+    A revisão documental é independente e limitada ao escopo interno.</p>
+  @if (loading()){<p role="status">Carregando evidências…</p>}
+  @if (error()){
+    <p role="alert" class="cf-workspace-alert">{{error()}}</p>
+    <button type="button" class="cf-workspace-outline" [disabled]="busy()" (click)="load()">Atualizar provas</button>
+  }
+  @if (notice()){<p role="status" class="cf-workspace-note">{{notice()}}</p>}
+  @if (details();as catalog){
+    @if (catalog.currentVersion!==subjectVersion){
+      <p role="alert" class="cf-workspace-note">O cadastro mudou para v{{catalog.currentVersion}}.
+        Reabra a estação ou equipamento antes de anexar novas provas.</p>
+    }
+    <h5>Documentos vinculados</h5>
+    <ul class="cf-tech-gates">
+      @for (doc of catalog.documents;track doc.id){
+        <li>
+          <strong>{{purposeLabel(doc.purpose)}} · v{{doc.subjectVersion}}</strong>
+          <p>{{stateLabel(doc.state)}} · {{doc.fileName}} · {{doc.bytesCount}} bytes</p>
+          <p class="cf-workspace-helper">SHA-256: <code>{{doc.sha256}}</code></p>
+          <p><a class="cf-workspace-link" [href]="fileUrl(doc.id)">
+            Baixar PDF privado para conferência</a></p>
+          <p>Referência: {{doc.evidenceReference}}
+            @if (doc.locator){ · Localizador: {{doc.locator}} }</p>
+          @if (doc.review){
+            <p>Parecer v{{doc.review.version}}: {{doc.review.outcome==='REJECTED'?'Rejeitado':'Conferido internamente'}}.
+              {{doc.review.reason}}</p>
+          }
+          @if (catalog.canReview&&!doc.stale){
+            <button class="cf-workspace-outline" type="button" [disabled]="busy()"
+              (click)="beginReview(doc)">Registrar parecer independente</button>
+          }
+        </li>
+      } @empty {
+        <li>Nenhum PDF anexado a este ativo. A referência digitada no cadastro não é um arquivo.</li>
+      }
+    </ul>
+    @if (catalog.canUpload&&subjectVersion===catalog.currentVersion){
+      <form (submit)="upload($event)">
+        <fieldset class="cf-journey-fieldset" [disabled]="busy()">
+          <legend>Anexar prova PDF à revisão {{subjectVersion}}</legend>
+          <label for="asset-proof-kind">Tipo de comprovação</label>
+          <select id="asset-proof-kind" [value]="purpose()"
+            (change)="purpose.set($any($event.target).value)">
+            <option value="">Selecione</option>
+            @for (item of availablePurposes();track item.id){
+              <option [value]="item.id">{{item.label}}</option>
+            }
+          </select>
+          <label for="asset-proof-reference">Origem e identificação do documento</label>
+          <input id="asset-proof-reference" maxlength="300"
+            placeholder="Ex.: Ficha técnica emitida pelo fabricante em 2026"
+            [value]="reference()" (input)="reference.set($any($event.target).value)"/>
+          <label for="asset-proof-locator">Localizador no documento (opcional)</label>
+          <input id="asset-proof-locator" maxlength="160"
+            placeholder="Ex.: página 3, seção 2"
+            [value]="locator()" (input)="locator.set($any($event.target).value)"/>
+          <label for="asset-proof-file">Arquivo PDF (máximo 2 MB)</label>
+          <input #pdf id="asset-proof-file" type="file" accept=".pdf,application/pdf"
+            (change)="pickFile(pdf)"/>
+          <p class="cf-workspace-helper">Documento recebido para revisão privada.
+            Não é compartilhado publicamente nem inserido automaticamente no PD.</p>
+          <button type="submit" class="cf-workspace-primary" [disabled]="busy()||!file()">
+            Anexar PDF protegido</button>
+        </fieldset>
+      </form>
+    }
+    @if (catalog.canReview&&reviewTarget();as doc){
+      <fieldset class="cf-journey-fieldset" [disabled]="busy()">
+        <legend>Parecer independente · {{doc.fileName}}</legend>
+        <label for="asset-review-result">Decisão documental interna</label>
+        <select id="asset-review-result" [value]="decision()"
+          (change)="decision.set($any($event.target).value)">
+          <option value="DOCUMENT_CHECKED_INTERNAL">Conferido internamente (não admitido)</option>
+          <option value="REJECTED">Rejeitar documento</option>
+        </select>
+        <label for="asset-review-reason">Justificativa e escopo da revisão</label>
+        <textarea id="asset-review-reason" rows="3" maxlength="2000"
+          [value]="reason()" (input)="reason.set($any($event.target).value)"></textarea>
+        <button class="cf-workspace-primary" type="button" (click)="review()" [disabled]="busy()">
+          Salvar parecer interno</button>
+        <button class="cf-workspace-outline" type="button" (click)="reviewTarget.set(null)">Cancelar</button>
+      </fieldset>
+    }
+  }
+</section>

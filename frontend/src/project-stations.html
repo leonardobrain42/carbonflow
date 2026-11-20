@@ -37,9 +37,19 @@
               {{item.details.sourceReference?'Referência informada: '+item.details.sourceReference:'Sem referência de prova'}}</p>
             @if (editable){<button type="button" class="cf-workspace-outline" [disabled]="busy()"
               (click)="pickSite(item)">Editar em nova revisão</button>}
+            <button type="button" class="cf-workspace-outline" [disabled]="busy()"
+              (click)="openEvidence('SITE',item.code,item.version)">
+              {{evidenceTarget()?.code===item.code&&evidenceTarget()?.type==='SITE'?'Ocultar provas':'Anexar ou consultar provas'}}
+            </button>
           </li>
         } @empty {<li>Nenhuma estação cadastrada. Comece pelo formulário abaixo.</li>}
       </ul>
+      @if (evidenceTarget();as target){
+        @if (target.type==='SITE'){
+          <carbonflow-asset-evidence [projectId]="projectId" [subjectType]="target.type"
+            [subjectCode]="target.code" [subjectVersion]="target.version"/>
+        }
+      }
       @if (editable){
         <form (submit)="saveSite($event)">
           <fieldset class="cf-journey-fieldset" [disabled]="busy()">
@@ -96,9 +106,19 @@
             @if (!eligible(item)){<p>Fora do recorte ou estação ainda não cadastrada; não pode ser selecionado.</p>}
             @if (editable&&eligible(item)){<button type="button" class="cf-workspace-outline" [disabled]="busy()"
               (click)="pickCharger(item)">Revisar configuração</button>}
+            <button type="button" class="cf-workspace-outline" [disabled]="busy()"
+              (click)="openEvidence('CHARGER',item.code,item.version)">
+              {{evidenceTarget()?.code===item.code&&evidenceTarget()?.type==='CHARGER'?'Ocultar provas':'Anexar ou consultar provas'}}
+            </button>
           </li>
         } @empty {<li>Não há carregadores. Cadastre um equipamento abaixo.</li>}
       </ul>
+      @if (evidenceTarget();as target){
+        @if (target.type==='CHARGER'){
+          <carbonflow-asset-evidence [projectId]="projectId" [subjectType]="target.type"
+            [subjectCode]="target.code" [subjectVersion]="target.version"/>
+        }
+      }
       @if (editable){
         <form (submit)="saveCharger($event)">
           <fieldset class="cf-journey-fieldset" [disabled]="busy()||!catalog.sites.length">

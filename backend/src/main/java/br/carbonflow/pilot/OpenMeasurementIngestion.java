@@ -282,6 +282,34 @@ class OpenMeasurementIngestion {
         return id;
     }
 
+    /** Decrypt only an already scoped, approved-for-access project PDF blob.
+     * This reuses the same AES-GCM key/AAD as storeSupportPdf, without a second store.
+     */
+    byte[] readSupportPdf(Connection c,DynamicProjectScope.Context context,UUID id)
+        throws SQLException {
+        if(key==null)throw new PilotProblem(503,"CHAVE_DE_EVIDENCIA_AUSENTE",
+            "file",RULE,"Chave de evidência cifrada não configurada.");
+        record Stored(byte[] digest,byte[] nonce,byte[] cipherText) {}
+        Stored row=first(c,"""
+            SELECT sha256,nonce,encrypted FROM app_project_evidence_blob
+            WHERE id=? AND project_id=? AND organization_id=? AND environment=?
+              AND mime_type='application/pdf'
+            """,r->new Stored(r.getBytes(1),r.getBytes(2),r.getBytes(3)),
+            id,context.id(),context.organization(),context.environment());
+        if(row==null)throw new PilotProblem(404,"PROVA_INDISPONIVEL","file",RULE,
+            "Documento indisponível para este projeto.");
+        try {
+            Cipher cipher=Cipher.getInstance("AES/GCM/NoPadding");
+            cipher.init(Cipher.DECRYPT_MODE,new SecretKeySpec(key,"AES"),
+                new GCMParameterSpec(128,row.nonce()));
+            cipher.updateAAD((context.organization()+"|"+context.id()+"|"+id+"|"+
+                HexFormat.of().formatHex(row.digest())).getBytes(StandardCharsets.UTF_8));
+            return cipher.doFinal(row.cipherText());
+        }catch(GeneralSecurityException e){
+            throw new IllegalStateException("Falha na integridade da prova protegida",e);
+        }
+    }
+
     private byte[] encrypt(UUID organization,String project,UUID blob,byte[] sha,
                            byte[] nonce,byte[] bytes) {
         try {
