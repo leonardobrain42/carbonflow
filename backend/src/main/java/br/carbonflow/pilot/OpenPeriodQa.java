@@ -26,10 +26,10 @@ final class OpenPeriodQa {
 
     record Reading(UUID batch,int line,String meterCode,int meterVersion,String kind,
                    Instant start,Instant end,BigDecimal kwh,String rowState,
-                   String batchState,String reviewOutcome,String sourceHash,String lineHash) {}
+                   String batchState,String reviewOutcome,int reviewVersion,String sourceHash,String lineHash) {}
 
     record Gate(String code,String detail,String charger,String meter,Instant hour) {}
-    record Ref(UUID batch,int line,String meter,int version,Instant start,Instant end,
+    record Ref(UUID batch,int line,int reviewVersion,String meter,int version,Instant start,Instant end,
                String sourceHash,String lineHash) {}
     record Result(String state,boolean readyForInternalSnapshot,boolean canRunE8,
                   String edKwh,String ecKwh,List<Gate> gates,List<Ref> accepted) {}
@@ -152,7 +152,7 @@ final class OpenPeriodQa {
     }
 
     private static Ref ref(Reading r) {
-        return new Ref(r.batch(),r.line(),r.meterCode(),r.meterVersion(),
+        return new Ref(r.batch(),r.line(),r.reviewVersion(),r.meterCode(),r.meterVersion(),
             r.start(),r.end(),r.sourceHash(),r.lineHash());
     }
     private static Reading single(List<Reading> input,List<Gate> gates,Set<String> seen,
