@@ -543,6 +543,74 @@
       </section>
     }
 
+    <h4>Dossiês de monitoramento (MR) e propagação de STALE</h4>
+    <p>O dossiê MR referencia um snapshot de QA por período (M1, M2 etc.).
+      Alterações em medidores, medições, ocorrências ou documentos podem
+      torná-lo obsoleto. Os vínculos são registrados por versão, sem
+      alterar o snapshot histórico e sem emitir créditos.</p>
+    @if (mrDossiers().length) {
+      <ul class="cf-tech-gates" aria-label="Dependências de dossiês MR">
+        @for (item of mrDossiers(); track item.reference.code) {
+          <li>
+            <strong>{{item.reference.code}} · revisão {{item.reference.version}}
+              · {{item.state}}</strong>
+            <p>Snapshot {{item.reference.snapshotId}} ·
+              SHA-256 {{item.reference.snapshotSha256.slice(0,16)}}…</p>
+            <p>{{item.reference.note}}</p>
+            @if (item.stale) {
+              <p role="alert">Esta versão do MR está obsoleta.
+                Reavalie as leituras e vincule um novo snapshot, preservando o histórico.</p>
+            }
+            @for (gate of item.gates; track $index) {
+              <p>{{gate.code}} · {{gate.detail}}</p>
+            }
+            <small>Uso para E8/VCU: indisponível. A análise normativa é uma etapa distinta.</small>
+            @if (editable) {
+              <button type="button" class="cf-workspace-outline"
+                [disabled]="mrBusy()" (click)="chooseMr(item)">
+                Selecionar para nova revisão
+              </button>
+            }
+          </li>
+        }
+      </ul>
+    } @else {
+      <p>Nenhum período está vinculado ao dossiê MR.
+        O PD inicial pode ser preparado sem medições futuras.</p>
+    }
+    @if (editable) {
+      <form class="cf-open-monitoring-form" (submit)="saveMrDossier($event)">
+        <fieldset [disabled]="mrBusy()">
+          <legend>Vincular snapshot ao MR de um período</legend>
+          <div class="cf-journey-fields">
+            <div>
+              <label for="cf-mr-code">Período / código do dossiê</label>
+              <input id="cf-mr-code" maxlength="32" required [value]="mrCode()"
+                (input)="mrCode.set($any($event.target).value)"
+                placeholder="M1 ou M2"/>
+            </div>
+            <div>
+              <label for="cf-mr-snapshot">Snapshot de QA a referenciar</label>
+              <select id="cf-mr-snapshot" required [value]="mrSnapshot()"
+                (change)="mrSnapshot.set($any($event.target).value)">
+                <option value="">Selecione um período já reconciliado</option>
+                @for (snap of qaSnapshots(); track snap.id) {
+                  <option [value]="snap.id">{{snap.from}} a {{snap.until}} · {{snap.id.slice(0,8)}}</option>
+                }
+              </select>
+            </div>
+          </div>
+          <label for="cf-mr-note">Justificativa do vínculo (mínimo 15 caracteres)</label>
+          <textarea id="cf-mr-note" rows="3" minlength="15" maxlength="2000"
+            required [value]="mrNote()" (input)="mrNote.set($any($event.target).value)"></textarea>
+          <button class="cf-workspace-primary" type="submit"
+            [disabled]="mrBusy() || !mrSnapshot()">
+            Salvar versão do vínculo MR
+          </button>
+        </fieldset>
+      </form>
+    }
+
     <h4>Pendências do monitoramento</h4>
     <ul class="cf-tech-gates">
       @for (gate of plan.readiness.gates; track gate.code+'-'+gate.chargerCode+'-'+gate.meterCode) {
