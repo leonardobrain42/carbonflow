@@ -79,6 +79,17 @@ class OpenCalculationReadinessIntegrationTest {
         assertTrue(data.path("gates").toString().contains("MISSING_BINDING"));
         assertFalse(data.toString().contains("EF-SYN-v1"));
         assertFalse(data.toString().contains("SIM-DY"));
+        assertEquals(7,data.path("equationPlan").size());
+        assertEquals("NOT_CALCULATED",
+            data.at("/equationPlan/2/status").asText());
+        assertEquals("BE",data.at("/equationPlan/2/outputCode").asText());
+        assertEquals("VM0038-1.1-EQ1",
+            data.at("/equationPlan/2/ruleReference").asText());
+        assertEquals("tCO2e",data.at("/equationPlan/2/unit").asText());
+        assertTrue(data.at("/equationPlan/2/blockedBy").toString().contains("ED"));
+        assertEquals("EC",data.at("/equationPlan/3/requiredInputs/0").asText());
+        assertEquals("ER",data.at("/equationPlan/6/outputCode").asText());
+        assertFalse(data.path("equationPlan").toString().contains("EF-SYN"));
         assertEquals(0L,database.read(c -> first(c,
             "SELECT count(*) FROM pilot_selected_run WHERE project_id = ?",
             r -> r.getLong(1),project)).longValue());
@@ -102,7 +113,10 @@ class OpenCalculationReadinessIntegrationTest {
                 """,grant,project,org,preparer.id(),owner.id());
             return null;
         });
-        assertEquals(200,call("GET",path,preparer.cookie(),null,null,null).statusCode());
+        var preparerResponse=call("GET",path,preparer.cookie(),null,null,null);
+        assertEquals(200,preparerResponse.statusCode());
+        assertEquals(7,json(preparerResponse).path("equationPlan").size());
+        assertNull(json(preparerResponse).at("/emissions/erTco2e").textValue());
         assertEquals(404,call("GET",path,outsider.cookie(),null,null,null).statusCode());
         database.transaction(c -> {
             update(c,"""
