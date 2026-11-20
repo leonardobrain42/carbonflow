@@ -29,7 +29,7 @@ final class OpenMeasurementCsv {
 
     record MeterScope(String code,int version,String kind,String chargerCode,
                       int chargerVersion,int currentChargerVersion,String chargerKind,
-                      String grid,String topology,String timeZone,
+                      String grid,String topology,String timeZone,String sourceSystem,
                       OffsetDateTime calibrationFrom,OffsetDateTime calibrationUntil,
                       OffsetDateTime configuredFrom,OffsetDateTime configuredUntil) {}
 
@@ -41,7 +41,7 @@ final class OpenMeasurementCsv {
 
     private OpenMeasurementCsv() {}
 
-    static Preview parse(byte[] source,Map<String,MeterScope> meters,Set<String> previous) {
+    static Preview parse(byte[] source,Map<String,MeterScope> meters,Set<String> previous,String sourceId) {
         if(source==null || source.length==0 || source.length>2_000_000)
             throw invalid("file","O CSV deve conter entre 1 e 2.000.000 bytes.");
         String content;
@@ -127,6 +127,8 @@ final class OpenMeasurementCsv {
             } else {
                 version=meter.version();
                 if(!kind.equals(meter.kind()))reasons.add("METER_KIND_MISMATCH");
+                if(meter.sourceSystem()==null || !meter.sourceSystem().equals(sourceId))
+                    reasons.add("SOURCE_SYSTEM_MISMATCH");
                 if(meter.chargerVersion()!=meter.currentChargerVersion())
                     reasons.add("CHARGER_CONFIGURATION_STALE");
                 if(!"DCFC".equals(meter.chargerKind()) ||
