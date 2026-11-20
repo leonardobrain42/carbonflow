@@ -1,0 +1,199 @@
+<section class="cf-journey-context" aria-labelledby="cf-monitor-title">
+  <h3 id="cf-monitor-title">Monitoramento · carregadores, ED e EC</h3>
+  <p>Cadastre a configuração dos carregadores e dos medidores antes de importar leituras.
+    <strong>ED</strong> é a energia efetivamente entregue aos veículos, medida a jusante;
+    <strong>EC</strong> é a energia consumida pela infraestrutura, medida a montante.
+    A configuração não comprova qualquer energia nem autoriza cálculo de créditos.</p>
+  @if (loading()) { <p role="status">Carregando o plano de medição…</p> }
+  @if (error()) { <p role="alert" class="cf-workspace-alert">{{error()}}</p> }
+  @if (notice()) { <p role="status" class="cf-workspace-note">{{notice()}}</p> }
+
+  @if (data(); as plan) {
+    <dl class="cf-tech-capabilities">
+      <div><dt>Carregadores cadastrados</dt><dd>{{plan.chargers.length}}</dd></div>
+      <div><dt>Medidores configurados</dt><dd>{{plan.meters.length}}</dd></div>
+      <div><dt>Energia entregue (ED)</dt><dd>Pendente de medição admitida</dd></div>
+      <div><dt>Energia consumida (EC)</dt><dd>Pendente de medição admitida</dd></div>
+      <div><dt>Pronto para E8?</dt><dd>Não — {{stateName(plan.readiness.state)}}</dd></div>
+    </dl>
+    <p>Para projetos reais, não são importadas leituras, registros de cobrança ou dados do piloto sintético.
+      Mesmo com certificados informados, a calibração e a fronteira devem ser revisadas.</p>
+
+    <h4>Inventário de carregadores</h4>
+    @if (plan.chargers.length) {
+      <ul class="cf-tech-gates">
+        @for (item of plan.chargers; track item.code) {
+          <li>
+            <strong>{{item.code}} · revisão {{item.version}}</strong>
+            <p>{{item.details.siteCode}} · {{item.details.chargerKind}} ·
+              {{item.details.ratedPowerKw ?? 'Potência pendente'}} kW · {{item.details.grid}} · {{item.details.topology}}</p>
+            @if (editable) {
+              <button type="button" class="cf-workspace-outline" [disabled]="saving()"
+                (click)="chooseCharger(item)">Revisar cadastro</button>
+            }
+          </li>
+        }
+      </ul>
+    } @else {
+      <p>Nenhum carregador cadastrado. Comece identificando a instalação e sua fronteira elétrica.</p>
+    }
+
+    @if (editable) {
+      <form class="cf-open-monitoring-form" (submit)="saveCharger($event)">
+        <fieldset [disabled]="saving()" class="cf-journey-fieldset">
+          <legend>{{chargerVersion() ? 'Nova revisão do carregador' : 'Adicionar carregador'}}</legend>
+          <div class="cf-journey-fields">
+            <div><label for="cf-mon-charger-code">Código do carregador</label>
+              <input id="cf-mon-charger-code" maxlength="80" required [readOnly]="chargerVersion()>0"
+                [value]="charger().code" (input)="updateCharger('code',$any($event.target).value)" /></div>
+            <div><label for="cf-mon-site">Instalação / local (ID)</label>
+              <input id="cf-mon-site" maxlength="80" required [value]="charger().siteCode"
+                (input)="updateCharger('siteCode',$any($event.target).value)" /></div>
+            <div><label for="cf-mon-kind">Tipo</label>
+              <select id="cf-mon-kind" [value]="charger().chargerKind"
+                (change)="updateCharger('chargerKind',$any($event.target).value)">
+                <option value="DCFC">DCFC · recarga rápida</option>
+                <option value="AC">AC · exige outro ramo</option>
+                <option value="UNKNOWN">A confirmar</option>
+              </select></div>
+            <div><label for="cf-mon-power">Potência nominal (kW)</label>
+              <input id="cf-mon-power" type="number" min="0.001" max="10000" step="0.001"
+                [value]="charger().ratedPowerKw"
+                (input)="updateCharger('ratedPowerKw',$any($event.target).value)"/></div>
+            <div><label for="cf-mon-grid">Origem da eletricidade</label>
+              <select id="cf-mon-grid" [value]="charger().grid"
+                (change)="updateCharger('grid',$any($event.target).value)">
+                <option value="SIN">Sistema Interligado Nacional</option>
+                <option value="OTHER">Outra rede</option>
+                <option value="UNKNOWN">A confirmar</option>
+              </select></div>
+            <div><label for="cf-mon-topology">Topologia elétrica</label>
+              <select id="cf-mon-topology" [value]="charger().topology"
+                (change)="updateCharger('topology',$any($event.target).value)">
+                <option value="GRID_ONLY">Somente rede elétrica</option>
+                <option value="ON_SITE">Geração local</option>
+                <option value="STORAGE">Armazenamento associado</option>
+                <option value="V2G">Devolução à rede (V2G)</option>
+                <option value="UNKNOWN">A confirmar</option>
+              </select></div>
+            <div><label for="cf-mon-charger-zone">Fuso do local</label>
+              <select id="cf-mon-charger-zone" [value]="charger().timeZone"
+                (change)="updateCharger('timeZone',$any($event.target).value)">
+                <option value="America/Sao_Paulo">America/Sao_Paulo</option>
+                <option value="UTC">UTC</option><option value="UNKNOWN">A confirmar</option>
+              </select></div>
+            <div><label for="cf-mon-source">Referência do documento de instalação</label>
+              <input id="cf-mon-source" maxlength="300" [value]="charger().sourceReference"
+                (input)="updateCharger('sourceReference',$any($event.target).value)"
+                placeholder="ID da evidência de inventário ou comissionamento"/></div>
+          </div>
+          <div class="cf-triage-actions">
+            <button class="cf-workspace-primary" type="submit" [disabled]="saving()">
+              Salvar versão do carregador</button>
+            <button type="button" class="cf-workspace-outline" (click)="newCharger()" [disabled]="saving()">
+              Novo carregador</button>
+          </div>
+        </fieldset>
+      </form>
+    }
+
+    <h4>Medidores e calibração</h4>
+    @if (plan.meters.length) {
+      <ul class="cf-tech-gates">
+        @for (item of plan.meters; track item.code) {
+          <li>
+            <strong>{{item.code}} · revisão {{item.version}} · {{item.details.energyKind}}</strong>
+            <p>{{item.details.chargerCode}} · {{item.details.meterPosition}} ·
+              {{item.details.calibrationEvidenceRef || 'Sem evidência de calibração'}}</p>
+            @if (editable) {
+              <button type="button" class="cf-workspace-outline" [disabled]="saving()"
+                (click)="chooseMeter(item)">Revisar medidor</button>
+            }
+          </li>
+        }
+      </ul>
+    } @else {
+      <p>Cadastre separadamente a medição de energia entregue (ED) e consumida (EC).</p>
+    }
+
+    @if (editable) {
+      <form class="cf-open-monitoring-form" (submit)="saveMeter($event)">
+        <fieldset [disabled]="saving() || plan.chargers.length===0" class="cf-journey-fieldset">
+          <legend>{{meterVersion() ? 'Nova revisão do medidor' : 'Adicionar medidor'}}</legend>
+          <div class="cf-journey-fields">
+            <div><label for="cf-mon-meter-code">Código do medidor</label>
+              <input id="cf-mon-meter-code" maxlength="80" required [readOnly]="meterVersion()>0"
+                [value]="meter().code" (input)="updateMeter('code',$any($event.target).value)" /></div>
+            <div><label for="cf-mon-meter-charger">Carregador associado</label>
+              <select id="cf-mon-meter-charger" required [value]="meter().chargerCode"
+                (change)="updateMeter('chargerCode',$any($event.target).value)">
+                <option value="">Selecione</option>
+                @for (charger of plan.chargers; track charger.code) {
+                  <option [value]="charger.code">{{charger.code}} · {{charger.details.siteCode}}</option>
+                }
+              </select></div>
+            <div><label for="cf-mon-energy-kind">Variável medida</label>
+              <select id="cf-mon-energy-kind" [value]="meter().energyKind"
+                (change)="updateMeter('energyKind',$any($event.target).value)">
+                <option value="ED">ED · energia entregue (jusante)</option>
+                <option value="EC">EC · energia consumida (montante)</option>
+              </select></div>
+            <div><label for="cf-mon-meter-source">Sistema de origem das leituras</label>
+              <input id="cf-mon-meter-source" maxlength="200" [value]="meter().sourceSystem"
+                (input)="updateMeter('sourceSystem',$any($event.target).value)"
+                placeholder="ID do sistema de gestão / medição"/></div>
+            <div><label for="cf-mon-calibration-ref">Referência do certificado de calibração</label>
+              <input id="cf-mon-calibration-ref" maxlength="300"
+                [value]="meter().calibrationEvidenceRef"
+                (input)="updateMeter('calibrationEvidenceRef',$any($event.target).value)"/></div>
+            <div><label for="cf-mon-calibration-from">Calibração válida de (início)</label>
+              <input id="cf-mon-calibration-from" [value]="meter().calibrationValidFrom"
+                (input)="updateMeter('calibrationValidFrom',$any($event.target).value)"
+                placeholder="2027-01-01T00:00:00-03:00"/></div>
+            <div><label for="cf-mon-calibration-until">Calibração válida até (fim exclusivo)</label>
+              <input id="cf-mon-calibration-until" [value]="meter().calibrationValidUntil"
+                (input)="updateMeter('calibrationValidUntil',$any($event.target).value)"
+                placeholder="2028-01-01T00:00:00-03:00"/></div>
+            <div><label for="cf-mon-config-from">Configuração ativa desde</label>
+              <input id="cf-mon-config-from" [value]="meter().configuredFrom"
+                (input)="updateMeter('configuredFrom',$any($event.target).value)"
+                placeholder="2027-01-01T00:00:00-03:00"/></div>
+            <div><label for="cf-mon-config-until">Configuração ativa até (fim exclusivo)</label>
+              <input id="cf-mon-config-until" [value]="meter().configuredUntil"
+                (input)="updateMeter('configuredUntil',$any($event.target).value)"
+                placeholder="2028-01-01T00:00:00-03:00"/></div>
+            <div><label for="cf-mon-meter-zone">Fuso do medidor</label>
+              <select id="cf-mon-meter-zone" [value]="meter().timeZone"
+                (change)="updateMeter('timeZone',$any($event.target).value)">
+                <option value="America/Sao_Paulo">America/Sao_Paulo</option>
+                <option value="UTC">UTC</option><option value="UNKNOWN">A confirmar</option>
+              </select></div>
+          </div>
+          <p>Datas com horas exigem ISO 8601 e deslocamento explícito, por exemplo,
+            <code>2027-01-01T00:00:00-03:00</code> ou <code>2027-01-01T03:00:00Z</code>.
+            Intervalos ausentes continuam pendentes, sem calibração presumida.</p>
+          <div class="cf-triage-actions">
+            <button class="cf-workspace-primary" type="submit" [disabled]="saving()">
+              Salvar versão do medidor</button>
+            <button type="button" class="cf-workspace-outline" (click)="newMeter()" [disabled]="saving()">
+              Novo medidor</button>
+          </div>
+        </fieldset>
+      </form>
+    }
+
+    <h4>Pendências do monitoramento</h4>
+    <ul class="cf-tech-gates">
+      @for (gate of plan.readiness.gates; track gate.code+'-'+gate.chargerCode+'-'+gate.meterCode) {
+        <li><strong>{{gate.code}} · {{stateName(gate.state)}}</strong>
+          <p>{{gate.reason}}</p>
+          @if (gate.chargerCode || gate.meterCode) {
+            <small>{{gate.chargerCode || 'Projeto'}} {{gate.meterCode || ''}}</small>
+          }
+        </li>
+      }
+    </ul>
+    <button type="button" class="cf-workspace-outline" [disabled]="saving()"
+      (click)="load()">Atualizar diagnóstico</button>
+  }
+</section>
