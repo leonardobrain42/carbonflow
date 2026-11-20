@@ -22,7 +22,19 @@
       <p>Autor · {{item.authorName || item.section.author}} · guia de origem v{{item.section.guideVersion}}</p>
       <p style="white-space: pre-wrap">{{item.section.narrative}}</p>
       @if (item.ownerOnly) { <p>O guia desta seção tem acesso exclusivo do titular. O encaminhamento ao REV está indisponível.</p> }
-      @if (item.outdated) { <p>O guia mudou após a redação. Confira os novos dados antes de encaminhar outra versão.</p> }
+      @if (item.outdated) {
+        <p role="alert">Esta versão não pode ser aprovada sem reavaliação das dependências ou do guia de origem.</p>
+      }
+      @if (item.monitoringDependency; as dependency) {
+        <p role="status">Dependência do dossiê MR: {{dependency.state}}</p>
+        @for (gate of dependency.gates; track $index) {
+          <p>{{gate.code}} · {{gate.detail}}</p>
+        }
+        @if (dependency.outdated) {
+          <p>Atualize os dados de monitoramento e produza uma nova versão desta seção.
+            Uma aprovação anterior permanece no histórico, mas não atesta a versão atual.</p>
+        }
+      }
     } @else if (previous(); as old) {
       <p>Autor · {{old.authorId}} · guia de origem v{{old.guideVersion}}</p>
       <p style="white-space: pre-wrap">{{old.narrative}}</p>
