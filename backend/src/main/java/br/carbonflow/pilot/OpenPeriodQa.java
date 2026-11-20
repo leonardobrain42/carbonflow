@@ -19,7 +19,7 @@ import java.util.UUID;
  * not normative project admission and NEVER an E8 calculation input.
  */
 final class OpenPeriodQa {
-    record Meter(String code,int version,String charger,String kind,String chargerKind,
+    record Meter(String code,int version,String charger,int chargerVersion,int currentChargerVersion,String kind,String chargerKind,
                  String grid,String topology,boolean calibrationEvidence,
                  Instant calibrationFrom,Instant calibrationUntil,
                  Instant configuredFrom,Instant configuredUntil) {}
@@ -54,6 +54,15 @@ final class OpenPeriodQa {
         for(Meter m:meters) {
             byCode.put(m.code(),m);
             byCharger.computeIfAbsent(m.charger(),k->new ArrayList<>()).add(m);
+            if(m.chargerVersion()!=m.currentChargerVersion())
+                add(gates,duplicateGate,"CHARGER_VERSION_STALE",
+                    "Configuração da leitura refere-se a revisão antiga do carregador.",
+                    m.charger(),m.code(),null);
+            if(!"DCFC".equals(m.chargerKind()) || !"SIN".equals(m.grid())
+                || !"GRID_ONLY".equals(m.topology()))
+                add(gates,duplicateGate,"OUT_OF_SCOPE_TOPOLOGY",
+                    "Topologia sem DCFC/SIN simples exige outro ramo.",
+                    m.charger(),m.code(),null);
         }
         for(String code:chargers)byCharger.computeIfAbsent(code,k->new ArrayList<>());
         if(byCharger.isEmpty())add(gates,duplicateGate,"NO_CHARGERS",
