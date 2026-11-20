@@ -81,7 +81,7 @@ class OpenPeriodSupportIntegrationTest {
         assertEquals("PENDING_DOCUMENTARY_REVIEW",initial.path("state").asText());
         assertFalse(initial.path("documentaryComplete").asBoolean());
         assertFalse(initial.path("usableForE8").asBoolean());
-        assertEquals(0,initial.path("historicalEdKwh").decimalValue().compareTo(
+        assertEquals(0,new java.math.BigDecimal(initial.path("historicalEdKwh").asText()).compareTo(
             new java.math.BigDecimal("2700")));
         assertTrue(initial.path("gates").toString().contains("SUPPORT_DOCUMENT_MISSING"));
 
@@ -150,7 +150,7 @@ class OpenPeriodSupportIntegrationTest {
     @Test
     void proofUploadDoesNotAutomaticallyVerifyRightsAndInvalidPdfFailsClosed() throws Exception {
         Actor owner=actor(),op=actor(),reviewer=actor();
-        UUID org=organization(owner.id()),projectOrg=org;
+        UUID org=organization(owner.id());
         String project=project(owner,org);
         configure(owner,project);
         grant(project,org,owner.id(),op.id(),"OP");
@@ -224,7 +224,7 @@ class OpenPeriodSupportIntegrationTest {
         return mapper.readTree(response.body());
     }
     private Actor actor() {
-        UUID id=UUID.randomUUID(),tokenId=UUID.randomUUID();
+        UUID id=UUID.randomUUID();
         String token=AccessSecrets.newToken();
         database.transaction(c->{
             update(c,"""
