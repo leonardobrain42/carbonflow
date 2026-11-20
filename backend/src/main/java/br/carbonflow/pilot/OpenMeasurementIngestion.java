@@ -154,7 +154,7 @@ class OpenMeasurementIngestion {
         return scope.read(cookie,project,"VIEW_OPEN_MONITORING",(c,ctx)->
             query(c,"""
                 SELECT id FROM app_open_measurement_batch
-                WHERE project_id=? ORDER BY submitted_at DESC,id DESC LIMIT 30
+                WHERE project_id=? ORDER BY submitted_at DESC,id DESC LIMIT 10
                 """,r->batch(c,project,r.getObject(1,UUID.class)),project));
     }
 
@@ -235,6 +235,7 @@ class OpenMeasurementIngestion {
             JOIN app_open_measurement_batch b ON b.id=r.batch_id AND b.project_id=r.project_id
             WHERE r.project_id=? AND b.source_system=? AND r.meter_code IS NOT NULL
               AND r.source_sequence IS NOT NULL AND r.start_at IS NOT NULL AND r.end_at IS NOT NULL
+              AND r.state='CANDIDATE'
             """,r->String.join("|",r.getString(1),r.getString(2),
                 r.getObject(3,OffsetDateTime.class).toInstant().toString(),
                 r.getObject(4,OffsetDateTime.class).toInstant().toString()),project,source);
