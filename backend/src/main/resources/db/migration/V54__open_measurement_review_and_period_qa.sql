@@ -76,7 +76,7 @@ CREATE TABLE app_open_period_qa_snapshot_line (
  PRIMARY KEY(project_id,snapshot_id,batch_id,source_line),
  FOREIGN KEY(project_id,snapshot_id)
    REFERENCES app_open_period_qa_snapshot(project_id,id),
- FOREIGN KEY(project_id,batch_id,source_line)
+ FOREIGN KEY(project_id,batch_id,source_line,review_version)
    REFERENCES app_open_measurement_review(project_id,batch_id,source_line,version)
 );
 CREATE TRIGGER app_open_period_qa_snapshot_immutable
