@@ -24,6 +24,17 @@
         }</dl>
       </details>
     }
+    @if (item.monitoringDependency; as dependency) {
+      <p role="status">Vínculo do MR: {{dependency.state}}</p>
+      @if (dependency.outdated) {
+        <p role="alert">O dossiê MR ou os dados que sustentam esta seção foram alterados.
+          Revise a narrativa, verifique as pendências e gere uma nova versão antes
+          da aprovação interna.</p>
+      }
+      @for (gate of dependency.gates; track $index) {
+        <p>{{gate.code}} · {{gate.detail}}</p>
+      }
+    }
     @if (item.latest; as saved) {
       <p>Versão {{ saved.number }} · guia de origem {{ saved.guideVersion }} · acesso reservado</p>
       @if (saved.guideVersion !== item.guide.version) { <p>O guia recebeu uma nova revisão. Confira a narrativa antes de salvar outra versão.</p> }

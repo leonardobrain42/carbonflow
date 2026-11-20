@@ -138,7 +138,7 @@ class OpenPeriodSupport {
         });
     }
 
-    private static Readiness diagnose(Connection c,String project,UUID snapshot) throws SQLException {
+    static Readiness diagnose(Connection c,String project,UUID snapshot) throws SQLException {
         Historical frozen=historical(c,project,snapshot);
         var gates=new ArrayList<Gate>();
         var current=OpenMeasurementReviewQa.evaluate(c,project,frozen.from(),frozen.until());

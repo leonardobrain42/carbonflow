@@ -50,6 +50,11 @@ type EventForm = {kind:string;subjectType:string;subjectCode:string;
 const NEW_EVENT:EventForm = {kind:'SOURCE_OUTAGE',subjectType:'SOURCE',
   subjectCode:'',from:'',until:'',incidentReference:'',description:''};
 
+type MrReference = {code:string;version:number;snapshotId:string;snapshotSha256:string;
+  note:string;authoredBy:string;createdAt:string};
+type MrGate = {code:string;detail:string};
+type MrDossier = {reference:MrReference;state:string;stale:boolean;
+  canUseForE8:boolean;gates:MrGate[]};
 type ChargerForm = {code:string; siteCode:string; chargerKind:string; ratedPowerKw:string;
                     grid:string; topology:string; timeZone:string; sourceReference:string};
 type MeterForm = {code:string; chargerCode:string; energyKind:string; sourceSystem:string;
@@ -90,6 +95,11 @@ export class OpenMonitoringComponent implements OnChanges {
   readonly batches=signal<MeasurementBatch[]>([]);
   readonly reviews=signal<Record<string,QaReview>>({});
   readonly qaSnapshots=signal<QaSnapshot[]>([]);
+  readonly mrDossiers=signal<MrDossier[]>([]);
+  readonly mrCode=signal('M1');
+  readonly mrSnapshot=signal('');
+  readonly mrNote=signal('');
+  readonly mrBusy=signal(false);
   readonly operationalEvents=signal<OperationalEvent[]>([]);
   readonly eventForm=signal<EventForm>({...NEW_EVENT});
   readonly eventSubmitting=signal(false);
@@ -140,11 +150,12 @@ export class OpenMonitoringComponent implements OnChanges {
     this.error.set('');
     try {
       const root='/v1/projects/'+encodeURIComponent(this.projectId)+'/technical/open-monitoring';
-      const [result, batches, snapshots, operationalEvents]=await Promise.all([
+      const [result, batches, snapshots, operationalEvents, dossiers]=await Promise.all([
         firstValueFrom(this.http.get<View>(root)),
         firstValueFrom(this.http.get<MeasurementBatch[]>(root+'/batches')),
         firstValueFrom(this.http.get<QaSnapshot[]>(root+'/period-qa/snapshots')),
-        firstValueFrom(this.http.get<OperationalEvent[]>(root+'/events'))
+        firstValueFrom(this.http.get<OperationalEvent[]>(root+'/events')),
+        firstValueFrom(this.http.get<MrDossier[]>(root+'/dossiers'))
       ]);
       const reviewGroups=await Promise.all(batches.map(batch=>
         firstValueFrom(this.http.get<QaReview[]>(root+'/batches/'+batch.id+'/reviews'))));
@@ -158,6 +169,7 @@ export class OpenMonitoringComponent implements OnChanges {
         this.batches.set(batches);
         this.qaSnapshots.set(snapshots);
         this.operationalEvents.set(operationalEvents);
+        this.mrDossiers.set(dossiers);
         if(this.proofSnapshot() && !snapshots.some(x=>x.id===this.proofSnapshot())) {
           this.proofSnapshot.set(null);
           this.proofReadiness.set(null);
@@ -557,6 +569,36 @@ export class OpenMonitoringComponent implements OnChanges {
       this.notice.set('Parecer de ocorrência versionado. Liberação para QA não valida dados nem ressuscita snapshots.');
     } catch(problem){this.error.set(this.message(problem));}
     finally {this.eventReviewSaving.set(false);}
+  }
+
+  chooseMr(item:MrDossier) {
+    this.mrCode.set(item.reference.code);
+    this.mrSnapshot.set(item.reference.snapshotId);
+    this.mrNote.set(item.reference.note);
+  }
+
+  async saveMrDossier(event:Event) {
+    event.preventDefault();
+    if(!this.editable||this.mrBusy())return;
+    const code=this.mrCode().trim(),snapshotId=this.mrSnapshot();
+    const note=this.mrNote().trim();
+    if(!/^[A-Za-z0-9][A-Za-z0-9._-]{0,31}$/.test(code) ||
+      !snapshotId||note.length<15||note.length>2000) {
+      this.error.set('Informe código do período, snapshot e justificativa entre 15 e 2000 caracteres.');
+      return;
+    }
+    const current=this.mrDossiers().find(d=>d.reference.code===code);
+    this.mrBusy.set(true);this.error.set('');this.notice.set('');
+    try {
+      await firstValueFrom(this.http.put<MrDossier>(
+        '/v1/projects/'+encodeURIComponent(this.projectId)+
+        '/technical/open-monitoring/dossiers/'+encodeURIComponent(code),
+        {snapshotId,note},
+        {headers:{'If-Match':'"'+(current?.reference.version??0)+'"'}}));
+      await this.load();
+      this.notice.set('Vínculo MR versionado. O dossiê permanece sem admissão metodológica e sem E8.');
+    } catch(problem){this.error.set(this.message(problem));}
+    finally {this.mrBusy.set(false);}
   }
 
   stateName(code:string) {

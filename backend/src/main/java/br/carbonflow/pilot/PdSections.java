@@ -19,7 +19,8 @@ import jakarta.enterprise.context.ApplicationScoped;
 class PdSections {
     record Input(int guideVersion, String narrative) {}
     record Version(int number, int guideVersion, UUID author, String narrative, String sha256) {}
-    record Section(ProjectGuides.Guide guide, Version latest) {}
+    record Section(ProjectGuides.Guide guide, Version latest,
+                   OpenMonitoringDossiers.PdDependency monitoringDependency) {}
     record Artifact(String text, String sha256) {}
     private final DynamicProjectScope scopes;
     private final ProjectGuides guides;
@@ -35,7 +36,10 @@ class PdSections {
         return scopes.read(token, project, "VIEW_DOSSIER", (c, scope) -> {
             var sections = new ArrayList<Section>();
             for (var guide : guides.catalog(c, scope).guides()) {
-                sections.add(new Section(guide, latest(c, project, guide.id())));
+                Version current=latest(c,project,guide.id());
+                sections.add(new Section(guide,current,
+                    current==null?null:OpenMonitoringDossiers.pdDependency(
+                        c,project,guide.id(),current.number())));
             }
             return sections;
         });
@@ -55,14 +59,21 @@ class PdSections {
             }
             int expected = PilotCommands.expected(match);
             var current = latest(c,project,id);
+            String currentMrManifest = OpenMonitoringDossiers.manifest(c,project).sha256();
+            String pinnedMrManifest = OpenMonitoringDossiers.pinnedPd(c,project,id,
+                current==null?0:current.number());
+            boolean sameMonitoringDependencies = !java.util.Set.of("monitoring","quantification").contains(id)
+                || java.util.Objects.equals(currentMrManifest,pinnedMrManifest);
             String text = input.narrative().strip();
             if (current != null && expected == current.number()-1 && current.author().equals(scope.actor().id())
-                    && input.guideVersion() == current.guideVersion() && text.equals(current.narrative())) return current;
+                    && input.guideVersion() == current.guideVersion() && text.equals(current.narrative())
+                    && sameMonitoringDependencies) return current;
             PilotCommands.requireVersion(expected,current == null ? 0 : current.number());
             if (guide.version() == 0 || guide.version() != input.guideVersion()) {
                 throw conflict("Consulte a revisão atual do guia antes de redigir.");
             }
-            if (current != null && current.guideVersion() == guide.version() && text.equals(current.narrative())) return current;
+            if (current != null && current.guideVersion() == guide.version() &&
+                text.equals(current.narrative()) && sameMonitoringDependencies) return current;
             if (current != null && PdReviews.locked(c,project,id,current.number())) {
                 throw conflict("Reabra a seção antes de criar outra versão.");
             }
@@ -73,6 +84,8 @@ class PdSections {
                     .put("createdAt",OffsetDateTime.now(java.time.ZoneOffset.UTC).toString())
                     .put("template",DocumentRules.Act.DESENVOLVIMENTO.template()).put("edition",DocumentRules.EDITION)
                     .put("guideVersion",guide.version()).put("narrative",text);
+            if (java.util.Set.of("monitoring","quantification").contains(id) && currentMrManifest!=null)
+                artifact.put("mrDependencyManifestSha256",currentMrManifest);
             artifact.set("fields",mapper.valueToTree(guide.fields()));
             artifact.set("inputs",mapper.valueToTree(new java.util.TreeMap<>(guide.answers())));
             artifact.set("missing",mapper.valueToTree(guide.missing()));
@@ -82,6 +95,7 @@ class PdSections {
                     INSERT INTO app_pd_section_version(project_id,section_id,version,guide_version,author_id,narrative,artifact,sha256)
                     VALUES(?,?,?,?,?,?,?,?)
                     """,project,id,version,guide.version(),scope.actor().id(),text,payload,digest);
+            OpenMonitoringDossiers.pinPd(c,project,id,version);
             return new Version(version,guide.version(),scope.actor().id(),text,digest);
         });
     }

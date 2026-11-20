@@ -4,6 +4,8 @@ import static br.carbonflow.pilot.PilotSql.first;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
@@ -22,12 +24,54 @@ class OpenCalculationReadiness {
 
     OpenCalculationPreflight.Result get(String cookie, String projectId) {
         return scope.read(cookie, projectId, "VIEW_OPEN_CALCULATION",
-            (connection, context) -> OpenCalculationPreflight.evaluate(
-                new OpenCalculationPreflight.Context(context.id(),
-                    context.environment(), methodology(connection, context.id()),
-                    country(connection, context.id()), vehicleClass(connection, context.id()),
-                    triageRevision(connection, context.id()),
-                    applicability(connection, context.id()))));
+            (connection, context) -> {
+                var preflight=OpenCalculationPreflight.evaluate(
+                    new OpenCalculationPreflight.Context(context.id(),
+                        context.environment(), methodology(connection, context.id()),
+                        country(connection, context.id()), vehicleClass(connection, context.id()),
+                        triageRevision(connection, context.id()),
+                        applicability(connection, context.id())));
+                return withMrDependencies(connection,context.id(),preflight);
+            });
+    }
+
+    /**
+     * Project-scoped MR dependency diagnostic. Shows only workflow status to
+     * collaborators with CALCULATION grant; does not disclose raw ED/EC, files,
+     * private contracts, or internal staff source candidates.
+     */
+    private static OpenCalculationPreflight.Result withMrDependencies(
+            Connection connection,String project,OpenCalculationPreflight.Result base)
+        throws SQLException {
+        // Do not impose VM0038/OPEN MR requirements on a different
+        // methodology or on projects still choosing their methodology.
+        if(!"VM0038".equals(base.methodology()))return base;
+        var gates=new ArrayList<>(base.gates());
+        var manifest=OpenMonitoringDossiers.manifest(connection,project);
+        if(manifest.dossiers().isEmpty()) {
+            gates.add(new OpenCalculationPreflight.Gate("MR_PERIOD_DEPENDENCY",
+                "PENDING_MEASUREMENT",
+                "Ainda não existe dossiê MR vinculado a um período reconciliado neste projeto.",
+                "Preparar MR por período e revisar evidências de monitoramento","PREP/REV"));
+        } else {
+            for(var dossier:manifest.dossiers()) {
+                String status=dossier.stale()?"STALE":
+                    "READY_FOR_NORMATIVE_REVIEW".equals(dossier.state())?
+                    "NOT_ADMITTED":"REVIEW_REQUIRED";
+                String reason=dossier.stale() ?
+                    "O período "+dossier.reference().code()+
+                    " depende de medição ou parecer já obsoleto; recalcular QA, gerar novo snapshot e atualizar MR." :
+                    "O período "+dossier.reference().code()+
+                    " ainda não passou pela admissão metodológica. QA/documentação interna não libera E8.";
+                gates.add(new OpenCalculationPreflight.Gate(
+                    "MR_DEPENDENCY_"+dossier.reference().code(),
+                    status,reason,"Revisar vínculo e provas de MR do período","PREP/REV"));
+            }
+        }
+        return new OpenCalculationPreflight.Result(base.projectId(),base.environment(),
+            base.engine(),base.methodology(),base.scenario(),base.workflowState(),
+            base.calculationState(),base.canContinuePreparation(),false,false,
+            base.emissions(),List.copyOf(gates));
     }
 
     private static String methodology(Connection connection, String project) throws SQLException {
