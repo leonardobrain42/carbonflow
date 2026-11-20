@@ -97,6 +97,7 @@ class OpenEfelCandidates {
                !"NOT_ADMITTED".equals(energy.state()))
                 throw conflict("O pacote ED/EC deixou de ser o vigente para este período.");
             Normal normalized=normalize(input,energy,project);
+            requireCoverage(c,project,energy,normalized.hours());
             byte[] fingerprint=AccessSecrets.digest("EFEL-HOUR|"+project+"|"+code+"|"+
                 expected+"|"+normalized.contentSha());
             Command previous=command(c,ctx.actor().id(),command);
@@ -171,7 +172,9 @@ class OpenEfelCandidates {
             }
             Record latest=latest(c,project,entry.energy());
             if(latest==null || !id.equals(latest.id()) ||
-               "STALE_NOT_ADMITTED".equals(view(c,project,entry).state()))
+               !"PENDING_INTERNAL_REVIEW_NOT_ADMITTED".equals(view(c,project,entry).state()) &&
+               !"RETURNED_NOT_ADMITTED".equals(view(c,project,entry).state()) &&
+               !"CHECKED_INTERNAL_NOT_ADMITTED".equals(view(c,project,entry).state()))
                 throw conflict("Fonte substituída ou pacote de energia obsoleto.");
             Review old=latestReview(c,project,id);
             PilotCommands.requireVersion(expected,old==null?0:old.version());
