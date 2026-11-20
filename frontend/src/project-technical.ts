@@ -158,6 +158,7 @@ export class ProjectTechnicalComponent {
     if (item.id === 'redigir' || item.id === 'revisar') return this.can('VIEW_DOSSIER');
     return this.can('VIEW_INTAKE');
   }));
+  readonly queryEtapa = computed(() => this.query()?.get('etapa'));
   readonly monitoringView = computed(() => {
     const selected=this.query()?.get('etapa');
     return selected === 'leituras' ? 'readings' as const :
