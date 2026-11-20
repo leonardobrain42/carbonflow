@@ -17,6 +17,38 @@
     </dl>
     <p>É possível continuar organizando a preparação, mas o cálculo ainda não está liberado.
       Valores ausentes não são emissões iguais a zero.</p>
+    <h4>Como os resultados serão obtidos</h4>
+    <p>Estas são as operações previstas na VM0038 v1.1.
+      <strong>Não há execução de BE, PE, LE ou ER neste projeto.</strong>
+      Nenhum número é presumido e nenhuma fonte preparatória é automaticamente
+      considerada admitida. Consulte a
+      <a href="https://verra.org/methodologies/vm0038-electric-vehicle-charging-systems-v1-1/"
+         target="_blank" rel="noopener noreferrer">página oficial da metodologia VM0038 v1.1</a>.
+    </p>
+    <ol class="cf-tech-gates">
+      @for(step of state.equationPlan; track step.outputCode) {
+        <li>
+          <details>
+            <summary><strong>{{step.outputCode}} · {{step.ruleReference}}</strong>
+              — {{stateLabel(step.status)}}
+            </summary>
+            <p>{{step.description}} · Unidade: {{step.unit}}.</p>
+            <p>Entradas necessárias:
+              @for(input of step.requiredInputs; track input) {
+                <code>{{input}}</code>
+              }
+            </p>
+            <p>Dependências ainda não admitidas:
+              @for(block of step.blockedBy; track block) {
+                <code>{{block}}</code>
+              }
+            </p>
+            <p>O detalhamento numérico e as fontes exatas aparecerão somente
+              depois da execução E8 com parâmetros e medições admissíveis.</p>
+          </details>
+        </li>
+      }
+    </ol>
     <h4>Dependências e próximas ações</h4>
     <ul class="cf-tech-gates">
       @for (gate of state.gates; track gate.code) {
