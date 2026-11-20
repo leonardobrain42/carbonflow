@@ -1,0 +1,67 @@
+<section class="cf-journey-context" aria-labelledby="cf-e8-bind-title">
+  <h5 id="cf-e8-bind-title">Vínculo preparatório E8 · {{period}}</h5>
+  <p>Conecta as versões reais de ED/EC e do fator EFel horário em uma memória
+    imutável do projeto. Exige cobertura de cada hora e revisão interna da
+    fonte. <strong>NÃO executa BE, PE ou ER nem admite fatores ou créditos.</strong></p>
+  @if (error()) { <p role="alert">{{error()}}</p> }
+  @if (notice()) { <p role="status">{{notice()}}</p> }
+  @if (loading()) { <p role="status">Consultando histórico de vínculos…</p> }
+  @if (canPrepare && sourceCurrent) {
+    <button type="button" class="cf-workspace-outline" [disabled]="busy()||loading()"
+      (click)="prepare()">Vincular versões ED/EC e EFel (sem liberar E8)</button>
+  } @else if (!sourceCurrent) {
+    <p>A fonte EFel selecionada não possui revisão interna vigente; vínculo
+      indisponível. Revise a fonte antes de registrar um novo snapshot.</p>
+  }
+  @if (entries().length) {
+    <ul class="cf-tech-gates">
+      @for (item of entries(); track item.id) {
+        <li>
+          <strong>Vínculo v{{item.version}} · {{item.state}}</strong>
+          <p>Horas: {{item.hourCount}} · carregadores-hora: {{item.slotCount}}
+            · E8: não liberado</p>
+          <button type="button" class="cf-workspace-outline"
+            (click)="chosen.set(item)">Ver versões, SHA e horas</button>
+        </li>
+      }
+    </ul>
+  } @else if (!loading()) {
+    <p>Nenhum vínculo de entradas foi preparado para este período.</p>
+  }
+  @if (chosen(); as item) {
+    <div class="cf-journey-context">
+      <h5>Memória de entrada imutável · versão {{item.version}}</h5>
+      <p>Energia: {{item.energyCandidateId}} · SHA: {{item.energySha256}}</p>
+      <p>EFel: {{item.efelCandidateId}} · SHA: {{item.efelSha256}}
+        · parecer interno v{{item.efelReviewVersion}}</p>
+      <p>Assinatura do conjunto: <code>{{item.inputSha256}}</code></p>
+      @if (item.stale) {
+        <p role="alert">O vínculo está desatualizado; os dados originais
+          permanecem disponíveis somente para consulta histórica.</p>
+      }
+      <p>Impedimentos atuais:</p>
+      <ul>
+        @for (gate of item.gates; track gate) { <li>{{gate}}</li> }
+      </ul>
+      <table>
+        <caption>Entradas horárias candidatas, sem multiplicação E8</caption>
+        <thead><tr><th scope="col">Hora UTC</th><th scope="col">Carregadores</th>
+          <th scope="col">ED (kWh)</th><th scope="col">EC (kWh)</th>
+          <th scope="col">EFel (tCO₂e/kWh)</th></tr></thead>
+        <tbody>
+          @for (h of item.hours.slice(0,48); track h.hour) {
+            <tr><td>{{h.hour}}</td><td>{{h.chargerCount}}</td>
+              <td>{{h.edKwh}}</td><td>{{h.ecKwh}}</td>
+              <td>{{h.gridFactorTco2ePerKwh}}</td></tr>
+          }
+        </tbody>
+      </table>
+      @if (item.hourCount>48) {
+        <p>Primeiras 48 horas exibidas. O histórico completo está acessível
+          na API de detalhes com as mesmas permissões.</p>
+      }
+      <button type="button" class="cf-workspace-outline"
+        (click)="chosen.set(null)">Fechar memória</button>
+    </div>
+  }
+</section>

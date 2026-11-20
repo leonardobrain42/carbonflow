@@ -259,6 +259,19 @@ class OpenPeriodSupportIntegrationTest {
             "\"0\"",efelBody).body());
         assertEquals(409,postMethod(efelUrl,owner.cookie(),efelKey,"\"0\"",
             efelBody.replace("\"value\":0.5", "\"value\":0.7")).statusCode());
+        // Versioned candidate E8 binding requires an independently checked
+        // factor; the unreviewed upload is not enough to create a pair.
+        String bindingUrl=dossierUrl+"/M1/e8-input-bindings";
+        String bindingBody="{\"energyCandidateId\":\""+energy.path("id").asText()+
+            "\",\"efelCandidateId\":\""+efel.path("id").asText()+"\"}";
+        assertEquals(0,json(call("GET",bindingUrl,owner.cookie(),null,null)).size());
+        assertEquals(404,call("GET",bindingUrl,op.cookie(),null,null).statusCode());
+        assertEquals(404,call("GET",bindingUrl,outside.cookie(),null,null).statusCode());
+        assertEquals(404,postMethod(bindingUrl,docsReviewer.cookie(),key(),
+            "\"0\"",bindingBody).statusCode());
+        // An unreviewed candidate cannot be bound even with a valid ETag.
+        assertEquals(409,postMethod(bindingUrl,owner.cookie(),key(),
+            "\"0\"",bindingBody).statusCode());
         String efelReviewUrl=efelUrl+"/"+efel.path("id").asText()+"/reviews";
         String efelReviewBody="""
             {"outcome":"CHECKED_INTERNAL",
@@ -280,6 +293,53 @@ class OpenPeriodSupportIntegrationTest {
             technical+"/open-calculation-readiness",owner.cookie(),null,null));
         assertTrue(preflightWithEfel.path("gates").toString().contains("E8_EFEL_M1"));
         assertFalse(preflightWithEfel.path("canRunE8").asBoolean());
+
+        // Immutable input-binding candidate pins existing real-project ED/EC
+        // and hourly EFel versions without running PE or granting admission.
+        assertEquals(412,postMethod(bindingUrl,owner.cookie(),key(),
+            "\"1\"",bindingBody).statusCode());
+        String bindKey=key();
+        var boundE8Response=postMethod(bindingUrl,owner.cookie(),bindKey,
+            "\"0\"",bindingBody);
+        assertEquals(201,boundE8Response.statusCode(),boundE8Response.body());
+        JsonNode boundE8=json(boundE8Response);
+        assertEquals("CANDIDATE_NOT_ADMITTED",boundE8.path("state").asText());
+        assertFalse(boundE8.path("usableForE8").asBoolean());
+        assertEquals(1,boundE8.path("version").asInt());
+        assertEquals(1,boundE8.path("hourCount").asInt());
+        assertEquals(1,boundE8.path("slotCount").asInt());
+        assertEquals(64,boundE8.path("inputSha256").asText().length());
+        assertEquals(energy.path("sourceSha256").asText(),
+            boundE8.path("energySha256").asText());
+        assertEquals(efel.path("contentSha256").asText(),
+            boundE8.path("efelSha256").asText());
+        assertEquals("0.0005",boundE8.at("/hours/0/gridFactorTco2ePerKwh").asText());
+        assertEquals("2700",boundE8.at("/hours/0/edKwh").asText());
+        assertEquals("3000",boundE8.at("/hours/0/ecKwh").asText());
+        assertTrue(boundE8.path("gates").toString().contains("EVR_AND_COMPARABLES_NOT_ADMITTED"));
+        assertEquals(boundE8Response.body(),postMethod(bindingUrl,owner.cookie(),
+            bindKey,"\"0\"",bindingBody).body());
+        // A fresh command with an obsolete If-Match is rejected before
+        // duplicate-content validation.
+        assertEquals(412,postMethod(bindingUrl,owner.cookie(),key(),
+            "\"0\"",bindingBody).statusCode());
+        assertEquals(409,postMethod(bindingUrl,owner.cookie(),key(),
+            "\"1\"",bindingBody).statusCode());
+        assertEquals(1,json(call("GET",bindingUrl,owner.cookie(),null,null)).size());
+        String bindingDetailUrl=bindingUrl+"/"+boundE8.path("id").asText();
+        var bindingDetail=call("GET",bindingDetailUrl,owner.cookie(),null,null);
+        assertEquals(200,bindingDetail.statusCode(),bindingDetail.body());
+        assertTrue(bindingDetail.headers().firstValue("Cache-Control")
+            .orElse("").contains("no-store"));
+        assertEquals(boundE8.path("inputSha256").asText(),
+            json(bindingDetail).path("inputSha256").asText());
+        assertEquals(404,call("GET",bindingDetailUrl,outside.cookie(),null,null).statusCode());
+        assertEquals(404,call("GET",bindingDetailUrl,op.cookie(),null,null).statusCode());
+        assertEquals(404,call("GET",bindingUrl+
+            "/00000000-0000-0000-0000-000000000001",
+            owner.cookie(),null,null).statusCode());
+        assertFalse(json(call("GET",technical+"/open-calculation-readiness",
+            owner.cookie(),null,null)).path("canRunE8").asBoolean());
 
         String vtUrl=efelUrl+"/"+efel.path("id").asText()+"/vt0011-workbooks";
         assertEquals(0,json(call("GET",vtUrl,owner.cookie(),null,null)).size());
@@ -425,6 +485,14 @@ class OpenPeriodSupportIntegrationTest {
         assertEquals("STALE_NOT_ADMITTED",staleEnergy.path("state").asText());
         JsonNode staleEfel=json(call("GET",efelUrl,owner.cookie(),null,null)).get(0);
         assertEquals("STALE_NOT_ADMITTED",staleEfel.path("state").asText());
+        JsonNode bindingStale=json(call("GET",bindingDetailUrl,owner.cookie(),null,null));
+        assertEquals("STALE_NOT_ADMITTED",bindingStale.path("state").asText());
+        assertTrue(bindingStale.path("stale").asBoolean());
+        assertFalse(bindingStale.path("usableForE8").asBoolean());
+        assertEquals(boundE8.path("inputSha256").asText(),
+            bindingStale.path("inputSha256").asText());
+        assertEquals(boundE8.path("hours").toString(),
+            bindingStale.path("hours").toString());
         JsonNode staleWorkbook=json(call("GET",vtUrl,owner.cookie(),null,null)).get(0);
         assertEquals("STALE_NOT_ADMITTED",staleWorkbook.path("state").asText());
         JsonNode staleOm=json(call("GET",simpleOmUrl,owner.cookie(),null,null)).get(0);

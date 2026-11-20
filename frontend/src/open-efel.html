@@ -91,6 +91,13 @@
           </fieldset>
         </form>
       }
+      @if (canView) {
+        <carbonflow-open-e8-bindings [projectId]="projectId"
+          [period]="item.period" [energyCandidateId]="energy.id"
+          [efelCandidateId]="item.id"
+          [sourceCurrent]="item.state==='CHECKED_INTERNAL_NOT_ADMITTED'"
+          [canView]="canView" [canPrepare]="canSubmit" />
+      }
       @if (canViewVt0011) {
         <carbonflow-vt0011-workbooks [projectId]="projectId"
           [period]="item.period" [efelCandidateId]="item.id"
