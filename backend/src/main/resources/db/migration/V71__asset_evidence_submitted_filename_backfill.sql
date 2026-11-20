@@ -6,11 +6,21 @@
 ALTER TABLE app_open_asset_evidence
   ADD COLUMN submitted_file_name text;
 
+-- V69 installs an immutable-row trigger. Temporarily suspend only that
+-- trigger under Flyway's PostgreSQL transactional DDL lock to backfill
+-- already existing proof metadata. The original rows/revisions and encrypted
+-- blobs remain intact; regular mutations stay forbidden after migration.
+ALTER TABLE app_open_asset_evidence
+  DISABLE TRIGGER app_open_asset_evidence_immutable;
+
 UPDATE app_open_asset_evidence AS evidence
 SET submitted_file_name = blob.file_name
 FROM app_project_evidence_blob AS blob
 WHERE evidence.project_id = blob.project_id
   AND evidence.evidence_blob_id = blob.id;
+
+ALTER TABLE app_open_asset_evidence
+  ENABLE TRIGGER app_open_asset_evidence_immutable;
 
 -- Fail the transaction rather than silently fabricating a legacy file name.
 -- Legacy PDFs were stored through storeSupportPdf, which validates this name.
