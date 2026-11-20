@@ -34,7 +34,12 @@
       @if (guide.id === 'additionality' && answers()['commitment'] && answers()['considered'] && answers()['commitment'] < answers()['considered']) {
         <p class="cf-workspace-note">O compromisso informado antecede a consideração do carbono. Encaminhe a cronologia e as provas para revisão.</p>
       }
+      <carbonflow-typed-guide [projectId]="projectId()" [guideId]="guide.id"
+        [editable]="guide.editable" />
       <h4>Informações desta etapa</h4>
+      <p class="cf-workspace-helper">Anotações textuais históricas permanecem editáveis pelo contrato anterior.
+        Não são respostas tipadas nem cadastro de entidades. Prefira o formulário estruturado acima
+        quando houver campos compatíveis, sem presumir migração ou aprovação.</p>
       <fieldset class="cf-journey-fieldset" [disabled]="!guide.editable || busy()">
         @for (field of guide.fields; track field.key) {
           @if (field.key !== 'justification' || answers()['incidence'] === 'Não aplicável' || answers()['justification']) {
