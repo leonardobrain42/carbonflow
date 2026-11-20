@@ -5,6 +5,7 @@ import static br.carbonflow.pilot.PilotSql.query;
 import static br.carbonflow.pilot.PilotSql.update;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -158,7 +159,8 @@ class OpenTool07SimpleOmRuns {
                 meta.fuelNote(),meta.boundaryNote(),meta.importsNote(),
                 new BigDecimal(preview.selectedShare()),preview.fiveYearLcmrScreenPassed(),
                 new BigDecimal(preview.includedGenerationMwh()),
-                new BigDecimal(preview.totalEmissionsTco2()),
+                new BigDecimal(preview.totalEmissionsTco2())
+                    .setScale(12,RoundingMode.HALF_EVEN),
                 new BigDecimal(preview.illustrativeOmTco2PerMwh()),
                 HexFormat.of().parseHex(sha),ctx.actor().id());
             for(var year:submitted.calculation().shares())update(c,"""
@@ -175,7 +177,8 @@ class OpenTool07SimpleOmRuns {
                     INSERT INTO app_open_tool07_simple_om_plant
                       (project_id,run_id,plant_code,net_generation_mwh,total_co2_t)
                     VALUES(?,?,?,?,?)
-                    """,project,id,plant.plantCode(),plant.netGenerationMwh(),emissions);
+                    """,project,id,plant.plantCode(),plant.netGenerationMwh(),
+                    emissions.setScale(12,RoundingMode.HALF_EVEN));
                 for(var fuel:plant.fuels())update(c,"""
                     INSERT INTO app_open_tool07_simple_om_fuel
                       (project_id,run_id,plant_code,fuel_code,consumption_tonnes,
