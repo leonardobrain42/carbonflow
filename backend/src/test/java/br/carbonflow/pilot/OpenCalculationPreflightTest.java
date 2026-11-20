@@ -15,7 +15,7 @@ class OpenCalculationPreflightTest {
     private static OpenCalculationPreflight.Result eval(
             String methodology,int triage,OpenCalculationPreflight.Applicability app) {
         return OpenCalculationPreflight.evaluate(new OpenCalculationPreflight.Context(
-            "dynamic-project","SANDBOX",methodology,triage,app));
+            "dynamic-project","SANDBOX",methodology,"BR","LDV",triage,app));
     }
 
     @Test
@@ -85,9 +85,32 @@ class OpenCalculationPreflightTest {
     }
 
     @Test
+    void countryAndVehicleClassMustBeProvenNotInferredFromMethodology() {
+        var foreign=OpenCalculationPreflight.evaluate(new OpenCalculationPreflight.Context(
+            "project", "SANDBOX", "VM0038", "US", "LDV", 0, open(0)));
+        assertEquals("BLOCKED_NOT_ADMISSIBLE", foreign.calculationState());
+        assertTrue(foreign.gates().stream().anyMatch(g ->
+            g.code().equals("COUNTRY") && g.state().equals("OUT_OF_SCOPE")));
+
+        var heavy=OpenCalculationPreflight.evaluate(new OpenCalculationPreflight.Context(
+            "project", "SANDBOX", "VM0038", "BR", "HDV", 0, open(0)));
+        assertEquals("BLOCKED_NOT_ADMISSIBLE", heavy.calculationState());
+        assertTrue(heavy.gates().stream().anyMatch(g ->
+            g.code().equals("VEHICLE_CLASS") && g.state().equals("OUT_OF_SCOPE")));
+
+        var unknown=OpenCalculationPreflight.evaluate(new OpenCalculationPreflight.Context(
+            "project", "SANDBOX", "VM0038", null, null, 0, open(0)));
+        assertEquals("BLOCKED_MISSING_DATA", unknown.calculationState());
+        assertTrue(unknown.gates().stream().anyMatch(g ->
+            g.code().equals("COUNTRY") && g.state().equals("MISSING")));
+        assertTrue(unknown.gates().stream().anyMatch(g ->
+            g.code().equals("VEHICLE_CLASS") && g.state().equals("MISSING")));
+    }
+
+    @Test
     void repeatedPreflightIsDeterministicAndDoesNotUsePilotFactors() {
         var input=new OpenCalculationPreflight.Context(
-            "dynamic-project","SANDBOX","VM0038",1,open(1));
+            "dynamic-project","SANDBOX","VM0038","BR","LDV",1,open(1));
         assertEquals(OpenCalculationPreflight.evaluate(input),
             OpenCalculationPreflight.evaluate(input));
         var result=OpenCalculationPreflight.evaluate(input);
