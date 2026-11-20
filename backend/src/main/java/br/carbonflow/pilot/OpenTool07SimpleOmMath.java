@@ -98,6 +98,10 @@ final class OpenTool07SimpleOmMath {
                     .multiply(f.ncvGjPerTonne(),MC)
                     .multiply(f.efTco2PerGj(),MC),MC);
             }
+            // NUMERIC(30,12) returns padded fractional zeros on JDBC reads.
+            // Strip only insignificant zeros before checking effective precision:
+            // otherwise the same valid calculation fails after persistence.
+            unitEmission=unitEmission.stripTrailingZeros();
             if(unitEmission.precision()>30 ||
                unitEmission.precision()-unitEmission.scale()>18)
                 throw new IllegalArgumentException("CO2 de unidade excede precisão suportada.");
@@ -111,6 +115,7 @@ final class OpenTool07SimpleOmMath {
             .subtract(shares.get(4).lcmrMwh());
         if(generation.compareTo(expected)!=0)
             throw new IllegalArgumentException("Soma de geração não LCMR difere de total da rede menos LCMR em y.");
+        emissions=emissions.stripTrailingZeros();
         if(emissions.precision()>30 ||
            emissions.precision()-emissions.scale()>18)
             throw new IllegalArgumentException("Soma das emissões excede precisão suportada.");
