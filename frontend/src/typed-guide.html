@@ -33,9 +33,9 @@
               <select [id]="'typed-'+field.key" [value]="labelValue(field)"
                 [attr.aria-describedby]="'typed-help-'+field.key"
                 (change)="change(field,$any($event.target).value)">
-                <option value="">Ainda não informado</option>
+                <option value="" [selected]="!labelValue(field)">Ainda não informado</option>
                 @for (option of fieldOptions(field);track option){
-                  <option [value]="option">{{option}}</option>
+                  <option [value]="option" [selected]="labelValue(field)===option">{{option}}</option>
                 }
               </select>
               @if ((field.type==='STATION_REF'||field.type==='EQUIPMENT_REF')&&!fieldOptions(field).length){
@@ -46,9 +46,9 @@
               <select [id]="'typed-'+field.key" [value]="labelValue(field)"
                 [attr.aria-describedby]="'typed-help-'+field.key"
                 (change)="change(field,$any($event.target).value)">
-                <option value="">A confirmar</option>
-                <option value="true">Sim (declaração)</option>
-                <option value="false">Não (declaração)</option>
+                <option value="" [selected]="!labelValue(field)">A confirmar</option>
+                <option value="true" [selected]="labelValue(field)==='true'">Sim (declaração)</option>
+                <option value="false" [selected]="labelValue(field)==='false'">Não (declaração)</option>
               </select>
             } @else if (field.type==='MULTI_SELECT'){
               <select [id]="'typed-'+field.key" multiple size="4"
