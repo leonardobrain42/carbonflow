@@ -921,6 +921,155 @@ class OpenPeriodSupportIntegrationTest {
         assertEquals(201,result.statusCode(),result.body());
         return json(result).path("projectId").asText();
     }
+    /** Entirely fabricated licensed PBEV/EVR fixture in the project's OWN org.
+     * Uses the same canonical V48/V49 tables and rights as the admin workbench.
+     * No example number may reach a live E8 run. */
+    private UUID[] seedScopedRatingCatalog(UUID org,UUID manager,UUID reviewer) {
+        UUID bevA=UUID.randomUUID(),bevB=UUID.randomUUID();
+        UUID iceA=UUID.randomUUID(),iceB=UUID.randomUUID();
+        UUID fleetSub=UUID.randomUUID(),ratingsSub=UUID.randomUUID();
+        UUID fleetLic=UUID.randomUUID(),ratingsLic=UUID.randomUUID();
+        UUID fleetObj=UUID.randomUUID(),ratingsObj=UUID.randomUUID();
+        UUID fleetImport=UUID.randomUUID(),fleetSnapshot=UUID.randomUUID();
+        UUID ratingSnapshot=UUID.randomUUID();
+        String edition="E8-2027-"+UUID.randomUUID().toString().substring(0,8);
+        database.transaction(c->{
+            UUID[] models={bevA,bevB,iceA,iceB};
+            for(int i=0;i<models.length;i++)update(c,"""
+                INSERT INTO app_fleet_model
+                (id,organization_id,manufacturer,model_name,variant,
+                 vehicle_class,propulsion,created_by)
+                VALUES (?,?,'Ficticia',?,'Base','LDV',?,?)
+                """,models[i],org,i<2?"Synthetic BEV "+i:"Synthetic ICE "+i,
+                i<2?"BEV":"OTHER",manager);
+            String[] sourceIds={"BR-LDV-BEV-STOCK-BY-MODEL","BR-PBEV-VEHICLE-RATINGS"};
+            String[] codes={"OPEN-EVR","OPEN-PBEV"};
+            UUID[] subs={fleetSub,ratingsSub};
+            UUID[] licenses={fleetLic,ratingsLic};
+            UUID[] objects={fleetObj,ratingsObj};
+            for(int i=0;i<2;i++){
+                update(c,"""
+                    INSERT INTO app_source_version
+                    (source_id,edition,category,title,rights_holder,official_uri,origin)
+                    VALUES (?,?,'EXTERNAL_SOURCE','Synthetic test fixture',
+                        'Only internal fictional source','https://example.org/fixture','EXTERNAL')
+                    """,sourceIds[i],edition);
+                update(c,"""
+                    INSERT INTO app_platform_source_submission
+                    (id,need_code,source_id,edition,category,title,rights_holder,
+                     publisher,official_uri,reference_year,locator,metadata_fingerprint,
+                     state,submitted_by,reviewed_by)
+                    VALUES (?,?,?,?,'EXTERNAL_SOURCE','Synthetic fixture',
+                        'Only internal fictional source','Test editor',
+                        'https://example.org/fixture',2027,'TEST:1',?,
+                        'METADATA_ACCEPTED',?,?)
+                    """,subs[i],codes[i],sourceIds[i],edition,
+                    AccessSecrets.digest("metadata "+subs[i]),manager,reviewer);
+                update(c,"""
+                    INSERT INTO app_content_license
+                    (id,source_id,edition,organization_id,submitted_by,environment,
+                     purpose,authorization_ref,proof_sha256,starts_at,ends_at)
+                    VALUES (?,?,?,?,?,'SANDBOX','AUTHORIZED_PROCESSING',
+                        'Fictional fixture approved exclusively in isolated tests',
+                        ?,'2020-01-01',statement_timestamp()+interval '1 hour')
+                    """,licenses[i],sourceIds[i],edition,org,manager,"a".repeat(64));
+                update(c,"""
+                    INSERT INTO app_content_license_decision
+                    (license_id,version,outcome,decided_by,reason)
+                    VALUES (?,1,'APPROVED',?,'Test-only independently checked licence')
+                    """,licenses[i],reviewer);
+                update(c,"""
+                    INSERT INTO app_content_license_capability
+                    (license_id,decision_version,operation)
+                    VALUES (?,1,'STORE_ORIGINAL'),(?,1,'EXTRACT_TEXT'),
+                           (?,1,'SHOW_EXCERPTS'),(?,1,'EXPORT_DERIVATIVES')
+                    """,licenses[i],licenses[i],licenses[i],licenses[i]);
+                update(c,"""
+                    INSERT INTO app_platform_source_object
+                    (id,submission_id,organization_id,uploaded_by,license_id,
+                     license_version,file_name,file_format,sha256,bytes_count,
+                     nonce,encrypted,state,parsed_rows,parser_version)
+                    VALUES (?,?,?,?,?,1,'fictional.csv','CSV',?,16,?,?,
+                        'APPROVED_FOR_SCOPE',4,'TEST-ONLY')
+                    """,objects[i],subs[i],org,manager,licenses[i],
+                    AccessSecrets.digest("fixture "+subs[i]),new byte[12],new byte[32]);
+            }
+            update(c,"""
+                INSERT INTO app_fleet_ingestion
+                (id,organization_id,source_object_id,source_license_id,source_sha256,
+                 data_kind,observation_year,geography,imported_by)
+                VALUES (?,?,?,?,?,'STOCK_IN_CIRCULATION',2027,'BR',?)
+                """,fleetImport,org,fleetObj,fleetLic,
+                AccessSecrets.digest("fleet-2027"),manager);
+            update(c,"""
+                INSERT INTO app_fleet_composition_snapshot
+                (id,ingestion_id,organization_id,observation_year,denominator,
+                 number_of_models,source_sha256)
+                VALUES (?,?,?,2027,20,2,?)
+                """,fleetSnapshot,fleetImport,org,AccessSecrets.digest("fleet-2027"));
+            update(c,"""
+                INSERT INTO app_fleet_composition_weight
+                (snapshot_id,organization_id,model_id,source_row,observed_stock,
+                 weight,source_locator)
+                VALUES (?,?,?,2,12,0.6,'TEST:2'),(?,?,?,3,8,0.4,'TEST:3')
+                """,fleetSnapshot,org,bevA,fleetSnapshot,org,bevB);
+            UUID[] ratings=new UUID[4];
+            String[] metric={"ev_energy","ev_energy","fuel_economy","fuel_economy"};
+            String[] unit={"kWh/100mi","kWh/100mi","mi/USgal","mi/USgal"};
+            int[] values={18,23,32,27};
+            for(int i=0;i<4;i++){
+                ratings[i]=UUID.randomUUID();
+                update(c,"""
+                    INSERT INTO app_vehicle_rating
+                    (id,organization_id,model_id,source_object_id,source_license_id,
+                     source_row,source_sha256,year,role,fuel,cycle,seats,cycle_evidence,
+                     original_value,original_unit,normalized_value,normalized_unit,
+                     metric,locator,created_by)
+                    VALUES (?,?,?,?,?,?,?,2027,?,?,'COMBINED',5,
+                        'Synthetic combined cycle evidence',?,?,?,?,?,?,?)
+                    """,ratings[i],org,models[i],ratingsObj,ratingsLic,i+2,
+                    AccessSecrets.digest("fixture "+ratingsSub),
+                    i<2?"BEV":"FOSSIL",i<2?"ELECTRICITY":"GASOLINE",
+                    values[i],unit[i],values[i],unit[i],metric[i],"TEST:"+(i+2),manager);
+            }
+            UUID[] pairs=new UUID[2];
+            for(int i=0;i<2;i++){
+                pairs[i]=UUID.randomUUID();
+                update(c,"""
+                    INSERT INTO app_vehicle_comparable_pair
+                    (id,organization_id,fleet_snapshot_id,bev_model_id,
+                     bev_rating_id,fossil_rating_id,reason,service_description,
+                     status,version,proposed_by,reviewed_by,review_reason,reviewed_at)
+                    VALUES (?,?,?,?,?,?,'Same LDV capacity and service in synthetic test',
+                        'Five-seat passenger service','ACCEPTED',2,?,?,
+                        'Independent synthetic test review',statement_timestamp())
+                    """,pairs[i],org,fleetSnapshot,models[i],ratings[i],
+                    ratings[i+2],manager,reviewer);
+                update(c,"""
+                    INSERT INTO app_vehicle_pair_review_event
+                    (pair_id,version,outcome,reviewed_by,reason)
+                    VALUES (?,2,'ACCEPTED',?,
+                        'Independent synthetic same-cycle and capacity acceptance')
+                    """,pairs[i],reviewer);
+            }
+            update(c,"""
+                INSERT INTO app_vehicle_rating_snapshot
+                (id,organization_id,fleet_snapshot_id,year,cycle,lineage_digest,
+                 afec_kwh_per_100mi,mpg_us,model_count,constructed_by)
+                VALUES (?,?,?,2027,'COMBINED',?,20,30,2,?)
+                """,ratingSnapshot,org,fleetSnapshot,
+                AccessSecrets.digest("rating-2027"),manager);
+            update(c,"""
+                INSERT INTO app_vehicle_rating_snapshot_line
+                (snapshot_id,organization_id,model_id,pair_id,evr,
+                 ev_kwh_per_100mi,fossil_mpg_us)
+                VALUES (?,?,?,?,12,18,32),(?,?,?,?,8,23,27)
+                """,ratingSnapshot,org,bevA,pairs[0],ratingSnapshot,org,bevB,pairs[1]);
+            return null;
+        });
+        return new UUID[]{ratingSnapshot,ratingsLic};
+    }
+
     private void verifyStaff(Actor manager) throws Exception {
         long counter=database.read(c->first(c,
             "SELECT floor(extract(epoch from statement_timestamp())/30)::bigint",
