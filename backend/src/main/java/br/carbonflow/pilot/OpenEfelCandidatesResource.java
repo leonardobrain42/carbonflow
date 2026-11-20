@@ -41,11 +41,12 @@ public class OpenEfelCandidatesResource {
     @Consumes(MediaType.APPLICATION_JSON)
     public Response review(@CookieParam(AccountAccess.COOKIE) String cookie,
                            @PathParam("project") String project,
+                           @PathParam("period") String period,
                            @PathParam("candidate") UUID candidate,
                            @HeaderParam("If-Match") String match,
                            @HeaderParam("Idempotency-Key") String key,
                            OpenEfelCandidates.Decision decision) {
-        var result=service.review(cookie,project,candidate,match,key,decision);
+        var result=service.review(cookie,project,period,candidate,match,key,decision);
         return secure(result).tag(Integer.toString(result.review().version())).build();
     }
     private static Response.ResponseBuilder secure(Object value) {
