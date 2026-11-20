@@ -55,7 +55,7 @@ class OpenFossilFactorCandidatesIntegrationTest {
 
         JsonNode initial=json(call("GET",URL,manager,null),200);
         assertTrue(initial.path("canManage").asBoolean());
-        assertFalse(initial.path("canReview").asBoolean());
+        assertTrue(initial.path("canReview").asBoolean()); // still cannot self-review
         assertTrue(initial.path("sources").toString().contains(OBJECT.toString()));
         assertEquals(0,initial.path("candidates").size());
         assertFalse(json(call("GET",URL,outsider,null),200).path("sources")
@@ -66,17 +66,18 @@ class OpenFossilFactorCandidatesIntegrationTest {
         JsonNode rows=json(call("GET",URL+"/sources/"+OBJECT+"/rows",reviewer,null),200);
         assertEquals(1,rows.size());
         assertEquals("tCO2e/L",rows.get(0).path("unit").asText());
-        assertEquals("EF_FUEL_GASOLINE",rows.get(0).path("recordKey").asText()
-            .isBlank()?"":rows.get(0).path("recordKey").asText().contains("FOSSIL")?
-             "EF_FUEL_GASOLINE":"EF_FUEL_GASOLINE"); // assert explicit metric below
+        assertEquals("SYNTHETIC-FOSSIL-EF",
+            rows.get(0).path("recordKey").asText());
         assertEquals(0,new java.math.BigDecimal("0.002").compareTo(
             new java.math.BigDecimal(rows.get(0).path("value").asText())));
 
         String candidateJson="{\"sourceObjectId\":\""+OBJECT+"\",\"rowIndex\":2}";
         assertEquals(404,call("POST",URL,reviewer,candidateJson).statusCode());
         assertEquals(404,call("POST",URL,outsider,candidateJson).statusCode());
-        assertEquals(422,call("POST",URL,manager,
+        assertEquals(404,call("POST",URL,manager,
             "{\"sourceObjectId\":\""+OBJECT+"\",\"rowIndex\":3}").statusCode());
+        assertEquals(422,call("POST",URL,manager,
+            "{\"sourceObjectId\":\""+OBJECT+"\",\"rowIndex\":2002}").statusCode());
         JsonNode created=json(call("POST",URL,manager,candidateJson),201);
         String factorId=created.path("id").asText();
         assertEquals("PENDING_INTERNAL_REVIEW_NOT_ADMITTED",created.path("status").asText());
@@ -267,7 +268,7 @@ class OpenFossilFactorCandidatesIntegrationTest {
             config.put("carbonflow.platform.source-readiness.viewers",
                 MANAGER+","+REVIEWER+","+OUTSIDER);
             config.put("carbonflow.platform.source-work.managers",MANAGER.toString());
-            config.put("carbonflow.platform.source-technical.reviewers",REVIEWER.toString());
+            config.put("carbonflow.platform.source-technical.reviewers",MANAGER+","+REVIEWER);
             return config;
         }
     }
