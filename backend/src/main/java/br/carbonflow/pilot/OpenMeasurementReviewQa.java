@@ -157,7 +157,8 @@ class OpenMeasurementReviewQa {
             var qa=evaluate(c,project,from,until);
             if(!qa.readyForInternalSnapshot())
                 throw conflict("O período ainda possui lacunas, conflitos ou revisões pendentes.");
-            String hash=hash(project,from,until,qa.accepted());
+            String hash=hash(project,from,until,qa.accepted(),
+                OpenMonitoringEvents.impacting(c,project,from,until));
             byte[] digest=HexFormat.of().parseHex(hash);
             Snapshot old=first(c,"""
                 SELECT id,project_id,period_start,period_end,ed_kwh,ec_kwh,
@@ -295,7 +296,8 @@ class OpenMeasurementReviewQa {
               r.getBigDecimal("kwh"),r.getString("row_state"),r.getString("batch_state"),
               r.getString("outcome"),r.getObject("review_version")==null?0:r.getInt("review_version"),
               r.getString("source_sha"),r.getString("line_sha")),project,until,from);
-        return OpenPeriodQa.evaluate(from,until,chargers,meters,rows);
+        return OpenPeriodQa.evaluate(from,until,chargers,meters,rows,
+            OpenMonitoringEvents.impacting(c,project,from,until));
     }
 
     private static Instant instant(java.sql.ResultSet r,String field) throws SQLException {
@@ -320,6 +322,11 @@ class OpenMeasurementReviewQa {
     }
     static String hash(String project,OffsetDateTime from,OffsetDateTime until,
                                List<OpenPeriodQa.Ref> refs) {
+        return hash(project,from,until,refs,List.of());
+    }
+
+    static String hash(String project,OffsetDateTime from,OffsetDateTime until,
+                               List<OpenPeriodQa.Ref> refs,List<OpenPeriodQa.Incident> incidents) {
         StringBuilder payload=new StringBuilder(project).append('|')
             .append(from.toInstant()).append('|').append(until.toInstant());
         for(var ref:refs) {
@@ -328,6 +335,20 @@ class OpenMeasurementReviewQa {
               .append(ref.meter()).append(':').append(ref.version())
               .append(':').append(ref.start()).append(':').append(ref.end())
               .append(':').append(ref.sourceHash()).append(':').append(ref.lineHash());
+        }
+        // Preserve legacy snapshots with no incidents byte-for-byte. Once
+        // an occurrence is reported, its ID, interval and latest review version
+        // become part of the immutable digest, even if later cleared for QA.
+        for(var incident:incidents.stream().sorted(java.util.Comparator
+                .comparing((OpenPeriodQa.Incident e)->e.id().toString())).toList()) {
+            payload.append("|OP_EVENT:").append(incident.id())
+                .append(':').append(incident.kind())
+                .append(':').append(incident.subjectType())
+                .append(':').append(incident.subjectCode())
+                .append(':').append(incident.from())
+                .append(':').append(incident.until())
+                .append(':').append(incident.reviewVersion())
+                .append(':').append(incident.outcome());
         }
         try {
             return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
