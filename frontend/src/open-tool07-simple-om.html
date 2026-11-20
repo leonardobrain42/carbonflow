@@ -1,0 +1,153 @@
+<section class="cf-journey-context" aria-labelledby="cf-simple-om-a1-title">
+  <h4 id="cf-simple-om-a1-title">TOOL07 v7.0 · Simple OM Option A1</h4>
+  <p>Apuração preliminar por usina, combustível e cinco anos de LCMR.
+    <strong>Não admitida para E8.</strong> Apenas o método Simple OM
+    e abordagem ex post de um ano estão implementados aqui. O algoritmo
+    não comprova o inventário de usinas, a classificação LCMR ou as fontes.</p>
+  <p>Regras: <code>ShareLCMR</code> (equações 1/2);
+    <code>EF_OM = Σ(EG_m × EF_m)/ΣEG_m</code> (equação 3);
+    <code>EF_m = Σ(FC_i × NCV_i × EF_CO2_i)/EG_m</code> (equação 4).
+    Unidades: combustível em toneladas, NCV em GJ/t, fator em tCO₂/GJ,
+    energia entregue à rede em MWh e resultado em tCO₂/MWh.</p>
+
+  @if(error()) { <p role="alert">{{error()}}</p> }
+  @if(notice()) { <p role="status">{{notice()}}</p> }
+  @if(loading()) { <p role="status">Reconstituindo memória de cálculo…</p> }
+
+  @if(runs().length) {
+    <ul class="cf-tech-gates">
+      @for(run of runs();track run.id) {
+        <li>
+          <strong>Apuração v{{run.version}} · {{run.state}}</strong>
+          <p>Participação LCMR: {{run.preview.selectedShare}}
+            · teste quinquenal:
+            {{run.preview.fiveYearLcmrScreenPassed?'abaixo de 50%':'não passou'}}</p>
+          <p>OM preliminar: {{run.preview.illustrativeOmTco2PerMwh}}
+            tCO₂/MWh. <strong>Não é EFel horário CO₂e.</strong></p>
+          <p>Uso E8: <strong>não admitido</strong> ·
+            SHA-256: {{run.contentSha256}}</p>
+          @if(run.stale) {
+            <p role="alert">A fonte ou o caderno mudaram. Esta apuração
+              é histórica e não pode representar o estado atual.</p>
+          }
+          <button type="button" class="cf-workspace-outline"
+            (click)="selected.set(run)">Inspecionar usinas e memória</button>
+        </li>
+      }
+    </ul>
+  } @else if(!loading()) {
+    <p>Nenhuma apuração Simple OM A1 foi registrada neste caderno.</p>
+  }
+
+  @if(selected();as run) {
+    <div class="cf-journey-context">
+      <h4>Memória imutável · v{{run.version}}</h4>
+      <p>Share LCMR (média das participações): {{run.preview.shareApproach1}}.
+        Share LCMR (razão das somas): {{run.preview.shareApproach2}}.
+        Selecionada: {{run.preview.approach}}.</p>
+      <table>
+        <thead><tr><th>Ano</th><th>Total rede (MWh)</th><th>LCMR (MWh)</th></tr></thead>
+        <tbody>
+          @for(y of run.shares;track y.year) {
+            <tr><td>{{y.year}}</td><td>{{y.totalGridMwh}}</td>
+              <td>{{y.lcmrMwh}}</td></tr>
+          }
+        </tbody>
+      </table>
+      <table>
+        <thead><tr><th>Usina</th><th>Geração líquida (MWh)</th>
+          <th>CO₂ (t)</th><th>tCO₂/MWh</th></tr></thead>
+        <tbody>
+          @for(p of run.preview.plantCalculations;track p.plantCode) {
+            <tr><td>{{p.plantCode}}</td><td>{{p.netGenerationMwh}}</td>
+              <td>{{p.emissionsTco2}}</td><td>{{p.efTco2PerMwh}}</td></tr>
+          }
+        </tbody>
+      </table>
+      <p>Emissões totais: {{run.preview.totalEmissionsTco2}} tCO₂.
+        Geração não LCMR: {{run.preview.includedGenerationMwh}} MWh.
+        Resultado: {{run.preview.illustrativeOmTco2PerMwh}} tCO₂/MWh,
+        ou {{run.preview.illustrativeOmTco2PerKwh}} tCO₂/kWh.</p>
+      <p>Inventário declarado: {{run.inventorySourceReference}} ·
+        SHA {{run.inventorySha256}}</p>
+      <p>LCMR declarado: {{run.fiveYearSourceReference}} ·
+        SHA {{run.fiveYearSha256}}</p>
+      <p>Combustíveis e fatores: {{run.fuelSourceExplanation}}</p>
+      <p>Fronteira: {{run.systemBoundaryNote}}</p>
+      <p>Importações: {{run.importsExplanation}}</p>
+      @for(gate of run.gates;track gate) { <p>{{gate}}</p> }
+      <p>Este cálculo não demonstra origem verdadeira, inclusão das
+        unidades requeridas, admissibilidade do método ou equivalência
+        entre CO₂ e CO₂e.</p>
+      <button type="button" class="cf-workspace-outline"
+        (click)="selected.set(null)">Fechar memória</button>
+    </div>
+  }
+
+  @if(canPrepare && readyForCandidate) {
+    <form class="cf-open-monitoring-form" (submit)="submit($event)">
+      <fieldset [disabled]="saving()">
+        <legend>Preparar apuração preliminar por dados documentados</legend>
+        <p>Sem valores de exemplo ou fatores padrão. A planilha de cinco anos
+          e as linhas de usina devem ser provenientes de dados verificáveis;
+          os SHA-256 abaixo são declarações até a autenticação dos arquivos.</p>
+        <label for="cf-simple-om-approach">Abordagem LCMR quinquenal (TOOL07 Eq. 1/2)</label>
+        <select id="cf-simple-om-approach" required [value]="shareApproach()"
+          (change)="shareApproach.set($any($event.target).value)">
+          <option value="">Escolha a forma demonstrada pelos dados</option>
+          <option value="FIVE_YEAR_AVERAGE_SHARES">Eq. 1 — média das razões anuais</option>
+          <option value="FIVE_YEAR_AGGREGATE_SHARE">Eq. 2 — razão de totais quinquenais</option>
+        </select>
+        <label for="cf-simple-om-years">Cinco anos, uma linha por ano:
+          ano,geração_total_MWh,geração_LCMR_MWh</label>
+        <textarea id="cf-simple-om-years" rows="6" required [value]="shareCsv()"
+          (input)="shareCsv.set($any($event.target).value)"></textarea>
+        <label for="cf-simple-om-plants">Cada usina/combustível:
+          usina,geração_líquida_MWh,combustível,consumo_t,NCV_GJ_por_t,
+          EF_tCO2_por_GJ,SHA256_da_fonte</label>
+        <textarea id="cf-simple-om-plants" rows="8" required
+          placeholder="Preencha uma linha para cada combustível de cada usina (sem cabeçalho)."
+          [value]="plantCsv()"
+          (input)="plantCsv.set($any($event.target).value)"></textarea>
+        <p>Usinas com múltiplos combustíveis aparecem em várias linhas com
+          a mesma geração líquida. A soma da geração não LCMR precisa
+          fechar com a geração total menos LCMR do ano final.</p>
+        <label for="cf-simple-om-inventory">Referência do inventário integral de usinas</label>
+        <textarea id="cf-simple-om-inventory" required minlength="15" maxlength="600"
+          rows="2" [value]="inventoryRef()"
+          (input)="inventoryRef.set($any($event.target).value)"></textarea>
+        <label for="cf-simple-om-inventory-sha">SHA-256 declarado do inventário</label>
+        <input id="cf-simple-om-inventory-sha" required minlength="64" maxlength="64"
+          [value]="inventorySha()"
+          (input)="inventorySha.set($any($event.target).value)"/>
+        <label for="cf-simple-om-lcmr">Referência da geração quinquenal e classificação LCMR</label>
+        <textarea id="cf-simple-om-lcmr" required minlength="15" maxlength="600"
+          rows="2" [value]="fiveYearRef()"
+          (input)="fiveYearRef.set($any($event.target).value)"></textarea>
+        <label for="cf-simple-om-lcmr-sha">SHA-256 declarado da série LCMR</label>
+        <input id="cf-simple-om-lcmr-sha" required minlength="64" maxlength="64"
+          [value]="fiveYearSha()"
+          (input)="fiveYearSha.set($any($event.target).value)"/>
+        <label for="cf-simple-om-fuel">Proveniência de FC, NCV, EF e opções A1</label>
+        <textarea id="cf-simple-om-fuel" required minlength="30" maxlength="2000"
+          rows="3" [value]="fuelNote()"
+          (input)="fuelNote.set($any($event.target).value)"></textarea>
+        <label for="cf-simple-om-boundary">Fronteira e cobertura de unidades SIN</label>
+        <textarea id="cf-simple-om-boundary" required minlength="30" maxlength="2000"
+          rows="3" [value]="boundaryNote()"
+          (input)="boundaryNote.set($any($event.target).value)"></textarea>
+        <label for="cf-simple-om-import">Importações e outras limitações não resolvidas</label>
+        <textarea id="cf-simple-om-import" required minlength="30" maxlength="2000"
+          rows="3" [value]="importsNote()"
+          (input)="importsNote.set($any($event.target).value)"></textarea>
+        <button type="submit" class="cf-workspace-primary" [disabled]="saving()">
+          Salvar memória preliminar (sem admissão)
+        </button>
+      </fieldset>
+    </form>
+  } @else if(canView && !readyForCandidate) {
+    <p>Para elaborar esta memória o caderno deve ser Simple OM,
+      ex post de um ano e conferido internamente, sem obsolescência.
+      Os demais métodos e vintages permanecem bloqueados.</p>
+  }
+</section>
