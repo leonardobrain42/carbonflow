@@ -19,7 +19,7 @@ final class OpenPreparatoryE8Diagnostic {
 
     private static OpenCalculationPreflight.Gate inputGate(String period,String state) {
         String code="E8_INPUT_BINDING_"+period;
-        return switch (state) {
+        return switch (state==null?"UNKNOWN":state) {
             case "CANDIDATE_NOT_ADMITTED" -> new OpenCalculationPreflight.Gate(
                 code,"NOT_ADMITTED",
                 "ED/EC e EFel horário possuem vínculo interno versionado para "+period+
@@ -46,7 +46,7 @@ final class OpenPreparatoryE8Diagnostic {
 
     private static OpenCalculationPreflight.Gate fleetGate(String period,String state) {
         String code="E8_FLEET_SELECTION_"+period;
-        return switch (state) {
+        return switch (state==null?"UNKNOWN":state) {
             case "PREPARATORY_NOT_ADMITTED" -> new OpenCalculationPreflight.Gate(
                 code,"NOT_ADMITTED",
                 "O gestor vinculou referências EVR/PBEV ao projeto para "+period+
