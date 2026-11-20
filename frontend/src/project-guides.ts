@@ -1,10 +1,11 @@
 import {SectionAssessmentComponent} from './section-assessment';
 import {EvidenceRequestLink, GuideFactsPanelComponent} from './guide-facts-panel';
 import {AcquisitionPanelComponent} from './acquisition-panel';
-import {Component, inject, input, OnInit, output, signal} from '@angular/core';
+import {Component, inject, input, OnInit, output, signal, viewChild} from '@angular/core';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {firstValueFrom} from 'rxjs';
 import {GuideReferencesComponent} from './guide-references';
+import {TypedGuideComponent} from './typed-guide';
 
 interface Field { key: string; label: string; type: string; options: string[]; helpText?: string | null }
 interface Guide {
@@ -15,7 +16,7 @@ interface Guide {
 
 @Component({
   selector: 'carbonflow-project-guides',
-  imports: [GuideReferencesComponent, AcquisitionPanelComponent, GuideFactsPanelComponent, SectionAssessmentComponent],
+  imports: [GuideReferencesComponent, AcquisitionPanelComponent, GuideFactsPanelComponent, SectionAssessmentComponent, TypedGuideComponent],
   templateUrl: './project-guides.html',
 })
 export class ProjectGuidesComponent implements OnInit {
@@ -38,6 +39,7 @@ export class ProjectGuidesComponent implements OnInit {
   readonly error = signal('');
   readonly notice = signal('');
   readonly dirty = signal(false);
+  private readonly typedEditor = viewChild(TypedGuideComponent);
   private readonly http = inject(HttpClient);
   private get url() { return '/v1/projects/' + encodeURIComponent(this.projectId()) + '/technical/guides'; }
 
@@ -56,7 +58,8 @@ export class ProjectGuidesComponent implements OnInit {
   }
 
   canLeave() {
-    return !this.busy() && (!this.dirty() || confirm('Descartar as alterações deste guia?'));
+    return !this.busy() && (this.typedEditor()?.canLeave() ?? true) &&
+      (!this.dirty() || confirm('Descartar as alterações deste guia?'));
   }
 
   select(guide: Guide | null) {
