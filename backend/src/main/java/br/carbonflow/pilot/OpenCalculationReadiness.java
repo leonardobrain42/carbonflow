@@ -97,6 +97,17 @@ class OpenCalculationReadiness {
                         ". Uma série declarada e conferida internamente não é VT0011 admitido.",
                     "Validar série de fatores, instrumento e direitos em fonte autorizada",
                     "PREP/REV"));
+                String vt0011=OpenVt0011Workbooks.state(connection,project,
+                    dossier.reference().code());
+                gates.add(new OpenCalculationPreflight.Gate(
+                    "E8_VT0011_CASE2_"+dossier.reference().code(),
+                    vt0011.startsWith("STALE")?"STALE":
+                    "VT0011_WORKBOOK_MISSING".equals(vt0011) ||
+                    "VT0011_SOURCE_MISSING".equals(vt0011)?"MISSING":"NOT_ADMITTED",
+                    "Caderno VT0011/TOOL07 do período "+dossier.reference().code()+
+                        ": "+vt0011+". Pesos Case 2 NÃO verificam OM nem convertem CO2 em CO2e.",
+                    "Comprovar dados OM, opção TOOL07, fontes e vínculo horário ao EFel",
+                    "PREP/REV"));
             }
         }
         return new OpenCalculationPreflight.Result(base.projectId(),base.environment(),

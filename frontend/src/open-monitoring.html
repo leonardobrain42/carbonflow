@@ -750,7 +750,10 @@
           <carbonflow-efel-candidates [projectId]="projectId"
             [energy]="energyHistory()[0]"
             [canView]="canViewEfel" [canSubmit]="canSubmitEfel"
-            [canReview]="canReviewEfel" />
+            [canReview]="canReviewEfel"
+            [canViewVt0011]="canViewVt0011"
+            [canSubmitVt0011]="canSubmitVt0011"
+            [canReviewVt0011]="canReviewVt0011" />
         }
         <button type="button" class="cf-workspace-outline"
           (click)="energyPeriod.set(null);energyHistory.set([])">

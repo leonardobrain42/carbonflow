@@ -281,6 +281,60 @@ class OpenPeriodSupportIntegrationTest {
         assertTrue(preflightWithEfel.path("gates").toString().contains("E8_EFEL_M1"));
         assertFalse(preflightWithEfel.path("canRunE8").asBoolean());
 
+        String vtUrl=efelUrl+"/"+efel.path("id").asText()+"/vt0011-workbooks";
+        assertEquals(0,json(call("GET",vtUrl,owner.cookie(),null,null)).size());
+        assertEquals(404,call("GET",vtUrl,op.cookie(),null,null).statusCode());
+        assertEquals(404,call("GET",vtUrl,outside.cookie(),null,null).statusCode());
+        String vtBody=vt0011Fixture(efel.path("id").asText(),"0.5");
+        assertEquals(404,postMethod(vtUrl,docsReviewer.cookie(),key(),"\"0\"",
+            vtBody).statusCode());
+        assertEquals(412,postMethod(vtUrl,owner.cookie(),key(),"\"1\"",
+            vtBody).statusCode());
+        var vtBad=postMethod(vtUrl,owner.cookie(),key(),"\"0\"",
+            vtBody.replace("SIMPLE_OM","INVENTED_METHOD"));
+        assertTrue(vtBad.statusCode()>=400,vtBad.body());
+        String vtKey=key();
+        var vtCreated=postMethod(vtUrl,owner.cookie(),vtKey,"\"0\"",vtBody);
+        assertEquals(201,vtCreated.statusCode(),vtCreated.body());
+        JsonNode vt=json(vtCreated);
+        assertEquals(1,vt.path("version").asInt());
+        assertEquals("CASE_2_INCREASE_GRID_CONSUMPTION",vt.path("caseCode").asText());
+        assertEquals("1.00",vt.at("/preview/omWeight").asText());
+        assertEquals("0.00",vt.at("/preview/bmWeight").asText());
+        assertEquals("tCO2/kWh",vt.at("/preview/convertedUnit").asText());
+        assertEquals(0,new java.math.BigDecimal("0.0005").compareTo(
+            new java.math.BigDecimal(vt.at("/preview/illustrativeCmTco2PerKwh").asText())));
+        assertEquals("PENDING_INTERNAL_REVIEW_NOT_ADMITTED",vt.path("state").asText());
+        assertFalse(vt.path("usableForE8").asBoolean());
+        assertTrue(vt.path("gates").toString().contains("CO2_TO_CO2E"));
+        assertEquals(vtCreated.body(),postMethod(vtUrl,owner.cookie(),vtKey,
+            "\"0\"",vtBody).body());
+        assertEquals(409,postMethod(vtUrl,owner.cookie(),vtKey,"\"0\"",
+            vtBody.replace("\"omFactorTco2PerMwh\":0.5",
+                "\"omFactorTco2PerMwh\":0.7")).statusCode());
+        String vtReviewUrl=vtUrl+"/"+vt.path("id").asText()+"/reviews";
+        String vtReviewBody="""
+            {"outcome":"CHECKED_INTERNAL",
+             "rationale":"Caderno de cálculo examinado internamente sem confirmação da OM real ou dos gases.",
+             "evidenceReference":"Lista de verificações documentais para caderno OM do projeto."}
+            """;
+        assertEquals(404,postMethod(vtReviewUrl,owner.cookie(),key(),"\"0\"",
+            vtReviewBody).statusCode());
+        String vtReviewKey=key();
+        var vtChecked=postMethod(vtReviewUrl,docsReviewer.cookie(),
+            vtReviewKey,"\"0\"",vtReviewBody);
+        assertEquals(200,vtChecked.statusCode(),vtChecked.body());
+        assertEquals("CHECKED_INTERNAL_NOT_ADMITTED",json(vtChecked).path("state").asText());
+        assertFalse(json(vtChecked).path("usableForE8").asBoolean());
+        assertEquals(1,json(vtChecked).at("/review/version").asInt());
+        assertEquals(vtChecked.body(),postMethod(vtReviewUrl,docsReviewer.cookie(),
+            vtReviewKey,"\"0\"",vtReviewBody).body());
+        assertEquals(1,json(call("GET",vtUrl,owner.cookie(),null,null)).size());
+        JsonNode preflightVt=json(call("GET",technical+"/open-calculation-readiness",
+            owner.cookie(),null,null));
+        assertTrue(preflightVt.path("gates").toString().contains("E8_VT0011_CASE2_M1"));
+        assertFalse(preflightVt.path("canRunE8").asBoolean());
+
         assertEquals("READY_FOR_NORMATIVE_REVIEW",
             json(call("GET",dossierUrl,owner.cookie(),null,null)).get(0).path("state").asText());
         JsonNode pdReady=json(call("GET",technical+"/pd-reviews",owner.cookie(),null,null));
@@ -298,6 +352,10 @@ class OpenPeriodSupportIntegrationTest {
         assertEquals("STALE_NOT_ADMITTED",staleEnergy.path("state").asText());
         JsonNode staleEfel=json(call("GET",efelUrl,owner.cookie(),null,null)).get(0);
         assertEquals("STALE_NOT_ADMITTED",staleEfel.path("state").asText());
+        JsonNode staleWorkbook=json(call("GET",vtUrl,owner.cookie(),null,null)).get(0);
+        assertEquals("STALE_NOT_ADMITTED",staleWorkbook.path("state").asText());
+        assertFalse(staleWorkbook.path("usableForE8").asBoolean());
+        assertTrue(staleWorkbook.path("gates").toString().contains("SOURCE_OR_REVIEW_STALE"));
         assertFalse(staleEfel.path("usableForE8").asBoolean());
         assertTrue(staleEnergy.path("gates").toString().contains("MR_VERSION_CHANGED"));
         assertFalse(staleEnergy.path("usableForE8").asBoolean());
@@ -503,6 +561,22 @@ class OpenPeriodSupportIntegrationTest {
             owner.cookie(),null,null));
         assertFalse(calc.path("canRunE8").asBoolean());
         assertTrue(calc.path("gates").toString().contains("MR_PERIOD_DEPENDENCY"));
+    }
+
+    private static String vt0011Fixture(String efel,String om) {
+        return """
+          {"efelCandidateId":"%s",
+           "omMethod":"SIMPLE_OM","omVintageMode":"EX_POST",
+           "omDataYear":2026,"omFactorTco2PerMwh":%s,
+           "omSourceReference":"Conjunto de dados OM meramente sintético do teste.",
+           "omDatasetSha256":"%s",
+           "omMethodJustification":"Método OM selecionado para testar estrutura; elegibilidade técnica não confirmada.",
+           "gridBoundaryEvidence":"Fronteira elétrica SIN declarada no fixture.",
+           "sampleSelectionEvidence":"Amostra de geração somente hipotética, sem verificação.",
+           "importTreatmentEvidence":"Importações e sistemas conectados pendentes de prova.",
+           "vintageEvidence":"Dados históricos hipotéticos e ano 2026 apenas no fixture.",
+           "methodologyNote":"Somente prévia de Case 2; não converte CO2 de OM para CO2e de EFel."}
+          """.formatted(efel,om,"b".repeat(64));
     }
 
     private static String efelFixture(String energy,String hour,String value) {

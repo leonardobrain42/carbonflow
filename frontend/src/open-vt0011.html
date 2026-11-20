@@ -1,0 +1,184 @@
+<section class="cf-journey-context" aria-labelledby="cf-vt0011-title">
+  <h4 id="cf-vt0011-title">Caderno de fundamentação VT0011 v1.0 / TOOL07 v7.0</h4>
+  <p>Para aumento do consumo da rede elétrica (caso 2): peso OM = 1,00 e BM = 0,00.
+    Isso <strong>não</strong> determina automaticamente o fator OM.
+    O método OM, a amostra de geração, o vintage, as importações e a fonte
+    precisam ser justificados. Um fator em tCO2/kWh não é, por si,
+    intercambiável com a série EFel em tCO2e/kWh.</p>
+  <p>Referências originais:
+    <a href="https://verra.org/documents/vt0011-electricity-system-emission-factors-v1-0/"
+       target="_blank" rel="noopener noreferrer">VT0011 v1.0</a>
+    e
+    <a href="https://cdm.unfccc.int/methodologies/PAmethodologies/tools/am-tool-07-v7.0.pdf"
+       target="_blank" rel="noopener noreferrer">TOOL07 v7.0</a>.
+    Não há verificação automática de documentos, fórmulas de OM ou direitos.</p>
+  @if(error()) { <p role="alert">{{error()}}</p> }
+  @if(notice()) { <p role="status">{{notice()}}</p> }
+  @if(busy()) { <p role="status">Conferindo revisões do caderno…</p> }
+
+  @if(workbooks().length){
+    <ul class="cf-tech-gates">
+      @for(item of workbooks();track item.id){
+        <li>
+          <strong>Versão {{item.version}} · {{item.state}}</strong>
+          <p>{{item.omMethod}} · {{item.omVintageMode}} · {{item.omDataYear}}
+            · {{item.preview.reference}}</p>
+          <p>Prévia matemática: {{item.preview.illustrativeCmTco2PerMwh}} tCO2/MWh
+            = {{item.preview.illustrativeCmTco2PerKwh}} tCO2/kWh</p>
+          <p>Uso em E8: <strong>não admitido</strong></p>
+          @if(item.stale) {
+            <p role="alert">A versão da fonte ou parecer do EFel mudou:
+              este caderno é histórico e não pode ser reutilizado.</p>
+          }
+          @for(gate of item.gates;track gate){ <p>{{gate}}</p> }
+          <button class="cf-workspace-outline" type="button" (click)="select(item)">
+            Ver memória de cálculo e parecer
+          </button>
+        </li>
+      }
+    </ul>
+  } @else if(!busy()){
+    <p>Nenhum caderno VT0011 está vinculado a esta fonte EFel.</p>
+  }
+
+  @if(selected();as item){
+    <div class="cf-journey-context">
+      <h4>Memória de cálculo · revisão {{item.version}}</h4>
+      <p>Equação selecionada: <code>{{item.preview.formula}}</code></p>
+      <p>Pesos: OM {{item.preview.omWeight}} · BM {{item.preview.bmWeight}}.
+        O fator BM <strong>não foi declarado igual a zero</strong>; apenas o
+        seu peso neste caso é nulo.</p>
+      <p>{{item.preview.qualification}}</p>
+      <p>Fonte OM informada: {{item.omSourceReference}}</p>
+      <p>SHA-256 do conjunto OM (declarado, não autenticado):
+        {{item.omDatasetSha256}}</p>
+      <p>Justificativa do método: {{item.omMethodJustification}}</p>
+      <p>Fronteira SIN: {{item.gridBoundaryEvidence}}</p>
+      <p>Amostra e elegibilidade: {{item.sampleSelectionEvidence}}</p>
+      <p>Importações: {{item.importTreatmentEvidence}}</p>
+      <p>Vintage: {{item.vintageEvidence}}</p>
+      <p>Notas: {{item.methodologyNote}}</p>
+      <p>SHA-256 deste caderno imutável: {{item.contentSha256}}</p>
+      @if(item.review; as review){
+        <p>Parecer v{{review.version}}: {{review.outcome}} · {{review.reviewedAt}}</p>
+        <p>{{review.evidenceReference}} · {{review.rationale}}</p>
+      }
+      @if(canReview && !item.stale &&
+           item.state!=='SUPERSEDED_NOT_ADMITTED'){
+        <form class="cf-open-monitoring-form" (submit)="review($event)">
+          <fieldset [disabled]="reviewing()">
+            <legend>Conferência interna independente (REV)</legend>
+            <p>Mesmo após conferir a organização da memória, a origem e as
+              equações completas da TOOL07 continuam sujeitas à admissibilidade
+              normativa e à verificação externa.</p>
+            <label for="cf-vt-review-outcome">Decisão interna</label>
+            <select id="cf-vt-review-outcome" [value]="reviewOutcome()"
+              (change)="reviewOutcome.set($any($event.target).value)">
+              <option value="RETURNED">Devolver para correção</option>
+              <option value="CHECKED_INTERNAL">Documentação conferida internamente</option>
+            </select>
+            <label for="cf-vt-review-source">Evidência do parecer</label>
+            <input id="cf-vt-review-source" required minlength="15" maxlength="600"
+              [value]="reviewReference()"
+              (input)="reviewReference.set($any($event.target).value)"/>
+            <label for="cf-vt-review-reason">Fundamentação (mínimo 30 caracteres)</label>
+            <textarea id="cf-vt-review-reason" required rows="3"
+              minlength="30" maxlength="2000" [value]="reviewReason()"
+              (input)="reviewReason.set($any($event.target).value)"></textarea>
+            <button class="cf-workspace-primary" type="submit" [disabled]="reviewing()">
+              Registrar parecer imutável
+            </button>
+          </fieldset>
+        </form>
+      }
+      <button class="cf-workspace-outline" type="button"
+        (click)="selected.set(null)">Fechar memória</button>
+    </div>
+  }
+
+  @if(canSubmit && sourceCurrent){
+    <form class="cf-open-monitoring-form" (submit)="submit($event)">
+      <fieldset [disabled]="saving()">
+        <legend>Preparar nova versão da fundamentação do EFel</legend>
+        <p>Preencha apenas com documentos e dados identificados. Não há
+          fator OM ou opção de vintage escolhidos automaticamente.</p>
+        <div class="cf-journey-fields">
+          <div>
+            <label for="cf-vt-method">Método de margem de operação (TOOL07 §6.3)</label>
+            <select id="cf-vt-method" required [value]="omMethod()"
+              (change)="omMethod.set($any($event.target).value)">
+              <option value="">Selecione o método OM fundamentado</option>
+              <option value="SIMPLE_OM">Simple OM</option>
+              <option value="SIMPLE_ADJUSTED_OM">Simple adjusted OM</option>
+              <option value="DISPATCH_DATA_ANALYSIS_OM">Dispatch data analysis OM</option>
+              <option value="AVERAGE_OM">Average OM</option>
+            </select>
+          </div>
+          <div>
+            <label for="cf-vt-vintage-mode">Abordagem de vintage OM alegada</label>
+            <select id="cf-vt-vintage-mode" required [value]="vintageMode()"
+              (change)="vintageMode.set($any($event.target).value)">
+              <option value="">Selecione a abordagem aplicável</option>
+              <option value="EX_POST">Ex post</option>
+              <option value="EX_ANTE">Ex ante</option>
+            </select>
+          </div>
+          <div>
+            <label for="cf-vt-year">Ano dos dados OM</label>
+            <input id="cf-vt-year" type="number" min="1990" max="2100"
+              required [value]="dataYear()"
+              (input)="dataYear.set($any($event.target).value)"/>
+          </div>
+          <div>
+            <label for="cf-vt-factor">OM declarado, tCO2/MWh (não CO2e)</label>
+            <input id="cf-vt-factor" required inputmode="decimal"
+              placeholder="Não há valor padrão" [value]="omFactor()"
+              (input)="omFactor.set($any($event.target).value)"/>
+          </div>
+          <div>
+            <label for="cf-vt-source">Referência da fonte OM</label>
+            <input id="cf-vt-source" required minlength="15" maxlength="600"
+              [value]="sourceReference()"
+              (input)="sourceReference.set($any($event.target).value)"/>
+          </div>
+          <div>
+            <label for="cf-vt-sha">SHA-256 declarado do conjunto OM</label>
+            <input id="cf-vt-sha" required minlength="64" maxlength="64"
+              [value]="datasetSha()" (input)="datasetSha.set($any($event.target).value)"/>
+          </div>
+        </div>
+        <label for="cf-vt-justify">Justificativa de elegibilidade do método OM
+          (restrições TOOL07, dados e escolhas)</label>
+        <textarea id="cf-vt-justify" required rows="3" minlength="30" maxlength="2000"
+          [value]="methodJustification()"
+          (input)="methodJustification.set($any($event.target).value)"></textarea>
+        <label for="cf-vt-boundary">Fronteira da rede SIN e conexões</label>
+        <textarea id="cf-vt-boundary" required rows="2" minlength="15" maxlength="600"
+          [value]="boundaryEvidence()"
+          (input)="boundaryEvidence.set($any($event.target).value)"></textarea>
+        <label for="cf-vt-sample">Composição da amostra / dados de geração</label>
+        <textarea id="cf-vt-sample" required rows="2" minlength="15" maxlength="600"
+          [value]="sampleEvidence()"
+          (input)="sampleEvidence.set($any($event.target).value)"></textarea>
+        <label for="cf-vt-imports">Tratamento de importações e sistemas conectados</label>
+        <textarea id="cf-vt-imports" required rows="2" minlength="15" maxlength="600"
+          [value]="importEvidence()"
+          (input)="importEvidence.set($any($event.target).value)"></textarea>
+        <label for="cf-vt-vintage">Fonte para vintage e atualização</label>
+        <textarea id="cf-vt-vintage" required rows="2" minlength="15" maxlength="600"
+          [value]="vintageEvidence()"
+          (input)="vintageEvidence.set($any($event.target).value)"></textarea>
+        <label for="cf-vt-note">Limitações, hipóteses e tratamento de CO2/CO2e</label>
+        <textarea id="cf-vt-note" required rows="3" minlength="30" maxlength="2000"
+          [value]="methodologyNote()"
+          (input)="methodologyNote.set($any($event.target).value)"></textarea>
+        <button class="cf-workspace-primary" type="submit" [disabled]="saving()">
+          Salvar caderno preliminar (não admitido)
+        </button>
+      </fieldset>
+    </form>
+  } @else if(!sourceCurrent) {
+    <p role="status">A fonte EFel precisa estar atual e conferida internamente
+      antes de preparar uma memória de cálculo. As versões antigas permanecem consultáveis.</p>
+  }
+</section>

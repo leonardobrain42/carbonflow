@@ -91,6 +91,14 @@
           </fieldset>
         </form>
       }
+      @if (canViewVt0011) {
+        <carbonflow-vt0011-workbooks [projectId]="projectId"
+          [period]="item.period" [efelCandidateId]="item.id"
+          [sourceCurrent]="item.state==='CHECKED_INTERNAL_NOT_ADMITTED'"
+          [canView]="canViewVt0011"
+          [canSubmit]="canSubmitVt0011"
+          [canReview]="canReviewVt0011" />
+      }
       <button type="button" class="cf-workspace-outline"
         (click)="selected.set(null)">Fechar detalhe</button>
     </div>

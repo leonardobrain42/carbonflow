@@ -1,6 +1,7 @@
 import {Component, Input, OnChanges, SimpleChanges, inject, signal} from '@angular/core';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {firstValueFrom} from 'rxjs';
+import {OpenVt0011WorkbooksComponent} from './open-vt0011';
 
 export type E8FactorEnergy = {id:string;period:string;state:string;
   hours:{from:string;chargerCode:string}[]};
@@ -16,6 +17,7 @@ type EfelCandidate = {id:string;period:string;energyCandidateId:string;version:n
   review:EfelReview|null;hours:EfelHour[];gates:string[]};
 
 @Component({selector:'carbonflow-efel-candidates',standalone:true,
+  imports:[OpenVt0011WorkbooksComponent],
   templateUrl:'./open-efel.html'})
 export class OpenEfelCandidatesComponent implements OnChanges {
   @Input({required:true}) projectId='';
@@ -23,6 +25,9 @@ export class OpenEfelCandidatesComponent implements OnChanges {
   @Input() canView=false;
   @Input() canSubmit=false;
   @Input() canReview=false;
+  @Input() canViewVt0011=false;
+  @Input() canSubmitVt0011=false;
+  @Input() canReviewVt0011=false;
   private readonly http=inject(HttpClient);
   readonly loading=signal(false);
   readonly sending=signal(false);
