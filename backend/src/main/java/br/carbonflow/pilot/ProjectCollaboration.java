@@ -53,6 +53,10 @@ final class ProjectCollaboration {
                         if (preparer) actions.add("SAVE_OPEN_MONITORING");
                         if (preparer || "OP".equals(grant.role()))
                             actions.add("SUBMIT_OPEN_MEASUREMENTS");
+                        if ("REV".equals(grant.role())) {
+                            actions.add("REVIEW_OPEN_MEASUREMENTS");
+                            actions.add("SNAPSHOT_OPEN_PERIOD");
+                        }
                     }
                     if ("APPLICABILITY".equals(activity)) {
                         actions.add("VIEW_OPEN_APPLICABILITY");
