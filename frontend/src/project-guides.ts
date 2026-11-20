@@ -86,7 +86,7 @@ export class ProjectGuidesComponent implements OnInit {
   fieldError(field: Field): string {
     const value = this.answers()[field.key]?.trim();
     if (!value) return '';
-    if (field.type === 'year' && !/^(19\\d{2}|20\\d{2}|2100)$/.test(value)) {
+    if (field.type === 'year' && !/^(19\d{2}|20\d{2}|2100)$/.test(value)) {
       return 'Informe um ano com quatro dígitos, de 1900 a 2100.';
     }
     if (['select','enum'].includes(field.type) && !field.options.includes(value)) {
