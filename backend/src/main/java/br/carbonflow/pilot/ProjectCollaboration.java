@@ -19,7 +19,8 @@ final class ProjectCollaboration {
             "VIEW_OPEN_MONITORING", "SAVE_OPEN_MONITORING", "SUBMIT_OPEN_MEASUREMENTS",
             "VIEW_OPEN_PERIOD_ADMISSION", "SUBMIT_OPEN_PERIOD_EVIDENCE",
             "SUBMIT_OPEN_MONITORING_EVENT", "VIEW_OPEN_METHOD_REVIEW",
-            "VIEW_OPEN_E8_ENERGY_CANDIDATE", "PREPARE_OPEN_E8_ENERGY_CANDIDATE");
+            "VIEW_OPEN_E8_ENERGY_CANDIDATE", "PREPARE_OPEN_E8_ENERGY_CANDIDATE",
+            "VIEW_OPEN_EFEL_CANDIDATE", "SUBMIT_OPEN_EFEL_CANDIDATE");
 
     private ProjectCollaboration() {}
 
@@ -57,9 +58,12 @@ final class ProjectCollaboration {
                         if (!"OP".equals(grant.role())) {
                             actions.add("VIEW_OPEN_METHOD_REVIEW");
                             actions.add("VIEW_OPEN_E8_ENERGY_CANDIDATE");
+                            actions.add("VIEW_OPEN_EFEL_CANDIDATE");
                         }
-                        if (preparer)
+                        if (preparer) {
                             actions.add("PREPARE_OPEN_E8_ENERGY_CANDIDATE");
+                            actions.add("SUBMIT_OPEN_EFEL_CANDIDATE");
+                        }
                         if (preparer) actions.add("SAVE_OPEN_MONITORING");
                         if (preparer || "OP".equals(grant.role())) {
                             actions.add("SUBMIT_OPEN_MEASUREMENTS");
@@ -72,6 +76,7 @@ final class ProjectCollaboration {
                             actions.add("REVIEW_OPEN_PERIOD_EVIDENCE");
                             actions.add("REVIEW_OPEN_MONITORING_EVENT");
                             actions.add("REVIEW_OPEN_METHOD_REVIEW");
+                            actions.add("REVIEW_OPEN_EFEL_CANDIDATE");
                         }
                     }
                     if ("APPLICABILITY".equals(activity)) {
