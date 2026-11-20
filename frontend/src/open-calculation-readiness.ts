@@ -80,6 +80,22 @@ export class OpenCalculationReadinessComponent implements OnChanges {
     }
   }
 
+  preparatoryGates():CalculationGate[] {
+    return this.readiness()?.gates.filter(g=>g.code.startsWith('E8_INPUT_BINDING_')||
+      g.code.startsWith('E8_FLEET_SELECTION_'))??[];
+  }
+
+  otherGates():CalculationGate[] {
+    return this.readiness()?.gates.filter(g=>!g.code.startsWith('E8_INPUT_BINDING_')&&
+      !g.code.startsWith('E8_FLEET_SELECTION_'))??[];
+  }
+
+  preparatoryTitle(gate:CalculationGate):string {
+    const period=gate.code.split('_').at(-1)??'';
+    return (gate.code.startsWith('E8_INPUT_BINDING_')?
+      'Energia e fator elétrico':'Frota EVR e comparáveis')+' · '+period;
+  }
+
   stateLabel(value:string) {
     const labels:Record<string,string>={
       BLOCKED_MISSING_DATA:'Aguardando dados e vínculos',
@@ -91,6 +107,7 @@ export class OpenCalculationReadinessComponent implements OnChanges {
       MISSING_BINDING:'Fonte ainda não vinculada',
       PENDING_MEASUREMENT:'Medição pendente',
       NOT_CALCULATED:'Não calculado — aguardando dados admitidos',
+      REVIEW_REQUIRED:'Verificação técnica pendente',
     };
     return labels[value]??value;
   }
