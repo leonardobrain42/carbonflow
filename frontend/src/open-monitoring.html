@@ -222,6 +222,17 @@
                   @if (reading.reasons.length) {
                     <span> · {{reading.reasons.join(', ')}}</span>
                   }
+                  @if (reviewFor(batch.id,reading.line); as decision) {
+                    <p>Parecer interno {{decision.outcome==='ACCEPTED_FOR_QA'?'aceito para QA':'rejeitado'}}
+                      · revisão {{decision.version}}</p>
+                  } @else {
+                    <p>Aguardando parecer independente</p>
+                  }
+                  @if (canReview) {
+                    <button type="button" class="cf-workspace-outline"
+                      [disabled]="reviewing()"
+                      (click)="selectReview(batch.id,reading.line)">Registrar ou revisar parecer</button>
+                  }
                 </li>
               }
             </ul>
@@ -233,6 +244,84 @@
       </ul>
     } @else {
       <p>Nenhum lote de leitura recebido. O monitoramento não possui energia medida ou admitida.</p>
+    }
+
+    @if (canReview && selectedReview(); as chosen) {
+      <form class="cf-open-monitoring-form" (submit)="saveReview($event)">
+        <fieldset [disabled]="reviewing()">
+          <legend>Revisão independente da linha {{chosen.line}}</legend>
+          <p>O parecer é registrado em nova versão, preservando os anteriores.
+            Aceitar para QA não significa autorizar cálculo ou emissão de créditos.</p>
+          <label for="cf-qa-outcome">Decisão técnica interna</label>
+          <select id="cf-qa-outcome" [value]="reviewOutcome()"
+            (change)="reviewOutcome.set($any($event.target).value)">
+            <option value="REJECTED">Rejeitar leitura / exigir correção</option>
+            <option value="ACCEPTED_FOR_QA">Aceitar para reconciliação QA, não para E8</option>
+          </select>
+          <label for="cf-qa-reason">Justificativa e referência à evidência (mínimo 15 caracteres)</label>
+          <textarea id="cf-qa-reason" rows="3" minlength="15" maxlength="2000" required
+            [value]="reviewReason()" (input)="reviewReason.set($any($event.target).value)"></textarea>
+          <div class="cf-triage-actions">
+            <button type="submit" class="cf-workspace-primary" [disabled]="reviewing()">
+              Salvar parecer versionado</button>
+            <button type="button" class="cf-workspace-outline"
+              (click)="selectedReview.set(null)">Cancelar</button>
+          </div>
+        </fieldset>
+      </form>
+    }
+
+    <h4>Reconciliação ED/EC por período</h4>
+    <p>Informe horas completas com fuso, por exemplo 2027-02-01T00:00:00Z.
+      Um período só fica pronto para snapshot de QA interno quando todas as horas
+      de todos os carregadores têm ED e EC revisadas, sem sobreposição ou lacunas.
+      Mesmo assim, o E8 permanece bloqueado.</p>
+    <form class="cf-open-monitoring-form" (submit)="checkPeriod($event)">
+      <div class="cf-journey-fields">
+        <div><label for="cf-period-from">Início do período (inclusive)</label>
+          <input id="cf-period-from" type="text" required
+            placeholder="2027-02-01T00:00:00Z" [value]="qaFrom()"
+            (input)="qaFrom.set($any($event.target).value);qaPreview.set(null)"/></div>
+        <div><label for="cf-period-until">Fim do período (exclusivo)</label>
+          <input id="cf-period-until" type="text" required
+            placeholder="2027-02-01T01:00:00Z" [value]="qaUntil()"
+            (input)="qaUntil.set($any($event.target).value);qaPreview.set(null)"/></div>
+      </div>
+      <button type="submit" class="cf-workspace-outline"
+        [disabled]="qaLoading()">{{qaLoading()?'Conferindo…':'Conferir período'}}</button>
+    </form>
+    @if (qaPreview(); as preview) {
+      <p role="status"><strong>{{preview.state==='READY_FOR_INTERNAL_QA_SNAPSHOT'
+        ?'Reconciliação técnica possível':'Reconciliação bloqueada'}}</strong></p>
+      @if (preview.readyForInternalSnapshot) {
+        <p>ED revisada: {{preview.edKwh}} kWh · EC revisada: {{preview.ecKwh}} kWh.
+          Esses valores são exclusivamente de QA interno, não de crédito.</p>
+        @if (canReview) {
+          <button type="button" class="cf-workspace-primary" [disabled]="qaLoading()"
+            (click)="freezePeriod()">Congelar snapshot de QA interno</button>
+        }
+      } @else {
+        <ul class="cf-tech-gates">
+          @for (gate of preview.gates; track $index) {
+            <li><strong>{{gate.code}}</strong> · {{gate.detail}}
+              @if (gate.hour) { <small> · Hora: {{gate.hour}}</small> }
+              @if (gate.charger) { <small> · Carregador: {{gate.charger}}</small> }
+            </li>
+          }
+        </ul>
+      }
+    }
+    @if (qaSnapshots().length) {
+      <h4>Histórico de snapshots de QA interno</h4>
+      <ul class="cf-tech-gates">
+        @for (snap of qaSnapshots(); track snap.id) {
+          <li><strong>{{snap.status}}</strong> · {{snap.from}} a {{snap.until}}
+            <p>ED {{snap.edKwh}} kWh · EC {{snap.ecKwh}} kWh · SHA-256
+              {{snap.sourceSha256.slice(0,16)}}…</p>
+            <small>Este histórico não demonstra admissão metodológica e não autoriza E8.</small>
+          </li>
+        }
+      </ul>
     }
 
     <h4>Pendências do monitoramento</h4>
