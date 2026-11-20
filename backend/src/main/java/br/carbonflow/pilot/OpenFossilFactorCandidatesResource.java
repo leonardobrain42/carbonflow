@@ -1,0 +1,60 @@
+package br.carbonflow.pilot;
+
+import java.util.UUID;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.CookieParam;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+
+/**
+ * Internal-factor-only endpoints. No dynamic-project route, E8 execution,
+ * source publication or admission capability is exposed here.
+ */
+@Path("/v1/platform/open-fossil-factors")
+@Produces(MediaType.APPLICATION_JSON)
+public class OpenFossilFactorCandidatesResource {
+    private final OpenFossilFactorCandidates service;
+
+    OpenFossilFactorCandidatesResource(OpenFossilFactorCandidates service){
+        this.service=service;
+    }
+
+    @GET
+    public Response board(@CookieParam(AccountAccess.COOKIE) String cookie){
+        return secure(service.board(cookie)).build();
+    }
+
+    @GET
+    @Path("/sources/{object}/rows")
+    public Response rows(@CookieParam(AccountAccess.COOKIE) String cookie,
+                         @PathParam("object") UUID object){
+        return secure(service.rows(cookie,object)).build();
+    }
+
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response register(@CookieParam(AccountAccess.COOKIE) String cookie,
+                             OpenFossilFactorCandidates.Register request){
+        return secure(service.register(cookie,request)).status(201).build();
+    }
+
+    @POST
+    @Path("/{candidate}/reviews")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response review(@CookieParam(AccountAccess.COOKIE) String cookie,
+                           @PathParam("candidate") UUID candidate,
+                           OpenFossilFactorCandidates.Review request){
+        return secure(service.review(cookie,candidate,request)).status(201).build();
+    }
+
+    private static Response.ResponseBuilder secure(Object data){
+        return Response.ok(data)
+            .header("Cache-Control","private, no-store")
+            .header("X-Content-Type-Options","nosniff");
+    }
+}
