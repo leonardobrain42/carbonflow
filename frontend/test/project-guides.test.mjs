@@ -187,3 +187,37 @@ test('revisor decide uma proposta de fato cuja origem está fixada', async () =>
     await page.getByText('Fato interno vigente · versão 2',{exact:true}).waitFor();
   } finally { await browser.close(); }
 });
+
+test('formulário versionado rejeita ano inválido e preserva revisão e cabeçalho do schema', async () => {
+  const browser = await chromium.launch({executablePath});
+  try {
+    const page = await browser.newPage({viewport:{width:390,height:844}});
+    const root = '/v1/projects/' + projectId;
+    let saves = 0;
+    const guide = {id:'quantification',title:'Quantificação',guidance:'Ano de referência.',
+      definitionVersion:2,version:0,answers:{},legacyUnstructured:[],missing:['Ano de referência'],editable:true,
+      fields:[{key:'vintage',label:'Ano de referência',type:'year',options:[],
+        helpText:'Informe o ano do período analisado, sem converter uma data em prova.'}]};
+    await page.route('**' + root + '/metadata', r => r.fulfill({json:{projectId,environment:'SANDBOX',title:'Recarga'}}));
+    await page.route('**' + root + '/technical/capabilities', r => r.fulfill({json:{
+      projectId,environment:'SANDBOX',owner:false,actions:['VIEW_GUIDES','SAVE_GUIDE'],modules:{}
+    }}));
+    await page.route('**' + root + '/technical/guides', r => r.fulfill({json:{methodology:'VM0038_V1_1',guides:[guide]}}));
+    await page.route('**' + root + '/technical/guides/quantification', r => {
+      saves++;
+      assert.equal(r.request().headers()['if-match'],'"0"');
+      assert.equal(r.request().headers()['x-guide-definition-version'],'2');
+      assert.deepEqual(r.request().postDataJSON(),{vintage:'2027'});
+      return r.fulfill({json:{...guide,version:1,answers:{vintage:'2027'},missing:[]}});
+    });
+    await page.goto(base + '/workspace/projects/' + projectId + '/technical?secao=guias&guia=quantification');
+    await page.getByLabel('Ano de referência').fill('20xx');
+    await page.getByRole('button',{name:'Salvar guia'}).click();
+    await page.getByText('Corrija os campos destacados',{exact:false}).waitFor();
+    assert.equal(saves,0);
+    await page.getByLabel('Ano de referência').fill('2027');
+    await page.getByRole('button',{name:'Salvar guia'}).click();
+    await page.getByText('Revisão 1 salva.').waitFor();
+    assert.equal(saves,1);
+  } finally { await browser.close(); }
+});

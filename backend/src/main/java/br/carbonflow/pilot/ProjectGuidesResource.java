@@ -35,8 +35,10 @@ public class ProjectGuidesResource {
     @Path("/{guide}")
     @Consumes(MediaType.APPLICATION_JSON)
     public Response save(@CookieParam(AccountAccess.COOKIE) String token, @PathParam("project") String project,
-                         @PathParam("guide") String id, @HeaderParam("If-Match") String match, Map<String,String> answers) {
-        var saved = guides.save(token, project, id, match, answers);
+                         @PathParam("guide") String id, @HeaderParam("If-Match") String match,
+                         @HeaderParam("X-Guide-Definition-Version") String schemaVersion,
+                         Map<String,String> answers) {
+        var saved = guides.save(token, project, id, match, schemaVersion, answers);
         return Response.ok(saved).tag(Integer.toString(saved.version())).header("Cache-Control","private, no-store").build();
     }
 }
