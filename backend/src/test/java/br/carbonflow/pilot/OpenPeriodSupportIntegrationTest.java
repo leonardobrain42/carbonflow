@@ -246,7 +246,9 @@ class OpenPeriodSupportIntegrationTest {
         assertEquals("STALE_NOT_ADMITTED",staleEnergy.path("state").asText());
         assertTrue(staleEnergy.path("gates").toString().contains("MR_VERSION_CHANGED"));
         assertFalse(staleEnergy.path("usableForE8").asBoolean());
-        assertEquals(409,postMethod(energyUrl,owner.cookie(),key(),"\"1\"",
+        // MR v2 invalidates the v1 candidate; stale source revision is a
+        // precondition failure (412), not an ordinary business conflict.
+        assertEquals(412,postMethod(energyUrl,owner.cookie(),key(),"\"1\"",
             energyPayload).statusCode());
         // A new MR version never inherits its predecessor's method review.
         JsonNode newMethod=json(call("GET",methodUrl,owner.cookie(),null,null));
