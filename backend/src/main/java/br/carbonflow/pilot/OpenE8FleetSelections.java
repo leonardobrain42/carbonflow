@@ -196,6 +196,8 @@ class OpenE8FleetSelections {
             Fleet fleet=fleet(c,input.ratingSnapshotId(),project.org());
             if(fleet==null)throw hidden();
             check(fleet,energy.year(),coverage(c,fleet));
+            if(!rightsCurrent(c,fleet,project.org()))
+                throw conflict("Licenças ou direitos de processamento EVR/PBEV indisponíveis.");
             Stored latest=first(c,SELECT+"""
                 WHERE project_id=? AND period_code=? ORDER BY version DESC LIMIT 1
                 """,OpenE8FleetSelections::stored,input.projectId(),period);
@@ -251,8 +253,13 @@ class OpenE8FleetSelections {
            !saved.ratingSha().equals(fleet.ratingSha()))
             gates.add("FLEET_RATING_SOURCE_CHANGED");
         else {
-            try{check(fleet,saved.year(),coverage(c,fleet));}
-            catch(PilotProblem invalid){gates.add("FLEET_RATING_SOURCE_SUSPENDED_OR_STALE");}
+            try{
+                check(fleet,saved.year(),coverage(c,fleet));
+                if(!rightsCurrent(c,fleet,saved.organization()))
+                    gates.add("FLEET_RATING_LICENSE_EXPIRED_OR_REVOKED");
+            } catch(PilotProblem invalid){
+                gates.add("FLEET_RATING_SOURCE_SUSPENDED_OR_STALE");
+            }
         }
         UUID latest=first(c,"""
             SELECT id FROM app_open_e8_fleet_selection
@@ -318,6 +325,62 @@ class OpenE8FleetSelections {
             """,r->r.getLong(1),f.ratingId(),f.fleetId());
         return new Coverage((long)counts[0],(long)counts[1],(long)counts[2],
             (long)counts[3],(long)counts[4],accepted==null?0:accepted);
+    }
+
+    /** Revalidate every referenced original license at use-time.
+     * A snapshot status is NOT an authorization; expiration without a
+     * formal revocation still blocks project publication and freshness. */
+    private static boolean rightsCurrent(Connection c,Fleet f,UUID organization)
+        throws SQLException {
+        Object[] result=first(c,"""
+            WITH chosen AS (
+              SELECT i.source_license_id AS license_id
+              FROM app_fleet_composition_snapshot fs
+              JOIN app_fleet_ingestion i ON i.id=fs.ingestion_id
+              WHERE fs.id=? AND fs.organization_id=?
+              UNION
+              SELECT v.source_license_id AS license_id
+              FROM app_vehicle_rating_snapshot_line l
+              JOIN app_vehicle_comparable_pair p ON p.id=l.pair_id
+              JOIN app_vehicle_rating v
+                ON v.id IN (p.bev_rating_id,p.fossil_rating_id)
+              WHERE l.snapshot_id=? AND l.organization_id=?
+            )
+            SELECT count(*),count(*) FILTER (WHERE EXISTS (
+              SELECT 1 FROM app_content_license lic
+              JOIN LATERAL (
+                SELECT version,outcome,decided_by,decided_at
+                FROM app_content_license_decision
+                WHERE license_id=lic.id ORDER BY version DESC LIMIT 1
+              ) decision ON true
+              WHERE lic.id=chosen.license_id
+                AND lic.organization_id=? AND lic.environment='SANDBOX'
+                AND lic.purpose='AUTHORIZED_PROCESSING'
+                AND lic.project_id IS NULL AND lic.actor_id IS NULL
+                AND lic.starts_at<=statement_timestamp()
+                AND (lic.ends_at IS NULL OR lic.ends_at>statement_timestamp())
+                AND decision.outcome='APPROVED'
+                AND decision.decided_at<=statement_timestamp()
+                AND lic.proof_sha256 IS NOT NULL
+                AND lic.submitted_by<>decision.decided_by
+                AND EXISTS (
+                  SELECT 1 FROM app_content_license_capability cap
+                  WHERE cap.license_id=lic.id
+                    AND cap.decision_version=decision.version
+                    AND cap.operation='EXTRACT_TEXT'
+                )
+                AND EXISTS (
+                  SELECT 1 FROM app_content_license_capability cap
+                  WHERE cap.license_id=lic.id
+                    AND cap.decision_version=decision.version
+                    AND cap.operation='EXPORT_DERIVATIVES'
+                )
+            ))
+            FROM chosen
+            """,r->new Object[]{r.getLong(1),r.getLong(2)},
+            f.fleetId(),organization,f.ratingId(),organization,organization);
+        return result!=null && (long)result[0]>0 &&
+            result[0].equals(result[1]);
     }
 
     private static Energy energy(Connection c,String project,String period,UUID id)
