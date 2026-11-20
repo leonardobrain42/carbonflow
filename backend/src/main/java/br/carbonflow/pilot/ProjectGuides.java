@@ -190,7 +190,7 @@ class ProjectGuides {
 
     private static boolean valid(Field field, String value) {
         if (value == null || value.isBlank() || value.length() > 1600
-                || value.chars().anyMatch(ch -> Character.isISOControl(ch) && ch != '\\n' && ch != '\\t')) {
+                || value.chars().anyMatch(ch -> Character.isISOControl(ch) && ch != '\n' && ch != '\t')) {
             return false;
         }
         return switch (field.type()) {
