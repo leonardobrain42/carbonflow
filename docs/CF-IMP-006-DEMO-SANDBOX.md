@@ -98,7 +98,7 @@ Esse erro foi identificado pelos checksums históricos:
 
 **Não execute `flyway repair`, não altere manualmente `flyway_schema_history` e não remova os volumes.**
 
-A correção restaura a V69 original sem modificar seu checksum. A nova **V71** adiciona o campo `submitted_file_name` aos vínculos de provas e preenche os registros existentes com o nome do arquivo já registrado no repositório de PDFs criptografados. Como a V69 bloqueia UPDATEs nos vínculos, a V71 suspende somente o gatilho de imutabilidade durante o backfill transacional e o reativa antes de concluir. A V70 permanece reservada ao ponto de retomada da UX-07.
+A correção restaura a V69 original sem modificar seu checksum. A migração **V69.1** adiciona o campo `submitted_file_name` aos vínculos de provas e preenche os registros existentes com o nome do arquivo já registrado no repositório de PDFs criptografados. Como a V69 bloqueia UPDATEs nos vínculos, a V69.1 suspende somente o gatilho de imutabilidade durante o backfill transacional e o reativa antes de concluir. A V70 permanece reservada ao ponto de retomada da UX-07.
 
 Após atualizar o código com o PR #143 (no próprio branch de teste ou depois do merge), use o fluxo normal do sandbox:
 
@@ -119,7 +119,7 @@ docker compose -p carbonflow-demo -f compose.yaml -f compose.demo.yaml up -d db
 docker compose -p carbonflow-demo -f compose.yaml -f compose.demo.yaml exec -T db psql -U carbonflow -d carbonflow -c "SELECT version, description, checksum, success FROM flyway_schema_history WHERE version IN ('69','70','71') ORDER BY installed_rank;"
 ```
 
-O resultado esperado é a **V69 com checksum -1778044537**, a V70 quando a UX-07 estiver instalada, e a **V71 aplicada com sucesso**. Se você utiliza outro `CARBONFLOW_DEMO_PROJECT`, substitua `carbonflow-demo` pelo nome configurado. Para o Compose padrão, utilize `docker compose exec -T db ...` sem `-p/-f`.
+O resultado esperado é a **V69 com checksum -1778044537**, a V70 quando a UX-07 estiver instalada, e a **V69.1 aplicada com sucesso**. Se você utiliza outro `CARBONFLOW_DEMO_PROJECT`, substitua `carbonflow-demo` pelo nome configurado. Para o Compose padrão, utilize `docker compose exec -T db ...` sem `-p/-f`.
 
 Se um banco apresentar um checksum V69 diferente de -1778044537, interrompa a tentativa e inspecione o esquema e um backup daquele banco; não execute reparação automática do histórico.
 

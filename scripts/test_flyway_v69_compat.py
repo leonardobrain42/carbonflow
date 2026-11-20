@@ -27,6 +27,14 @@ class FlywayV69CompatibilityTest(unittest.TestCase):
         self.assertIn("blob.mime_type = 'application/pdf'", new)
         self.assertIn("ALTER COLUMN submitted_file_name SET NOT NULL", new)
         self.assertIn("app_open_asset_evidence_submitted_file_name_check", new)
+        self.assertIn("DISABLE TRIGGER app_open_asset_evidence_immutable", new)
+        self.assertIn("ENABLE TRIGGER app_open_asset_evidence_immutable", new)
+        self.assertNotIn("submitted_file_name", old)
+        additions = [
+            f.name for f in MIGRATIONS.glob("V*__*.sql")
+            if "ADD COLUMN submitted_file_name text" in f.read_text(encoding="utf-8")
+        ]
+        self.assertEqual(additions, ["V69_1__open_asset_evidence_submitted_filename.sql"])
 
 if __name__ == "__main__":
     unittest.main()

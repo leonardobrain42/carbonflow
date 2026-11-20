@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 /**
  * Protect already-released Flyway history against accidental mutation.
  * Old SANDBOX databases ran the original V69, checksum -1778044537.
- * The submitted PDF filename evolves additively under V71, never by rewriting V69.
+ * The submitted PDF filename evolves additively under V69.1, never by rewriting V69.
  */
 @QuarkusTest
 class FlywayMigrationCompatibilityTest {
@@ -44,9 +44,9 @@ class FlywayMigrationCompatibilityTest {
     void filenameBackfillIsAnAdditiveMigrationAndResultIsConstrained() {
         Integer applied=database.read(c->first(c,"""
             SELECT count(*) FROM flyway_schema_history
-            WHERE version='71' AND success=true
+            WHERE version='69.1' AND success=true
             """,r->r.getInt(1)));
-        assertEquals(1,applied,"V71 deve ser aplicada sem alterar V69 ou V70.");
+        assertEquals(1,applied,"V69.1 deve ser aplicada sem alterar V69 ou V70.");
         String dataType=database.read(c->first(c,"""
             SELECT data_type FROM information_schema.columns
             WHERE table_schema='public' AND table_name='app_open_asset_evidence'
@@ -66,6 +66,6 @@ class FlywayMigrationCompatibilityTest {
               AND tgname='app_open_asset_evidence_immutable'
             """,r->r.getString(1)));
         assertEquals("O",triggerState,
-            "O gatilho de imutabilidade deve ser reativado após o backfill V71.");
+            "O gatilho de imutabilidade deve ser reativado após o backfill V69.1.");
     }
 }

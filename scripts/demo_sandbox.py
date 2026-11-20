@@ -226,8 +226,8 @@ def doctor() -> bool:
                 version = matched.group(1)
                 print(f"ERRO FLYWAY V{version}: o arquivo de migração mudou após ser aplicado.")
                 if version == "69":
-                    print("Correção V69/V71 disponível: atualize o código com a migração "
-                          "original V69 e a nova V71; não execute Flyway repair.")
+                    print("Correção V69/V69.1 disponível: atualize o código com a migração "
+                          "original V69 e a nova V69.1; não execute Flyway repair.")
                 else:
                     print("Não execute repair sem comparar o esquema existente e "
                           "o histórico de migrações com um backup.")

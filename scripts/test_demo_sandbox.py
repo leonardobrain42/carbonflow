@@ -127,7 +127,7 @@ class DemoSandboxTest(unittest.TestCase):
                 self.assertFalse(demo.doctor())
             msg=capture.getvalue()
             self.assertIn("ERRO FLYWAY V69",msg)
-            self.assertIn("V69/V71",msg)
+            self.assertIn("V69/V69.1",msg)
             self.assertNotIn("confidential token",msg)
             compose.assert_called_once_with("logs","--no-color","--tail","160","app",
                                             capture=True)
