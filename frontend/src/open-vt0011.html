@@ -105,8 +105,9 @@
         <div class="cf-journey-fields">
           <div>
             <label for="cf-vt-method">Método de margem de operação (TOOL07 §6.3)</label>
-            <select id="cf-vt-method" [value]="omMethod()"
+            <select id="cf-vt-method" required [value]="omMethod()"
               (change)="omMethod.set($any($event.target).value)">
+              <option value="">Selecione o método OM fundamentado</option>
               <option value="SIMPLE_OM">Simple OM</option>
               <option value="SIMPLE_ADJUSTED_OM">Simple adjusted OM</option>
               <option value="DISPATCH_DATA_ANALYSIS_OM">Dispatch data analysis OM</option>
@@ -115,8 +116,9 @@
           </div>
           <div>
             <label for="cf-vt-vintage-mode">Abordagem de vintage OM alegada</label>
-            <select id="cf-vt-vintage-mode" [value]="vintageMode()"
+            <select id="cf-vt-vintage-mode" required [value]="vintageMode()"
               (change)="vintageMode.set($any($event.target).value)">
+              <option value="">Selecione a abordagem aplicável</option>
               <option value="EX_POST">Ex post</option>
               <option value="EX_ANTE">Ex ante</option>
             </select>
