@@ -123,10 +123,7 @@ class OpenMonitoringDossiers {
         throws SQLException {
         if(!DEPENDENT_PD_SECTIONS.contains(section))return null;
         Manifest current=manifest(c,project);
-        String pinned=first(c,"""
-            SELECT manifest_sha256 FROM app_pd_monitoring_dependency
-            WHERE project_id=? AND section_id=? AND section_version=?
-            """,r->r.getString(1),project,section,version);
+        String pinned=pinnedPd(c,project,section,version);
         if(current.dossiers().isEmpty() && pinned==null)return null;
         var gates=new java.util.ArrayList<Gate>();
         boolean changed=!java.util.Objects.equals(current.sha256(),pinned);
@@ -141,6 +138,15 @@ class OpenMonitoringDossiers {
         boolean blocked=!gates.isEmpty();
         return new PdDependency(changed?"STALE":blocked?"BLOCKED_MONITORING_REQUIREMENTS":
             "READY_FOR_INTERNAL_PD_REVIEW",blocked,!blocked,pinned,current.sha256(),List.copyOf(gates));
+    }
+
+    static String pinnedPd(Connection c,String project,String section,int version)
+        throws SQLException {
+        if(!DEPENDENT_PD_SECTIONS.contains(section) || version<=0)return null;
+        return first(c,"""
+            SELECT manifest_sha256 FROM app_pd_monitoring_dependency
+            WHERE project_id=? AND section_id=? AND section_version=?
+            """,r->r.getString(1),project,section,version);
     }
 
     static void pinPd(Connection c,String project,String section,int version)
