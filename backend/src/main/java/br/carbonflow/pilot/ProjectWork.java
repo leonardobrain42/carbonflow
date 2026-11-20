@@ -2,10 +2,13 @@ package br.carbonflow.pilot;
 
 import static br.carbonflow.pilot.PilotSql.first;
 import static br.carbonflow.pilot.PilotSql.query;
+import static br.carbonflow.pilot.PilotSql.update;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -18,12 +21,16 @@ import jakarta.enterprise.context.ApplicationScoped;
 class ProjectWork {
     enum Kind { TRIAGE, INTAKE, GUIDE, DOSSIER, SECTION, REVIEW }
     enum State { NOT_STARTED, NEEDS_DATA, IN_PROGRESS, COMPLETED, IN_REVIEW, RETURNED, REQUIRES_RECHECK }
-    record Destination(String area, String screen, String guide) {}
+    record Destination(String area, String screen, String guide, String step) {}
+    record Position(String area, String screen, String guide, String step) {}
+    record Checkpoint(String area, String screen, String guide, String step, OffsetDateTime visitedAt) {}
+    record Progress(int visible, int recorded, int needsAttention, int inReview, int actionable) {}
     record Task(String id, Kind kind, String title, State state, String reason, String responsible,
                 int sourceVersion, Destination destination, boolean actionable) {}
     record View(String projectId, String title, String environment, String projectState, String role,
                 int definitionVersion, String methodology, boolean methodologyConfigured,
-                String nextTask, List<Task> tasks) {}
+                String nextTask, List<Task> tasks, List<String> recommendedTasks,
+                Progress progress, Checkpoint resume) {}
     private record Definition(String id, Kind kind, String title, String guide) {}
     private record Dossier(int revision, int intake) {}
 
@@ -41,6 +48,75 @@ class ProjectWork {
 
     View get(String cookie, String project) {
         return scope.read(cookie, project, "VIEW_JOURNEY", this::view);
+    }
+
+    /** Only a personal navigation marker. Never grants access or changes task state. */
+    Checkpoint checkpoint(String cookie, String project, Position position) {
+        return scope.write(cookie, project, "VIEW_JOURNEY", (connection, context) -> {
+            if (!allowed(connection, context, position))
+                throw PilotProblem.invalid("DESTINO_JORNADA_INVALIDO", "destination", "CF-UX-TECH-001",
+                        "Este destino não pertence à jornada ou não está disponível para esta conta.");
+            update(connection, """
+                INSERT INTO app_project_journey_checkpoint(project_id,actor_id,area,screen,guide_id,step_id)
+                VALUES(?,?,?,?,?,?)
+                ON CONFLICT (project_id,actor_id) DO UPDATE SET
+                   area=EXCLUDED.area, screen=EXCLUDED.screen,
+                   guide_id=EXCLUDED.guide_id, step_id=EXCLUDED.step_id,
+                   updated_at=statement_timestamp()
+                """, context.id(), context.actor().id(), position.area(), position.screen(),
+                    position.guide(), position.step());
+            return readCheckpoint(connection, context);
+        });
+    }
+
+    private Checkpoint readCheckpoint(Connection connection, DynamicProjectScope.Context context) throws SQLException {
+        Checkpoint checkpoint = first(connection, """
+            SELECT area,screen,guide_id,step_id,updated_at
+            FROM app_project_journey_checkpoint WHERE project_id=? AND actor_id=?
+            """, row -> new Checkpoint(row.getString(1),row.getString(2),row.getString(3),
+                row.getString(4),row.getObject(5,OffsetDateTime.class)),
+            context.id(),context.actor().id());
+        if (checkpoint == null) return null;
+        return allowed(connection, context, new Position(checkpoint.area(),
+                checkpoint.screen(),checkpoint.guide(),checkpoint.step())) ? checkpoint : null;
+    }
+
+    private boolean allowed(Connection connection, DynamicProjectScope.Context ctx, Position location)
+            throws SQLException {
+        if (location == null || location.area() == null) return false;
+        if ("triage".equals(location.area()))
+            return ctx.owner() && location.screen() == null && location.guide() == null
+                    && location.step() == null;
+        if (!"technical".equals(location.area()) || location.screen() == null) return false;
+        String screen=location.screen();
+        var actions=ctx.actions();
+        boolean permitted=switch(screen) {
+            case "inicio","entender","preparar","analisar","fontes" ->
+                actions.contains("VIEW_INTAKE");
+            case "guias","linha-base","adicionalidade" -> actions.contains("VIEW_GUIDES");
+            case "monitorar","estacoes","evidencias" -> actions.contains("VIEW_OPEN_MONITORING");
+            case "quantificar" -> actions.contains("VIEW_OPEN_CALCULATION");
+            case "redigir","revisar" -> actions.contains("VIEW_DOSSIER");
+            default -> false;
+        };
+        if (!permitted) return false;
+        if (Set.of("linha-base","adicionalidade","estacoes","evidencias","monitorar","quantificar")
+                .contains(screen) &&
+            ProjectJourney.profile(ProjectGuides.candidate(connection,ctx.id())) != ProjectJourney.VM0038)
+            return false;
+        if (location.guide()!=null) {
+            if (!Set.of("guias","redigir","revisar").contains(screen)) return false;
+            if (guides.catalog(connection,ctx).guides().stream()
+                    .noneMatch(guide -> guide.id().equals(location.guide()))) return false;
+        }
+        if (location.step()==null) return true;
+        return switch(screen) {
+            case "monitorar" -> Set.of("inventario","leituras","qa","dossies").contains(location.step());
+            case "linha-base" -> Set.of("contexto","frota","fatores","premissas","revisao","pd").contains(location.step());
+            case "adicionalidade" -> Set.of("enquadramento","cronologia","direitos","revisao","pd")
+                .contains(location.step());
+            default -> false;
+        };
     }
 
     private View view(Connection connection, DynamicProjectScope.Context context) throws SQLException {
@@ -75,12 +151,32 @@ class ProjectWork {
             if (task != null) tasks.add(task);
         }
 
-        // Review assignments always come from the current REV queue. A working draft
-        // or a mark in the guide cannot create an editorial or review permission.
-        String nextTask = tasks.stream().filter(Task::actionable).map(Task::id).findFirst().orElse(null);
+        // Recommend only actionable, account-visible tasks; never infer normative
+        // compliance or a review authorization from guide field completion.
+        var candidates=tasks.stream().filter(Task::actionable)
+            .sorted(Comparator.comparingInt(ProjectWork::priority)).toList();
+        var recommended=candidates.stream().limit(3).map(Task::id).toList();
+        int recorded=(int) tasks.stream().filter(t->t.state()==State.COMPLETED).count();
+        int attention=(int) tasks.stream().filter(t->Set.of(State.NEEDS_DATA,
+                State.RETURNED,State.REQUIRES_RECHECK).contains(t.state())).count();
+        int review=(int) tasks.stream().filter(t->t.state()==State.IN_REVIEW).count();
+        var progress=new Progress(tasks.size(),recorded,attention,review,candidates.size());
         return new View(project, title, context.environment(), context.project().state(), context.role(),
                 definitionVersion, method == ProjectJourney.GENERAL ? candidate : method.title(),
-                method != ProjectJourney.GENERAL, nextTask, List.copyOf(tasks));
+                method != ProjectJourney.GENERAL, recommended.isEmpty()?null:recommended.get(0),
+                List.copyOf(tasks),recommended,progress,readCheckpoint(connection,context));
+    }
+
+    private static int priority(Task task) {
+        return switch(task.state()) {
+            case RETURNED -> 0;
+            case REQUIRES_RECHECK -> 1;
+            case NEEDS_DATA -> 2;
+            case IN_REVIEW -> 3;
+            case IN_PROGRESS -> 4;
+            case NOT_STARTED -> 5;
+            case COMPLETED -> 6;
+        };
     }
 
     private static Task triageTask(Definition definition, ProjectTriageWizard.View view) {
@@ -90,7 +186,7 @@ class ProjectWork {
             case NOT_STARTED -> "Registre o objetivo e a atividade do projeto.";
             case COMPLETED -> "Os campos da triagem estão preenchidos. A análise técnica segue na preparação.";
             default -> "Ainda há informações a esclarecer na triagem.";
-        }, "DRAFT_OWNER", view.version(), new Destination("triage", null, null), state != State.COMPLETED);
+        }, "DRAFT_OWNER", view.version(), new Destination("triage", null, null, null), state != State.COMPLETED);
     }
 
     private static int intakeVersion(Connection connection, String project) throws SQLException {
@@ -103,7 +199,7 @@ class ProjectWork {
         return task(definition, version == 0 ? State.NOT_STARTED : State.COMPLETED,
                 version == 0 ? "Salve a primeira revisão das informações técnicas."
                         : "Há uma revisão técnica preliminar disponível.",
-                "PREP", version, new Destination("technical", "preparar", null),
+                "PREP", version, new Destination("technical", "preparar", null, null),
                 version == 0 && actions.contains("SAVE_INTAKE"));
     }
 
@@ -117,7 +213,12 @@ class ProjectWork {
             case NOT_STARTED -> "Abra o guia e registre os dados e as fontes disponíveis.";
             case NEEDS_DATA -> "Há campos a preencher ou fontes a indicar neste guia.";
             default -> "Os campos do guia estão preenchidos. Consulte os requisitos e as evidências na análise.";
-        }, "PREP", guide.version(), new Destination("technical", "guias", guide.id()),
+        }, "PREP", guide.version(), new Destination("technical",
+                    "baseline".equals(guide.id()) ? "linha-base" :
+                    "additionality".equals(guide.id()) ? "adicionalidade" : "guias",
+                    Set.of("baseline","additionality").contains(guide.id()) ? null : guide.id(),
+                    "baseline".equals(guide.id()) ? "premissas" :
+                    "additionality".equals(guide.id()) ? "cronologia" : null),
                 guide.editable() && state != State.COMPLETED);
     }
 
@@ -148,7 +249,7 @@ class ProjectWork {
             case NOT_STARTED -> "O rascunho técnico já pode servir de base para a primeira prévia.";
             case REQUIRES_RECHECK -> "A prévia usa uma revisão técnica anterior. Gere outra a partir dos dados atuais.";
             default -> "A prévia corresponde às informações técnicas salvas.";
-        }, "PREP", dossier == null ? 0 : dossier.revision(), new Destination("technical", "redigir", null),
+        }, "PREP", dossier == null ? 0 : dossier.revision(), new Destination("technical", "redigir", null, null),
                 actions.contains("PREPARE_DOSSIER") && intake > 0 && state != State.COMPLETED);
     }
 
@@ -170,10 +271,10 @@ class ProjectWork {
                 case NOT_STARTED -> "Use o guia salvo para redigir a seção do PD.";
                 default -> "Existe uma versão redigida da seção.";
             }, "PREP", section == null ? 0 : section.number(),
-                    new Destination("technical", locked && stale ? "revisar" : "redigir", guide.id()), editable);
+                    new Destination("technical", locked && stale ? "revisar" : "redigir", guide.id(), null), editable);
         }
 
-        var destination = new Destination("technical", "revisar", guide.id());
+        var destination = new Destination("technical", "revisar", guide.id(), null);
         if (section == null) {
             // The review queue cannot open a section that has yet to be drafted.
             return task(definition, State.NEEDS_DATA, "A revisão começa após a redação da seção.",
