@@ -147,10 +147,13 @@ class OpenEfelCandidates {
         });
     }
 
-    View review(String cookie,String project,UUID id,String match,String key,Decision submitted) {
+    View review(String cookie,String project,String period,UUID id,String match,String key,
+                Decision submitted) {
         return scope.write(cookie,project,"REVIEW_OPEN_EFEL_CANDIDATE",(c,ctx)->{
             if(ctx.owner() || !"REV".equals(ctx.role()))throw unavailable();
             Record entry=require(c,project,id);
+            if(!OpenMonitoringDossiers.code(period).equals(entry.period()))
+                throw unavailable();
             if(ctx.actor().id().equals(entry.author()))throw new PilotProblem(
                 403,"EFEL_REVIEW_NOT_INDEPENDENT","reviewer",RULE,
                 "O remetente dos fatores não pode conferir sua própria fonte.");
