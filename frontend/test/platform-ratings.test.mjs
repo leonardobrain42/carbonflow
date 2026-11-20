@@ -139,7 +139,14 @@ test('PBEV navegação mobile, revisão segregada e AFEC/MPG sem E8',async()=>{
       await page.getByLabel('Linha exata da tabela autorizada').selectOption(String(i+2));
       await page.getByLabel('Referência verificável do ciclo e capacidade')
         .fill('PBEV test combined cycle reference '+(i+2));
+      // The prior success notice remains visible; waiting for it again does
+      // not prove that the next POST has finished. Synchronize on this POST.
+      const postedRating=page.waitForResponse(response=>
+        new URL(response.url()).pathname.endsWith('/ratings') &&
+        response.request().method()==='POST' && response.status()===201);
       await page.getByRole('button',{name:'Registrar rating candidato'}).click();
+      await postedRating;
+      assert.equal(ratings.length,i+1);
       await page.getByText('Rating candidato registrado com origem',{exact:false}).waitFor();
     }
     for(let i=0;i<2;i++){
@@ -149,7 +156,12 @@ test('PBEV navegação mobile, revisão segregada e AFEC/MPG sem E8',async()=>{
         .fill('LDV de passageiros, cinco lugares');
       await page.getByLabel('Justificativa conservadora para propor o par')
         .fill('Capacidade e categoria equivalente; mesmo ciclo combinado de teste.');
+      const postedPair=page.waitForResponse(response=>
+        new URL(response.url()).pathname.endsWith('/pairs') &&
+        response.request().method()==='POST' && response.status()===201);
       await page.getByRole('button',{name:'Submeter par à revisão independente'}).click();
+      await postedPair;
+      assert.equal(pairs.length,i+1);
       await page.getByText('Par proposto. Outra pessoa habilitada',{exact:false}).waitFor();
     }
     assert.equal(pairs.filter(p=>p.status==='PROPOSED').length,2);
@@ -162,7 +174,12 @@ test('PBEV navegação mobile, revisão segregada e AFEC/MPG sem E8',async()=>{
       await page.locator('#cf-review-reason-'+pair.id)
         .fill('Conferência independente de categoria LDV, capacidade e ciclo combinado.');
       const record=page.locator('article.cf-platform-work-row').filter({has:page.locator('#cf-review-outcome-'+pair.id)});
+      const reviewedPair=page.waitForResponse(response=>
+        new URL(response.url()).pathname.endsWith('/review') &&
+        response.request().method()==='POST' && response.status()===200);
       await record.getByRole('button',{name:'Registrar decisão da revisão'}).click();
+      await reviewedPair;
+      assert.equal(pair.status,'ACCEPTED');
       await page.getByText('Parecer de comparabilidade registrado.',{exact:false}).waitFor();
     }
     const afec=page.getByText('AFEC:',{exact:false}).first().locator('..');
