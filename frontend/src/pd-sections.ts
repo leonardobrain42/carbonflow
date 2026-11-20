@@ -7,7 +7,9 @@ interface Guide {
   fields:{key:string;label:string}[];
 }
 interface Version {number:number;guideVersion:number;author:string;narrative:string;sha256:string}
-interface Section {guide:Guide;latest:Version | null}
+interface Section {guide:Guide;latest:Version | null;
+  monitoringDependency:{state:string;outdated:boolean;
+    gates:{code:string;detail:string}[]} | null}
 
 @Component({selector:'carbonflow-pd-sections',templateUrl:'./pd-sections.html'})
 export class PdSectionsComponent implements OnInit {
@@ -56,7 +58,10 @@ export class PdSectionsComponent implements OnInit {
     try {
       const saved = await firstValueFrom(this.http.put<Version>(this.url + '/' + item.guide.id,
         {guideVersion:item.guide.version,narrative:this.text()}, {headers:{'If-Match':'"' + (item.latest?.number ?? 0) + '"'}}));
-      const next = {...item,latest:saved};
+      const next = {...item,latest:saved,
+        monitoringDependency:null};
+      // Reload the live dependency status: a new PD version pins the
+      // current MR manifest, which may still contain unresolved QA gates.
       this.items.update(items => items?.map(old => old.guide.id === item.guide.id ? next : old) ?? [next]);
       this.show(next);
       this.message.set('Seção salva na versão ' + saved.number + '.');
