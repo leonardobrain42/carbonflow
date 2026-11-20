@@ -31,15 +31,25 @@ final class OpenTool07SimpleOmMath {
                 String sourceSha256) {}
     record Plant(String plantCode,BigDecimal netGenerationMwh,List<Fuel> fuels) {}
     record Input(int dataYear,String shareApproach,List<ShareYear> shares,List<Plant> plants) {}
+    /** Breakdown of TOOL07 Eq. 4; SHA is supplied by the author, not authenticated. */
+    record FuelCalculation(String fuelCode,String consumptionTonnes,
+                           String ncvGjPerTonne,String efTco2PerGj,
+                           String emissionsTco2,String declaredSourceSha256,
+                           String equationRef) {}
+    /** Year-by-year intermediate term shared by the two LCMR screening routes. */
+    record ShareCalculation(int year,String totalGridMwh,String lcmrMwh,
+                            String annualShare) {}
     record PlantResult(String plantCode,String netGenerationMwh,
-                       String emissionsTco2,String efTco2PerMwh) {}
+                       String emissionsTco2,String efTco2PerMwh,
+                       List<FuelCalculation> fuelCalculations) {}
     record Preview(String reference,int dataYear,String approach,
                    String shareApproach1,String shareApproach2,String selectedShare,
                    boolean fiveYearLcmrScreenPassed,
                    String includedGenerationMwh,String totalEmissionsTco2,
                    String illustrativeOmTco2PerMwh,
                    String illustrativeOmTco2PerKwh,
-                   List<PlantResult> plantCalculations,List<String> gates,
+                   List<PlantResult> plantCalculations,
+                   List<ShareCalculation> shareCalculations,List<String> gates,
                    boolean usableForE8) {}
 
     static Preview calculate(Input input) {
@@ -56,13 +66,19 @@ final class OpenTool07SimpleOmMath {
         List<ShareYear> shares=new ArrayList<>(input.shares());
         shares.sort(Comparator.comparingInt(ShareYear::year));
         BigDecimal sumShares=BigDecimal.ZERO,totalGrid=BigDecimal.ZERO,totalLcmr=BigDecimal.ZERO;
+        List<ShareCalculation> annualBreakdown=new ArrayList<>();
         for(int i=0;i<5;i++){
             ShareYear s=shares.get(i);
             if(s==null || s.year()!=input.dataYear()-4+i ||
                !positive(s.totalGridMwh())||!nonnegative(s.lcmrMwh()) ||
                s.lcmrMwh().compareTo(s.totalGridMwh())>0)
                 throw new IllegalArgumentException("Série LCMR deve conter anos contínuos, total positivo e LCMR até o total.");
-            sumShares=sumShares.add(s.lcmrMwh().divide(s.totalGridMwh(),24,RoundingMode.HALF_EVEN));
+            BigDecimal annualShare=s.lcmrMwh().divide(s.totalGridMwh(),24,
+                RoundingMode.HALF_EVEN);
+            sumShares=sumShares.add(annualShare);
+            annualBreakdown.add(new ShareCalculation(s.year(),
+                canonical(s.totalGridMwh()),canonical(s.lcmrMwh()),
+                canonical(annualShare)));
             totalGrid=totalGrid.add(s.totalGridMwh());
             totalLcmr=totalLcmr.add(s.lcmrMwh());
         }
@@ -85,6 +101,7 @@ final class OpenTool07SimpleOmMath {
                 throw new IllegalArgumentException("Unidade geradora com identificador, geração ou combustíveis inválidos.");
             BigDecimal unitEmission=BigDecimal.ZERO;
             var fuelCodes=new HashSet<String>();
+            List<FuelCalculation> fuelBreakdown=new ArrayList<>();
             for(Fuel f:p.fuels()){
                 if(f==null||f.fuelCode()==null||
                    !f.fuelCode().matches("[A-Za-z0-9_.-]{1,64}")||
@@ -94,9 +111,15 @@ final class OpenTool07SimpleOmMath {
                    !nonnegative(f.efTco2PerGj())||
                    f.sourceSha256()==null||!f.sourceSha256().matches("[a-fA-F0-9]{64}"))
                     throw new IllegalArgumentException("Combustível requer consumo em t, NCV GJ/t, EF tCO2/GJ e SHA-256 declarado.");
-                unitEmission=unitEmission.add(f.consumptionTonnes()
+                BigDecimal fuelEmission=f.consumptionTonnes()
                     .multiply(f.ncvGjPerTonne(),MC)
-                    .multiply(f.efTco2PerGj(),MC),MC);
+                    .multiply(f.efTco2PerGj(),MC);
+                unitEmission=unitEmission.add(fuelEmission,MC);
+                fuelBreakdown.add(new FuelCalculation(f.fuelCode(),
+                    canonical(f.consumptionTonnes()),canonical(f.ncvGjPerTonne()),
+                    canonical(f.efTco2PerGj()),canonical(fuelEmission),
+                    f.sourceSha256().toLowerCase(java.util.Locale.ROOT),
+                    "TOOL07-V7.0-EQ4"));
             }
             // NUMERIC(30,12) returns padded fractional zeros on JDBC reads.
             // Strip only insignificant zeros before checking effective precision:
@@ -106,8 +129,11 @@ final class OpenTool07SimpleOmMath {
                unitEmission.precision()-unitEmission.scale()>18)
                 throw new IllegalArgumentException("CO2 de unidade excede precisão suportada.");
             BigDecimal rate=unitEmission.divide(p.netGenerationMwh(),18,RoundingMode.HALF_EVEN);
-            breakdown.add(new PlantResult(p.plantCode(),p.netGenerationMwh().toPlainString(),
-                unitEmission.toPlainString(),rate.toPlainString()));
+            // Persisted fuel rows are ordered by code, while user input need not
+            // be. Keep the trace deterministic across submit and JDBC replay.
+            fuelBreakdown.sort(Comparator.comparing(FuelCalculation::fuelCode));
+            breakdown.add(new PlantResult(p.plantCode(),canonical(p.netGenerationMwh()),
+                canonical(unitEmission),rate.toPlainString(),List.copyOf(fuelBreakdown)));
             generation=generation.add(p.netGenerationMwh());
             emissions=emissions.add(unitEmission);
         }
@@ -135,7 +161,14 @@ final class OpenTool07SimpleOmMath {
             approach1.toPlainString(),approach2.toPlainString(),selected.toPlainString(),
             sharePassed,generation.toPlainString(),emissions.toPlainString(),
             om.toPlainString(),omKwh.toPlainString(),
-            List.copyOf(breakdown),List.copyOf(gates),false);
+            List.copyOf(breakdown),List.copyOf(annualBreakdown),
+            List.copyOf(gates),false);
+    }
+
+    // Normalize only trailing zeroes. Never round an input, alter a material
+    // digit, or silently substitute a missing value in an audit record.
+    private static String canonical(BigDecimal value) {
+        return value.signum()==0?"0":value.stripTrailingZeros().toPlainString();
     }
 
     private static boolean positive(BigDecimal v){return bounded(v)&&v.signum()>0;}
