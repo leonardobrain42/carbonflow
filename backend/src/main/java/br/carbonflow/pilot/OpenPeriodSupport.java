@@ -148,7 +148,8 @@ class OpenPeriodSupport {
                 "Dados ou configuração atuais já não satisfazem o QA das horas do snapshot."));
         } else {
             String nowHash=OpenMeasurementReviewQa.hash(project,
-                frozen.from(),frozen.until(),current.accepted());
+                frozen.from(),frozen.until(),current.accepted(),
+                OpenMonitoringEvents.impacting(c,project,frozen.from(),frozen.until()));
             if(!nowHash.equals(frozen.hash())) {
                 stale=true;
                 gates.add(new Gate("SNAPSHOT_REVISIONS_CHANGED",null,
