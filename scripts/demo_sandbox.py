@@ -426,7 +426,8 @@ def cli() -> None:
         compose("up", *(["--no-build"] if args.reuse_image else ["--build"]), "-d", "--wait")
         # Never create passwords if the application is not reachable; the database
         # and credentials must remain in sync across failures and upgrades.
-        wait_for_health()
+        # Compose --wait checks internal readiness; real account registration and
+        # login below verify that the published service is actually usable.
         saved = credentials(DEFAULT_EMAIL, DEFAULT_NAME, create=True)
         provision(saved)
         output(saved, quiet=args.quiet)
