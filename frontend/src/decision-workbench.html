@@ -60,7 +60,7 @@
                   @for (gate of selection.gates;track gate){<p class="cf-workspace-note">{{gate}}</p>}
                 }
               }
-              @if (!fleet().some(s=>s.period===period.reference.code)){
+              @if (!hasFleetFor(period.reference.code)){
                 <p>Não há seleção consultável de EVR/PBEV para este período; isso não significa frota igual a zero.</p>
               }
             </section>
@@ -224,7 +224,7 @@
   <footer class="cf-triage-actions">
     <button type="button" class="cf-workspace-outline" (click)="load()" [disabled]="loading()">Atualizar dados deste projeto</button>
     @if (step().id!=='pd'){
-      <button type="button" class="cf-workspace-primary" (click)="selectStep(steps()[steps().findIndex(s=>s.id===step().id)+1]?.id??'pd')">
+      <button type="button" class="cf-workspace-primary" (click)="selectStep(nextStepId())">
         Próxima etapa</button>
     }
   </footer>

@@ -125,6 +125,11 @@ export class DecisionWorkbenchComponent implements OnChanges {
     this.currentStep.set(id);
     this.navigate.emit(id);
   }
+  hasFleetFor(period:string){return this.fleet().some(item=>item.period===period);}
+  nextStepId(){
+    const all=STEPS[this.kind];
+    return all[Math.min(all.findIndex(item=>item.id===this.currentStep())+1,all.length-1)].id;
+  }
   statusOf(source:SourceName){return this.status()[source];}
   readable(source:SourceName){return this.statusOf(source)==='ready';}
   async load(){
