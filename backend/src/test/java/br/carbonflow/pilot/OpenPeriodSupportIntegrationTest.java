@@ -335,6 +335,51 @@ class OpenPeriodSupportIntegrationTest {
         assertTrue(preflightVt.path("gates").toString().contains("E8_VT0011_CASE2_M1"));
         assertFalse(preflightVt.path("canRunE8").asBoolean());
 
+        String simpleOmUrl=dossierUrl+"/M1/tool07-simple-om-a1/"+
+            vt.path("id").asText()+"/runs";
+        assertEquals(0,json(call("GET",simpleOmUrl,owner.cookie(),null,null)).size());
+        assertEquals(404,call("GET",simpleOmUrl,op.cookie(),null,null).statusCode());
+        assertEquals(404,call("GET",simpleOmUrl,outside.cookie(),null,null).statusCode());
+        String simpleOmBody=simpleOmFixture(vt.path("id").asText());
+        assertEquals(404,postMethod(simpleOmUrl,docsReviewer.cookie(),key(),"\"0\"",
+            simpleOmBody).statusCode());
+        assertEquals(412,postMethod(simpleOmUrl,owner.cookie(),key(),"\"1\"",
+            simpleOmBody).statusCode());
+        assertEquals(422,postMethod(simpleOmUrl,owner.cookie(),key(),"\"0\"",
+            simpleOmBody.replace("\"consumptionTonnes\":10",
+                "\"consumptionTonnes\":-10")).statusCode());
+        String omKey=key();
+        var omCreated=postMethod(simpleOmUrl,owner.cookie(),omKey,"\"0\"",simpleOmBody);
+        assertEquals(201,omCreated.statusCode(),omCreated.body());
+        JsonNode om=json(omCreated);
+        assertEquals("LCMR_SCREEN_PASSED_PRELIMINARY_NOT_ADMITTED",om.path("state").asText());
+        assertEquals(1,om.path("version").asInt());
+        assertEquals("FIVE_YEAR_AVERAGE_SHARES",om.at("/preview/approach").asText());
+        assertTrue(om.at("/preview/fiveYearLcmrScreenPassed").asBoolean());
+        assertEquals(0,new java.math.BigDecimal("0.3").compareTo(
+            new java.math.BigDecimal(om.at("/preview/selectedShare").asText())));
+        assertEquals(0,new java.math.BigDecimal("700").compareTo(
+            new java.math.BigDecimal(om.at("/preview/includedGenerationMwh").asText())));
+        assertEquals(0,new java.math.BigDecimal("60").compareTo(
+            new java.math.BigDecimal(om.at("/preview/totalEmissionsTco2").asText())));
+        assertEquals(0,new java.math.BigDecimal("0.085714285714285714").compareTo(
+            new java.math.BigDecimal(om.at("/preview/illustrativeOmTco2PerMwh").asText())));
+        assertEquals(2,om.path("plants").size());
+        assertEquals(5,om.path("shares").size());
+        assertEquals(64,om.path("contentSha256").asText().length());
+        assertTrue(om.path("gates").toString().contains("OM_RESULT_DIFFERS"));
+        assertFalse(om.path("usableForE8").asBoolean());
+        assertEquals(omCreated.body(),postMethod(simpleOmUrl,owner.cookie(),omKey,
+            "\"0\"",simpleOmBody).body());
+        assertEquals(409,postMethod(simpleOmUrl,owner.cookie(),omKey,"\"0\"",
+            simpleOmBody.replace("\"consumptionTonnes\":10",
+                "\"consumptionTonnes\":11")).statusCode());
+        assertEquals(1,json(call("GET",simpleOmUrl,owner.cookie(),null,null)).size());
+        JsonNode calcWithOm=json(call("GET",technical+"/open-calculation-readiness",
+            owner.cookie(),null,null));
+        assertTrue(calcWithOm.path("gates").toString().contains("E8_TOOL07_SIMPLE_OM_M1"));
+        assertFalse(calcWithOm.path("canRunE8").asBoolean());
+
         assertEquals("READY_FOR_NORMATIVE_REVIEW",
             json(call("GET",dossierUrl,owner.cookie(),null,null)).get(0).path("state").asText());
         JsonNode pdReady=json(call("GET",technical+"/pd-reviews",owner.cookie(),null,null));
@@ -354,6 +399,9 @@ class OpenPeriodSupportIntegrationTest {
         assertEquals("STALE_NOT_ADMITTED",staleEfel.path("state").asText());
         JsonNode staleWorkbook=json(call("GET",vtUrl,owner.cookie(),null,null)).get(0);
         assertEquals("STALE_NOT_ADMITTED",staleWorkbook.path("state").asText());
+        JsonNode staleOm=json(call("GET",simpleOmUrl,owner.cookie(),null,null)).get(0);
+        assertEquals("STALE_NOT_ADMITTED",staleOm.path("state").asText());
+        assertFalse(staleOm.path("usableForE8").asBoolean());
         assertFalse(staleWorkbook.path("usableForE8").asBoolean());
         assertTrue(staleWorkbook.path("gates").toString().contains("SOURCE_OR_REVIEW_STALE"));
         assertFalse(staleEfel.path("usableForE8").asBoolean());
@@ -561,6 +609,34 @@ class OpenPeriodSupportIntegrationTest {
             owner.cookie(),null,null));
         assertFalse(calc.path("canRunE8").asBoolean());
         assertTrue(calc.path("gates").toString().contains("MR_PERIOD_DEPENDENCY"));
+    }
+
+    private static String simpleOmFixture(String workbook) {
+        return """
+          {"workbookId":"%s","workbookReviewVersion":1,
+           "inventorySourceReference":"Inventário integral sintético de usinas SIN para teste.",
+           "inventorySha256":"%s",
+           "fiveYearSourceReference":"Série sintética quinquenal de geração SIN.",
+           "fiveYearSha256":"%s",
+           "fuelSourceExplanation":"Fonte e calor específico das duas usinas são sintéticos; sem admissão.",
+           "systemBoundaryNote":"Sem off-grid no oráculo; unidades representam todo grupo não LCMR.",
+           "importsExplanation":"Importações não verificadas, pendência obrigatória de análise normativa.",
+           "calculation":{"dataYear":2026,"shareApproach":"FIVE_YEAR_AVERAGE_SHARES",
+             "shares":[
+               {"year":2022,"totalGridMwh":1000,"lcmrMwh":300},
+               {"year":2023,"totalGridMwh":1000,"lcmrMwh":300},
+               {"year":2024,"totalGridMwh":1000,"lcmrMwh":300},
+               {"year":2025,"totalGridMwh":1000,"lcmrMwh":300},
+               {"year":2026,"totalGridMwh":1000,"lcmrMwh":300}],
+             "plants":[
+               {"plantCode":"T1","netGenerationMwh":400,
+                "fuels":[{"fuelCode":"coal","consumptionTonnes":10,
+                  "ncvGjPerTonne":20,"efTco2PerGj":0.1,"sourceSha256":"%s"}]},
+               {"plantCode":"T2","netGenerationMwh":300,
+                "fuels":[{"fuelCode":"gas","consumptionTonnes":8,
+                  "ncvGjPerTonne":25,"efTco2PerGj":0.2,"sourceSha256":"%s"}]}]}}
+          """.formatted(workbook,"b".repeat(64),"c".repeat(64),
+            "d".repeat(64),"e".repeat(64));
     }
 
     private static String vt0011Fixture(String efel,String om) {
