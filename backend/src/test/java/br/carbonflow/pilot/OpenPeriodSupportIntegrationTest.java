@@ -172,11 +172,31 @@ class OpenPeriodSupportIntegrationTest {
         assertEquals("READY_FOR_INTERNAL_PD_REVIEW",
             pdReady.get(0).at("/monitoringDependency/state").asText());
         assertTrue(pdReady.get(0).path("actions").toString().contains("SUBMITTED"));
-        var submitted=call("POST",technical+"/pd-reviews/monitoring/versions/1",
+        // Even if the same QA snapshot remains numerically unchanged, updating
+        // the MR linkage invalidates the provenance pinned to PD revision 1.
+        var mr2=putWithMatch(dossierUrl+"/M1",owner.cookie(),"\"1\"",
+            "{\"snapshotId\":\""+snapshot+"\",\"note\":\"Nova versão editorial do dossiê MR para M1, com histórico íntegro.\"}");
+        assertEquals(200,mr2.statusCode(),mr2.body());
+        assertEquals(2,json(mr2).at("/reference/version").asInt());
+        JsonNode pdObsolete=json(call("GET",technical+"/pd-reviews",owner.cookie(),null,null));
+        assertTrue(pdObsolete.get(0).path("outdated").asBoolean());
+        assertEquals("STALE",pdObsolete.get(0).at("/monitoringDependency/state").asText());
+        assertTrue(pdObsolete.get(0).at("/monitoringDependency/gates").toString()
+            .contains("PD_MONITORING_INPUT_CHANGED"));
+        assertFalse(pdObsolete.get(0).path("actions").toString().contains("SUBMITTED"));
+        var refreshedPd=putWithMatch(sectionPath,owner.cookie(),"\"1\"",
+            "{\"guideVersion\":1,\"narrative\":\"Plano de medição ED e EC com dados sob QA interno e dossiê de monitoramento M1.\"}");
+        assertEquals(200,refreshedPd.statusCode(),refreshedPd.body());
+        assertEquals(2,json(refreshedPd).path("number").asInt());
+        JsonNode refreshedQueue=json(call("GET",technical+"/pd-reviews",owner.cookie(),null,null));
+        assertFalse(refreshedQueue.get(0).path("outdated").asBoolean());
+        assertTrue(refreshedQueue.get(0).path("actions").toString().contains("SUBMITTED"));
+
+        var submitted=call("POST",technical+"/pd-reviews/monitoring/versions/2",
             owner.cookie(),"\"0\"",
             "{\"state\":\"SUBMITTED\",\"reason\":\"Encaminho a seção revisada após conferência documental interna.\"}");
         assertEquals(200,submitted.statusCode(),submitted.body());
-        var approved=call("POST",technical+"/pd-reviews/monitoring/versions/1",
+        var approved=call("POST",technical+"/pd-reviews/monitoring/versions/2",
             docsReviewer.cookie(),"\"1\"",
             "{\"state\":\"APPROVED_INTERNAL\",\"reason\":\"Parecer interno da seção, sem homologação normativa.\"}");
         assertEquals(200,approved.statusCode(),approved.body());
@@ -241,7 +261,7 @@ class OpenPeriodSupportIntegrationTest {
         assertEquals("BLOCKED_MONITORING_REQUIREMENTS",
             stalePd.get(0).at("/monitoringDependency/state").asText());
         assertFalse(stalePd.get(0).path("actions").toString().contains("FROZEN_INTERNAL"));
-        assertEquals(409,call("POST",technical+"/pd-reviews/monitoring/versions/1",
+        assertEquals(409,call("POST",technical+"/pd-reviews/monitoring/versions/2",
             docsReviewer.cookie(),"\"2\"",
             "{\"state\":\"FROZEN_INTERNAL\",\"reason\":\"Inadequado sem um MR atualizado.\"}").statusCode());
         String clearOccurrence="""
@@ -348,6 +368,14 @@ class OpenPeriodSupportIntegrationTest {
             .header("Cookie",cookie).header("Content-Type","application/json")
             .header("Idempotency-Key",idempotency)
             .POST(HttpRequest.BodyPublishers.ofString(body)).build();
+        return http.send(request,HttpResponse.BodyHandlers.ofString());
+    }
+    private HttpResponse<String> putWithMatch(String path,String cookie,String match,String body)
+        throws Exception {
+        var request=HttpRequest.newBuilder(URI.create(base.toExternalForm()).resolve(path))
+            .header("Cookie",cookie).header("Content-Type","application/json")
+            .header("If-Match",match)
+            .PUT(HttpRequest.BodyPublishers.ofString(body)).build();
         return http.send(request,HttpResponse.BodyHandlers.ofString());
     }
     private HttpResponse<String> call(String method,String path,String cookie,
