@@ -95,4 +95,43 @@ class OpenTool07SimpleOmMathTest {
                         List.of(new OpenTool07SimpleOmMath.Fuel(
                             "gas",n("8"),n("25"),n("0.2"),"not-a-sha")))))));
     }
+
+    @Test
+    void paddedDatabaseNumericsPreserveTheSameValidEmissions() {
+        // PostgreSQL NUMERIC(30,12) is read back with twelve decimal places.
+        // This is the same source data as the unpadded integration fixture.
+        var dbYears=years(2026,"1000.000000000000","300.000000000000");
+        var dbPlants=List.of(
+            new OpenTool07SimpleOmMath.Plant("T1",n("400.000000000000"),
+                List.of(fuel("coal","10.000000000000","20.000000000000",
+                    "0.100000000000"))),
+            new OpenTool07SimpleOmMath.Plant("T2",n("300.000000000000"),
+                List.of(fuel("gas","8.000000000000","25.000000000000",
+                    "0.200000000000"))));
+        var stored=OpenTool07SimpleOmMath.calculate(new OpenTool07SimpleOmMath.Input(
+            2026,OpenTool07SimpleOmMath.APPROACH_1,dbYears,dbPlants));
+        var fresh=OpenTool07SimpleOmMath.calculate(new OpenTool07SimpleOmMath.Input(
+            2026,OpenTool07SimpleOmMath.APPROACH_1,years(2026,"1000","300"),
+            List.of(new OpenTool07SimpleOmMath.Plant("T1",n("400"),
+                List.of(fuel("coal","10","20","0.1"))),
+                new OpenTool07SimpleOmMath.Plant("T2",n("300"),
+                List.of(fuel("gas","8","25","0.2"))))));
+        assertEquals(fresh.totalEmissionsTco2(),stored.totalEmissionsTco2());
+        assertEquals("60",stored.totalEmissionsTco2());
+        assertEquals(fresh.illustrativeOmTco2PerMwh(),
+            stored.illustrativeOmTco2PerMwh());
+        assertEquals("20",stored.plantCalculations().get(0).emissionsTco2());
+        assertEquals("40",stored.plantCalculations().get(1).emissionsTco2());
+    }
+
+    @Test
+    void stillRejectsExcessMeaningfulPrecisionRatherThanSilentlyRounding() {
+        var input=new OpenTool07SimpleOmMath.Input(2026,
+            OpenTool07SimpleOmMath.APPROACH_1,years(2026,"1000","300"),
+            List.of(new OpenTool07SimpleOmMath.Plant("T1",n("700"),
+                List.of(fuel("gas","1.123456789012","1.123456789012",
+                    "1.123456789012")))));
+        assertThrows(IllegalArgumentException.class,
+            ()->OpenTool07SimpleOmMath.calculate(input));
+    }
 }
