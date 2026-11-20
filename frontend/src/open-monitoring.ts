@@ -24,6 +24,13 @@ type MeasurementRow = {line:number;meterCode:string|null;sequence:string|null;ki
   start:string|null;end:string|null;zone:string|null;kwh:string|null;state:string;reasons:string[]};
 type MeasurementBatch = {id:string;projectId:string;source:string;fileName:string;sha256:string;
   rowCount:number;status:'CANDIDATE'|'QUARANTINED';submittedAt:string;rows:MeasurementRow[]};
+type QaReview = {batchId:string;line:number;version:number;outcome:'ACCEPTED_FOR_QA'|'REJECTED';
+  reason:string;reviewedBy:string;reviewedAt:string};
+type QaGate = {code:string;detail:string;charger:string|null;meter:string|null;hour:string|null};
+type QaPeriod = {state:string;readyForInternalSnapshot:boolean;canRunE8:boolean;
+  edKwh:string|null;ecKwh:string|null;gates:QaGate[]};
+type QaSnapshot = {id:string;projectId:string;from:string;until:string;
+  edKwh:string;ecKwh:string;sourceSha256:string;status:string;usableForE8:boolean;createdAt:string};
 type ChargerForm = {code:string; siteCode:string; chargerKind:string; ratedPowerKw:string;
                     grid:string; topology:string; timeZone:string; sourceReference:string};
 type MeterForm = {code:string; chargerCode:string; energyKind:string; sourceSystem:string;
@@ -49,6 +56,7 @@ export class OpenMonitoringComponent implements OnChanges {
   @Input({required:true}) projectId='';
   @Input() editable=false;
   @Input() canSubmit=false;
+  @Input() canReview=false;
   private readonly http=inject(HttpClient);
   readonly data=signal<View|null>(null);
   readonly charger=signal<ChargerForm>({...NEW_CHARGER});
@@ -59,6 +67,16 @@ export class OpenMonitoringComponent implements OnChanges {
   readonly saving=signal(false);
   readonly uploading=signal(false);
   readonly batches=signal<MeasurementBatch[]>([]);
+  readonly reviews=signal<Record<string,QaReview>>({});
+  readonly qaSnapshots=signal<QaSnapshot[]>([]);
+  readonly qaPreview=signal<QaPeriod|null>(null);
+  readonly qaFrom=signal('');
+  readonly qaUntil=signal('');
+  readonly reviewing=signal(false);
+  readonly qaLoading=signal(false);
+  readonly selectedReview=signal<{batch:string;line:number}|null>(null);
+  readonly reviewReason=signal('');
+  readonly reviewOutcome=signal<'ACCEPTED_FOR_QA'|'REJECTED'>('REJECTED');
   readonly selectedCsv=signal<File|null>(null);
   readonly uploadSource=signal('');
   readonly error=signal('');
@@ -79,16 +97,23 @@ export class OpenMonitoringComponent implements OnChanges {
     this.error.set('');
     try {
       const root='/v1/projects/'+encodeURIComponent(this.projectId)+'/technical/open-monitoring';
-      const [result, batches]=await Promise.all([
+      const [result, batches, snapshots]=await Promise.all([
         firstValueFrom(this.http.get<View>(root)),
-        firstValueFrom(this.http.get<MeasurementBatch[]>(root+'/batches'))
+        firstValueFrom(this.http.get<MeasurementBatch[]>(root+'/batches')),
+        firstValueFrom(this.http.get<QaSnapshot[]>(root+'/period-qa/snapshots'))
       ]);
+      const reviewGroups=await Promise.all(batches.map(batch=>
+        firstValueFrom(this.http.get<QaReview[]>(root+'/batches/'+batch.id+'/reviews'))));
+      const indexed:Record<string,QaReview>={};
+      reviewGroups.flat().forEach(r=>indexed[r.batchId+'/'+r.line]=r);
       if(id===this.sequence) {
         if(result.projectId!==this.projectId||result.environment!=='SANDBOX' ||
            batches.some(batch=>batch.projectId!==this.projectId))
           throw new Error('Incompatible scope');
         this.data.set(result);
         this.batches.set(batches);
+        this.qaSnapshots.set(snapshots);
+        this.reviews.set(indexed);
       }
     } catch(problem) {
       if(id===this.sequence)this.error.set(this.message(problem));
@@ -256,6 +281,78 @@ export class OpenMonitoringComponent implements OnChanges {
     } finally {this.uploading.set(false);}
   }
 
+  reviewFor(batch:string,line:number) {
+    return this.reviews()[batch+'/'+line];
+  }
+
+  selectReview(batch:string,line:number) {
+    const previous=this.reviewFor(batch,line);
+    this.selectedReview.set({batch,line});
+    this.reviewOutcome.set(previous?.outcome??'REJECTED');
+    this.reviewReason.set(previous?.reason??'');
+  }
+
+  async saveReview(event:Event) {
+    event.preventDefault();
+    if(!this.canReview||this.reviewing())return;
+    const selected=this.selectedReview(),reason=this.reviewReason().trim();
+    if(!selected||reason.length<15||reason.length>2000) {
+      this.error.set('O parecer exige justificativa entre 15 e 2000 caracteres.');
+      return;
+    }
+    this.reviewing.set(true);this.error.set('');
+    try {
+      const current=this.reviewFor(selected.batch,selected.line);
+      await firstValueFrom(this.http.post<QaReview>(
+        '/v1/projects/'+encodeURIComponent(this.projectId)+
+        '/technical/open-monitoring/batches/'+selected.batch+
+        '/rows/'+selected.line+'/reviews',
+        {outcome:this.reviewOutcome(),reason},
+        {headers:{'If-Match':'"'+(current?.version??0)+'"'}}));
+      this.selectedReview.set(null);
+      this.qaPreview.set(null);
+      await this.load();
+      this.notice.set('Parecer versionado registrado. Não representa aprovação de VVB ou Verra.');
+    } catch(problem) {
+      this.error.set(this.message(problem));
+    } finally {this.reviewing.set(false);}
+  }
+
+  async checkPeriod(event:Event) {
+    event.preventDefault();
+    if(this.qaLoading())return;
+    const from=this.qaFrom().trim(),until=this.qaUntil().trim();
+    if(!from||!until) {
+      this.error.set('Informe início e fim com fuso horário explícito.');
+      return;
+    }
+    this.qaLoading.set(true);this.error.set('');this.qaPreview.set(null);
+    try {
+      const root='/v1/projects/'+encodeURIComponent(this.projectId)+
+        '/technical/open-monitoring/period-qa';
+      const result=await firstValueFrom(this.http.get<QaPeriod>(
+        root+'?from='+encodeURIComponent(from)+'&until='+encodeURIComponent(until)));
+      this.qaPreview.set(result);
+    } catch(problem) {this.error.set(this.message(problem));}
+    finally {this.qaLoading.set(false);}
+  }
+
+  async freezePeriod() {
+    if(!this.canReview||this.qaLoading()||
+      !this.qaPreview()?.readyForInternalSnapshot)return;
+    this.qaLoading.set(true);this.error.set('');
+    try {
+      const snapshot=await firstValueFrom(this.http.post<QaSnapshot>(
+        '/v1/projects/'+encodeURIComponent(this.projectId)+
+        '/technical/open-monitoring/period-qa/snapshots',
+        {from:this.qaFrom().trim(),until:this.qaUntil().trim()}));
+      await this.load();
+      this.qaPreview.set(null);
+      this.notice.set('Snapshot '+snapshot.id+' preservado para QA interno. Não alimenta E8.');
+    } catch(problem) {this.error.set(this.message(problem));}
+    finally {this.qaLoading.set(false);}
+  }
+
   stateName(code:string) {
     const labels:Record<string,string>={
       MISSING:'A informar',STALE:'Rever revisão',
@@ -271,7 +368,7 @@ export class OpenMonitoringComponent implements OnChanges {
       if(problem.status===412)return 'O registro foi atualizado por outra pessoa. Recarregue antes de editar.';
       if(problem.status===428)return 'É necessária a versão atual do registro.';
       if([401,403,404].includes(problem.status))return 'Seu acesso ao monitoramento está indisponível.';
-      if(problem.status===409)return 'Existe conflito com a configuração. Recarregue e confira os códigos e versões.';
+      if(problem.status===409)return 'Conflito: revise evidências, versões e pendências do QA antes de tentar novamente.';
       if(problem.status===503)return 'Armazenamento cifrado indisponível. A equipe deve configurar a chave de evidências.';
       if(problem.status===400||problem.status===422)return 'Confira campos, datas com fuso, unidade e referência de origem/calibração.';
     }
