@@ -4,11 +4,12 @@ CREATE TABLE app_open_measurement_review (
  project_id text NOT NULL,
  batch_id uuid NOT NULL,
  source_line integer NOT NULL,
+ version integer NOT NULL CHECK(version BETWEEN 1 AND 100000000),
  outcome text NOT NULL CHECK (outcome IN ('ACCEPTED_FOR_QA','REJECTED')),
  reason text NOT NULL CHECK (length(btrim(reason)) BETWEEN 15 AND 2000),
  reviewed_by uuid NOT NULL REFERENCES app_identity(id),
  reviewed_at timestamptz NOT NULL DEFAULT statement_timestamp(),
- PRIMARY KEY(project_id,batch_id,source_line),
+ PRIMARY KEY(project_id,batch_id,source_line,version),
  FOREIGN KEY(project_id,batch_id,source_line)
   REFERENCES app_open_measurement_candidate(project_id,batch_id,source_line)
 );
@@ -71,12 +72,12 @@ CREATE TABLE app_open_period_qa_snapshot_line (
  snapshot_id uuid NOT NULL,
  batch_id uuid NOT NULL,
  source_line integer NOT NULL,
+ review_version integer NOT NULL,
  PRIMARY KEY(project_id,snapshot_id,batch_id,source_line),
- UNIQUE(project_id,snapshot_id,batch_id,source_line),
  FOREIGN KEY(project_id,snapshot_id)
    REFERENCES app_open_period_qa_snapshot(project_id,id),
  FOREIGN KEY(project_id,batch_id,source_line)
-   REFERENCES app_open_measurement_review(project_id,batch_id,source_line)
+   REFERENCES app_open_measurement_review(project_id,batch_id,source_line,review_version)
 );
 CREATE TRIGGER app_open_period_qa_snapshot_immutable
  BEFORE UPDATE OR DELETE ON app_open_period_qa_snapshot
