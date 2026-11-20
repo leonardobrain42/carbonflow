@@ -2,6 +2,7 @@ import {Component, Input, OnChanges, SimpleChanges, inject, signal} from '@angul
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {firstValueFrom} from 'rxjs';
 import {OpenVt0011WorkbooksComponent} from './open-vt0011';
+import {OpenE8BindingsComponent} from './open-e8-bindings';
 
 export type E8FactorEnergy = {id:string;period:string;state:string;
   hours:{from:string;chargerCode:string}[]};
@@ -17,7 +18,7 @@ type EfelCandidate = {id:string;period:string;energyCandidateId:string;version:n
   review:EfelReview|null;hours:EfelHour[];gates:string[]};
 
 @Component({selector:'carbonflow-efel-candidates',standalone:true,
-  imports:[OpenVt0011WorkbooksComponent],
+  imports:[OpenVt0011WorkbooksComponent,OpenE8BindingsComponent],
   templateUrl:'./open-efel.html'})
 export class OpenEfelCandidatesComponent implements OnChanges {
   @Input({required:true}) projectId='';
