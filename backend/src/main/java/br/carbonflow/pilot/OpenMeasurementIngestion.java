@@ -64,7 +64,7 @@ class OpenMeasurementIngestion {
                 "file",RULE,"O armazenamento de evidência cifrada não está configurado.");
             String source=OpenMonitoringConfiguration.code(sourceId);
             String keyHeader=PilotCommands.key(idempotencyKey);
-            if(filename==null || !filename.matches("[A-Za-z0-9][A-Za-z0-9._-]{4,119}\\.csv")
+            if(filename==null || !filename.matches("[A-Za-z0-9][A-Za-z0-9._-]{4,115}\\.csv")
                 || filename.contains("..")) throw invalid("fileName","Nome CSV inválido.");
             if(original==null || original.length==0 || original.length>2_000_000)
                 throw invalid("file","CSV excede o limite de 2 MB.");
