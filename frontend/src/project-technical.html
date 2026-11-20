@@ -187,7 +187,8 @@
             @case ('monitorar') {
               @if (can('VIEW_OPEN_MONITORING')) {
                 <carbonflow-open-monitoring [projectId]="projectId"
-                  [editable]="can('SAVE_OPEN_MONITORING')" />
+                  [editable]="can('SAVE_OPEN_MONITORING')"
+                  [canSubmit]="can('SUBMIT_OPEN_MEASUREMENTS')" />
               }
             }
 
@@ -262,7 +263,8 @@
         @if (can('VIEW_OPEN_MONITORING')) {
           <section class="cf-workspace-card" aria-label="Monitoramento por permissão de equipe">
             <carbonflow-open-monitoring [projectId]="projectId"
-              [editable]="can('SAVE_OPEN_MONITORING')" />
+              [editable]="can('SAVE_OPEN_MONITORING')"
+                  [canSubmit]="can('SUBMIT_OPEN_MEASUREMENTS')" />
           </section>
         }
         @if (can('VIEW_OPEN_CALCULATION')) {
