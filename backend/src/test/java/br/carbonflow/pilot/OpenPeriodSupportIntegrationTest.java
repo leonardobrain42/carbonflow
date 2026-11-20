@@ -366,6 +366,32 @@ class OpenPeriodSupportIntegrationTest {
             new java.math.BigDecimal(om.at("/preview/illustrativeOmTco2PerMwh").asText())));
         assertEquals(2,om.path("plants").size());
         assertEquals(5,om.path("shares").size());
+        // Full auditable memory must be identical for the POST result, the
+        // scoped detail endpoint and rehydration from persisted NUMERICs.
+        String detailUrl=simpleOmUrl+"/"+om.path("id").asText();
+        var detailResponse=call("GET",detailUrl,owner.cookie(),null,null);
+        assertEquals(200,detailResponse.statusCode(),detailResponse.body());
+        assertEquals("private, no-store",detailResponse.headers()
+            .firstValue("Cache-Control").orElse(""));
+        JsonNode detail=json(detailResponse);
+        assertEquals(om.path("id").asText(),detail.path("id").asText());
+        assertEquals(5,detail.at("/preview/shareCalculations").size());
+        assertEquals("0.3",detail.at("/preview/shareCalculations/0/annualShare").asText());
+        assertEquals("20",
+            detail.at("/preview/plantCalculations/0/fuelCalculations/0/emissionsTco2").asText());
+        assertEquals("40",
+            detail.at("/preview/plantCalculations/1/fuelCalculations/0/emissionsTco2").asText());
+        assertEquals("TOOL07-V7.0-EQ4",
+            detail.at("/preview/plantCalculations/0/fuelCalculations/0/equationRef").asText());
+        assertEquals(om.at("/preview/plantCalculations").toString(),
+            detail.at("/preview/plantCalculations").toString());
+        assertEquals(om.at("/preview/shareCalculations").toString(),
+            detail.at("/preview/shareCalculations").toString());
+        assertEquals(404,call("GET",detailUrl,op.cookie(),null,null).statusCode());
+        assertEquals(404,call("GET",detailUrl,outside.cookie(),null,null).statusCode());
+        assertEquals(404,call("GET",simpleOmUrl+
+            "/00000000-0000-0000-0000-000000000001",
+            owner.cookie(),null,null).statusCode());
         assertEquals(64,om.path("contentSha256").asText().length());
         assertTrue(om.path("gates").toString().contains("OM_RESULT_DIFFERS"));
         assertFalse(om.path("usableForE8").asBoolean());
@@ -402,6 +428,11 @@ class OpenPeriodSupportIntegrationTest {
         JsonNode staleOm=json(call("GET",simpleOmUrl,owner.cookie(),null,null)).get(0);
         assertEquals("STALE_NOT_ADMITTED",staleOm.path("state").asText());
         assertFalse(staleOm.path("usableForE8").asBoolean());
+        // Historical detail remains readable, version-pinned and visibly stale.
+        var staleDetail=json(call("GET",detailUrl,owner.cookie(),null,null));
+        assertEquals("STALE_NOT_ADMITTED",staleDetail.path("state").asText());
+        assertEquals(om.at("/preview/plantCalculations").toString(),
+            staleDetail.at("/preview/plantCalculations").toString());
         assertFalse(staleWorkbook.path("usableForE8").asBoolean());
         assertTrue(staleWorkbook.path("gates").toString().contains("SOURCE_OR_REVIEW_STALE"));
         assertFalse(staleEfel.path("usableForE8").asBoolean());
