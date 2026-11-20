@@ -100,7 +100,7 @@ class OpenMeasurementIngestion {
 
             Map<String,OpenMeasurementCsv.MeterScope> meters=meters(c,project);
             Set<String> previous=identities(c,project,source);
-            OpenMeasurementCsv.Preview parsed=OpenMeasurementCsv.parse(original,meters,previous);
+            OpenMeasurementCsv.Preview parsed=OpenMeasurementCsv.parse(original,meters,previous,source);
             UUID blobId=first(c,"""
                 SELECT id FROM app_project_evidence_blob
                 WHERE project_id=? AND sha256=?
@@ -204,7 +204,7 @@ class OpenMeasurementIngestion {
             SELECT DISTINCT ON (m.meter_code)
               m.meter_code,m.version,m.energy_kind,m.charger_code,
               m.charger_version,c.charger_kind,c.grid,c.topology,m.time_zone,
-              m.calibration_valid_from,m.calibration_valid_until,
+              m.calibration_valid_from,m.calibration_valid_until,m.source_system,
               m.configured_from,m.configured_until,
               (SELECT max(version) FROM app_open_charger_revision
                WHERE project_id=m.project_id AND charger_code=m.charger_code) AS current_charger_version
@@ -218,7 +218,7 @@ class OpenMeasurementIngestion {
                 r.getString("charger_code"),r.getInt("charger_version"),
                 r.getInt("current_charger_version"),r.getString("charger_kind"),
                 r.getString("grid"),r.getString("topology"),r.getString("time_zone"),
-                r.getObject("calibration_valid_from",OffsetDateTime.class),
+                r.getString("source_system"),r.getObject("calibration_valid_from",OffsetDateTime.class),
                 r.getObject("calibration_valid_until",OffsetDateTime.class),
                 r.getObject("configured_from",OffsetDateTime.class),
                 r.getObject("configured_until",OffsetDateTime.class)),project);
