@@ -50,6 +50,48 @@ class DemoSandboxTest(unittest.TestCase):
             self.assertEqual(call.kwargs["env"]["CARBONFLOW_PORT"], "18088")
             self.assertEqual(call.args[0][-1], "config")
 
+
+    def test_port_check_fails_closed_without_stopping_other_processes(self):
+        rows = [{"Service": "db", "State": "running", "Health": "healthy"}]
+        with patch.object(demo, "PORT", "18088"), \
+             patch.object(demo, "local_port_busy", return_value=True):
+            with self.assertRaisesRegex(RuntimeError, "porta 127.0.0.1:18088"):
+                demo.check_port(rows)
+
+    def test_owned_port_and_compose_json_formats(self):
+        row = {"Service": "app", "State": "running", "Health": "healthy",
+               "Publishers": [{"URL": "127.0.0.1", "TargetPort": 8080,
+                               "PublishedPort": 18088, "Protocol": "tcp"}]}
+        with patch.object(demo, "PORT", "18088"), \
+             patch.object(demo, "local_port_busy", return_value=True), \
+             patch.object(demo, "compose", return_value=__import__("json").dumps(row)):
+            self.assertEqual(demo.service_rows(), [row])
+            demo.check_port([row])
+        with patch.object(demo, "compose", return_value=__import__("json").dumps([row])):
+            self.assertEqual(demo.service_rows(), [row])
+
+    def test_health_check_is_read_only_and_can_report_missing_backend(self):
+        with patch.object(demo, "PORT", "18088"), \
+             patch.object(demo, "runtime_check"), \
+             patch.object(demo, "service_rows", return_value=[]), \
+             patch.object(demo, "health_status", return_value=(None, "sem resposta")), \
+             patch.object(demo, "local_port_busy", return_value=False), \
+             patch.object(demo, "compose") as compose:
+            self.assertFalse(demo.doctor())
+            compose.assert_not_called()
+
+    def test_doctor_requires_matching_demo_port_not_other_app(self):
+        rows = [{"Service": "app", "State": "running", "Health": "healthy",
+                 "Publishers": [{"URL": "127.0.0.1", "PublishedPort": 18088}]}]
+        with patch.object(demo, "PORT", "18088"), \
+             patch.object(demo, "runtime_check"), \
+             patch.object(demo, "service_rows", return_value=rows), \
+             patch.object(demo, "health_status", return_value=(200, "OK")), \
+             patch.object(demo, "local_port_busy", return_value=True):
+            self.assertTrue(demo.doctor())
+            with patch.object(demo, "PORT", "18089"):
+                self.assertFalse(demo.doctor())
+
     def test_compose_names_are_restricted(self):
         with patch.object(demo, "PROJECT", "prod/../../etc"), patch.object(demo, "PORT", "18088"):
             with self.assertRaises(ValueError):

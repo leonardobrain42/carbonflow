@@ -10,7 +10,7 @@ Pré-requisitos: Python 3.10+ e Docker Engine + Docker Compose. Na raiz do repos
 python3 scripts/demo_sandbox.py start
 ```
 
-O comando inicia a aplicação em um Compose **isolado do piloto padrão**, escuta somente em `127.0.0.1:18088`, gera uma senha aleatória no seu computador, faz o cadastro, captura o token da caixa de testes **privada dentro do contêiner**, confirma o endereço fictício e testa login real. Ao terminar, imprime as credenciais locais e a URL.
+O comando inicia a aplicação em um Compose **isolado do piloto padrão**, escuta somente em `127.0.0.1:18088`, gera uma senha aleatória no seu computador, faz o cadastro, captura o token da caixa de testes **privada dentro do contêiner**, confirma o endereço fictício e testa login real. Ao terminar, imprime as credenciais locais e a URL. A criação de rascunhos de projetos já está habilitada na área /workspace, sem poderes PP ou aprovação metodológica.
 
 - **Endereço:** http://127.0.0.1:18088/workspace
 - **E-mail padrão:** `demo@carbonflow.test`
@@ -53,6 +53,39 @@ rm -rf .carbonflow-demo
 ```
 
 O script aceita `CARBONFLOW_PORT=18089` para modificar a porta do demo e `CARBONFLOW_DEMO_PROJECT=carbonflow-demo-lab` para outro namespace, apenas com nomes que iniciem em `carbonflow-demo` ou `cf-demo`.
+
+
+## Diagnóstico e recuperação local sem apagar dados
+
+Para verificar **sem modificar nada** se o daemon Docker está ativo, se o plugin Compose está disponível, quais serviços existem no projeto de demonstração, sua porta e a saúde da API, execute na raiz do repositório:
+
+```bash
+python3 scripts/demo_sandbox.py doctor
+```
+
+A demonstração de contas e projetos é aberta em `http://127.0.0.1:18088/workspace`; o Compose padrão abre o piloto sintético em `http://127.0.0.1:8080/pilot`. Eles usam bancos e contas separados. Se a porta 18088 estiver ocupada, use:
+
+```bash
+CARBONFLOW_PORT=18089 python3 scripts/demo_sandbox.py start
+CARBONFLOW_PORT=18089 python3 scripts/demo_sandbox.py doctor
+```
+
+Para consultar logs locais dos serviços sem destruir o volume:
+
+```bash
+docker compose -p carbonflow-demo -f compose.yaml -f compose.demo.yaml ps
+docker compose -p carbonflow-demo -f compose.yaml -f compose.demo.yaml logs --tail 80 app db
+```
+
+Se o download de dependências Maven falhar (ex.: HTTP 429), o Dockerfile tenta um mirror alternativo mantendo as mesmas versões. Se **já existe uma imagem construída anteriormente** e é necessário somente voltar a trabalhar, você pode usar:
+
+```bash
+python3 scripts/demo_sandbox.py start --reuse-image
+```
+
+Isso evita compilar novamente, mas **não inclui mudanças recentes do código**. Para aplicar UX-07, execute o comando de `start` normal assim que o acesso às dependências estiver disponível.
+
+O `doctor` não apaga bancos, volumes, contas ou senhas. Não use `docker compose down -v` nem remova `.carbonflow-demo` como tentativa genérica de reparo. Se houver problemas de autenticação após restabelecer o banco, confira a senha do PostgreSQL configurada na criação do volume e os arquivos locais de credenciais. Ao compartilhar logs, retire segredos e tokens.
 
 ## O que não é simulado
 

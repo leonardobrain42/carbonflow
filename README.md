@@ -4,7 +4,7 @@ PIL-SYN-BR-001 · demonstração local com a massa sintética do kit 0.2.14. As 
 
 ## Executar com Docker Compose
 
-Com o Docker Engine ativo e o plugin Docker Compose instalado, execute na raiz do projeto.
+Com o Docker Engine ativo e o plugin Docker Compose instalado, execute na raiz do projeto. Para problemas de inicialização do sandbox de contas, execute `python3 scripts/demo_sandbox.py doctor` e consulte o [guia de diagnóstico](docs/CF-IMP-006-DEMO-SANDBOX.md#diagnóstico-e-recuperação-local-sem-apagar-dados).
 
 ```sh
 docker compose up --build -d --wait
@@ -31,7 +31,7 @@ python3 scripts/demo_sandbox.py start
 
 Abra **http://127.0.0.1:18088/workspace** e use o e-mail `demo@carbonflow.test` e a senha exibida no terminal. Para consultar novamente: `python3 scripts/demo_sandbox.py show`. Para criar outra conta fictícia: `python3 scripts/demo_sandbox.py add-user --email demo2@carbonflow.test`. Para parar mantendo dados: `python3 scripts/demo_sandbox.py stop`.
 
-Este modo usa `compose.demo.yaml`, é acessível apenas em `127.0.0.1`, guarda senhas localmente fora do Git e não concede poderes PP/REV/VVB. Veja [a documentação de segurança e operação](docs/CF-IMP-006-DEMO-SANDBOX.md). O fluxo ainda não cria projetos (CF-IMP-007).
+Este modo usa `compose.demo.yaml`, é acessível apenas em `127.0.0.1`, guarda senhas localmente fora do Git e não concede poderes PP/REV/VVB. A conta pode criar rascunhos de projetos no `/workspace`; não cria créditos. Veja [a documentação de segurança e diagnóstico](docs/CF-IMP-006-DEMO-SANDBOX.md).
 
 ## Admin local de sandbox (conta separada do projeto SIM)
 
