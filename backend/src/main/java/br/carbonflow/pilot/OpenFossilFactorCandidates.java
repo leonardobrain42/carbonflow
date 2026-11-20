@@ -146,7 +146,8 @@ class OpenFossilFactorCandidates {
             validateScope(actor.organizations(),origin);
             requirePermissions(c,actor.organizations(),origin);
             var rows=query(c,"""
-                SELECT row_index,record_key,period_year,geography,unit,value_numeric,locator
+                SELECT f.row_index,f.record_key,f.period_year,f.geography,
+                  f.unit,f.value_numeric,f.locator
                 FROM app_platform_source_candidate f
                 JOIN app_platform_source_assessment a ON a.object_id=f.object_id
                   AND a.metric=f.metric AND a.period_year=f.period_year
