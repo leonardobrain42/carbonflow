@@ -97,7 +97,9 @@
           [sourceCurrent]="item.state==='CHECKED_INTERNAL_NOT_ADMITTED'"
           [canView]="canViewVt0011"
           [canSubmit]="canSubmitVt0011"
-          [canReview]="canReviewVt0011" />
+          [canReview]="canReviewVt0011"
+          [canViewSimpleOm]="canViewSimpleOm"
+          [canPrepareSimpleOm]="canPrepareSimpleOm" />
       }
       <button type="button" class="cf-workspace-outline"
         (click)="selected.set(null)">Fechar detalhe</button>
