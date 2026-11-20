@@ -37,7 +37,7 @@ final class OpenPeriodQa {
     private OpenPeriodQa() {}
 
     static Result evaluate(OffsetDateTime from,OffsetDateTime until,
-                           List<Meter> meters,List<Reading> rows) {
+                           List<String> chargers,List<Meter> meters,List<Reading> rows) {
         if(from==null || until==null)throw invalid("period","Informe início e fim em ISO 8601.");
         Instant start=from.toInstant(),end=until.toInstant();
         long minutes=Duration.between(start,end).toMinutes();
@@ -55,6 +55,7 @@ final class OpenPeriodQa {
             byCode.put(m.code(),m);
             byCharger.computeIfAbsent(m.charger(),k->new ArrayList<>()).add(m);
         }
+        for(String code:chargers)byCharger.computeIfAbsent(code,k->new ArrayList<>());
         if(byCharger.isEmpty())add(gates,duplicateGate,"NO_CHARGERS",
             "Cadastre carregadores com medições distintas de ED e EC.",null,null,null);
 
