@@ -565,6 +565,12 @@
               <p>{{gate.code}} · {{gate.detail}}</p>
             }
             <small>Uso para E8/VCU: indisponível. A análise normativa é uma etapa distinta.</small>
+            @if (canViewMethod) {
+              <button type="button" class="cf-workspace-outline"
+                [disabled]="methodLoading()" (click)="inspectMethod(item.reference.code)">
+                Avaliação interna da VM0038 v1.1
+              </button>
+            }
             @if (editable) {
               <button type="button" class="cf-workspace-outline"
                 [disabled]="mrBusy()" (click)="chooseMr(item)">
@@ -609,6 +615,74 @@
           </button>
         </fieldset>
       </form>
+    }
+
+    @if (canViewMethod && methodSelected(); as assessment) {
+      <section class="cf-journey-context" aria-labelledby="cf-method-review-title">
+        <h4 id="cf-method-review-title">Avaliação metodológica interna · {{assessment.period}}</h4>
+        <p>VM0038 v{{assessment.methodologyEdition}} · MR v{{assessment.dossierVersion}}
+          · <strong>{{assessment.state}}</strong></p>
+        <p>Esta análise registra uma conferência técnica interna com referências. Não é
+          certificação da VVB ou decisão da Verra, não comprova a validade jurídica
+          e não admite energia no motor E8.</p>
+        @if (assessment.stale) {
+          <p role="alert">A cadeia de medição ou de documentos mudou. A avaliação
+            anterior é histórica; é necessário revisar as evidências atuais.</p>
+        }
+        @for (gate of assessment.gates; track $index) {
+          <p>{{gate.code}} · {{gate.detail}}</p>
+        }
+        @if (assessment.review; as lastReview) {
+          <p>Último parecer: {{lastReview.outcome}} · versão {{lastReview.version}}
+            · {{lastReview.reviewedAt}}</p>
+          <p>{{lastReview.rationale}}</p>
+          <small>SHA-256 da cadeia verificada: {{lastReview.evidenceSha256}}</small>
+        }
+        @if (canReviewMethod) {
+          <form class="cf-open-monitoring-form" (submit)="saveMethodReview($event)">
+            <fieldset [disabled]="methodBusy() || methodLoading()">
+              <legend>Conferência por revisor independente</legend>
+              <p>Marque como sustentado somente após verificar as provas reais. Referência
+                textual ou PDF anexado, isoladamente, não é prova normativa conclusiva.</p>
+              @for (criterion of methodChecks(); track criterion.requirement) {
+                <div class="cf-journey-context">
+                  <strong>{{methodLabels[criterion.requirement]}}</strong>
+                  <label [attr.for]="'cf-method-status-'+criterion.requirement">Conclusão interna</label>
+                  <select [id]="'cf-method-status-'+criterion.requirement"
+                    [value]="criterion.finding"
+                    (change)="updateMethodCheck(criterion.requirement,'finding',$any($event.target).value)">
+                    <option value="OPEN">Pendente ou não sustentado</option>
+                    <option value="SUPPORTED_INTERNAL">Sustentado para conferência interna</option>
+                  </select>
+                  <label [attr.for]="'cf-method-ref-'+criterion.requirement">Fonte / referência verificável</label>
+                  <input [id]="'cf-method-ref-'+criterion.requirement" required minlength="8"
+                    maxlength="300" [value]="criterion.evidenceReference"
+                    (input)="updateMethodCheck(criterion.requirement,'evidenceReference',$any($event.target).value)"/>
+                  <label [attr.for]="'cf-method-reason-'+criterion.requirement">Fundamentação do requisito</label>
+                  <textarea [id]="'cf-method-reason-'+criterion.requirement" required
+                    minlength="15" maxlength="2000" rows="2" [value]="criterion.reason"
+                    (input)="updateMethodCheck(criterion.requirement,'reason',$any($event.target).value)"></textarea>
+                </div>
+              }
+              <label for="cf-method-outcome">Decisão de revisão interna</label>
+              <select id="cf-method-outcome" [value]="methodOutcome()"
+                (change)="methodOutcome.set($any($event.target).value)">
+                <option value="RETURNED">Devolver para correções</option>
+                <option value="CHECKED_INTERNAL">Seis critérios conferidos internamente</option>
+              </select>
+              <label for="cf-method-rationale">Justificativa consolidada (15 a 2000 caracteres)</label>
+              <textarea id="cf-method-rationale" rows="4" minlength="15" maxlength="2000"
+                required [value]="methodRationale()"
+                (input)="methodRationale.set($any($event.target).value)"></textarea>
+              <button type="submit" class="cf-workspace-primary" [disabled]="methodBusy()">
+                Salvar parecer imutável
+              </button>
+            </fieldset>
+          </form>
+        }
+        <button type="button" class="cf-workspace-outline"
+          (click)="methodSelected.set(null)">Fechar avaliação</button>
+      </section>
     }
 
     <h4>Pendências do monitoramento</h4>
