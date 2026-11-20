@@ -163,6 +163,14 @@ class OpenMeasurementIngestionIntegrationTest {
         assertEquals(1L,database.read(c->first(c,
             "SELECT count(*) FROM app_open_measurement_batch WHERE project_id=?",
             r->r.getLong(1),project)).longValue());
+        // The original quarantined CSV remains auditable; corrected values with
+        // the same source+meter+interval+sequence can form a NEW candidate batch.
+        JsonNode corrected=read(uploadNamed(batches,owner.cookie(),key(),
+            "corrected-readings.csv",DATA));
+        assertEquals("CANDIDATE",corrected.path("status").asText());
+        assertEquals(2L,database.read(c->first(c,
+            "SELECT count(*) FROM app_open_measurement_batch WHERE project_id=?",
+            r->r.getLong(1),project)).longValue());
     }
 
     private void configure(Actor owner,String project) throws Exception {
