@@ -66,6 +66,40 @@ CREATE TRIGGER app_open_method_review_immutable
  BEFORE UPDATE OR DELETE ON app_open_method_review
  FOR EACH ROW EXECUTE FUNCTION app_open_metering_immutable();
 
+CREATE TABLE app_open_method_review_command (
+ actor_id uuid NOT NULL REFERENCES app_identity(id),
+ command_key text NOT NULL CHECK(command_key ~ '^[A-Za-z0-9._-]{1,128} app_project_technical_access_event_action_check;
+ALTER TABLE app_project_technical_access_event
+ ADD CONSTRAINT app_project_technical_access_event_action_check CHECK (action IN (
+    'VIEW_INTAKE','SAVE_INTAKE','VIEW_DOSSIER','PREPARE_DOSSIER','VIEW_CAPABILITIES',
+    'VIEW_TRIAGE','SAVE_TRIAGE','MOVE_TRIAGE','APPLY_TRIAGE_EXAMPLE',
+    'VIEW_EXPERIENCE','SAVE_EXPERIENCE','VIEW_INVITATION_PLANS','SAVE_INVITATION_PLAN',
+    'VIEW_AUTHORITY_REQUESTS','SUBMIT_AUTHORITY_REQUEST','WITHDRAW_AUTHORITY_REQUEST',
+    'VIEW_AUTHORITY_DOCUMENTS','ADD_AUTHORITY_DOCUMENT','DOWNLOAD_AUTHORITY_DOCUMENT',
+    'VIEW_PROJECT_METADATA','DOWNLOAD_DOSSIER','VIEW_JOURNEY','VIEW_PD_REVIEW',
+    'DECIDE_PD_REVIEW','VIEW_GUIDES','SAVE_GUIDE','VIEW_ACTIVE_INVITATIONS',
+    'SEND_PROJECT_INVITATION','ACCEPT_PROJECT_INVITATION','REVOKE_PROJECT_INVITATION',
+    'VIEW_OPEN_APPLICABILITY','SAVE_OPEN_APPLICABILITY','VIEW_OPEN_CALCULATION',
+    'VIEW_OPEN_MONITORING','SAVE_OPEN_MONITORING','SUBMIT_OPEN_MEASUREMENTS',
+    'REVIEW_OPEN_MEASUREMENTS','SNAPSHOT_OPEN_PERIOD','VIEW_OPEN_PERIOD_ADMISSION',
+    'SUBMIT_OPEN_PERIOD_EVIDENCE','REVIEW_OPEN_PERIOD_EVIDENCE',
+    'SUBMIT_OPEN_MONITORING_EVENT','REVIEW_OPEN_MONITORING_EVENT',
+    'VIEW_OPEN_METHOD_REVIEW','REVIEW_OPEN_METHOD_REVIEW'
+ ));
+),
+ project_id text NOT NULL,
+ dossier_code text NOT NULL,
+ dossier_version integer NOT NULL,
+ review_version integer NOT NULL,
+ fingerprint bytea NOT NULL CHECK(octet_length(fingerprint)=32),
+ PRIMARY KEY(actor_id,command_key),
+ FOREIGN KEY(project_id,dossier_code,dossier_version,review_version)
+   REFERENCES app_open_method_review(project_id,dossier_code,dossier_version,version)
+);
+CREATE TRIGGER app_open_method_review_command_immutable
+ BEFORE UPDATE OR DELETE ON app_open_method_review_command
+ FOR EACH ROW EXECUTE FUNCTION app_open_metering_immutable();
+
 ALTER TABLE app_project_technical_access_event
  DROP CONSTRAINT app_project_technical_access_event_action_check;
 ALTER TABLE app_project_technical_access_event
