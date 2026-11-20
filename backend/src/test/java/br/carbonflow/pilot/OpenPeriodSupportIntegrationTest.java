@@ -149,6 +149,12 @@ class OpenPeriodSupportIntegrationTest {
         var reported=postEvent(events,op.cookie(),eventKey,occurrence);
         assertEquals(201,reported.statusCode(),reported.body());
         String eventId=json(reported).path("id").asText();
+        var visibleEvents=json(call("GET",events,owner.cookie(),null,null));
+        assertEquals(1,visibleEvents.size());
+        assertEquals(eventId,visibleEvents.get(0).path("id").asText());
+        assertTrue(visibleEvents.get(0).path("review").isNull());
+        assertEquals(422,postEvent(events,op.cookie(),key(),
+            occurrence.replace("METER-API-1","UNKNOWN-EXTERNAL-SOURCE")).statusCode());
         assertEquals(eventId,json(postEvent(events,op.cookie(),eventKey,occurrence))
             .path("id").asText());
         assertEquals(409,postEvent(events,op.cookie(),eventKey,
@@ -175,6 +181,9 @@ class OpenPeriodSupportIntegrationTest {
         assertEquals(200,cleared.statusCode(),cleared.body());
         assertEquals("\"1\"",cleared.headers().firstValue("ETag").orElseThrow());
         assertEquals(1,json(cleared).path("version").asInt());
+        var afterReview=json(call("GET",events,owner.cookie(),null,null));
+        assertEquals("CLEARED_FOR_INTERNAL_QA",
+            afterReview.get(0).at("/review/outcome").asText());
         assertEquals("READY_FOR_INTERNAL_QA_SNAPSHOT",json(call("GET",root+
             "/period-qa?from=2027-02-01T00%3A00%3A00Z&until=2027-02-01T01%3A00%3A00Z",
             owner.cookie(),null,null)).path("state").asText());
