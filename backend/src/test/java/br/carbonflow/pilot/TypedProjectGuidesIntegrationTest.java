@@ -52,7 +52,7 @@ class TypedProjectGuidesIntegrationTest {
         // Store a deliberately ambiguous original guide; typed schema only reports it as legacy.
         assertEquals(200,call("PUT",root+"/guides/applicability",owner.cookie(),null,"\"0\"",null,
             "{\"boundary\":\"estacoes a identificar\",\"incidence\":\"A confirmar\"}").statusCode());
-        var legacy=json(call("GET",url,owner.cookie(),null,null,null));
+        var legacy=json(call("GET",url,owner.cookie(),null,null,null,null));
         assertTrue(guide(legacy,"applicability").path("legacyNeedsReview").toString().contains("boundary"));
         assertEquals("LEGACY_UNSTRUCTURED_REVIEW_REQUIRED",
             guide(legacy,"applicability").path("state").asText());
