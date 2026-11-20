@@ -187,7 +187,16 @@ export class OpenMonitoringComponent implements OnChanges {
   private proofRetry='';
 
   ngOnChanges(changes:SimpleChanges) {
-    if(changes['projectId'])void this.load();
+    if(changes['projectId']) {
+      // Never display a previous project's energy inputs or evidence while
+      // a different project is loading, even if both use period "M1".
+      this.energyPeriod.set(null);
+      this.energyHistory.set([]);
+      this.methodSelected.set(null);
+      this.proofSnapshot.set(null);
+      this.proofReadiness.set(null);
+      void this.load();
+    }
   }
 
   async load() {
@@ -704,6 +713,7 @@ export class OpenMonitoringComponent implements OnChanges {
 
   async inspectEnergy(period:string) {
     if(!this.canViewEnergy)return;
+    const project=this.projectId;
     this.energyPeriod.set(period);
     this.energyBusy.set(true);this.error.set('');
     try {
@@ -711,18 +721,21 @@ export class OpenMonitoringComponent implements OnChanges {
         '/v1/projects/'+encodeURIComponent(this.projectId)+
         '/technical/open-monitoring/dossiers/'+encodeURIComponent(period)+
         '/e8-energy-candidates'));
-      if(this.energyPeriod()===period)this.energyHistory.set(records);
+      if(this.projectId===project && this.energyPeriod()===period)
+        this.energyHistory.set(records);
     } catch(problem){this.error.set(this.message(problem));}
     finally {this.energyBusy.set(false);}
   }
 
   async prepareEnergy(item:MrDossier) {
     if(!this.canPrepareEnergy || this.energyPreparing())return;
+    const project=this.projectId;
     this.energyPreparing.set(true);this.error.set('');this.notice.set('');
     const root='/v1/projects/'+encodeURIComponent(this.projectId)+
       '/technical/open-monitoring/dossiers/'+encodeURIComponent(item.reference.code);
     try {
       const current=await firstValueFrom(this.http.get<MethodView>(root+'/method-review'));
+      if(this.projectId!==project)return;
       if(current.state!=='CHECKED_INTERNAL_AWAITING_NORMATIVE_ADMISSION' ||
           !current.review || current.dossierVersion!==item.reference.version) {
         this.error.set('O MR e a conferência interna precisam estar vigentes. Confira as pendências.');
@@ -732,8 +745,10 @@ export class OpenMonitoringComponent implements OnChanges {
         {dossierVersion:item.reference.version,methodReviewVersion:current.review.version},
         {headers:{'If-Match':'"'+current.review.version+'"',
           'Idempotency-Key':crypto.randomUUID()}}));
-      await this.inspectEnergy(item.reference.code);
-      this.notice.set('Pacote ED/EC histórico preparado. NOT_ADMITTED: ainda não pode entrar no cálculo E8.');
+      if(this.projectId===project) {
+        await this.inspectEnergy(item.reference.code);
+        this.notice.set('Pacote ED/EC histórico preparado. NOT_ADMITTED: ainda não pode entrar no cálculo E8.');
+      }
     } catch(problem){this.error.set(this.message(problem));}
     finally {this.energyPreparing.set(false);}
   }
