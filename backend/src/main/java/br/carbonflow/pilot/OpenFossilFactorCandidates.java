@@ -147,12 +147,19 @@ class OpenFossilFactorCandidates {
             requirePermissions(c,actor.organizations(),origin);
             var rows=query(c,"""
                 SELECT row_index,record_key,period_year,geography,unit,value_numeric,locator
-                FROM app_platform_source_candidate
-                WHERE object_id=? AND metric=?
-                ORDER BY row_index LIMIT 2000
+                FROM app_platform_source_candidate f
+                JOIN app_platform_source_assessment a ON a.object_id=f.object_id
+                  AND a.metric=f.metric AND a.period_year=f.period_year
+                  AND a.geography=f.geography AND a.unit=f.unit
+                WHERE f.object_id=? AND f.metric=?
+                  AND a.methodology='VM0038'
+                  AND a.methodology_edition='1.1' AND a.scenario=?
+                  AND a.blocked_capability='BASELINE_BE'
+                  AND a.outcome='APPROVED_FOR_SCOPE'
+                ORDER BY f.row_index LIMIT 2000
                 """,r->new Row(r.getInt(1),r.getString(2),r.getInt(3),
                     r.getString(4),r.getString(5),r.getBigDecimal(6),r.getString(7)),
-                    object,METRIC);
+                    object,METRIC,SCENARIO);
             ComplianceStaff.audit(c,actor.id(),null,"VIEW_OPEN_FOSSIL_FACTOR");
             return List.copyOf(rows);
         });
