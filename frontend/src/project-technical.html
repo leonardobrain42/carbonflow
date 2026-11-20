@@ -114,44 +114,38 @@
             }
 
             @case ('linha-base') {
-              <p>Organize a hipótese contrafactual e a frota de referência.
-                EVR/PBEV e fatores de combustível continuam candidatos até
-                revisão normativa, admissibilidade de direitos e vínculo ao cálculo.</p>
               @if (saved.journey.candidate === 'VM0038') {
-                <carbonflow-project-guides [projectId]="projectId"
-                  [initialGuide]="'baseline'" [canOpenDocument]="can('VIEW_DOSSIER')"
-                  [canOpenIntake]="can('VIEW_INTAKE')"
-                  (prepare)="open('preparar')" (document)="open('redigir',$event)"
-                  (saved)="updateGuide($event)" />
+                <carbonflow-decision-workbench [projectId]="projectId" kind="baseline"
+                  [requestedStep]="queryEtapa() ?? null" [canViewApplicability]="can('VIEW_OPEN_APPLICABILITY')"
+                  [canViewCalculation]="can('VIEW_OPEN_CALCULATION')"
+                  [canViewMonitoring]="can('VIEW_OPEN_MONITORING')"
+                  [canViewFleet]="can('VIEW_OPEN_E8_FLEET_SELECTION')"
+                  [canViewPd]="can('VIEW_DOSSIER')" [canSaveGuide]="can('SAVE_GUIDE')"
+                  (navigate)="openWorkStep($event)"
+                  (openGuide)="open('guias',$event)" (openMonitoring)="openMonitoring('dossies')"
+                  (openCalculation)="open('quantificar')" (openApplicability)="open('analisar')"
+                  (pd)="open('redigir',$event)" />
               } @else {
-                <p>O guia de linha de base específico desta metodologia ainda
-                  não está disponível. Registre o requisito sem inventar entradas.</p>
+                <p>O fluxo específico de linha de base para esta metodologia ainda
+                  não está implementado. Nenhuma regra da VM0038 será reutilizada indevidamente.</p>
               }
-              <div class="cf-triage-actions">
-                @if (can('VIEW_OPEN_CALCULATION')) {
-                  <button type="button" class="cf-workspace-outline"
-                    (click)="open('quantificar')">Ver dependências do pré-cálculo</button>
-                }
-                @if (can('VIEW_OPEN_MONITORING')) {
-                  <button type="button" class="cf-workspace-outline"
-                    (click)="openMonitoring('dossies')">Ver MR e EFel</button>
-                }
-              </div>
             }
 
             @case ('adicionalidade') {
-              <p>Documente quando o projeto considerou o incentivo do carbono,
-                quais compromissos já existiam e as provas de anterioridade.
-                O preenchimento não concede aprovação de adicionalidade.</p>
               @if (saved.journey.candidate === 'VM0038') {
-                <carbonflow-project-guides [projectId]="projectId"
-                  [initialGuide]="'additionality'" [canOpenDocument]="can('VIEW_DOSSIER')"
-                  [canOpenIntake]="can('VIEW_INTAKE')"
-                  (prepare)="open('preparar')" (document)="open('redigir',$event)"
-                  (saved)="updateGuide($event)" />
+                <carbonflow-decision-workbench [projectId]="projectId" kind="additionality"
+                  [requestedStep]="queryEtapa() ?? null" [canViewApplicability]="can('VIEW_OPEN_APPLICABILITY')"
+                  [canViewCalculation]="can('VIEW_OPEN_CALCULATION')"
+                  [canViewMonitoring]="can('VIEW_OPEN_MONITORING')"
+                  [canViewFleet]="can('VIEW_OPEN_E8_FLEET_SELECTION')"
+                  [canViewPd]="can('VIEW_DOSSIER')" [canSaveGuide]="can('SAVE_GUIDE')"
+                  (navigate)="openWorkStep($event)"
+                  (openGuide)="open('guias',$event)" (openMonitoring)="openMonitoring('dossies')"
+                  (openCalculation)="open('quantificar')" (openApplicability)="open('analisar')"
+                  (pd)="open('redigir',$event)" />
               } @else {
-                <p>O guia específico de adicionalidade ainda não está disponível
-                  para a metodologia selecionada.</p>
+                <p>A avaliação guiada da adicionalidade desta metodologia não
+                  está implementada. Nenhuma rota normativa foi inferida.</p>
               }
             }
 

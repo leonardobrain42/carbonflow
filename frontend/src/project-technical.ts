@@ -6,6 +6,7 @@ import {OpenApplicabilityComponent} from './open-applicability';
 import {OpenCalculationReadinessComponent} from './open-calculation-readiness';
 import {OpenMonitoringComponent} from './open-monitoring';
 import {ProjectStationsComponent} from './project-stations';
+import {DecisionWorkbenchComponent} from './decision-workbench';
 import {WorkspaceNavigationComponent} from './workspace-navigation';
 import {afterNextRender, Component, computed, ElementRef, inject, Injector, signal, viewChild} from '@angular/core';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
@@ -119,7 +120,7 @@ function formValues(data: IntakeData | null): IntakeForm {
 
 @Component({
   selector: 'carbonflow-project-technical',
-  imports: [RouterLink, WorkspaceNavigationComponent, ProjectGuidesComponent, OpenApplicabilityComponent, OpenCalculationReadinessComponent, OpenMonitoringComponent, ProjectStationsComponent, PdSectionsComponent, PdReviewsComponent, TechnicalGlossaryComponent],
+  imports: [RouterLink, WorkspaceNavigationComponent, ProjectGuidesComponent, OpenApplicabilityComponent, OpenCalculationReadinessComponent, OpenMonitoringComponent, ProjectStationsComponent, DecisionWorkbenchComponent, PdSectionsComponent, PdReviewsComponent, TechnicalGlossaryComponent],
   templateUrl: './project-technical.html',
 })
 export class ProjectTechnicalComponent {
@@ -129,9 +130,10 @@ export class ProjectTechnicalComponent {
   private readonly injector = inject(Injector);
   private readonly guideEditor = viewChild(ProjectGuidesComponent);
   private readonly stationsEditor = viewChild(ProjectStationsComponent);
+  private readonly decisionEditor = viewChild(DecisionWorkbenchComponent);
   private readonly pdEditor = viewChild(PdSectionsComponent);
   private readonly pdReview = viewChild(PdReviewsComponent);
-  readonly canLeaveGuides = () => (this.guideEditor()?.canLeave() ?? true) && (this.stationsEditor()?.canLeave() ?? true) && (this.pdEditor()?.canLeave() ?? true) && (this.pdReview()?.canLeave() ?? true);
+  readonly canLeaveGuides = () => (this.guideEditor()?.canLeave() ?? true) && (this.stationsEditor()?.canLeave() ?? true) && (this.decisionEditor()?.canLeave() ?? true) && (this.pdEditor()?.canLeave() ?? true) && (this.pdReview()?.canLeave() ?? true);
   private readonly heading = viewChild<ElementRef<HTMLHeadingElement>>('sectionHeading');
   private readonly query = toSignal(this.route.queryParamMap);
   readonly selectedGuide = computed(() => this.query()?.get('guia') ?? null);
@@ -247,10 +249,22 @@ export class ProjectTechnicalComponent {
     afterNextRender(() => this.heading()?.nativeElement.focus(), {injector:this.injector});
   }
 
+  async openWorkStep(step:string){
+    if(this.saving() || !this.canLeaveGuides())return;
+    if(!['linha-base','adicionalidade'].includes(this.section().id))return;
+    if(await this.router.navigate([],{
+      relativeTo:this.route,
+      queryParams:{secao:this.section().id,etapa:step,guia:null},
+      queryParamsHandling:'merge'
+    })){
+      afterNextRender(()=>this.heading()?.nativeElement.focus(),{injector:this.injector});
+    }
+  }
+
   async open(section: Section, guide: string | null = null) {
     if (this.section().id === section || this.saving() || !this.canLeaveGuides()) return;
     this.notice.set('');
-    if (await this.router.navigate([], {relativeTo: this.route, queryParams: {secao: section, guia: guide}, queryParamsHandling: 'merge'})) {
+    if (await this.router.navigate([], {relativeTo: this.route, queryParams: {secao: section, guia: guide, etapa:null}, queryParamsHandling: 'merge'})) {
       afterNextRender(() => this.heading()?.nativeElement.focus(), {injector: this.injector});
     }
   }
