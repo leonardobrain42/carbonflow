@@ -5,9 +5,15 @@ import {firstValueFrom} from 'rxjs';
 
 type Action = 'SUBMITTED' | 'RETURNED' | 'APPROVED_INTERNAL' | 'FROZEN_INTERNAL' | 'REOPENED';
 interface ReviewEvent {seq:number; state:Action; actor:string; actorName:string; at:string; reason:string; competenceVersion:number|null}
+interface MonitoringDependency {
+  state:string;outdated:boolean;canApproveInternally:boolean;
+  pinnedManifestSha256:string|null;currentManifestSha256:string|null;
+  gates:{code:string;detail:string}[];
+}
 interface Item {
   id:string; title:string; section:{number:number; guideVersion:number; author:string; narrative:string; sha256:string};
   outdated:boolean; ownerOnly:boolean; authorName:string; history:ReviewEvent[]; actions:Action[];
+  monitoringDependency:MonitoringDependency|null;
 }
 @Component({selector:'carbonflow-pd-reviews', imports:[DatePipe], templateUrl:'./pd-reviews.html'})
 export class PdReviewsComponent implements OnInit {
