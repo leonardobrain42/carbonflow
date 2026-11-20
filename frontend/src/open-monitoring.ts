@@ -229,7 +229,7 @@ export class OpenMonitoringComponent implements OnChanges {
     const file=this.selectedCsv();
     const source=this.uploadSource().trim();
     if(!file || file.size<=0 || file.size>2_000_000 ||
-        !/^[A-Za-z0-9][A-Za-z0-9._-]{4,115}\\.csv$/.test(file.name) ||
+        !/^[A-Za-z0-9][A-Za-z0-9._-]{4,115}\.csv$/.test(file.name) ||
         !/^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$/.test(source)) {
       this.error.set('Escolha CSV UTF-8 válido, até 2 MB, e informe a origem cadastrada do medidor.');
       return;
