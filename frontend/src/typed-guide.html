@@ -1,0 +1,115 @@
+<section class="cf-journey-context" aria-label="Formulário estruturado de preparação">
+  @if (loading()){<p role="status">Carregando perguntas estruturadas…</p>}
+  @if (error()){<p class="cf-workspace-alert" role="alert">{{error()}}</p>
+    <button class="cf-workspace-outline" type="button" (click)="load()" [disabled]="busy()">Recarregar perguntas</button>}
+  @if (guide();as current){
+    <h4>Formulário estruturado · {{current.edition}}</h4>
+    <p class="cf-workspace-helper">Pacote {{current.methodology}} / {{current.branch}} ·
+      definição v{{current.definitionVersion}} · revisão {{current.version}}.
+      Respostas tipadas são rascunhos. Valores declarados não comprovam energia, direitos,
+      documentos nem aprovação Verra/VVB.</p>
+    <p class="cf-workspace-note" role="status">{{stateName(current.state)}}
+      @if (current.missing.length){ · {{current.missing.length}} campo(s) necessário(s) pendente(s) }
+    </p>
+    @if (current.legacyNeedsReview.length){
+      <details class="cf-journey-context">
+        <summary>Revisões textuais anteriores disponíveis para reconciliação ({{current.legacyNeedsReview.length}})</summary>
+        <p>Não convertemos automaticamente texto livre em datas, números, entidades ou provas.
+          Consulte os valores originais e informe os campos tipados manualmente.</p>
+        <dl>@for (key of current.legacyNeedsReview;track key){
+          <dt>{{key}}</dt><dd>{{current.legacyAnswers[key]}}</dd>
+        }</dl>
+      </details>
+    }
+    <fieldset class="cf-journey-fieldset" [disabled]="!editable||!current.editable||busy()">
+      <legend>Dados tipados de {{current.title}}</legend>
+      @for (field of current.fields;track field.key){
+        @if (active(field)){
+          <div class="cf-journey-context">
+            <label [for]="'typed-'+field.key">{{field.label}}
+              @if (field.unit){ ({{field.unit}}) }
+            </label>
+            @if (field.type==='ENUM'||field.type==='STATION_REF'||field.type==='EQUIPMENT_REF'){
+              <select [id]="'typed-'+field.key" [value]="labelValue(field)"
+                [attr.aria-describedby]="'typed-help-'+field.key"
+                (change)="change(field,$any($event.target).value)">
+                <option value="">Ainda não informado</option>
+                @for (option of fieldOptions(field);track option){
+                  <option [value]="option">{{option}}</option>
+                }
+              </select>
+              @if ((field.type==='STATION_REF'||field.type==='EQUIPMENT_REF')&&!fieldOptions(field).length){
+                <p class="cf-workspace-note">Nenhum registro acessível no inventário deste projeto.
+                  Cadastre primeiro a estação ou carregador na tela de fronteira.</p>
+              }
+            } @else if (field.type==='BOOLEAN'){
+              <select [id]="'typed-'+field.key" [value]="labelValue(field)"
+                [attr.aria-describedby]="'typed-help-'+field.key"
+                (change)="change(field,$any($event.target).value)">
+                <option value="">A confirmar</option>
+                <option value="true">Sim (declaração)</option>
+                <option value="false">Não (declaração)</option>
+              </select>
+            } @else if (field.type==='MULTI_SELECT'){
+              <select [id]="'typed-'+field.key" multiple size="4"
+                [attr.aria-describedby]="'typed-help-'+field.key"
+                (change)="changeMulti(field,$any($event.target))">
+                @for (option of field.options;track option){
+                  <option [value]="option" [selected]="selected(field,option)">{{option}}</option>
+                }
+              </select>
+            } @else if (field.type==='DATE'){
+              <input [id]="'typed-'+field.key" type="date" [value]="labelValue(field)"
+                [attr.aria-describedby]="'typed-help-'+field.key"
+                (input)="change(field,$any($event.target).value)"/>
+            } @else if (field.type==='YEAR'){
+              <input [id]="'typed-'+field.key" type="text" inputmode="numeric" maxlength="4"
+                placeholder="2027" [value]="labelValue(field)"
+                [attr.aria-describedby]="'typed-help-'+field.key"
+                (input)="change(field,$any($event.target).value)"/>
+            } @else if (field.type==='DECIMAL'){
+              <input [id]="'typed-'+field.key" type="number" min="0.001"
+                [attr.max]="field.max" step="0.001" [value]="labelValue(field)"
+                [attr.aria-describedby]="'typed-help-'+field.key"
+                (input)="change(field,$any($event.target).value)"/>
+            } @else {
+              <textarea [id]="'typed-'+field.key" rows="2" maxlength="1600"
+                [attr.aria-describedby]="'typed-help-'+field.key"
+                [value]="labelValue(field)"
+                (input)="change(field,$any($event.target).value)"></textarea>
+            }
+            <p class="cf-workspace-helper" [id]="'typed-help-'+field.key">{{field.helpText}}</p>
+            @if (fieldError(field)){
+              <p role="alert" class="cf-workspace-alert">{{fieldError(field)}}</p>
+            }
+          </div>
+        }
+      }
+    </fieldset>
+    @if (editable&&current.editable){
+      <button class="cf-workspace-primary" type="button" [disabled]="busy()||!dirty()" (click)="save()">
+        {{busy()?'Salvando…':'Salvar revisão estruturada'}}
+      </button>
+    }
+    @if (notice()){<p role="status">{{notice()}}</p>}
+    @if (current.version>1){
+      <details class="cf-journey-context">
+        <summary>Histórico estruturado (imutável)</summary>
+        <label for="typed-history">Revisão anterior</label>
+        <input id="typed-history" type="number" min="1" [max]="current.version-1"
+          [value]="historyVersion()" (change)="historyVersion.set(+$any($event.target).value)"/>
+        <button class="cf-workspace-outline" type="button" [disabled]="busy()" (click)="showRevision()">
+          Consultar revisão</button>
+        @if (history();as old){
+          <p>Revisão {{old.version}} · schema v{{old.definitionVersion}} · {{old.edition}} ·
+            {{stateName(old.state)}}</p>
+          <dl>@for (field of old.fields;track field.key){
+            @if (old.answers[field.key] !== undefined){
+              <dt>{{field.label}}</dt><dd>{{old.answers[field.key]}}</dd>
+            }
+          }</dl>
+        }
+      </details>
+    }
+  }
+</section>
