@@ -64,7 +64,8 @@ class OpenFossilFactorCandidatesIntegrationTest {
             outsider,null).statusCode());
 
         JsonNode rows=json(call("GET",URL+"/sources/"+OBJECT+"/rows",reviewer,null),200);
-        assertEquals(1,rows.size());
+        assertEquals(1,rows.size(),
+            "Não expor linha sem parecer de fonte dimensionalmente compatível");
         assertEquals("tCO2e/L",rows.get(0).path("unit").asText());
         assertEquals("SYNTHETIC-FOSSIL-EF",
             rows.get(0).path("recordKey").asText());
@@ -192,7 +193,7 @@ class OpenFossilFactorCandidatesIntegrationTest {
                  license_version,file_name,file_format,sha256,bytes_count,
                  nonce,encrypted,state,parsed_rows,parser_version)
                 VALUES (?,?,?,?,?,1,'fossil-test.csv','CSV',?,16,?,?,
-                        'APPROVED_FOR_SCOPE',1,'TABULAR-1')
+                        'APPROVED_FOR_SCOPE',2,'TABULAR-1')
                 ON CONFLICT(id) DO NOTHING
                 """,OBJECT,SUBMISSION,ORG,MANAGER,LICENSE,
                 AccessSecrets.digest("fossil-source-sha"),new byte[12],new byte[32]);
@@ -201,9 +202,11 @@ class OpenFossilFactorCandidatesIntegrationTest {
                 (object_id,row_index,record_key,metric,period_year,geography,
                  unit,value_numeric,locator)
                 VALUES (?,2,'SYNTHETIC-FOSSIL-EF','EF_FUEL_GASOLINE',2036,'BR',
-                        'tCO2e/L',0.002,'CSV registro 1')
+                        'tCO2e/L',0.002,'CSV registro 1'),
+                       (?,3,'UNREVIEWED-FUEL-EF','EF_FUEL_GASOLINE',2036,'BR',
+                        'kgCO2e/L',0.3,'CSV registro 2')
                 ON CONFLICT DO NOTHING
-                """,OBJECT);
+                """,OBJECT,OBJECT);
             update(c,"""
                 INSERT INTO app_platform_source_assessment
                 (id,object_id,outcome,methodology,methodology_edition,scenario,
