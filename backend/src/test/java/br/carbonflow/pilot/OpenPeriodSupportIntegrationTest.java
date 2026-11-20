@@ -274,6 +274,10 @@ class OpenPeriodSupportIntegrationTest {
         String bindingBody="{\"energyCandidateId\":\""+energy.path("id").asText()+
             "\",\"efelCandidateId\":\""+efel.path("id").asText()+"\"}";
         assertEquals(0,json(call("GET",bindingUrl,owner.cookie(),null,null)).size());
+        JsonNode missingInputs=json(call("GET",technical+"/open-calculation-readiness",
+            owner.cookie(),null,null));
+        assertEquals("MISSING",calcGate(missingInputs,"E8_INPUT_BINDING_M1").path("state").asText());
+        assertEquals("MISSING",calcGate(missingInputs,"E8_FLEET_SELECTION_M1").path("state").asText());
         assertEquals(404,call("GET",bindingUrl,op.cookie(),null,null).statusCode());
         assertEquals(404,call("GET",bindingUrl,outside.cookie(),null,null).statusCode());
         assertEquals(404,postMethod(bindingUrl,docsReviewer.cookie(),key(),
@@ -347,8 +351,14 @@ class OpenPeriodSupportIntegrationTest {
         assertEquals(404,call("GET",bindingUrl+
             "/00000000-0000-0000-0000-000000000001",
             owner.cookie(),null,null).statusCode());
-        assertFalse(json(call("GET",technical+"/open-calculation-readiness",
-            owner.cookie(),null,null)).path("canRunE8").asBoolean());
+        JsonNode preparedEnergy=json(call("GET",technical+"/open-calculation-readiness",
+            owner.cookie(),null,null));
+        assertFalse(preparedEnergy.path("canRunE8").asBoolean());
+        assertEquals("NOT_ADMITTED",
+            calcGate(preparedEnergy,"E8_INPUT_BINDING_M1").path("state").asText());
+        assertEquals("MISSING",
+            calcGate(preparedEnergy,"E8_FLEET_SELECTION_M1").path("state").asText());
+        assertTrue(preparedEnergy.path("emissions").path("erTco2e").isNull());
         // Staff-catalogue EVR/PBEV remains PRIVATE. Only an explicit staff
         // handoff can publish metadata to the project after a current V63
         // energy/factor binding; a project owner is not platform staff.
@@ -427,8 +437,18 @@ class OpenPeriodSupportIntegrationTest {
             op.cookie(),null,null).statusCode());
         assertEquals(404,call("GET",fleetDetailUrl,
             outside.cookie(),null,null).statusCode());
-        assertFalse(json(call("GET",technical+"/open-calculation-readiness",
-            owner.cookie(),null,null)).path("canRunE8").asBoolean());
+        JsonNode preparedFleet=json(call("GET",technical+"/open-calculation-readiness",
+            owner.cookie(),null,null));
+        assertFalse(preparedFleet.path("canRunE8").asBoolean());
+        assertEquals("NOT_ADMITTED",
+            calcGate(preparedFleet,"E8_INPUT_BINDING_M1").path("state").asText());
+        assertEquals("NOT_ADMITTED",
+            calcGate(preparedFleet,"E8_FLEET_SELECTION_M1").path("state").asText());
+        assertTrue(preparedFleet.path("emissions").path("beTco2e").isNull());
+        assertTrue(preparedFleet.path("emissions").path("peTco2e").isNull());
+        assertTrue(preparedFleet.path("emissions").path("erTco2e").isNull());
+        assertFalse(preparedFleet.toString().contains(handoff.path("fleetSourceSha256").asText()));
+        assertFalse(preparedFleet.toString().contains(preparedCatalog[0].toString()));
 
         String vtUrl=efelUrl+"/"+efel.path("id").asText()+"/vt0011-workbooks";
         assertEquals(0,json(call("GET",vtUrl,owner.cookie(),null,null)).size());
@@ -589,6 +609,14 @@ class OpenPeriodSupportIntegrationTest {
             bindingStale.path("inputSha256").asText());
         assertEquals(boundE8.path("hours").toString(),
             bindingStale.path("hours").toString());
+        JsonNode staleReadiness=json(call("GET",technical+"/open-calculation-readiness",
+            owner.cookie(),null,null));
+        assertEquals("STALE",calcGate(staleReadiness,
+            "E8_INPUT_BINDING_M1").path("state").asText());
+        assertEquals("STALE",calcGate(staleReadiness,
+            "E8_FLEET_SELECTION_M1").path("state").asText());
+        assertFalse(staleReadiness.path("canRunE8").asBoolean());
+        assertTrue(staleReadiness.path("emissions").path("erTco2e").isNull());
         JsonNode staleWorkbook=json(call("GET",vtUrl,owner.cookie(),null,null)).get(0);
         assertEquals("STALE_NOT_ADMITTED",staleWorkbook.path("state").asText());
         JsonNode staleOm=json(call("GET",simpleOmUrl,owner.cookie(),null,null)).get(0);
@@ -953,6 +981,13 @@ class OpenPeriodSupportIntegrationTest {
         return http.send(builder.method(method,body==null?HttpRequest.BodyPublishers.noBody():
             HttpRequest.BodyPublishers.ofString(body)).build(),HttpResponse.BodyHandlers.ofString());
     }
+    private static JsonNode calcGate(JsonNode readiness,String code) {
+        for(JsonNode gate:readiness.path("gates")){
+            if(code.equals(gate.path("code").asText()))return gate;
+        }
+        throw new AssertionError("Gate ausente no diagnóstico: "+code);
+    }
+
     private JsonNode json(HttpResponse<String> response) throws Exception {
         return mapper.readTree(response.body());
     }

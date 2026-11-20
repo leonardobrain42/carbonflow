@@ -232,6 +232,17 @@ class OpenE8FleetSelections {
         });
     }
 
+    /** Read latest staff-published metadata only, never licensed source rows.
+     * Historical selections remain queryable but do not imply E8 admission. */
+    static String currentState(Connection c,String project,String period)
+        throws SQLException {
+        Stored latest=first(c,SELECT+"""
+            WHERE project_id=? AND period_code=?
+            ORDER BY version DESC LIMIT 1
+            """,OpenE8FleetSelections::stored,project,period);
+        return latest==null?"FLEET_SELECTION_MISSING":view(c,latest).state();
+    }
+
     private static View view(Connection c,Stored saved)throws SQLException{
         var gates=new ArrayList<String>();
         Energy energy=energy(c,saved.project(),saved.period(),saved.energy());

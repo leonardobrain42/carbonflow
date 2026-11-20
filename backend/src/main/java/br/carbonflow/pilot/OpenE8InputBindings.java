@@ -185,6 +185,18 @@ class OpenE8InputBindings {
         });
     }
 
+    /** Current project/period preparatory state; no source values are exposed.
+     * This intentionally inspects only the most recent V63 version, so a
+     * superseded or stale historic binding never counts as available. */
+    static String currentState(Connection c,String project,String period)
+        throws SQLException {
+        Stored latest=first(c,STORED+"""
+            WHERE project_id=? AND period_code=?
+            ORDER BY version DESC LIMIT 1
+            """,OpenE8InputBindings::stored,project,period);
+        return latest==null?"BINDING_MISSING":view(c,project,latest).state();
+    }
+
     /** Current status of a precisely scoped historical energy/factor input.
      * Used for safe downstream handoffs: original metadata remains readable
      * even after a source is withdrawn, but cannot be reused as current. */

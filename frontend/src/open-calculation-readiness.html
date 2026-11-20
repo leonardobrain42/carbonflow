@@ -49,9 +49,28 @@
         </li>
       }
     </ol>
-    <h4>Dependências e próximas ações</h4>
+    <h4>Entradas já preparadas no projeto</h4>
+    <p>Os estados abaixo são lidos das versões ED/EC–EFel e EVR/PBEV publicadas
+      neste projeto e período. Uma fonte <strong>vinculada internamente</strong>
+      ainda precisa de avaliação normativa e não permite executar o E8.
+      Nenhum fator licenciado ou valor numérico do catálogo é exibido aqui.</p>
+    @if (preparatoryGates().length) {
+      <ul class="cf-tech-gates">
+        @for (gate of preparatoryGates(); track gate.code) {
+          <li>
+            <strong>{{ preparatoryTitle(gate) }} · {{ stateLabel(gate.state) }}</strong>
+            <p>{{gate.reason}}</p>
+            <small>Próxima ação: {{gate.nextAction}} · Responsável: {{gate.owner}}</small>
+          </li>
+        }
+      </ul>
+    } @else {
+      <p>Não há um período de monitoramento vinculado ao diagnóstico.
+        Prepare o MR para acompanhar os insumos por período.</p>
+    }
+    <h4>Outras dependências e próximas ações</h4>
     <ul class="cf-tech-gates">
-      @for (gate of state.gates; track gate.code) {
+      @for (gate of otherGates(); track gate.code) {
         <li>
           <strong>{{ gate.code }} · {{ stateLabel(gate.state) }}</strong>
           <p>{{ gate.reason }}</p>
