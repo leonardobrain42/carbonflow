@@ -15,7 +15,8 @@ final class ProjectCollaboration {
 
     static final Set<String> OWNER_TECHNICAL_ACTIONS = Set.of("VIEW_PROJECT_METADATA", "VIEW_CAPABILITIES", "VIEW_JOURNEY",
             "VIEW_PD_REVIEW", "VIEW_GUIDES", "SAVE_GUIDE", "VIEW_INTAKE", "SAVE_INTAKE", "VIEW_DOSSIER", "PREPARE_DOSSIER", "DOWNLOAD_DOSSIER",
-            "VIEW_OPEN_APPLICABILITY", "SAVE_OPEN_APPLICABILITY", "VIEW_OPEN_CALCULATION");
+            "VIEW_OPEN_APPLICABILITY", "SAVE_OPEN_APPLICABILITY", "VIEW_OPEN_CALCULATION",
+            "VIEW_OPEN_MONITORING", "SAVE_OPEN_MONITORING");
 
     private ProjectCollaboration() {}
 
@@ -47,6 +48,10 @@ final class ProjectCollaboration {
                     actions.add("VIEW_GUIDES");
                     if ("CALCULATION".equals(activity))
                         actions.add("VIEW_OPEN_CALCULATION");
+                    if ("MONITORING".equals(activity)) {
+                        actions.add("VIEW_OPEN_MONITORING");
+                        if (preparer) actions.add("SAVE_OPEN_MONITORING");
+                    }
                     if ("APPLICABILITY".equals(activity)) {
                         actions.add("VIEW_OPEN_APPLICABILITY");
                         if (preparer) actions.add("SAVE_OPEN_APPLICABILITY");

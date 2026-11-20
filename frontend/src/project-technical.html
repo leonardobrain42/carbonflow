@@ -184,6 +184,13 @@
               </div>
             }
 
+            @case ('monitorar') {
+              @if (can('VIEW_OPEN_MONITORING')) {
+                <carbonflow-open-monitoring [projectId]="projectId"
+                  [editable]="can('SAVE_OPEN_MONITORING')" />
+              }
+            }
+
             @case ('guias') {
               <carbonflow-project-guides [projectId]="projectId" [initialGuide]="selectedGuide()" [canOpenDocument]="can('VIEW_DOSSIER')"
                 [canOpenIntake]="can('VIEW_INTAKE')" (prepare)="open('preparar')" (document)="open('redigir', $event)" (saved)="updateGuide($event)" />
@@ -246,10 +253,18 @@
             }
           }
         </section>
-      } @else if (project() && can('VIEW_GUIDES')) {
-        <section class="cf-workspace-card"><h1>Guias técnicos</h1>
-          <carbonflow-project-guides [projectId]="projectId" [initialGuide]="selectedGuide()" (saved)="updateGuide($event)" />
-        </section>
+      } @else if (project() && (can('VIEW_GUIDES') || can('VIEW_OPEN_MONITORING') || can('VIEW_OPEN_CALCULATION'))) {
+        @if (can('VIEW_GUIDES')) {
+          <section class="cf-workspace-card"><h1>Guias técnicos</h1>
+            <carbonflow-project-guides [projectId]="projectId" [initialGuide]="selectedGuide()" (saved)="updateGuide($event)" />
+          </section>
+        }
+        @if (can('VIEW_OPEN_MONITORING')) {
+          <section class="cf-workspace-card" aria-label="Monitoramento por permissão de equipe">
+            <carbonflow-open-monitoring [projectId]="projectId"
+              [editable]="can('SAVE_OPEN_MONITORING')" />
+          </section>
+        }
         @if (can('VIEW_OPEN_CALCULATION')) {
           <section class="cf-workspace-card" aria-label="Pré-cálculo por permissão de equipe">
             <carbonflow-open-calculation-readiness [projectId]="projectId" />

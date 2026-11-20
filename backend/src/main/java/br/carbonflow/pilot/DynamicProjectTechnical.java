@@ -69,7 +69,8 @@ class DynamicProjectTechnical {
         return scopes.read(cookie, project, "VIEW_CAPABILITIES", (connection, context) ->
                 new Capabilities(project, context.environment(), Map.of(
                         "intake", context.actions().contains("VIEW_INTAKE") ? "PREPARATORY_ONLY" : "NOT_ENABLED",
-                        "evidence", "NOT_ENABLED", "calculation", "NOT_ENABLED", "monitoring", "NOT_ENABLED",
+                        "evidence", "NOT_ENABLED", "calculation", "NOT_ENABLED",
+                        "monitoring", context.actions().contains("VIEW_OPEN_MONITORING") ? "PREPARATORY_ONLY" : "NOT_ENABLED",
                         "projectDescription", context.actions().contains("VIEW_DOSSIER") ? "PRELIMINARY_ONLY" : "NOT_ENABLED",
                         "externalActs", "NOT_ENABLED"), context.owner(), context.actions()));
     }

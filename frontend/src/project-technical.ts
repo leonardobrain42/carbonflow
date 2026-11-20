@@ -4,6 +4,7 @@ import {PdSectionsComponent} from './pd-sections';
 import {ProjectGuidesComponent} from './project-guides';
 import {OpenApplicabilityComponent} from './open-applicability';
 import {OpenCalculationReadinessComponent} from './open-calculation-readiness';
+import {OpenMonitoringComponent} from './open-monitoring';
 import {WorkspaceNavigationComponent} from './workspace-navigation';
 import {afterNextRender, Component, computed, ElementRef, inject, Injector, signal, viewChild} from '@angular/core';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
@@ -90,6 +91,7 @@ const SECTIONS = [
   {id: 'entender', title: 'Entender'},
   {id: 'preparar', title: 'Preparar informações'},
   {id: 'analisar', title: 'Analisar'},
+  {id: 'monitorar', title: 'Monitorar ED/EC'},
   {id: 'guias', title: 'Guias técnicos'},
   {id: 'redigir', title: 'Redigir'},
   {id: 'revisar', title: 'Revisar'},
@@ -107,7 +109,7 @@ function formValues(data: IntakeData | null): IntakeForm {
 
 @Component({
   selector: 'carbonflow-project-technical',
-  imports: [RouterLink, WorkspaceNavigationComponent, ProjectGuidesComponent, OpenApplicabilityComponent, OpenCalculationReadinessComponent, PdSectionsComponent, PdReviewsComponent, TechnicalGlossaryComponent],
+  imports: [RouterLink, WorkspaceNavigationComponent, ProjectGuidesComponent, OpenApplicabilityComponent, OpenCalculationReadinessComponent, OpenMonitoringComponent, PdSectionsComponent, PdReviewsComponent, TechnicalGlossaryComponent],
   templateUrl: './project-technical.html',
 })
 export class ProjectTechnicalComponent {
@@ -140,10 +142,11 @@ export class ProjectTechnicalComponent {
   readonly owner = computed(() => this.capabilities()?.owner !== false && !!this.capabilities());
   readonly sections = computed(() => SECTIONS.filter(item => {
     if (item.id === 'guias') return this.capabilities()?.actions?.includes('VIEW_GUIDES') === true;
+    if (item.id === 'monitorar') return this.can('VIEW_OPEN_MONITORING');
     if (item.id === 'redigir' || item.id === 'revisar') return this.can('VIEW_DOSSIER');
     return this.can('VIEW_INTAKE');
   }));
-  readonly section = computed(() => this.sections().find(item => item.id === this.query()?.get('secao')) ?? SECTIONS[0]);
+  readonly section = computed(() => this.sections().find(item => item.id === this.query()?.get('secao')) ?? this.sections()[0] ?? SECTIONS[0]);
   readonly dirty = computed(() => JSON.stringify(formValues(this.intake()?.data ?? null)) !== JSON.stringify(this.form()));
   readonly otherMethodology = signal(false);
   readonly otherOption = OTHER_METHODOLOGY;
