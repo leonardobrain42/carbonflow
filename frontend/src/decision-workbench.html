@@ -81,7 +81,7 @@
           <p role="status">Cálculo: {{labelState(c.calculationState)}}.
             {{c.canRunE8?'Verificar admissibilidade antes de executar.':'E8 não liberado para este projeto.'}}</p>
           @for (gate of baselineGates();track gate.code){
-            <details class="cf-journey-context">
+            <details class="cf-journey-context" open>
               <summary>{{gate.code}} · {{labelState(gate.state)}}</summary>
               <p>{{gate.reason}}</p><p>Próxima ação: {{gate.nextAction}} · Responsável: {{gate.owner}}</p>
             </details>
