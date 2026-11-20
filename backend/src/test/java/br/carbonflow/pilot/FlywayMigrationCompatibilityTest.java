@@ -60,5 +60,12 @@ class FlywayMigrationCompatibilityTest {
               AND convalidated
             """,r->r.getInt(1)));
         assertEquals(1,validated);
+        String triggerState=database.read(c->first(c,"""
+            SELECT tgenabled::text FROM pg_trigger
+            WHERE tgrelid='app_open_asset_evidence'::regclass
+              AND tgname='app_open_asset_evidence_immutable'
+            """,r->r.getString(1)));
+        assertEquals("O",triggerState,
+            "O gatilho de imutabilidade deve ser reativado após o backfill V71.");
     }
 }
