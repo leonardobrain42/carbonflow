@@ -14,6 +14,7 @@ CREATE TABLE app_open_e8_energy_candidate (
  ed_kwh numeric(30,12) NOT NULL CHECK(ed_kwh>0),
  ec_kwh numeric(30,12) NOT NULL CHECK(ec_kwh>0),
  hour_count integer NOT NULL CHECK(hour_count BETWEEN 1 AND 744),
+ slot_count integer NOT NULL CHECK(slot_count BETWEEN 1 AND 74400),
  status text NOT NULL DEFAULT 'NOT_ADMITTED'
   CHECK(status='NOT_ADMITTED'),
  usable_for_e8 boolean NOT NULL DEFAULT false CHECK(usable_for_e8=false),
