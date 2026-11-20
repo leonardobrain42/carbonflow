@@ -49,8 +49,8 @@ export class PlatformRatingsComponent implements OnChanges {
   readonly candidates=signal<Candidate[]>([]);
   readonly composition=signal<Composition|null>(null);
   readonly handoffOptions=signal<HandoffOption[]>([]);
-  readonly selectedHandoff=signal('');
-  readonly selectedHandoffRating=signal('');
+  selectedHandoff='';
+  selectedHandoffRating='';
   readonly handoffBusy=signal(false);
   readonly busy=signal(false);
   readonly error=signal('');
