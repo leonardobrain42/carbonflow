@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import http.client
 import http.cookiejar
 import json
 import os
@@ -18,8 +19,9 @@ import shutil
 import socket
 import subprocess
 import sys
+import time
 from urllib.error import HTTPError, URLError
-from urllib.request import HTTPCookieProcessor, Request, build_opener, urlopen
+from urllib.request import HTTPCookieProcessor, Request, build_opener
 
 ROOT = Path(__file__).resolve().parent.parent
 SECRET_DIR = ROOT / ".carbonflow-demo"
@@ -142,7 +144,7 @@ def port_owned_by_demo(rows: list[dict]) -> bool:
                 continue
             try:
                 if int(publisher.get("PublishedPort", -1)) == int(PORT) and \
-                        publisher.get("URL", "").strip() in ("127.0.0.1", "::1", "localhost"):
+                        str(publisher.get("URL") or "").strip() in ("127.0.0.1", "::1", "localhost"):
                     return True
             except (TypeError, ValueError):
                 continue
@@ -159,14 +161,32 @@ def check_port(rows: list[dict]) -> None:
 
 
 def health_status() -> tuple[int | None, str]:
-    """Only loopback; do not inspect authenticated endpoints or credentials."""
+    """Check the loopback-bound app directly without any HTTP proxy."""
+    conn = http.client.HTTPConnection("127.0.0.1", int(PORT), timeout=3)
     try:
-        with urlopen(f"http://127.0.0.1:{PORT}/health/ready", timeout=4) as response:
-            return response.status, "OK" if response.status == 200 else "indisponível"
-    except HTTPError as exc:
-        return exc.code, "HTTP não saudável"
-    except (OSError, URLError):
+        conn.request("GET", "/health/ready")
+        response = conn.getresponse()
+        response.read()
+        return response.status, "OK" if response.status == 200 else "HTTP não saudável"
+    except (OSError, http.client.HTTPException):
         return None, "sem resposta da API"
+    finally:
+        conn.close()
+
+
+def wait_for_health(attempts: int = 10) -> None:
+    """Compose's internal HEALTHY may precede host-port availability."""
+    for attempt in range(attempts):
+        code, _ = health_status()
+        if code == 200:
+            return
+        if attempt < attempts - 1:
+            time.sleep(1)
+    raise RuntimeError(
+        f"O contêiner iniciou, mas a API do host não respondeu com HTTP 200 "
+        f"na porta {PORT} após {attempts} verificações. "
+        "Execute 'python3 scripts/demo_sandbox.py doctor'."
+    )
 
 
 def doctor() -> bool:
@@ -406,10 +426,7 @@ def cli() -> None:
         compose("up", *(["--no-build"] if args.reuse_image else ["--build"]), "-d", "--wait")
         # Never create passwords if the application is not reachable; the database
         # and credentials must remain in sync across failures and upgrades.
-        status, _ = health_status()
-        if status != 200:
-            raise RuntimeError("O Compose iniciou, mas a API não passou em /health/ready. "
-                               "Execute 'python3 scripts/demo_sandbox.py doctor'.")
+        wait_for_health()
         saved = credentials(DEFAULT_EMAIL, DEFAULT_NAME, create=True)
         provision(saved)
         output(saved, quiet=args.quiet)
