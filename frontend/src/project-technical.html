@@ -193,7 +193,9 @@
                   [canReportEvent]="can('SUBMIT_OPEN_MONITORING_EVENT')"
                   [canReviewEvent]="can('REVIEW_OPEN_MONITORING_EVENT')"
                   [canViewMethod]="can('VIEW_OPEN_METHOD_REVIEW')"
-                  [canReviewMethod]="can('REVIEW_OPEN_METHOD_REVIEW')" />
+                  [canReviewMethod]="can('REVIEW_OPEN_METHOD_REVIEW')"
+                  [canViewEnergy]="can('VIEW_OPEN_E8_ENERGY_CANDIDATE')"
+                  [canPrepareEnergy]="can('PREPARE_OPEN_E8_ENERGY_CANDIDATE')" />
               }
             }
 
@@ -274,7 +276,9 @@
                   [canReportEvent]="can('SUBMIT_OPEN_MONITORING_EVENT')"
                   [canReviewEvent]="can('REVIEW_OPEN_MONITORING_EVENT')"
                   [canViewMethod]="can('VIEW_OPEN_METHOD_REVIEW')"
-                  [canReviewMethod]="can('REVIEW_OPEN_METHOD_REVIEW')" />
+                  [canReviewMethod]="can('REVIEW_OPEN_METHOD_REVIEW')"
+                  [canViewEnergy]="can('VIEW_OPEN_E8_ENERGY_CANDIDATE')"
+                  [canPrepareEnergy]="can('PREPARE_OPEN_E8_ENERGY_CANDIDATE')" />
           </section>
         }
         @if (can('VIEW_OPEN_CALCULATION')) {
