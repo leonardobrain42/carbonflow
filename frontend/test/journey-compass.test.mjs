@@ -141,3 +141,45 @@ test('UX-07: technical navigation stores only valid current step and restores it
     '/workspace/projects/'+project+'/technical?secao=preparar');
  }finally{await browser.close();}
 });
+
+test('UX-07: monitoring collaborator opens permitted technical context without private intake',async()=>{
+ const browser=await chromium.launch({executablePath});
+ try{
+  const page=await browser.newPage({viewport:{width:390,height:844}});
+  let intakeReads=0,checkpoints=0;
+  await page.route('**/v1/projects/'+project+'/technical/intake',r=>{
+    intakeReads++;return r.fulfill({status:403,json:{}});
+  });
+  await page.route('**/v1/projects/'+project+'/metadata',r=>r.fulfill({json:{
+    projectId:project,organizationId:'10000000-0000-4000-8000-000000000001',
+    environment:'SANDBOX',state:'DRAFT',version:1,title:'Rede aberta',description:null
+  }}));
+  await page.route('**/v1/projects/'+project+'/technical/capabilities',r=>r.fulfill({json:{
+    projectId:project,environment:'SANDBOX',owner:false,
+    actions:['VIEW_JOURNEY','VIEW_OPEN_MONITORING'],modules:{}
+  }}));
+  await page.route('**/v1/projects/'+project+'/journey/resume',r=>{
+    checkpoints++;
+    assert.equal(r.request().postDataJSON().screen,'entender');
+    return r.fulfill({json:{...r.request().postDataJSON(),visitedAt:'2026-11-20T21:40:00Z'}});
+  });
+  await page.route('**/v1/projects/'+project+'/journey',r=>r.fulfill({json:{
+    ...journey(),role:'OP',
+    journeyProfile:{
+      id:'VM0038_V1_1',candidate:'VM0038',edition:'1.1',
+      title:'VM0038 v1.1',activitiesTitle:'Recarga',detailsTitle:'Dados operacionais',
+      description:'Perfil da recarga elétrica',sourceUrl:null,
+      questions:[],technicalTopics:['Inventário de estações e carregadores']
+    }
+  }}));
+  await page.goto(base+technical+'?secao=entender');
+  await page.getByRole('heading',{name:'Entender',exact:true}).waitFor();
+  await page.getByText('Dados iniciais restritos',{exact:false}).waitFor();
+  await page.getByText('Inventário de estações e carregadores').waitFor();
+  await page.getByText('Dados iniciais restritos',{exact:false}).waitFor();
+  assert.equal(intakeReads,0);
+  assert.ok(checkpoints>=1);
+  assert.equal(await page.getByRole('button',{name:'Preparar informações'}).count(),0);
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+ }finally{await browser.close();}
+});
