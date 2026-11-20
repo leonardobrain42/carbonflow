@@ -97,6 +97,15 @@ class OpenCalculationReadiness {
                         ". Uma série declarada e conferida internamente não é VT0011 admitido.",
                     "Validar série de fatores, instrumento e direitos em fonte autorizada",
                     "PREP/REV"));
+                // Source-to-project handoffs are visible only as status,
+                // never as the numerical staff catalogue. Prepared != admitted.
+                String period=dossier.reference().code();
+                String inputBinding=OpenE8InputBindings.currentState(
+                    connection,project,period);
+                String fleetSelection=OpenE8FleetSelections.currentState(
+                    connection,project,period);
+                gates.addAll(OpenPreparatoryE8Diagnostic.gates(
+                    period,inputBinding,fleetSelection));
                 String vt0011=OpenVt0011Workbooks.state(connection,project,
                     dossier.reference().code());
                 gates.add(new OpenCalculationPreflight.Gate(
