@@ -72,7 +72,7 @@ jobs:
           # installation: the wrapper 3.9.12 download occasionally fails
           # before any Java compilation and falsely marks tests as failed.
           # Keep ./mvnw pinned for local or runner environments lacking 3.9.x.
-          if command -v mvn >/dev/null 2>&1 && mvn --version | grep -Eq '^Apache Maven 3\\.9\\.'; then
+          if command -v mvn >/dev/null 2>&1 && mvn --version | grep -Eq '^Apache Maven 3\.9\.'; then
             mvn --version
             mvn -B -ntp clean verify
           else
