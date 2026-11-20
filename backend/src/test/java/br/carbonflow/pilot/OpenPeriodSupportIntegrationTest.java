@@ -334,6 +334,42 @@ class OpenPeriodSupportIntegrationTest {
             owner.cookie(),null,null)).path("documentaryComplete").asBoolean());
     }
 
+    @Test
+    void initialPdCanBeDraftedWithoutFutureMrAndNoE8IsAllowed() throws Exception {
+        Actor owner=actor();
+        UUID org=organization(owner.id());
+        String project=project(owner,org);
+        database.transaction(c->{
+            update(c,"""
+                INSERT INTO app_project_triage_revision
+                  (project_id,organization_id,environment,version,actor_id,current_step,answers)
+                VALUES (?,?,'SANDBOX',1,?,1,?::jsonb)
+                """,project,org,owner.id(),
+                "{\"1\":{\"methodologyCandidate\":\"VM0038\"}}");
+            update(c,"""
+                INSERT INTO app_technical_guide_revision
+                  (project_id,organization_id,environment,guide_id,version,actor_id,answers)
+                VALUES (?,?,'SANDBOX','monitoring',1,?,'{}'::jsonb)
+                """,project,org,owner.id());
+            return null;
+        });
+        String technical="/v1/projects/"+project+"/technical";
+        assertEquals(0,json(call("GET",technical+"/open-monitoring/dossiers",
+            owner.cookie(),null,null)).size());
+        var section=call("PUT",technical+"/pd-sections/monitoring",owner.cookie(),null,
+            "{\"guideVersion\":1,\"narrative\":\"Plano inicial de monitoramento, antes da operação e das leituras futuras.\"}");
+        assertEquals(200,section.statusCode(),section.body());
+        JsonNode queue=json(call("GET",technical+"/pd-reviews",owner.cookie(),null,null));
+        assertEquals(1,queue.size());
+        assertTrue(queue.get(0).path("monitoringDependency").isNull());
+        assertFalse(queue.get(0).path("outdated").asBoolean());
+        assertTrue(queue.get(0).path("actions").toString().contains("SUBMITTED"));
+        JsonNode calc=json(call("GET",technical+"/open-calculation-readiness",
+            owner.cookie(),null,null));
+        assertFalse(calc.path("canRunE8").asBoolean());
+        assertTrue(calc.path("gates").toString().contains("MR_PERIOD_DEPENDENCY"));
+    }
+
     private void configure(Actor owner,String project) throws Exception {
         String base="/v1/projects/"+project+"/technical/open-monitoring";
         assertEquals(200,call("PUT",base+"/chargers/DCFC-1",owner.cookie(),null,CHARGER).statusCode());
