@@ -62,6 +62,7 @@ class OpenPeriodSupportIntegrationTest {
         Actor staffManager=actorWithId(E8_STAFF_MANAGER);
         Actor staffReviewer=actorWithId(E8_STAFF_REVIEWER);
         verifyStaff(staffManager);
+        verifyStaff(staffReviewer); // distinguish valid MFA from absent manager grant
         UUID org=organization(owner.id(),E8_STAFF_ORG);
         String project=project(owner,org);
         configure(owner,project);
@@ -1015,7 +1016,9 @@ class OpenPeriodSupportIntegrationTest {
                 VALUES (?,?,'Ficticia',?,'Base','LDV',?,?)
                 """,models[i],org,i<2?"Synthetic BEV "+i:"Synthetic ICE "+i,
                 i<2?"BEV":"OTHER",manager);
-            String[] sourceIds={"BR-LDV-BEV-STOCK-BY-MODEL","BR-PBEV-VEHICLE-RATINGS"};
+            // Project-integration-only identifiers: do not mutate the global
+            // official-source catalogue used by PlatformSourceReadiness tests.
+            String[] sourceIds={"TEST-E8-EVR-"+edition,"TEST-E8-PBEV-"+edition};
             String[] codes={"OPEN-EVR","OPEN-PBEV"};
             UUID[] subs={fleetSub,ratingsSub};
             UUID[] licenses={fleetLic,ratingsLic};
