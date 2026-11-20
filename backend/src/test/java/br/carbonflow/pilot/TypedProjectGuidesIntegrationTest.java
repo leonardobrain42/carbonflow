@@ -110,10 +110,26 @@ class TypedProjectGuidesIntegrationTest {
         assertEquals("estacoes a identificar",original.at("/answers/boundary").asText());
         var prior=json(call("GET",target+"/revisions/1",owner.cookie(),null,null,null,null));
         assertEquals("ST-01",prior.at("/answers/stationCode").asText());
+        assertEquals(1,prior.at("/referenceVersions/stationCode").asInt());
+        assertEquals(1,prior.at("/referenceVersions/chargerCode").asInt());
         assertEquals(1,prior.path("definitionVersion").asInt());
         assertEquals(1L,count("app_typed_guide_revision",project));
         assertEquals(1L,count("app_technical_guide_revision",project));
         assertEquals(0L,count("pilot_import_file",project));
+        // Revision is pinned; a later non-DCFC revision cannot silently remain selectable.
+        assertEquals(200,call("PUT",root+"/open-monitoring/chargers/CH-01",
+            owner.cookie(),key(),"\"1\"",null,"""
+            {"siteCode":"ST-01","chargerKind":"AC","ratedPowerKw":150,
+             "grid":"SIN","topology":"GRID_ONLY","timeZone":"America/Sao_Paulo",
+             "sourceReference":"FICHA-CHARGER-2"}
+            """).statusCode());
+        var stale=json(call("GET",url,owner.cookie(),null,null,null,null));
+        assertEquals("STALE_REFERENCE_REVIEW_REQUIRED",
+            guide(stale,"applicability").path("state").asText());
+        assertFalse(findField(guide(stale,"applicability"),"chargerCode")
+            .path("options").toString().contains("CH-01"));
+        assertEquals(400,call("PUT",target,owner.cookie(),key(),"\"1\"","1",
+            payload).statusCode());
     }
 
     @Test

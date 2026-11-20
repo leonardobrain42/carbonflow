@@ -4,6 +4,7 @@
 
 ## Contratos entregues
 
+- **Referências versionadas:** cada revisão tipada persiste `reference_versions` de estação e carregador; atualização no inventário retorna `STALE_REFERENCE_REVIEW_REQUIRED` sem alterar o snapshot histórico. Uma mudança de DCFC para AC retira o equipamento da lista de opções, considerando **somente a versão mais recente**.
 - **V68** adiciona `app_typed_guide_schema` (definição, edição, ramo e versão), `app_typed_guide_revision` (snapshot imutável da definição + respostas JSON tipadas) e `app_typed_guide_command` (idempotência). **Não modifica** `app_technical_guide_revision`, os hashes do piloto ou as respostas históricas.
 - **API:** `GET /v1/projects/{project}/technical/typed-guides`; `PUT /.../typed-guides/{guide}` com `If-Match: "n"`, `X-Guide-Definition-Version: 1`, `Idempotency-Key`; `GET /.../typed-guides/{guide}/revisions/{version}`. Usa `VIEW_GUIDES` e `SAVE_GUIDE` com segregação entre projetos, e monitoramento quando seleciona station/charger.
 - **Tipos:** TEXT/TEXTAREA (contexto), DATE, BOOLEAN JSON real, ENUM, YEAR inteiro 1900–2100, DECIMAL numérico com limites/unidade contextual, MULTI_SELECT como array sem duplicata, STATION_REF e EQUIPMENT_REF restritos à organização/projeto e capturados a partir do owner #98. `optionParents` limita equipamentos à estação selecionada no cliente, mas **o Quarkus também valida**.

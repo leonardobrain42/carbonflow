@@ -19,6 +19,7 @@ CREATE TABLE app_typed_guide_revision (
  methodology text NOT NULL,
  edition text NOT NULL,
  answers jsonb NOT NULL CHECK(jsonb_typeof(answers)='object'),
+ reference_versions jsonb NOT NULL DEFAULT '{}' CHECK(jsonb_typeof(reference_versions)='object'),
  definition_snapshot jsonb NOT NULL CHECK(jsonb_typeof(definition_snapshot)='array'),
  actor_id uuid NOT NULL REFERENCES app_identity(id),
  saved_at timestamptz NOT NULL DEFAULT statement_timestamp(),

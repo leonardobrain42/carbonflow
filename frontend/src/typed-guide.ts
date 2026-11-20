@@ -12,7 +12,7 @@ type Field={
 type Guide={
   id:string;title:string;methodology:string;edition:string;branch:string;
   definitionVersion:number;version:number;fields:Field[];
-  answers:Record<string,Value>;legacyAnswers:Record<string,string>;
+  answers:Record<string,Value>;referenceVersions?:Record<string,number>;legacyAnswers:Record<string,string>;
   legacyNeedsReview:string[];missing:string[];editable:boolean;state:string;
   normativeApproved:boolean;
 };
@@ -66,6 +66,7 @@ export class TypedGuideComponent implements OnChanges {
   }
   readonly stateName=(name:string)=>{
     if(name==='LEGACY_UNSTRUCTURED_REVIEW_REQUIRED')return 'Revisões textuais exigem reconciliação manual';
+    if(name==='STALE_REFERENCE_REVIEW_REQUIRED')return 'Estação ou equipamento mudou: revisar vínculo e salvar nova versão';
     if(name==='FORM_COMPLETED_DECLARED')return 'Campos estruturados informados — sem aprovação';
     if(name==='INCOMPLETE_DECLARED')return 'Rascunho estruturado incompleto';
     return 'Ainda não iniciado';

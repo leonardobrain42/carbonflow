@@ -34,12 +34,12 @@ class TypedProjectGuides {
     }
     record Guide(String id,String title,String guidance,String methodology,String edition,
         String branch,int definitionVersion,int version,List<Field> fields,
-        Map<String,JsonNode> answers,Map<String,String> legacyAnswers,
+        Map<String,JsonNode> answers,Map<String,Integer> referenceVersions,Map<String,String> legacyAnswers,
         List<String> legacyNeedsReview,List<String> missing,boolean editable,String state,
         boolean normativeApproved) {}
     record Catalog(String methodology,List<Guide> guides) {}
     private record Revision(int version,int definitionVersion,String answers,String snapshot,
-                            String methodology,String edition) {}
+                            String referenceVersions,String methodology,String edition) {}
     private record Receipt(String guide,byte[] fingerprint,String result) {}
     private final DynamicProjectScope scopes;
     private final ObjectMapper mapper;
@@ -60,7 +60,10 @@ class TypedProjectGuides {
             List<Field> fields=withOptions(c,scope,visible(snapshot,scope));
             return view(current.id(),current.title(),current.guidance(),saved.methodology(),
                 saved.edition(),current.branch(),saved.definitionVersion(),version,fields,
-                read(saved.answers(),new TypeReference<>(){}),current.legacyAnswers(),false);
+                read(saved.answers(),new TypeReference<>(){}),
+                read(saved.referenceVersions(),new TypeReference<>(){}),current.legacyAnswers(),
+                false,stale(c,project,fields,read(saved.answers(),new TypeReference<>(){}),
+                    read(saved.referenceVersions(),new TypeReference<>(){})));
         });
     }
     Guide save(String token,String project,String guideId,String match,String schemaHeader,
@@ -74,6 +77,7 @@ class TypedProjectGuides {
                     "O formulário ou sua edição mudou. Recarregue as perguntas.");
             String key=PilotCommands.key(idempotencyHeader);
             Map<String,JsonNode> normalized=normalize(c,scope,guide.fields(),submitted);
+            Map<String,Integer> referenceVersions=new TreeMap<>();
             // Do not discard hidden monitoring references when a permitted guide actor
             // updates unrelated visible answers without monitoring permissions.
             Revision previous=guide.version()==0?null:revision(c,project,guideId,guide.version());
@@ -83,6 +87,20 @@ class TypedProjectGuides {
                 guide.fields().forEach(f->visibleKeys.add(f.key()));
                 for(var item:old.entrySet())
                     if(!visibleKeys.contains(item.getKey()))normalized.put(item.getKey(),item.getValue());
+                Map<String,Integer> pinned=read(previous.referenceVersions(),new TypeReference<>(){});
+                for(var ref:pinned.entrySet())
+                    if(!visibleKeys.contains(ref.getKey()))referenceVersions.put(ref.getKey(),ref.getValue());
+            }
+            for(String field:List.of("stationCode","chargerCode")){
+                if(normalized.containsKey(field)&&guide.fields().stream().anyMatch(f->f.key().equals(field))){
+                    String table="stationCode".equals(field)?"app_open_site_revision":"app_open_charger_revision";
+                    String column="stationCode".equals(field)?"site_code":"charger_code";
+                    Integer version=first(c,"SELECT version FROM "+table+
+                        " WHERE project_id=? AND "+column+"=? ORDER BY version DESC LIMIT 1",
+                        r->r.getInt(1),project,normalized.get(field).asText());
+                    if(version==null)throw invalid(field);
+                    referenceVersions.put(field,version);
+                }
             }
             Map<String,JsonNode> values=Collections.unmodifiableMap(new TreeMap<>(normalized));
             byte[] hash=AccessSecrets.digest("TYPED_GUIDE|"+project+"|"+guideId+"|"+expected+"|"+
@@ -108,14 +126,15 @@ class TypedProjectGuides {
             update(c,"""
                 INSERT INTO app_typed_guide_revision
                  (project_id,organization_id,environment,guide_id,version,definition_version,
-                  methodology,edition,answers,definition_snapshot,actor_id)
-                VALUES(?,?,?,?,?,?,?,?,?::jsonb,?::jsonb,?)
+                  methodology,edition,answers,reference_versions,definition_snapshot,actor_id)
+                VALUES(?,?,?,?,?,?,?,?,?::jsonb,?::jsonb,?::jsonb,?)
                 """,project,scope.organization(),scope.environment(),guideId,expected+1,
                 guide.definitionVersion(),guide.methodology(),guide.edition(),json(values),
-                snapshot,scope.actor().id());
+                json(referenceVersions),snapshot,scope.actor().id());
             Guide saved=view(guide.id(),guide.title(),guide.guidance(),guide.methodology(),
                 guide.edition(),guide.branch(),guide.definitionVersion(),expected+1,
-                guide.fields(),values,guide.legacyAnswers(),true);
+                guide.fields(),values,referenceVersions,guide.legacyAnswers(),true,
+                stale(c,project,guide.fields(),values,referenceVersions));
             update(c,"""
                 INSERT INTO app_typed_guide_command
                  (actor_id,command_key,project_id,guide_id,fingerprint,result)
@@ -130,6 +149,7 @@ class TypedProjectGuides {
         List<Guide> list=query(c,"""
             SELECT g.id,g.title,g.guidance,g.activity,s.methodology,s.edition,s.branch,
                    s.definition_version,s.fields::text AS fields,r.version,r.answers::text AS answers,
+                   r.reference_versions::text AS ref_versions,
                    legacy.answers::text AS legacy_answers
             FROM app_typed_guide_schema s JOIN app_technical_guide g ON g.id=s.guide_id
             LEFT JOIN LATERAL (
@@ -152,10 +172,13 @@ class TypedProjectGuides {
                     read(r.getString("answers"),new TypeReference<>(){});
                 Map<String,String> old=r.getString("legacy_answers")==null?Map.of():
                     read(r.getString("legacy_answers"),new TypeReference<>(){});
+                Map<String,Integer> refs=r.getString("ref_versions")==null?Map.of():
+                    read(r.getString("ref_versions"),new TypeReference<>(){});
                 return view(r.getString("id"),r.getString("title"),r.getString("guidance"),
                     r.getString("methodology"),r.getString("edition"),r.getString("branch"),
-                    r.getInt("definition_version"),r.getInt("version"),fields,answers,old,
-                    scope.owner()||scope.actions().contains("SAVE_GUIDE"));
+                    r.getInt("definition_version"),r.getInt("version"),fields,answers,refs,old,
+                    scope.owner()||scope.actions().contains("SAVE_GUIDE"),
+                    stale(c,scope.id(),fields,answers,refs));
             },scope.id(),scope.id(),methodology);
         return new Catalog(methodology,list.stream().filter(Objects::nonNull).toList());
     }
@@ -179,10 +202,13 @@ class TypedProjectGuides {
                 fields.add(f.withOptions(codes,Map.of()));
             } else if("EQUIPMENT_REF".equals(f.type())){
                 List<Map.Entry<String,String>> pairs=query(c,"""
-                    SELECT DISTINCT ON(charger_code) charger_code,site_code
-                    FROM app_open_charger_revision
-                    WHERE project_id=? AND charger_kind='DCFC' AND grid='SIN' AND topology='GRID_ONLY'
-                    ORDER BY charger_code,version DESC
+                    SELECT charger_code,site_code FROM (
+                        SELECT DISTINCT ON(charger_code) charger_code,site_code,
+                            charger_kind,grid,topology
+                        FROM app_open_charger_revision
+                        WHERE project_id=? ORDER BY charger_code,version DESC
+                    ) latest WHERE charger_kind='DCFC' AND grid='SIN' AND topology='GRID_ONLY'
+                    ORDER BY charger_code
                     """,r->Map.entry(r.getString(1),r.getString(2)),scope.id());
                 Map<String,String> parents=new LinkedHashMap<>();
                 pairs.forEach(p->parents.put(p.getKey(),p.getValue()));
@@ -204,7 +230,8 @@ class TypedProjectGuides {
     }
     private static Guide view(String id,String title,String guidance,String method,String edition,
         String branch,int definitionVersion,int version,List<Field> fields,
-        Map<String,JsonNode> raw,Map<String,String> legacy,boolean editable){
+        Map<String,JsonNode> raw,Map<String,Integer> refs,Map<String,String> legacy,
+        boolean editable,boolean stale){
         Set<String> allowed=new HashSet<>();
         fields.forEach(f->allowed.add(f.key()));
         Map<String,JsonNode> answers=new TreeMap<>();
@@ -215,9 +242,28 @@ class TypedProjectGuides {
             .map(Field::label).toList();
         List<String> legacyReview=version==0?List.copyOf(legacy.keySet().stream().sorted().toList()):List.of();
         String state=version==0?legacy.isEmpty()?"NOT_STARTED":"LEGACY_UNSTRUCTURED_REVIEW_REQUIRED":
+            stale?"STALE_REFERENCE_REVIEW_REQUIRED":
             missing.isEmpty()?"FORM_COMPLETED_DECLARED":"INCOMPLETE_DECLARED";
+        Map<String,Integer> allowedRefs=new TreeMap<>();
+        refs.forEach((key,value)->{if(allowed.contains(key))allowedRefs.put(key,value);});
         return new Guide(id,title,guidance,method,edition,branch,definitionVersion,version,
-            List.copyOf(fields),Map.copyOf(answers),Map.copyOf(legacy),legacyReview,missing,editable,state,false);
+            List.copyOf(fields),Map.copyOf(answers),Map.copyOf(allowedRefs),Map.copyOf(legacy),
+            legacyReview,missing,editable,state,false);
+    }
+    private static boolean stale(Connection c,String project,List<Field> fields,
+        Map<String,JsonNode> answers,Map<String,Integer> pinned) throws SQLException {
+        for(Field field:fields){
+            Integer expected=pinned.get(field.key());
+            JsonNode value=answers.get(field.key());
+            if(expected==null||value==null||!Set.of("STATION_REF","EQUIPMENT_REF").contains(field.type()))
+                continue;
+            String table="STATION_REF".equals(field.type())?"app_open_site_revision":"app_open_charger_revision";
+            String column="STATION_REF".equals(field.type())?"site_code":"charger_code";
+            Integer latest=first(c,"SELECT version FROM "+table+" WHERE project_id=? AND "+
+                column+"=? ORDER BY version DESC LIMIT 1",r->r.getInt(1),project,value.asText());
+            if(!Objects.equals(latest,expected))return true;
+        }
+        return false;
     }
     private Map<String,JsonNode> normalize(Connection c,DynamicProjectScope.Context scope,
         List<Field> fields,Map<String,JsonNode> raw) throws SQLException{
@@ -304,10 +350,10 @@ class TypedProjectGuides {
         throws SQLException {
         return first(c,"""
             SELECT version,definition_version,answers::text,definition_snapshot::text,
-              methodology,edition FROM app_typed_guide_revision
+              reference_versions::text,methodology,edition FROM app_typed_guide_revision
             WHERE project_id=? AND guide_id=? AND version=?
             """,r->new Revision(r.getInt(1),r.getInt(2),r.getString(3),r.getString(4),
-                r.getString(5),r.getString(6)),project,guide,version);
+                r.getString(5),r.getString(6),r.getString(7)),project,guide,version);
     }
     private static Guide find(Catalog list,String id){
         return list.guides().stream().filter(g->g.id().equals(id))
