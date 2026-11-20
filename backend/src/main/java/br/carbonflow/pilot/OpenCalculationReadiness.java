@@ -66,6 +66,16 @@ class OpenCalculationReadiness {
                 gates.add(new OpenCalculationPreflight.Gate(
                     "MR_DEPENDENCY_"+dossier.reference().code(),
                     status,reason,"Revisar vínculo e provas de MR do período","PREP/REV"));
+                String methodState=OpenMethodReview.status(connection,project,
+                    dossier.reference().code());
+                gates.add(new OpenCalculationPreflight.Gate(
+                    "METHOD_REVIEW_"+dossier.reference().code(),
+                    "BLOCKED_STALE".equals(methodState)?"STALE":
+                    "CHECKED_INTERNAL_AWAITING_NORMATIVE_ADMISSION".equals(methodState)?
+                    "NOT_ADMITTED":"REVIEW_REQUIRED",
+                    "Avaliação VM0038 v1.1 ("+dossier.reference().code()+"): "+
+                        methodState+". Parecer interno NÃO admite ED/EC para cálculo real.",
+                    "Conferência normativa e decisão independente de admissibilidade","REV"));
             }
         }
         return new OpenCalculationPreflight.Result(base.projectId(),base.environment(),
