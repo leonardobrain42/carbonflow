@@ -134,4 +134,50 @@ class OpenTool07SimpleOmMathTest {
         assertThrows(IllegalArgumentException.class,
             ()->OpenTool07SimpleOmMath.calculate(input));
     }
+
+    @Test
+    void traceExplainsFiveAnnualSharesAndEveryFuelWithoutRoundingOrRelyingOnInputOrder() {
+        var years=years(2026,"1000","300");
+        var coal=fuel("coal","10","20","0.1");
+        var gas=fuel("gas","8","25","0.2");
+        var input=new OpenTool07SimpleOmMath.Input(2026,
+            OpenTool07SimpleOmMath.APPROACH_1,years,
+            List.of(new OpenTool07SimpleOmMath.Plant("T1",n("700"),
+                List.of(gas,coal)))); // deliberately unsorted
+        var out=OpenTool07SimpleOmMath.calculate(input);
+        assertEquals(5,out.shareCalculations().size());
+        assertEquals(2022,out.shareCalculations().getFirst().year());
+        assertEquals("0.3",out.shareCalculations().getFirst().annualShare());
+        assertEquals("300",out.shareCalculations().getFirst().lcmrMwh());
+        assertEquals("1000",out.shareCalculations().getFirst().totalGridMwh());
+        var unit=out.plantCalculations().getFirst();
+        assertEquals("60",unit.emissionsTco2());
+        assertEquals(2,unit.fuelCalculations().size());
+        assertEquals("coal",unit.fuelCalculations().get(0).fuelCode());
+        assertEquals("20",unit.fuelCalculations().get(0).emissionsTco2());
+        assertEquals("10",unit.fuelCalculations().get(0).consumptionTonnes());
+        assertEquals("20",unit.fuelCalculations().get(0).ncvGjPerTonne());
+        assertEquals("0.1",unit.fuelCalculations().get(0).efTco2PerGj());
+        assertEquals("TOOL07-V7.0-EQ4",
+            unit.fuelCalculations().get(0).equationRef());
+        assertEquals(SHA,unit.fuelCalculations().get(0).declaredSourceSha256());
+        assertEquals("gas",unit.fuelCalculations().get(1).fuelCode());
+        assertEquals("40",unit.fuelCalculations().get(1).emissionsTco2());
+        // The JDBC NUMERIC(30,12) roundtrip should not change audit values
+        // or sort order for the very same material inputs.
+        var stored=new OpenTool07SimpleOmMath.Input(2026,
+            OpenTool07SimpleOmMath.APPROACH_1,
+            years(2026,"1000.000000000000","300.000000000000"),
+            List.of(new OpenTool07SimpleOmMath.Plant("T1",n("700.000000000000"),
+                List.of(fuel("coal","10.000000000000","20.000000000000",
+                    "0.100000000000"),
+                    fuel("gas","8.000000000000","25.000000000000",
+                    "0.200000000000")))));
+        var replay=OpenTool07SimpleOmMath.calculate(stored);
+        assertEquals(out.shareCalculations(),replay.shareCalculations());
+        assertEquals(out.plantCalculations(),replay.plantCalculations());
+        assertEquals(out.illustrativeOmTco2PerMwh(),
+            replay.illustrativeOmTco2PerMwh());
+        assertFalse(replay.usableForE8());
+    }
 }
