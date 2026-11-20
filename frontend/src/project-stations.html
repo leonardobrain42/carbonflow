@@ -117,10 +117,17 @@
             <label for="cf-site-charger-power">Potência nominal (kW) — pode ficar pendente</label>
             <input id="cf-site-charger-power" type="number" min="0.001" max="10000" step="0.001"
               [value]="charger().powerKw" (input)="changeCharger('powerKw',$any($event.target).value)"/>
+            <label for="cf-site-charger-zone">Fuso para os registros da instalação</label>
+            <select id="cf-site-charger-zone" [value]="charger().timeZone"
+              (change)="changeCharger('timeZone',$any($event.target).value)">
+              <option value="America/Sao_Paulo">America/Sao_Paulo</option>
+              <option value="UTC">UTC</option>
+              <option value="UNKNOWN">Ainda desconhecido</option>
+            </select>
             <label for="cf-site-charger-ref">Referência técnica da ficha ou comissionamento</label>
             <input id="cf-site-charger-ref" maxlength="300" [value]="charger().sourceReference"
               (input)="changeCharger('sourceReference',$any($event.target).value)"/>
-            <p class="cf-workspace-helper">Tecnologia DCFC · rede SIN · topologia somente rede · fuso America/Sao_Paulo.
+            <p class="cf-workspace-helper">Tecnologia DCFC · rede SIN · topologia somente rede.
               Outros ramos não podem ser selecionados por este cadastro.</p>
             <div class="cf-triage-actions">
               <button type="submit" class="cf-workspace-primary" [disabled]="busy()">Salvar carregador</button>

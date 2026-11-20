@@ -68,6 +68,8 @@ class OpenProjectStationsIntegrationTest {
         assertEquals(200,call("PUT",s2,owner.cookie(),key(),"\"0\"",SITE2).statusCode());
         assertEquals(422,call("PUT",sites+"/sites/INVALID",owner.cookie(),key(),"\"0\"",
             SITE1.replace("\"PLANNED\"","\"ACTIVE\"")).statusCode());
+        assertEquals(422,call("PUT",sites+"/sites/INVALID",owner.cookie(),key(),"\"0\"",
+            SITE1.replace("\"PLANNED\"","null")).statusCode());
 
         assertEquals(200,call("PUT",chargers+"/CH-01",owner.cookie(),key(),"\"0\"",
             charger("ST-01","150.000","DCFC")).statusCode());

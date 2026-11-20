@@ -7,17 +7,17 @@ type SiteDetails={name:string;municipality:string;state:string;address:string|nu
   commissionedOn:string|null;sourceReference:string|null};
 type Site={code:string;version:number;details:SiteDetails;recordedAt:string};
 type Charger={code:string;version:number;siteCode:string;kind:string;powerKw:number|null;
-  grid:string;topology:string};
+  grid:string;topology:string;timeZone:string;sourceReference:string|null};
 type Selection={chargerCode:string;chargerVersion:number;siteCode:string;siteVersion:number};
 type Boundary={version:number;selected:Selection[];state:string;findings:string[];usableForE8:boolean};
 type Catalog={projectId:string;environment:string;sites:Site[];chargers:Charger[];boundary:Boundary};
 type SiteDraft={code:string;name:string;municipality:string;state:string;address:string;
   operationalState:'PLANNED'|'INSTALLED'|'ACTIVE';plannedOn:string;
   commissionedOn:string;sourceReference:string};
-type ChargerDraft={code:string;siteCode:string;powerKw:string;sourceReference:string};
+type ChargerDraft={code:string;siteCode:string;powerKw:string;timeZone:string;sourceReference:string};
 const NEW_SITE:SiteDraft={code:'',name:'',municipality:'',state:'DF',address:'',
   operationalState:'PLANNED',plannedOn:'',commissionedOn:'',sourceReference:''};
-const NEW_CHARGER:ChargerDraft={code:'',siteCode:'',powerKw:'',sourceReference:''};
+const NEW_CHARGER:ChargerDraft={code:'',siteCode:'',powerKw:'',timeZone:'America/Sao_Paulo',sourceReference:''};
 
 /** UX-03A: guided inputs backed by V67 sites and V52 canonical chargers, not guide text. */
 @Component({selector:'carbonflow-project-stations',templateUrl:'./project-stations.html'})
@@ -108,9 +108,9 @@ export class ProjectStationsComponent implements OnChanges {
   }
   pickCharger(item:Charger){
     this.charger.set({code:item.code,siteCode:item.siteCode,powerKw:item.powerKw?.toString()??'',
-      sourceReference:''});
+      timeZone:item.timeZone,sourceReference:item.sourceReference??''});
     this.chargerVersion.set(item.version);this.chargerRetry='';this.dirtyCharger.set(false);
-    this.notice.set('Uma nova versão atualizará a configuração. A fonte anterior não é copiada: informe a referência novamente.');
+    this.notice.set('Você está editando a configuração canônica. Confirme o fuso e a referência documental antes de salvar nova revisão.');
   }
   eligible(item:Charger){
     return item.kind==='DCFC'&&item.grid==='SIN'&&item.topology==='GRID_ONLY'&&
@@ -163,7 +163,7 @@ export class ProjectStationsComponent implements OnChanges {
     try{
       await firstValueFrom(this.http.put(this.root+'/open-monitoring/chargers/'+encodeURIComponent(code),
         {siteCode:input.siteCode,chargerKind:'DCFC',ratedPowerKw:power,
-          grid:'SIN',topology:'GRID_ONLY',timeZone:'America/Sao_Paulo',
+          grid:'SIN',topology:'GRID_ONLY',timeZone:input.timeZone,
           sourceReference:input.sourceReference.trim()||null},
         {headers:{'If-Match':'"'+this.chargerVersion()+'"','Idempotency-Key':this.chargerRetry}}));
       await this.load();

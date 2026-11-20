@@ -25,7 +25,7 @@ class OpenProjectStations {
         String operationalState, LocalDate plannedOn, LocalDate commissionedOn, String sourceReference) {}
     record Site(String code, int version, SiteInput details, OffsetDateTime recordedAt) {}
     record Charger(String code, int version, String siteCode, String kind, BigDecimal powerKw,
-        String grid, String topology) {}
+        String grid, String topology, String timeZone, String sourceReference) {}
     record Selection(String chargerCode, int chargerVersion, String siteCode, int siteVersion) {}
     record Boundary(int version, List<Selection> selected, String state,
         List<String> findings, boolean usableForE8) {}
@@ -133,10 +133,10 @@ class OpenProjectStations {
             """,OpenProjectStations::mapSite,project);
         List<Charger> chargers=query(c,"""
             SELECT DISTINCT ON(charger_code) charger_code,version,site_code,charger_kind,
-             rated_power_kw,grid,topology
+             rated_power_kw,grid,topology,time_zone,source_reference
             FROM app_open_charger_revision WHERE project_id=? ORDER BY charger_code,version DESC
             """,r->new Charger(r.getString(1),r.getInt(2),r.getString(3),r.getString(4),
-                r.getBigDecimal(5),r.getString(6),r.getString(7)),project);
+                r.getBigDecimal(5),r.getString(6),r.getString(7),r.getString(8),r.getString(9)),project);
         int version=currentBoundary(c,project);
         List<Selection> selected=version==0?List.of():query(c,"""
             SELECT charger_code,charger_version,site_code,site_version
@@ -189,11 +189,14 @@ class OpenProjectStations {
     static SiteInput normalize(SiteInput raw){
         if(raw==null)throw invalid("body");
         String state=raw.state()==null?"":raw.state().trim().toUpperCase(Locale.ROOT);
-        if(!UF.contains(state)||!Set.of("PLANNED","INSTALLED","ACTIVE").contains(raw.operationalState()))
+        if(!UF.contains(state)||raw.operationalState()==null||
+           !Set.of("PLANNED","INSTALLED","ACTIVE").contains(raw.operationalState()))
             throw invalid("state");
         if("ACTIVE".equals(raw.operationalState())&&raw.commissionedOn()==null||
            "PLANNED".equals(raw.operationalState())&&raw.commissionedOn()!=null)
             throw invalid("commissionedOn");
+        if(raw.plannedOn()!=null&&raw.commissionedOn()!=null&&
+            raw.plannedOn().isAfter(raw.commissionedOn()))throw invalid("commissionedOn");
         return new SiteInput(text(raw.name(),3,120,true,"name"),
             text(raw.municipality(),2,100,true,"municipality"),state,
             text(raw.address(),3,200,false,"address"),raw.operationalState(),

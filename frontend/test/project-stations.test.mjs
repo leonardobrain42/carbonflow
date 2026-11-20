@@ -51,7 +51,8 @@ test('UX-03A: duas estações com DCFC separados e seleção de fronteira persis
       assert.ok(sites.some(x=>x.code===input.siteCode));
       const charger={code:r.request().url().split('/').at(-1),version:1,
         siteCode:input.siteCode,kind:input.chargerKind,powerKw:input.ratedPowerKw,
-        grid:input.grid,topology:input.topology};
+        grid:input.grid,topology:input.topology,timeZone:input.timeZone,
+        sourceReference:input.sourceReference};
       chargers.push(charger);return r.fulfill({json:charger});
     });
     await page.route('**'+root+'/technical/open-sites/boundary',r=>{
