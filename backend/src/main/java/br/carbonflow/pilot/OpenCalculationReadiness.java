@@ -25,6 +25,7 @@ class OpenCalculationReadiness {
             (connection, context) -> OpenCalculationPreflight.evaluate(
                 new OpenCalculationPreflight.Context(context.id(),
                     context.environment(), methodology(connection, context.id()),
+                    country(connection, context.id()), vehicleClass(connection, context.id()),
                     triageRevision(connection, context.id()),
                     applicability(connection, context.id()))));
     }
@@ -40,6 +41,21 @@ class OpenCalculationReadiness {
         }
         return ProjectJourney.profile(selected) == ProjectJourney.VM0038
             ? "VM0038" : selected;
+    }
+
+    private static String country(Connection connection, String project) throws SQLException {
+        return first(connection, """
+                SELECT payload->>'country' FROM app_project_intake_draft_revision
+                WHERE project_id=? ORDER BY version DESC LIMIT 1
+                """, row -> row.getString(1), project);
+    }
+
+    private static String vehicleClass(Connection connection, String project) throws SQLException {
+        return first(connection, """
+                SELECT answers #>> '{3,vehicleClass}'
+                FROM app_project_triage_revision
+                WHERE project_id=? ORDER BY version DESC LIMIT 1
+                """, row -> row.getString(1), project);
     }
 
     private static int triageRevision(Connection connection, String project) throws SQLException {
