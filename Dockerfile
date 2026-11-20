@@ -14,18 +14,29 @@ COPY backend/.mvn/ .mvn/
 COPY backend/pom.xml ./
 COPY backend/src/main/ src/main/
 COPY --from=angular-build /build/frontend/dist/piloto/browser/ /build/frontend/dist/piloto/browser/
-# Central occasionally rate-limits simultaneous CI builds (HTTP 429).
-# Retry only the dependency/build step with forced metadata refresh; fail closed
-# after the bounded attempts. No dependency versions or tests are skipped beyond
-# the original packaged image build contract.
+# Maven Central sometimes returns HTTP 429 or incorrectly caches missing
+# artifacts during simultaneous CI builds. Google hosts a documented mirror
+# of Maven Central. Use it only after a bounded primary repository failure;
+# never mask Java compilation or test errors as dependency outages.
 RUN --mount=type=cache,target=/root/.m2 \
-    set -eu; attempt=1; \
-    until mvn -B -ntp -U -Dmaven.test.skip=true package; do \
-      if [ "$attempt" -ge 4 ]; then echo "Maven build failed after 4 attempts"; exit 1; fi; \
-      echo "Maven repository unavailable; retry attempt $((attempt + 1))/4"; \
-      sleep $((attempt * 15)); \
+    set -eu; \
+    printf '%s\n' '<settings><mirrors><mirror><id>google-maven-central-fallback</id><mirrorOf>central</mirrorOf><url>https://maven-central.storage-download.googleapis.com/maven2/</url></mirror></mirrors></settings>' > /tmp/maven-fallback.xml; \
+    attempt=1; \
+    while [ "$attempt" -le 4 ]; do \
+      if [ "$attempt" -le 2 ]; then \
+        if mvn -B -ntp -U -Dmaven.test.skip=true package > /tmp/maven.log 2>&1; then cat /tmp/maven.log; exit 0; fi; \
+      else \
+        if mvn -B -ntp -U -s /tmp/maven-fallback.xml -Dmaven.test.skip=true package > /tmp/maven.log 2>&1; then cat /tmp/maven.log; exit 0; fi; \
+      fi; \
+      cat /tmp/maven.log; \
+      if ! grep -Eiq 'HTTP Status: 429|HTTP 429|Too Many Requests|Could not transfer artifact|Could not find artifact.* in central|Non-resolvable import POM|Unresolveable build extension' /tmp/maven.log; then \
+        echo "Maven failure is not a repository outage. Aborting."; exit 1; \
+      fi; \
+      if [ "$attempt" -ge 4 ]; then echo "Maven repository failure after 4 attempts"; exit 1; fi; \
+      echo "Maven download issue; retry $((attempt + 1))/4"; \
+      sleep $((attempt * 10)); \
       attempt=$((attempt + 1)); \
-    done
+    done; exit 1
 
 FROM eclipse-temurin:21-jre-noble
 WORKDIR /app

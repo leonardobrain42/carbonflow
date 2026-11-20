@@ -212,9 +212,15 @@
               <ul class="cf-tech-gates">
                 @for (topic of saved.journey.technicalTopics; track topic) { <li>{{ topic }}</li> }
               </ul>
-              <div class="cf-triage-actions">
-                <button type="button" class="cf-workspace-primary" (click)="open('preparar')">Preparar informações</button>
-              </div>
+              @if (can('VIEW_INTAKE')) {
+                <div class="cf-triage-actions">
+                  <button type="button" class="cf-workspace-primary"
+                    (click)="open('preparar')">Preparar informações</button>
+                </div>
+              } @else {
+                <p class="cf-workspace-helper">As informações iniciais não estão disponíveis
+                  para esta conta. Use as seções autorizadas no menu lateral.</p>
+              }
             }
 
             @case ('preparar') {

@@ -29,7 +29,13 @@ test('preparador retoma o guia e a revisão vê o conteúdo somente para leitura
       return r.fulfill({json:{...guide,editable}});
     });
     await page.goto(base + '/workspace/projects/' + projectId + '/technical');
-    await page.getByLabel('Estações na fronteira').fill('Estação de Brasília');
+    const boundary=page.getByLabel('Estações na fronteira');
+    try { await boundary.waitFor({timeout:5000}); }
+    catch(error) {
+      console.log('UX-07 legacy guide diagnostics:',(await page.locator('body').innerText()).slice(0,1800));
+      throw error;
+    }
+    await boundary.fill('Estação de Brasília');
     await page.getByRole('button',{name:'Salvar guia'}).click();
     await page.getByText('Revisão 1 salva.').waitFor();
     editable = false;
