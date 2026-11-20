@@ -1,6 +1,7 @@
 import {Component, Input, OnChanges, SimpleChanges, inject, signal} from '@angular/core';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {firstValueFrom} from 'rxjs';
+import {OpenEfelCandidatesComponent} from './open-efel';
 
 type ChargerInput = {
   siteCode:string; chargerKind:string; ratedPowerKw:number|null;
@@ -106,6 +107,7 @@ const NEW_METER:MeterForm = {
 @Component({
   selector:'carbonflow-open-monitoring',
   standalone:true,
+  imports:[OpenEfelCandidatesComponent],
   templateUrl:'./open-monitoring.html',
 })
 export class OpenMonitoringComponent implements OnChanges {
@@ -119,6 +121,9 @@ export class OpenMonitoringComponent implements OnChanges {
   @Input() canReviewMethod=false;
   @Input() canViewEnergy=false;
   @Input() canPrepareEnergy=false;
+  @Input() canViewEfel=false;
+  @Input() canSubmitEfel=false;
+  @Input() canReviewEfel=false;
   private readonly http=inject(HttpClient);
   readonly data=signal<View|null>(null);
   readonly charger=signal<ChargerForm>({...NEW_CHARGER});

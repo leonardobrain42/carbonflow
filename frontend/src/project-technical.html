@@ -195,7 +195,10 @@
                   [canViewMethod]="can('VIEW_OPEN_METHOD_REVIEW')"
                   [canReviewMethod]="can('REVIEW_OPEN_METHOD_REVIEW')"
                   [canViewEnergy]="can('VIEW_OPEN_E8_ENERGY_CANDIDATE')"
-                  [canPrepareEnergy]="can('PREPARE_OPEN_E8_ENERGY_CANDIDATE')" />
+                  [canPrepareEnergy]="can('PREPARE_OPEN_E8_ENERGY_CANDIDATE')"
+                  [canViewEfel]="can('VIEW_OPEN_EFEL_CANDIDATE')"
+                  [canSubmitEfel]="can('SUBMIT_OPEN_EFEL_CANDIDATE')"
+                  [canReviewEfel]="can('REVIEW_OPEN_EFEL_CANDIDATE')" />
               }
             }
 
@@ -278,7 +281,10 @@
                   [canViewMethod]="can('VIEW_OPEN_METHOD_REVIEW')"
                   [canReviewMethod]="can('REVIEW_OPEN_METHOD_REVIEW')"
                   [canViewEnergy]="can('VIEW_OPEN_E8_ENERGY_CANDIDATE')"
-                  [canPrepareEnergy]="can('PREPARE_OPEN_E8_ENERGY_CANDIDATE')" />
+                  [canPrepareEnergy]="can('PREPARE_OPEN_E8_ENERGY_CANDIDATE')"
+                  [canViewEfel]="can('VIEW_OPEN_EFEL_CANDIDATE')"
+                  [canSubmitEfel]="can('SUBMIT_OPEN_EFEL_CANDIDATE')"
+                  [canReviewEfel]="can('REVIEW_OPEN_EFEL_CANDIDATE')" />
           </section>
         }
         @if (can('VIEW_OPEN_CALCULATION')) {

@@ -229,6 +229,58 @@ class OpenPeriodSupportIntegrationTest {
         assertTrue(calcWithEnergy.path("gates").toString().contains("E8_ENERGY_INPUT_M1"));
         assertFalse(calcWithEnergy.path("canRunE8").asBoolean());
 
+        // Project-scoped SIN hourly factor candidate, with a declared source
+        // (the synthetic example.org fixture is NOT a real VT0011 value).
+        String efelUrl=dossierUrl+"/M1/efel-candidates";
+        assertEquals(0,json(call("GET",efelUrl,owner.cookie(),null,null)).size());
+        assertEquals(404,call("GET",efelUrl,op.cookie(),null,null).statusCode());
+        assertEquals(404,call("GET",efelUrl,outside.cookie(),null,null).statusCode());
+        String efelBody=efelFixture(energy.path("id").asText(),"2027-02-01T00:00:00Z","0.5");
+        assertEquals(404,postMethod(efelUrl,docsReviewer.cookie(),key(),"\"0\"",
+            efelBody).statusCode());
+        assertEquals(412,postMethod(efelUrl,owner.cookie(),key(),"\"1\"",
+            efelBody).statusCode());
+        assertEquals(409,postMethod(efelUrl,owner.cookie(),key(),"\"0\"",
+            efelFixture(energy.path("id").asText(),"2027-02-01T01:00:00Z","0.5")).statusCode());
+        assertEquals(422,postMethod(efelUrl,owner.cookie(),key(),"\"0\"",
+            efelBody.replace("\"hours\":[", "\"hours\":[] ,\"unused\":[")).statusCode());
+        String efelKey=key();
+        var efelCreated=postMethod(efelUrl,owner.cookie(),efelKey,"\"0\"",efelBody);
+        assertEquals(201,efelCreated.statusCode(),efelCreated.body());
+        JsonNode efel=json(efelCreated);
+        assertEquals("PENDING_INTERNAL_REVIEW_NOT_ADMITTED",efel.path("state").asText());
+        assertEquals("tCO2e/kWh",efel.path("normalizedUnit").asText());
+        assertEquals(0,new java.math.BigDecimal("0.0005").compareTo(
+            new java.math.BigDecimal(efel.at("/hours/0/normalizedValue").asText())));
+        assertEquals(1,efel.path("hourCount").asInt());
+        assertEquals(64,efel.path("contentSha256").asText().length());
+        assertFalse(efel.path("usableForE8").asBoolean());
+        assertEquals(efelCreated.body(),postMethod(efelUrl,owner.cookie(),efelKey,
+            "\"0\"",efelBody).body());
+        assertEquals(409,postMethod(efelUrl,owner.cookie(),efelKey,"\"0\"",
+            efelBody.replace("\"value\":0.5", "\"value\":0.7")).statusCode());
+        String efelReviewUrl=efelUrl+"/"+efel.path("id").asText()+"/reviews";
+        String efelReviewBody="""
+            {"outcome":"CHECKED_INTERNAL",
+             "rationale":"Origem e coerência conferidas apenas internamente, sem aprovação normativa.",
+             "evidenceReference":"Dossiê documental interno, versão de fonte declarada."}
+            """;
+        assertEquals(404,postMethod(efelReviewUrl,owner.cookie(),key(),"\"0\"",
+            efelReviewBody).statusCode());
+        String efelReviewKey=key();
+        var reviewedEfel=postMethod(efelReviewUrl,docsReviewer.cookie(),
+            efelReviewKey,"\"0\"",efelReviewBody);
+        assertEquals(200,reviewedEfel.statusCode(),reviewedEfel.body());
+        assertEquals("CHECKED_INTERNAL_NOT_ADMITTED",json(reviewedEfel).path("state").asText());
+        assertEquals(1,json(reviewedEfel).at("/review/version").asInt());
+        assertFalse(json(reviewedEfel).path("usableForE8").asBoolean());
+        assertEquals(reviewedEfel.body(),postMethod(efelReviewUrl,docsReviewer.cookie(),
+            efelReviewKey,"\"0\"",efelReviewBody).body());
+        JsonNode preflightWithEfel=json(call("GET",
+            technical+"/open-calculation-readiness",owner.cookie(),null,null));
+        assertTrue(preflightWithEfel.path("gates").toString().contains("E8_EFEL_M1"));
+        assertFalse(preflightWithEfel.path("canRunE8").asBoolean());
+
         assertEquals("READY_FOR_NORMATIVE_REVIEW",
             json(call("GET",dossierUrl,owner.cookie(),null,null)).get(0).path("state").asText());
         JsonNode pdReady=json(call("GET",technical+"/pd-reviews",owner.cookie(),null,null));
@@ -244,6 +296,9 @@ class OpenPeriodSupportIntegrationTest {
         assertEquals(2,json(mr2).at("/reference/version").asInt());
         JsonNode staleEnergy=json(call("GET",energyUrl,owner.cookie(),null,null)).get(0);
         assertEquals("STALE_NOT_ADMITTED",staleEnergy.path("state").asText());
+        JsonNode staleEfel=json(call("GET",efelUrl,owner.cookie(),null,null)).get(0);
+        assertEquals("STALE_NOT_ADMITTED",staleEfel.path("state").asText());
+        assertFalse(staleEfel.path("usableForE8").asBoolean());
         assertTrue(staleEnergy.path("gates").toString().contains("MR_VERSION_CHANGED"));
         assertFalse(staleEnergy.path("usableForE8").asBoolean());
         // MR v2 invalidates the v1 candidate; stale source revision is a
@@ -448,6 +503,22 @@ class OpenPeriodSupportIntegrationTest {
             owner.cookie(),null,null));
         assertFalse(calc.path("canRunE8").asBoolean());
         assertTrue(calc.path("gates").toString().contains("MR_PERIOD_DEPENDENCY"));
+    }
+
+    private static String efelFixture(String energy,String hour,String value) {
+        return """
+          {"energyCandidateId":"%s",
+           "sourceTitle":"Série horária sintética de teste, sem fonte real",
+           "sourcePublisher":"Laboratório sintético",
+           "sourceUri":"https://example.org/test/efel-synthetic-source",
+           "sourceEdition":"fixture-v1","claimedProcedure":"Procedimento VT0011 apenas alegado e ainda não verificado",
+           "publicationDate":"2026-11-01","sourceVintage":"2027-02 (apenas fixture)",
+           "sourceSha256":"%s",
+           "sourceRightsReference":"Declaração de uso para testes automatizados",
+           "evidenceNote":"Dado exclusivamente sintético, não inserir no E8 real.",
+           "unit":"tCO2e/MWh",
+           "hours":[{"hour":"%s","value":%s}]}
+          """.formatted(energy,"a".repeat(64),hour,value);
     }
 
     private static String methodAssessment() {

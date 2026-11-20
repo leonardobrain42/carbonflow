@@ -86,6 +86,17 @@ class OpenCalculationReadiness {
                         ": "+energyState+
                         ". A preparação não substitui admissão normativa nem habilita o motor.",
                     "Conferir cadeia de evidências e completar os parâmetros do E8","PREP/REV"));
+                String efelState=OpenEfelCandidates.state(connection,project,
+                    dossier.reference().code());
+                gates.add(new OpenCalculationPreflight.Gate(
+                    "E8_EFEL_"+dossier.reference().code(),
+                    "STALE_NOT_ADMITTED".equals(efelState)?"STALE":
+                    "EFEL_SOURCE_MISSING".equals(efelState)?"MISSING":"NOT_ADMITTED",
+                    "Fator EFel horário do período "+dossier.reference().code()+
+                        ": "+efelState+
+                        ". Uma série declarada e conferida internamente não é VT0011 admitido.",
+                    "Validar série de fatores, instrumento e direitos em fonte autorizada",
+                    "PREP/REV"));
             }
         }
         return new OpenCalculationPreflight.Result(base.projectId(),base.environment(),

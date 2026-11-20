@@ -1,0 +1,173 @@
+<section class="cf-journey-context" aria-labelledby="cf-efel-title">
+  <h4 id="cf-efel-title">Fator de emissão da eletricidade (EFel) · {{energy.period}}</h4>
+  <p><strong>Somente fontes candidatas.</strong> EFel representa a intensidade de emissões
+    associada à eletricidade consumida (EC). Não confundir a série horária com
+    média corporativa ou publicação anual. A origem, o procedimento VT0011 e os
+    direitos precisam de análise técnica e documental antes de qualquer uso no E8.</p>
+  <p>Pacote ED/EC associado: {{energy.id}} · {{expectedHours().length}} hora(s) de EC.
+    Não é permitido substituir hora faltante por zero nem transportar uma fonte de
+    outro período.</p>
+  @if (error()) { <p role="alert">{{error()}}</p> }
+  @if (notice()) { <p role="status">{{notice()}}</p> }
+  @if (loading()) { <p role="status">Conferindo versões e proveniência da fonte…</p> }
+  @if (candidates().length) {
+    <ul class="cf-tech-gates">
+      @for (item of candidates(); track item.id) {
+        <li>
+          <strong>Fonte v{{item.version}} · {{item.state}}</strong>
+          <p>{{item.sourceTitle}} · {{item.sourcePublisher}} · {{item.sourceVintage}}</p>
+          <p>Procedimento declarado: {{item.claimedProcedure}}</p>
+          <p>{{item.hourCount}} horas · {{item.originalUnit}}
+            → {{item.normalizedUnit}}</p>
+          <p>SHA-256 do conjunto: {{item.contentSha256}}</p>
+          @if (item.stale) {
+            <p role="alert">Esta versão está obsoleta em relação à energia
+              atual ou ao período. Somente para consulta histórica.</p>
+          }
+          @for (gate of item.gates; track gate) { <p>{{gate}}</p> }
+          <p>Revisão interna: {{item.review?.outcome??'PENDENTE'}}
+            · uso E8: <strong>não admitido</strong></p>
+          <button type="button" class="cf-workspace-outline"
+            (click)="select(item)">Examinar proveniência e parecer</button>
+        </li>
+      }
+    </ul>
+  } @else if (!loading()) {
+    <p>Não há fator EFel horário registrado para este pacote de energia.</p>
+  }
+  @if (selected(); as item) {
+    <div class="cf-journey-context">
+      <h4>Proveniência · v{{item.version}}</h4>
+      <p>Fonte declarada:
+        <a [href]="item.sourceUri" target="_blank" rel="noopener noreferrer">
+          {{item.sourceUri}}</a></p>
+      <p>Edição: {{item.sourceEdition}} · publicação: {{item.publicationDate}}</p>
+      <p>SHA-256 declarado do documento (não autenticado):
+        {{item.sourceSha256Claimed}}</p>
+      <p>Direitos da fonte declarados: {{item.sourceRightsReference}}</p>
+      <p>Nota: {{item.evidenceNote}}</p>
+      <table>
+        <thead><tr><th>Hora UTC</th><th>Valor original</th>
+          <th>tCO2e/kWh</th></tr></thead>
+        <tbody>
+          @for (hour of item.hours.slice(0,48); track hour.hour) {
+            <tr><td>{{hour.hour}}</td>
+              <td>{{hour.originalValue}}</td><td>{{hour.normalizedValue}}</td></tr>
+          }
+        </tbody>
+      </table>
+      @if (item.hours.length>48) {
+        <p>Primeiras 48 horas exibidas; todas ficam disponíveis pela API de origem.</p>
+      }
+      @if (item.review; as review) {
+        <p>Último parecer v{{review.version}}: {{review.outcome}}
+          · {{review.reviewedAt}}</p>
+        <p>{{review.rationale}} · {{review.evidenceReference}}</p>
+      }
+      @if (canReview && !item.stale &&
+           item.state!=='SUPERSEDED_NOT_ADMITTED') {
+        <form class="cf-open-monitoring-form" (submit)="review($event)">
+          <fieldset [disabled]="reviewing()">
+            <legend>Parecer documental independente (REV)</legend>
+            <p>Este parecer não confere vigência normativa, não confirma o
+              cálculo da ferramenta VT0011 nem libera emissões. Confira
+              documentalmente o procedimento, a publicação e os direitos.</p>
+            <label for="cf-efel-decision">Decisão</label>
+            <select id="cf-efel-decision" [value]="reviewOutcome()"
+              (change)="reviewOutcome.set($any($event.target).value)">
+              <option value="RETURNED">Devolver para correção</option>
+              <option value="CHECKED_INTERNAL">Fonte conferida internamente</option>
+            </select>
+            <label for="cf-efel-review-ref">Referência da evidência conferida</label>
+            <input id="cf-efel-review-ref" required minlength="15" maxlength="600"
+              [value]="reviewReference()"
+              (input)="reviewReference.set($any($event.target).value)"/>
+            <label for="cf-efel-review-reason">Justificativa (15 a 2000 caracteres)</label>
+            <textarea id="cf-efel-review-reason" rows="3" required
+              minlength="15" maxlength="2000" [value]="reviewReason()"
+              (input)="reviewReason.set($any($event.target).value)"></textarea>
+            <button type="submit" class="cf-workspace-primary"
+              [disabled]="reviewing()">Registrar parecer interno imutável</button>
+          </fieldset>
+        </form>
+      }
+      <button type="button" class="cf-workspace-outline"
+        (click)="selected.set(null)">Fechar detalhe</button>
+    </div>
+  }
+  @if (canSubmit && energy.state==='NOT_ADMITTED') {
+    <form class="cf-open-monitoring-form" (submit)="submit($event)">
+      <fieldset [disabled]="sending()">
+        <legend>Registrar fonte e série horária candidata</legend>
+        <p>Os fatores devem vir de uma fonte real identificada e com direito de
+          uso documentado. Não são fornecidos valores por padrão.</p>
+        <div class="cf-journey-fields">
+          <div>
+            <label for="cf-efel-source-title">Título da fonte</label>
+            <input id="cf-efel-source-title" required minlength="10" maxlength="200"
+              [value]="title()" (input)="title.set($any($event.target).value)"/>
+          </div>
+          <div>
+            <label for="cf-efel-source-publisher">Instituição publicadora</label>
+            <input id="cf-efel-source-publisher" required minlength="3" maxlength="160"
+              [value]="publisher()" (input)="publisher.set($any($event.target).value)"/>
+          </div>
+          <div>
+            <label for="cf-efel-source-url">URL HTTPS da fonte</label>
+            <input id="cf-efel-source-url" type="url" required maxlength="600"
+              [value]="uri()" (input)="uri.set($any($event.target).value)"
+              placeholder="https://..."/>
+          </div>
+          <div>
+            <label for="cf-efel-edition">Edição da fonte / instrumento</label>
+            <input id="cf-efel-edition" required minlength="2" maxlength="100"
+              [value]="edition()" (input)="edition.set($any($event.target).value)"/>
+          </div>
+          <div>
+            <label for="cf-efel-date">Data de publicação</label>
+            <input id="cf-efel-date" type="date" required
+              [value]="published()" (input)="published.set($any($event.target).value)"/>
+          </div>
+          <div>
+            <label for="cf-efel-vintage">Vintage / período representado</label>
+            <input id="cf-efel-vintage" required minlength="4" maxlength="100"
+              [value]="vintage()" (input)="vintage.set($any($event.target).value)"/>
+          </div>
+          <div>
+            <label for="cf-efel-unit">Unidade original do fator (CO2e)</label>
+            <select id="cf-efel-unit" [value]="unit()"
+              (change)="unit.set($any($event.target).value)">
+              <option value="tCO2e/MWh">tCO2e/MWh</option>
+              <option value="tCO2e/kWh">tCO2e/kWh</option>
+              <option value="kgCO2e/kWh">kgCO2e/kWh</option>
+            </select>
+          </div>
+          <div>
+            <label for="cf-efel-sha">SHA-256 do documento-fonte (64 hexadecimais)</label>
+            <input id="cf-efel-sha" required minlength="64" maxlength="64"
+              [value]="sha()" (input)="sha.set($any($event.target).value)"
+              placeholder="Checksum fornecido ou calculado do arquivo original"/>
+          </div>
+        </div>
+        <label for="cf-efel-procedure">Procedimento de obtenção do fator e relação com VT0011</label>
+        <textarea id="cf-efel-procedure" required minlength="15" maxlength="300"
+          rows="2" [value]="procedure()"
+          (input)="procedure.set($any($event.target).value)"></textarea>
+        <label for="cf-efel-rights">Fundamento/documento do direito de usar a fonte</label>
+        <textarea id="cf-efel-rights" required minlength="15" maxlength="500"
+          rows="2" [value]="rights()" (input)="rights.set($any($event.target).value)"></textarea>
+        <label for="cf-efel-note">Nota de proveniência, limitações e cálculo</label>
+        <textarea id="cf-efel-note" required minlength="15" maxlength="2000"
+          rows="2" [value]="note()" (input)="note.set($any($event.target).value)"></textarea>
+        <label for="cf-efel-csv">Uma hora ISO UTC e um fator por linha: hora,valor</label>
+        <textarea id="cf-efel-csv" required rows="9" [value]="hourCsv()"
+          (input)="hourCsv.set($any($event.target).value)"></textarea>
+        <p>Exatamente {{expectedHours().length}} hora(s), sem lacunas, horários
+          duplicados ou substituição automática por zero. Usar ponto decimal.</p>
+        <button type="submit" class="cf-workspace-primary" [disabled]="sending()">
+          Salvar série EFel candidata e imutável
+        </button>
+      </fieldset>
+    </form>
+  }
+</section>

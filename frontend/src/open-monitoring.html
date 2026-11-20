@@ -746,6 +746,12 @@
         } @else if (!energyBusy()) {
           <p>Nenhum pacote candidato foi preparado para este período.</p>
         }
+        @if (canViewEfel && energyHistory().length>0) {
+          <carbonflow-efel-candidates [projectId]="projectId"
+            [energy]="energyHistory()[0]"
+            [canView]="canViewEfel" [canSubmit]="canSubmitEfel"
+            [canReview]="canReviewEfel" />
+        }
         <button type="button" class="cf-workspace-outline"
           (click)="energyPeriod.set(null);energyHistory.set([])">
           Fechar consulta
