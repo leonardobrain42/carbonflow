@@ -8,6 +8,8 @@ CREATE TABLE app_open_vt0011_case2_workbook (
  environment text NOT NULL CHECK(environment='SANDBOX'),
  period_code text NOT NULL,
  efel_candidate_id uuid NOT NULL,
+ efel_review_version integer NOT NULL CHECK(efel_review_version>0),
+ efel_source_sha256 bytea NOT NULL CHECK(octet_length(efel_source_sha256)=32),
  version integer NOT NULL CHECK(version BETWEEN 1 AND 100000000),
  vt0011_version text NOT NULL DEFAULT '1.0' CHECK(vt0011_version='1.0'),
  tool07_version text NOT NULL DEFAULT '7.0' CHECK(tool07_version='7.0'),
@@ -48,7 +50,9 @@ CREATE TABLE app_open_vt0011_case2_workbook (
  FOREIGN KEY(project_id,organization_id,environment)
    REFERENCES app_project(id,organization_id,environment),
  FOREIGN KEY(project_id,efel_candidate_id)
-   REFERENCES app_open_efel_hourly_candidate(project_id,id)
+   REFERENCES app_open_efel_hourly_candidate(project_id,id),
+ FOREIGN KEY(project_id,efel_candidate_id,efel_review_version)
+   REFERENCES app_open_efel_hourly_review(project_id,candidate_id,version)
 );
 CREATE INDEX app_open_vt0011_workbook_period
  ON app_open_vt0011_case2_workbook(project_id,period_code,authored_at DESC);
