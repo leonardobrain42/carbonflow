@@ -53,6 +53,8 @@ CREATE TRIGGER app_open_e8_fleet_selection_command_immutable
  FOR EACH ROW EXECUTE FUNCTION app_open_metering_immutable();
 
 ALTER TABLE app_project_technical_access_event
+ DROP CONSTRAINT app_project_technical_access_event_action_check;
+ALTER TABLE app_project_technical_access_event
  ADD CONSTRAINT app_project_technical_access_event_action_check CHECK(action IN (
     'VIEW_INTAKE','SAVE_INTAKE','VIEW_DOSSIER','PREPARE_DOSSIER','VIEW_CAPABILITIES',
     'VIEW_TRIAGE','SAVE_TRIAGE','MOVE_TRIAGE','APPLY_TRIAGE_EXAMPLE',
@@ -76,6 +78,7 @@ ALTER TABLE app_project_technical_access_event
     'VIEW_OPEN_E8_FLEET_SELECTION'
  ));
 
+ALTER TABLE app_compliance_access_event DROP CONSTRAINT app_compliance_access_event_action_check;
 ALTER TABLE app_compliance_access_event ADD CONSTRAINT app_compliance_access_event_action_check
  CHECK (action IN ('MFA_VERIFIED','MFA_DENIED','VIEW_QUEUE','DOWNLOAD_DOCUMENT',
     'VIEW_PLATFORM_SOURCE_READINESS','VIEW_PLATFORM_SOURCE_CONTEXTS',
