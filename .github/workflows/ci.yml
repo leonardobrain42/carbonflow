@@ -140,6 +140,7 @@ jobs:
         run: |
           python3 -m unittest discover -s scripts -p 'test_demo_sandbox.py' -v
           python3 -m unittest discover -s scripts -p 'test_admin_sandbox.py' -v
+          python3 -m unittest discover -s scripts -p 'test_flyway_v69_compat.py' -v
       - name: Start isolated sandbox and provision account
         run: python3 scripts/demo_sandbox.py start --quiet
       - name: Add a second account using the real confirmation API
