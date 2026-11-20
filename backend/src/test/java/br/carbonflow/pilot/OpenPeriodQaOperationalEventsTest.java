@@ -86,9 +86,19 @@ class OpenPeriodQaOperationalEventsTest {
         var incident=incident(null,0,FROM.toInstant(),UNTIL.toInstant());
         var marchFrom=OffsetDateTime.parse("2027-03-01T00:00:00Z");
         var marchUntil=marchFrom.plusHours(1);
+        var m2ed=new OpenPeriodQa.Reading(UUID.randomUUID(),2,"ED-1",1,"ED",
+            marchFrom.toInstant(),marchUntil.toInstant(),new BigDecimal("1200"),
+            "CANDIDATE","CANDIDATE","ACCEPTED_FOR_QA",1,"m2-ed","hash");
+        var m2ec=new OpenPeriodQa.Reading(UUID.randomUUID(),3,"EC-1",1,"EC",
+            marchFrom.toInstant(),marchUntil.toInstant(),new BigDecimal("1350"),
+            "CANDIDATE","CANDIDATE","ACCEPTED_FOR_QA",1,"m2-ec","hash");
         var report=OpenPeriodQa.evaluate(marchFrom,marchUntil,List.of("DCFC-1"),
-            List.of(meter("ED-1","ED"),meter("EC-1","EC")),List.of(),List.of(incident));
+            List.of(meter("ED-1","ED"),meter("EC-1","EC")),
+            List.of(m2ed,m2ec),List.of(incident));
+        assertTrue(report.readyForInternalSnapshot());
+        assertEquals("1200",report.edKwh());
+        assertEquals("1350",report.ecKwh());
+        assertFalse(report.canRunE8());
         assertFalse(report.gates().stream().anyMatch(g->g.code().startsWith("OPERATIONAL_")));
-        assertTrue(report.gates().stream().anyMatch(g->g.code().equals("HOUR_GAP_ED")));
     }
 }
