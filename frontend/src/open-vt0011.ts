@@ -37,8 +37,8 @@ export class OpenVt0011WorkbooksComponent implements OnChanges {
   readonly reviewing=signal(false);
   readonly error=signal('');
   readonly notice=signal('');
-  readonly omMethod=signal('SIMPLE_OM');
-  readonly vintageMode=signal('EX_POST');
+  readonly omMethod=signal('');
+  readonly vintageMode=signal('');
   readonly dataYear=signal('');
   readonly omFactor=signal('');
   readonly sourceReference=signal('');
