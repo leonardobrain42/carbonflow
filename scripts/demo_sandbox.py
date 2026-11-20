@@ -214,6 +214,25 @@ def doctor() -> bool:
     if ready == 200 and port_owned_by_demo(rows):
         print(f"Sandbox pronto: http://127.0.0.1:{PORT}/workspace")
         return True
+    # Inspect only the migration error category; never echo application logs
+    # because they may contain confidential diagnostics or access tokens.
+    if any(row.get("Service") == "app" for row in rows):
+        try:
+            recent = compose("logs", "--no-color", "--tail", "160", "app", capture=True)
+            matched = re.search(
+                r"Migration checksum mismatch for migration version\s+(\d+)", recent
+            )
+            if matched:
+                version = matched.group(1)
+                print(f"ERRO FLYWAY V{version}: o arquivo de migração mudou após ser aplicado.")
+                if version == "69":
+                    print("Correção V69/V71 disponível: atualize o código com a migração "
+                          "original V69 e a nova V71; não execute Flyway repair.")
+                else:
+                    print("Não execute repair sem comparar o esquema existente e "
+                          "o histórico de migrações com um backup.")
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, ValueError):
+            print("Não foi possível ler o diagnóstico das migrações dos logs.")
     print("Se os serviços estiverem ativos mas sem saúde, consulte localmente:")
     print(f"  docker compose -p {PROJECT} -f compose.yaml -f compose.demo.yaml ps")
     print(f"  docker compose -p {PROJECT} -f compose.yaml -f compose.demo.yaml logs --tail 80 app db")

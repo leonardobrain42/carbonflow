@@ -109,6 +109,29 @@ class DemoSandboxTest(unittest.TestCase):
                 demo.wait_for_health(attempts=3)
             self.assertEqual(sleep.call_count, 2)
 
+    def test_doctor_detects_applied_v69_mismatch_without_repairing_or_leaking_logs(self):
+        row = {"Service": "app", "State": "exited", "Health": ""}
+        log = ("confidential token should never be echoed\\n"
+               "Migration checksum mismatch for migration version 69\\n"
+               "-> Applied to database : -1778044537\\n"
+               "-> Resolved locally    : -639127919")
+        with patch.object(demo, "runtime_check"), \\
+             patch.object(demo, "service_rows", return_value=[row]), \\
+             patch.object(demo, "health_status", return_value=(None, "sem resposta")), \\
+             patch.object(demo, "local_port_busy", return_value=False), \\
+             patch.object(demo, "compose", return_value=log) as compose:
+            import contextlib
+            import io
+            capture=io.StringIO()
+            with contextlib.redirect_stdout(capture):
+                self.assertFalse(demo.doctor())
+            msg=capture.getvalue()
+            self.assertIn("ERRO FLYWAY V69",msg)
+            self.assertIn("V69/V71",msg)
+            self.assertNotIn("confidential token",msg)
+            compose.assert_called_once_with("logs","--no-color","--tail","160","app",
+                                            capture=True)
+
     def test_compose_names_are_restricted(self):
         with patch.object(demo, "PROJECT", "prod/../../etc"), patch.object(demo, "PORT", "18088"):
             with self.assertRaises(ValueError):
