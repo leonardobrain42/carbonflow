@@ -41,7 +41,7 @@ class OpenMethodReview {
         "DOUBLE_CLAIMING");
 
     record Check(String requirement,String finding,String evidenceReference,String reason) {}
-    record Decision(String outcome,String rationale,List<Check> checks) {}
+    record Decision(int dossierVersion,String outcome,String rationale,List<Check> checks) {}
     record Gate(String code,String detail) {}
     record Review(int version,String outcome,String rationale,List<Check> checks,
                   String evidenceSha256,UUID reviewedBy,OffsetDateTime reviewedAt) {}
@@ -86,6 +86,12 @@ class OpenMethodReview {
                 throw new PilotProblem(403,"METHOD_REVIEW_NOT_INDEPENDENT","reviewer",
                     RULE,"Revisor não pode ser autor do MR, snapshot, leituras ou comprovantes.");
             Decision normalized=validate(submitted);
+            // Optimistic lock the MR source revision too, not just the
+            // review sequence. A stale browser form must never approve
+            // a newly created MR version that happens to have review v0.
+            if(normalized.dossierVersion()!=mr.version())
+                throw new PilotProblem(412,"MR_VERSION_CHANGED","dossierVersion",RULE,
+                    "O MR foi revisado. Atualize o parecer antes de salvar.");
             String command=PilotCommands.key(key);
             int expected=PilotCommands.expected(match);
             var evidence=OpenPeriodSupport.diagnose(c,project,mr.snapshotId());
@@ -271,7 +277,10 @@ class OpenMethodReview {
         if("CHECKED_INTERNAL".equals(input.outcome()) &&
             checked.stream().anyMatch(c->!"SUPPORTED_INTERNAL".equals(c.finding())))
             throw invalid("checks","Não é possível concluir parecer com critérios em aberto.");
-        return new Decision(input.outcome(),rationale,List.copyOf(checked));
+        if(input.dossierVersion()<1 || input.dossierVersion()>100000000)
+            throw invalid("dossierVersion","Informe a revisão exata do MR avaliado.");
+        return new Decision(input.dossierVersion(),input.outcome(),
+            rationale,List.copyOf(checked));
     }
     private static String safe(String s,int min,int max,String field) {
         if(s==null || s.strip().length()<min || s.strip().length()>max ||
