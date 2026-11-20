@@ -127,6 +127,8 @@ export class OpenMonitoringComponent implements OnChanges {
   @Input() canViewVt0011=false;
   @Input() canSubmitVt0011=false;
   @Input() canReviewVt0011=false;
+  @Input() canViewSimpleOm=false;
+  @Input() canPrepareSimpleOm=false;
   private readonly http=inject(HttpClient);
   readonly data=signal<View|null>(null);
   readonly charger=signal<ChargerForm>({...NEW_CHARGER});
