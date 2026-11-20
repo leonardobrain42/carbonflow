@@ -153,7 +153,7 @@ class TypedProjectGuides {
                    legacy.answers::text AS legacy_answers
             FROM app_typed_guide_schema s JOIN app_technical_guide g ON g.id=s.guide_id
             LEFT JOIN LATERAL (
-                SELECT version,answers FROM app_typed_guide_revision
+                SELECT version,answers,reference_versions FROM app_typed_guide_revision
                 WHERE project_id=? AND guide_id=g.id ORDER BY version DESC LIMIT 1
             ) r ON true
             LEFT JOIN LATERAL (
