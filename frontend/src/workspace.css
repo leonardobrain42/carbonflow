@@ -134,3 +134,57 @@
 }
 
 .cf-triage-actions button[aria-current="page"] { border-color: #83d99f; background: #1f4934; font-weight: 700; }
+
+/* CF-UX-TECH-001: stable technical workspace; preserve existing account sidebar. */
+.cf-journey-shell .cf-workspace-content { width: min(1360px,calc(100% - 3rem)); }
+.cf-tech-workbench { display: grid; grid-template-columns: minmax(205px,245px) minmax(0,1fr); gap: 1.2rem; align-items: start; }
+.cf-tech-module-panel { min-width: 0; }
+.cf-tech-module-panel .cf-workspace-card { margin-bottom: 1rem; }
+.cf-tech-module-nav.cf-technical-steps {
+  display: grid; grid-template-columns: minmax(0,1fr); gap: .22rem;
+  position: sticky; top: 1.2rem; max-height: calc(100vh - 2.4rem);
+  overflow-y: auto; overflow-x: hidden; margin: 0; padding: .8rem;
+  background: #101d1a; border: 1px solid #315140; border-radius: 1rem;
+}
+.cf-tech-module-group {
+  margin: .65rem .3rem .25rem; padding: .45rem .4rem .2rem;
+  color: #aac8b4; font-size: .72rem; font-weight: 800;
+  letter-spacing: .075em; text-transform: uppercase;
+}
+.cf-tech-module-nav .cf-triage-step {
+  text-align: left; font-weight: 650; min-height: 42px;
+  padding: .65rem .8rem; border: 1px solid transparent;
+  background: transparent; color: #d5e9dd;
+}
+.cf-tech-module-nav .cf-triage-step:hover { background: #1b3529; }
+.cf-tech-module-nav .cf-triage-step-active {
+  background: #214936; border-color: #73ce9b; color: #f5fff9;
+  box-shadow: inset 3px 0 #95e4b8;
+}
+.cf-tech-portal-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .85rem; margin: 1.35rem 0; }
+.cf-tech-portal-grid button {
+  min-width: 0; padding: 1.1rem; display: grid; gap: .4rem; text-align: left;
+  background: #122f24; color: #f2fff5; border: 1px solid #3a7953;
+  border-radius: .8rem; cursor: pointer; font: inherit;
+}
+.cf-tech-portal-grid button:hover, .cf-tech-portal-grid button:focus-visible {
+  background: #214936; border-color: #92dbad;
+}
+.cf-tech-portal-grid button strong { font-size: 1rem; }
+.cf-tech-portal-grid button span { color: #b7d2c3; font-size: .86rem; line-height: 1.5; }
+.cf-tech-monitor-subnav { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .6rem; margin: 1rem 0; }
+.cf-tech-monitor-subnav button { min-height: 44px; text-align: left; }
+.cf-tech-monitor-subnav [aria-current="step"] { background: #276244; border-color: #92dfb2; font-weight: 750; }
+@media(max-width:1020px) {
+  .cf-tech-workbench { grid-template-columns: minmax(0,1fr); }
+  .cf-tech-module-nav.cf-technical-steps {
+    position: static; max-height: none; grid-template-columns: repeat(2,minmax(0,1fr));
+  }
+  .cf-tech-module-group { grid-column: 1 / -1; }
+}
+@media(max-width:560px) {
+  .cf-journey-shell .cf-workspace-content { width: calc(100% - 1.5rem); }
+  .cf-tech-module-nav.cf-technical-steps,
+  .cf-tech-portal-grid,.cf-tech-monitor-subnav { grid-template-columns: minmax(0,1fr); }
+  .cf-tech-module-panel .cf-workspace-card { padding: 1rem; }
+}
