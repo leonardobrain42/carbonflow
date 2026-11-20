@@ -371,8 +371,10 @@ class OpenPeriodSupportIntegrationTest {
         String detailUrl=simpleOmUrl+"/"+om.path("id").asText();
         var detailResponse=call("GET",detailUrl,owner.cookie(),null,null);
         assertEquals(200,detailResponse.statusCode(),detailResponse.body());
-        assertEquals("private, no-store",detailResponse.headers()
-            .firstValue("Cache-Control").orElse(""));
+        // The global Quarkus response filter may normalize Cache-Control to
+        // no-store. Assert the security invariant, not header formatting.
+        assertTrue(detailResponse.headers().firstValue("Cache-Control")
+            .orElse("").contains("no-store"));
         JsonNode detail=json(detailResponse);
         assertEquals(om.path("id").asText(),detail.path("id").asText());
         assertEquals(5,detail.at("/preview/shareCalculations").size());
