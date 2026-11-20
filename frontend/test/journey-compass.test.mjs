@@ -123,13 +123,16 @@ test('UX-07: technical navigation stores only valid current step and restores it
   await page.goto(base+technical+'?secao=inicio');
   await page.getByRole('heading',{name:'Seu próximo passo'}).waitFor();
   await page.waitForFunction(()=>true);
-  await page.getByRole('button',{name:'Preparar informações'}).first().click();
+  const [saved] = await Promise.all([
+    page.waitForResponse(r=>r.url().endsWith('/journey/resume')&&
+      r.request().method()==='PUT'&&r.request().postDataJSON()?.screen==='preparar'),
+    page.getByRole('button',{name:'Preparar informações'}).first().click()
+  ]);
+  assert.equal(saved.status(),200);
   await page.getByRole('heading',{name:'Preparar informações'}).waitFor();
   await page.waitForFunction(()=>document.location.search.includes('secao=preparar'));
-  await page.waitForFunction(()=>latest?.screen==='preparar');
   await page.reload();
   await page.getByRole('heading',{name:'Preparar informações'}).waitFor();
-  await page.getByRole('button',{name:'Atualizar visão geral'}).count();
   assert.ok(checkpoints.some(c=>c.screen==='preparar'));
 
   await page.goto(base+overview);
