@@ -165,6 +165,34 @@ class OpenPeriodSupportIntegrationTest {
         assertFalse(valid.path("usableForE8").asBoolean());
         assertEquals(3,valid.path("documents").size());
         assertEquals(0,valid.path("gates").size());
+        String methodUrl=dossierUrl+"/M1/method-review";
+        JsonNode methodPending=json(call("GET",methodUrl,owner.cookie(),null,null));
+        assertEquals("PENDING_INTERNAL_REVIEW",methodPending.path("state").asText());
+        assertFalse(methodPending.path("canUseForE8").asBoolean());
+        assertEquals(404,call("GET",methodUrl,op.cookie(),null,null).statusCode());
+        assertEquals(404,call("GET",methodUrl,outside.cookie(),null,null).statusCode());
+        String methodBody=methodAssessment();
+        assertEquals(404,postMethod(methodUrl,owner.cookie(),key(),"\"0\"",methodBody).statusCode());
+        assertEquals(403,postMethod(methodUrl,qaReviewer.cookie(),key(),"\"0\"",methodBody).statusCode());
+        String methodKey=key();
+        var methodChecked=postMethod(methodUrl,docsReviewer.cookie(),methodKey,"\"0\"",methodBody);
+        assertEquals(200,methodChecked.statusCode(),methodChecked.body());
+        assertEquals("CHECKED_INTERNAL_AWAITING_NORMATIVE_ADMISSION",
+            json(methodChecked).path("state").asText());
+        assertEquals("VM0038",json(methodChecked).path("methodology").asText());
+        assertEquals("1.1",json(methodChecked).path("methodologyEdition").asText());
+        assertEquals(1,json(methodChecked).at("/review/version").asInt());
+        assertEquals(6,json(methodChecked).at("/review/checks").size());
+        assertFalse(json(methodChecked).path("canUseForE8").asBoolean());
+        assertEquals(methodChecked.body(),postMethod(methodUrl,docsReviewer.cookie(),methodKey,
+            "\"0\"",methodBody).body());
+        assertEquals(409,postMethod(methodUrl,docsReviewer.cookie(),methodKey,"\"0\"",
+            methodBody.replace("Justificativa final da conformidade documental interna.",
+                "Justificativa divergente para conflito de idempotência.")).statusCode());
+        assertEquals(412,postMethod(methodUrl,docsReviewer.cookie(),key(),"\"0\"",methodBody).statusCode());
+        assertEquals(1,json(call("GET",methodUrl+"/versions/1",
+            owner.cookie(),null,null)).size());
+
         assertEquals("READY_FOR_NORMATIVE_REVIEW",
             json(call("GET",dossierUrl,owner.cookie(),null,null)).get(0).path("state").asText());
         JsonNode pdReady=json(call("GET",technical+"/pd-reviews",owner.cookie(),null,null));
@@ -178,6 +206,12 @@ class OpenPeriodSupportIntegrationTest {
             "{\"snapshotId\":\""+snapshot+"\",\"note\":\"Nova versão editorial do dossiê MR para M1, com histórico íntegro.\"}");
         assertEquals(200,mr2.statusCode(),mr2.body());
         assertEquals(2,json(mr2).at("/reference/version").asInt());
+        // A new MR version never inherits its predecessor's method review.
+        JsonNode newMethod=json(call("GET",methodUrl,owner.cookie(),null,null));
+        assertEquals(2,newMethod.path("dossierVersion").asInt());
+        assertEquals("PENDING_INTERNAL_REVIEW",newMethod.path("state").asText());
+        assertEquals(1,json(call("GET",methodUrl+"/versions/1",
+            owner.cookie(),null,null)).size());
         JsonNode pdObsolete=json(call("GET",technical+"/pd-reviews",owner.cookie(),null,null));
         assertTrue(pdObsolete.get(0).path("outdated").asBoolean());
         assertEquals("STALE",pdObsolete.get(0).at("/monitoringDependency/state").asText());
@@ -368,6 +402,34 @@ class OpenPeriodSupportIntegrationTest {
             owner.cookie(),null,null));
         assertFalse(calc.path("canRunE8").asBoolean());
         assertTrue(calc.path("gates").toString().contains("MR_PERIOD_DEPENDENCY"));
+    }
+
+    private static String methodAssessment() {
+        StringBuilder body=new StringBuilder("{\"outcome\":\"CHECKED_INTERNAL\",")
+            .append("\"rationale\":\"Justificativa final da conformidade documental interna.\",")
+            .append("\"checks\":[");
+        String[] requirements={
+            "BOUNDARY_DCFC_SIN","METER_CALIBRATION","SOURCE_RIGHTS",
+            "HOURLY_ED_EC","CLOCK_GAPS_MAINTENANCE","DOUBLE_CLAIMING"
+        };
+        for(int i=0;i<requirements.length;i++) {
+            if(i>0)body.append(',');
+            body.append("{\"requirement\":\"").append(requirements[i])
+                .append("\",\"finding\":\"SUPPORTED_INTERNAL\",")
+                .append("\"evidenceReference\":\"DOC-VM0038-2027-")
+                .append(i+1).append("\",")
+                .append("\"reason\":\"Evidência documental revisada internamente para o critério. \"}");
+        }
+        return body.append("]}").toString();
+    }
+
+    private HttpResponse<String> postMethod(String path,String cookie,String key,
+                                             String match,String payload) throws Exception {
+        var request=HttpRequest.newBuilder(URI.create(base.toExternalForm()).resolve(path))
+            .header("Cookie",cookie).header("Content-Type","application/json")
+            .header("If-Match",match).header("Idempotency-Key",key)
+            .POST(HttpRequest.BodyPublishers.ofString(payload)).build();
+        return http.send(request,HttpResponse.BodyHandlers.ofString());
     }
 
     private void configure(Actor owner,String project) throws Exception {
