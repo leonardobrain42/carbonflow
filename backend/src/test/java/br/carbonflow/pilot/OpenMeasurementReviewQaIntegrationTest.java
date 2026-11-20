@@ -145,8 +145,9 @@ class OpenMeasurementReviewQaIntegrationTest {
         assertEquals(409,call("POST",url,reviewer.cookie(),"\"0\"",yes).statusCode());
         String rejected="{\"outcome\":\"REJECTED\",\"reason\":\"Quarentena por valor zero sem evidência externa suficiente.\"}";
         assertEquals(200,call("POST",url,reviewer.cookie(),"\"0\"",rejected).statusCode());
-        assertEquals(409,call("POST",url,reviewer.cookie(),"\"0\"",yes).statusCode());
+        assertEquals(412,call("POST",url,reviewer.cookie(),"\"0\"",yes).statusCode());
         assertEquals(412,call("POST",url,reviewer.cookie(),"\"0\"",rejected.replace("zero","nulo")).statusCode());
+        assertEquals(409,call("POST",url,reviewer.cookie(),"\"1\"",yes).statusCode());
         // Even if account changes role to REV later, it cannot review its own
         // earlier OP-submitted batch.
         database.transaction(c->{
