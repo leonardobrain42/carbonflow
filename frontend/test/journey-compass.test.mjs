@@ -172,7 +172,10 @@ test('UX-07: monitoring collaborator opens permitted technical context without p
       questions:[],technicalTopics:['Inventário de estações e carregadores']
     }
   }}));
+  const savedCheckpoint=page.waitForResponse(r=>r.url().endsWith('/journey/resume')&&
+    r.request().method()==='PUT');
   await page.goto(base+technical+'?secao=entender');
+  assert.equal((await savedCheckpoint).status(),200);
   await page.getByRole('heading',{name:'Entender',exact:true}).waitFor();
   await page.getByText('Dados iniciais restritos',{exact:false}).waitFor();
   await page.getByText('Inventário de estações e carregadores').waitFor();
