@@ -91,6 +91,12 @@
           </fieldset>
         </form>
       }
+      @if(canViewSimpleOm) {
+        <carbonflow-tool07-simple-om-a1 [projectId]="projectId"
+          [workbook]="item"
+          [canView]="canViewSimpleOm"
+          [canPrepare]="canPrepareSimpleOm"/>
+      }
       <button class="cf-workspace-outline" type="button"
         (click)="selected.set(null)">Fechar memória</button>
     </div>
