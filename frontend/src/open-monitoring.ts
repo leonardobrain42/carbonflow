@@ -631,6 +631,7 @@ export class OpenMonitoringComponent implements OnChanges {
         {snapshotId,note},
         {headers:{'If-Match':'"'+(current?.reference.version??0)+'"'}}));
       await this.load();
+      this.methodSelected.set(null);
       this.notice.set('Vínculo MR versionado. O dossiê permanece sem admissão metodológica e sem E8.');
     } catch(problem){this.error.set(this.message(problem));}
     finally {this.mrBusy.set(false);}
@@ -678,7 +679,7 @@ export class OpenMonitoringComponent implements OnChanges {
       await firstValueFrom(this.http.post<MethodView>(
         '/v1/projects/'+encodeURIComponent(this.projectId)+
         '/technical/open-monitoring/dossiers/'+encodeURIComponent(selected.period)+'/method-review',
-        {outcome:this.methodOutcome(),rationale,checks},
+        {dossierVersion:selected.dossierVersion,outcome:this.methodOutcome(),rationale,checks},
         {headers:{
           'If-Match':'"'+(selected.review?.version??0)+'"',
           'Idempotency-Key':crypto.randomUUID()
