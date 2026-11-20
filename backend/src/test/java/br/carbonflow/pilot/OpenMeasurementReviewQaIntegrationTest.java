@@ -57,7 +57,7 @@ class OpenMeasurementReviewQaIntegrationTest {
         grant(project,org,owner.id(),operator.id(),"OP");
         grant(project,org,owner.id(),reviewer.id(),"REV");
         String root="/v1/projects/"+project+"/technical/open-monitoring";
-        JsonNode lot=read(upload(root+"/batches",operator.cookie(),DATA));
+        JsonNode lot=upload(root+"/batches",operator.cookie(),DATA);
         assertEquals("CANDIDATE",lot.path("status").asText());
         String batch=lot.path("id").asText();
         String reviews=root+"/batches/"+batch+"/reviews";
@@ -138,7 +138,7 @@ class OpenMeasurementReviewQaIntegrationTest {
         grant(project,org,owner.id(),reviewer.id(),"REV");
         String root="/v1/projects/"+project+"/technical/open-monitoring";
         String invalid=DATA.replace("2700","0");
-        String batch=read(upload(root+"/batches",operator.cookie(),invalid)).path("id").asText();
+        String batch=upload(root+"/batches",operator.cookie(),invalid).path("id").asText();
         String url=root+"/batches/"+batch+"/rows/2/reviews";
         String yes="{\"outcome\":\"ACCEPTED_FOR_QA\","+
             "\"reason\":\"Parecer interno de QA independente com certificado.\"}";
