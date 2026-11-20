@@ -256,6 +256,57 @@
           <p>Nenhum snapshot de ratings. A preparação do projeto continua permitida.</p>
         }
       </section>
+      @if (data.canManage) {
+        <section class="cf-platform-work-editor">
+          <h3>4. Publicar referências EVR/PBEV para um projeto (administrador)</h3>
+          <p>Esta operação é permitida somente a quem possui acesso de gestão
+            de fontes, com autenticação reforçada. Ela publica IDs e hashes da
+            composição e dos ratings já revisados internamente, <strong>não
+            disponibiliza os valores licenciados nem autoriza BE/PE/ER</strong>.</p>
+          @if (!handoffOptions().length) {
+            <p role="status">Não há projetos da sua organização com pacote horário
+              ED/EC + EFel íntegro e vigente para vinculação. Primeiro conclua
+              a preparação de monitoramento no projeto.</p>
+          }
+          <form (submit)="assignHandoff($event)">
+            <label for="cf-rating-handoff-target">Projeto, período e ano de observação</label>
+            <select id="cf-rating-handoff-target" required
+              [value]="selectedHandoff"
+              (change)="selectedHandoff=$any($event.target).value;
+                selectedHandoffRating=''">
+              <option value="">Selecione um projeto autorizado</option>
+              @for(opt of handoffOptions();track opt.energyBindingId) {
+                <option [value]="opt.energyBindingId">
+                  {{opt.projectId}} · {{opt.period}} · EVR {{opt.year}}
+                </option>
+              }
+            </select>
+            <label for="cf-rating-handoff-source">Frota e ratings da mesma organização/ano</label>
+            <select id="cf-rating-handoff-source" required
+              [value]="selectedHandoffRating"
+              (change)="selectedHandoffRating=$any($event.target).value">
+              <option value="">Selecione snapshot PBEV preparatório</option>
+              @for(item of matchingSnapshots();track item.id) {
+                <option [value]="item.id">
+                  {{item.year}} · {{item.cycle}} · {{item.fleetSnapshotId}}
+                </option>
+              }
+            </select>
+            <p>A seleção verifica cobertura de todos os modelos EVR,
+              mesmo ano, comparáveis aceitos e direitos ainda vigentes.
+              O projeto recebe somente a proveniência e pendências, não os
+              dados licenciados da fonte.</p>
+            <button type="submit" class="cf-workspace-primary"
+              [disabled]="!chosenHandoff()||!selectedHandoffRating||handoffBusy()">
+              Publicar somente referências preparatórias
+            </button>
+          </form>
+          <button type="button" class="cf-workspace-outline"
+            [disabled]="handoffBusy()" (click)="reloadHandoffOptions()">
+            Atualizar projetos disponíveis
+          </button>
+        </section>
+      }
     }
   }
 </section>
