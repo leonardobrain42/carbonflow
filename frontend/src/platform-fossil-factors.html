@@ -1,0 +1,123 @@
+<section aria-labelledby="cf-fossil-title">
+  <h2 id="cf-fossil-title">Fator fóssil EFfuel · linha de base</h2>
+  <p>Prepare fatores de combustível **CO₂e/GASOLINE** da VM0038 v1.1
+    diretamente de linhas extraídas de arquivos licenciados. A seleção
+    é de preparação interna: <strong>nenhum resultado habilita E8,
+    BE, PE ou ER</strong>. Não confundir CO₂ com CO₂e.</p>
+  @if (!validContext()) {
+    <p>Disponível somente em VM0038 v1.1, OPEN LDV/DCFC/SIN Brasil.</p>
+  } @else {
+    @if (error()) {<p role="alert" class="cf-workspace-alert">{{error()}}</p>}
+    @if (message()) {<p role="status" class="cf-platform-success">{{message()}}</p>}
+    @if (busy()) {<p role="status">Conferindo licenças, arquivos e pareceres…</p>}
+    @if (board(); as data) {
+      <p class="cf-platform-warning">Os registros abaixo são
+        <strong>candidatos ou revisados internamente, nunca admitidos</strong>.
+        É necessário verificar combustível, ano, gases, cobertura normativa,
+        regras e titularidade antes de qualquer cálculo real.</p>
+      <button type="button" class="cf-workspace-outline"
+        [disabled]="busy()" (click)="load()">Atualizar fontes</button>
+      @if (data.canManage) {
+        <section class="cf-platform-work-editor">
+          <h3>1. Selecionar linha oficial licenciada</h3>
+          <p>Cadastre e revise o arquivo na área <strong>Cadastro de fontes</strong>
+            com necessidade <code>OPEN-FOSSIL-EF</code>, métrica
+            <code>EF_FUEL_GASOLINE</code>, ano e geografia BR.
+            A revisão do arquivo precisa estar concluída e a licença
+            deve permitir extrair, mostrar e produzir derivados.</p>
+          @if (!data.sources.length) {
+            <p role="status">Nenhuma fonte de fator fóssil com parecer
+              interno e direitos vigentes está disponível.</p>
+          }
+          <form (submit)="register($event)">
+            <label for="cf-fossil-source">Fonte e edição</label>
+            <select id="cf-fossil-source" [value]="sourceId"
+              (change)="chooseSource($any($event.target).value)">
+              <option value="">Selecione uma fonte autorizada</option>
+              @for(src of data.sources;track src.id) {
+                <option [value]="src.id">
+                  {{src.edition}} · {{src.year}} · {{src.id}}
+                </option>
+              }
+            </select>
+            <label for="cf-fossil-row">Linha extraída (valor não editável)</label>
+            <select id="cf-fossil-row" [value]="rowIndex"
+              (change)="rowIndex=$any($event.target).value">
+              <option value="">Selecione uma linha</option>
+              @for(row of rows();track row.rowIndex) {
+                <option [value]="row.rowIndex">
+                  {{row.recordKey}} · {{row.year}} · {{row.value}} {{row.unit}}
+                </option>
+              }
+            </select>
+            <p>Conversões permitidas apenas em unidades CO₂e por litro
+              ou galão americano, sem supor GWP ou trocar gases.</p>
+            <button type="submit" class="cf-workspace-primary"
+              [disabled]="busy()||!sourceId||!rowIndex">
+              Registrar candidato sem admissão
+            </button>
+          </form>
+        </section>
+      }
+      <section class="cf-platform-work-editor">
+        <h3>2. Parâmetros e parecer independente</h3>
+        @if (!data.candidates.length) {
+          <p>Nenhum fator fóssil candidato registrado.</p>
+        }
+        <ul class="cf-tech-gates">
+          @for(factor of data.candidates;track factor.id) {
+            <li>
+              <strong>GASOLINE · {{factor.periodYear}} · {{factor.status}}</strong>
+              <p>Fonte {{factor.sourceObjectId}} · linha {{factor.sourceRow}}
+                · edição/hash <code>{{factor.sourceSha256}}</code></p>
+              @if (factor.rightsActive) {
+                <p>Original: {{factor.originalValue}} {{factor.originalUnit}}
+                  · Normalizado: {{factor.normalizedValue}}
+                  {{factor.normalizedUnit}}</p>
+                <p>Transformação: {{factor.conversionFormula}} ·
+                  localizador: {{factor.sourceLocator}}</p>
+              } @else {
+                <p role="alert">Direitos indisponíveis: os valores foram
+                  ocultados. O registro histórico permanece não admitido.</p>
+              }
+              @if (factor.reviewOutcome) {
+                <p>Parecer: {{factor.reviewOutcome}} · {{factor.reviewRule}}</p>
+                <p>{{factor.reviewReason}}</p>
+              } @else if (data.canReview && factor.rightsActive) {
+                <form (submit)="review($event,factor.id)">
+                  <label [for]="'cf-fossil-outcome-'+factor.id">Decisão interna</label>
+                  <select [id]="'cf-fossil-outcome-'+factor.id" required
+                    [value]="reviewOutcome[factor.id]||'NEEDS_INFORMATION'"
+                    (change)="reviewOutcome[factor.id]=$any($event.target).value">
+                    <option value="NEEDS_INFORMATION">Solicitar complementação</option>
+                    <option value="REJECTED_FOR_SCOPE">Rejeitar para o recorte</option>
+                    <option value="APPROVED_FOR_SCOPE">Conferido internamente</option>
+                  </select>
+                  <label [for]="'cf-fossil-rule-'+factor.id">Regra e edição</label>
+                  <input [id]="'cf-fossil-rule-'+factor.id" required
+                    minlength="8" maxlength="300"
+                    [value]="reviewRule[factor.id]||''"
+                    (input)="reviewRule[factor.id]=$any($event.target).value"/>
+                  <label [for]="'cf-fossil-proof-'+factor.id">Localizador de evidência</label>
+                  <input [id]="'cf-fossil-proof-'+factor.id" required
+                    minlength="3" maxlength="300"
+                    [value]="reviewEvidence[factor.id]||''"
+                    (input)="reviewEvidence[factor.id]=$any($event.target).value"/>
+                  <label [for]="'cf-fossil-reason-'+factor.id">Justificativa técnica</label>
+                  <textarea [id]="'cf-fossil-reason-'+factor.id" required
+                    minlength="15" maxlength="2500"
+                    [value]="reviewReason[factor.id]||''"
+                    (input)="reviewReason[factor.id]=$any($event.target).value"></textarea>
+                  <button type="submit" class="cf-workspace-primary"
+                    [disabled]="busy()">Registrar parecer sem autorizar E8</button>
+                </form>
+              }
+              <p><strong>E8:</strong> bloqueado. Parecer interno não equivale
+                a admissão pela metodologia ou verificação externa.</p>
+            </li>
+          }
+        </ul>
+      </section>
+    }
+  }
+</section>
