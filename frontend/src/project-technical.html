@@ -189,7 +189,9 @@
                 <carbonflow-open-monitoring [projectId]="projectId"
                   [editable]="can('SAVE_OPEN_MONITORING')"
                   [canSubmit]="can('SUBMIT_OPEN_MEASUREMENTS')"
-                  [canReview]="can('REVIEW_OPEN_MEASUREMENTS')" />
+                  [canReview]="can('REVIEW_OPEN_MEASUREMENTS')"
+                  [canReportEvent]="can('SUBMIT_OPEN_MONITORING_EVENT')"
+                  [canReviewEvent]="can('REVIEW_OPEN_MONITORING_EVENT')" />
               }
             }
 
@@ -266,7 +268,9 @@
             <carbonflow-open-monitoring [projectId]="projectId"
               [editable]="can('SAVE_OPEN_MONITORING')"
                   [canSubmit]="can('SUBMIT_OPEN_MEASUREMENTS')"
-                  [canReview]="can('REVIEW_OPEN_MEASUREMENTS')" />
+                  [canReview]="can('REVIEW_OPEN_MEASUREMENTS')"
+                  [canReportEvent]="can('SUBMIT_OPEN_MONITORING_EVENT')"
+                  [canReviewEvent]="can('REVIEW_OPEN_MONITORING_EVENT')" />
           </section>
         }
         @if (can('VIEW_OPEN_CALCULATION')) {
