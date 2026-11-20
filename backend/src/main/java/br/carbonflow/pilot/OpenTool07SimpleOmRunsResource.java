@@ -27,6 +27,16 @@ public class OpenTool07SimpleOmRunsResource {
         return safe(service.list(cookie,project,period,workbook)).build();
     }
 
+    @GET
+    @Path("{run}")
+    public Response detail(@CookieParam(AccountAccess.COOKIE) String cookie,
+                           @PathParam("project") String project,
+                           @PathParam("period") String period,
+                           @PathParam("workbook") UUID workbook,
+                           @PathParam("run") UUID run) {
+        return safe(service.detail(cookie,project,period,workbook,run)).build();
+    }
+
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     public Response submit(@CookieParam(AccountAccess.COOKIE) String cookie,
