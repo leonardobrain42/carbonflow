@@ -19,7 +19,8 @@ import jakarta.enterprise.context.ApplicationScoped;
 class PdSections {
     record Input(int guideVersion, String narrative) {}
     record Version(int number, int guideVersion, UUID author, String narrative, String sha256) {}
-    record Section(ProjectGuides.Guide guide, Version latest) {}
+    record Section(ProjectGuides.Guide guide, Version latest,
+                   OpenMonitoringDossiers.PdDependency monitoringDependency) {}
     record Artifact(String text, String sha256) {}
     private final DynamicProjectScope scopes;
     private final ProjectGuides guides;
@@ -35,7 +36,10 @@ class PdSections {
         return scopes.read(token, project, "VIEW_DOSSIER", (c, scope) -> {
             var sections = new ArrayList<Section>();
             for (var guide : guides.catalog(c, scope).guides()) {
-                sections.add(new Section(guide, latest(c, project, guide.id())));
+                Version current=latest(c,project,guide.id());
+                sections.add(new Section(guide,current,
+                    current==null?null:OpenMonitoringDossiers.pdDependency(
+                        c,project,guide.id(),current.number())));
             }
             return sections;
         });
