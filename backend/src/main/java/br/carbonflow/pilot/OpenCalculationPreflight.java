@@ -22,6 +22,7 @@ final class OpenCalculationPreflight {
             Boolean associatedInfrastructure, Boolean v2g) {}
 
     record Context(String projectId, String environment, String methodology,
+            String country, String vehicleClass,
             int latestTriageVersion, Applicability applicability) {}
 
     record Gate(String code, String state, String reason, String nextAction, String owner) {}
@@ -45,6 +46,27 @@ final class OpenCalculationPreflight {
             gates.add(new Gate("METHODOLOGY", "OUT_OF_SCOPE",
                 "Selecione e confirme VM0038 para avaliar o ramo OPEN brasileiro.",
                 "Revisar triagem e metodologia candidata", "PP/PREP"));
+        }
+        if (context.country() == null || context.country().isBlank()) {
+            gates.add(new Gate("COUNTRY", "MISSING",
+                "País do projeto ainda não confirmado.",
+                "Registrar o país na preparação técnica", "PREP"));
+        } else if (!"BR".equals(context.country())) {
+            outside = true;
+            gates.add(new Gate("COUNTRY", "OUT_OF_SCOPE",
+                "Esta primeira fatia aceita somente projetos localizados no Brasil.",
+                "Selecionar cenário geográfico compatível", "PREP"));
+        }
+        if (context.vehicleClass() == null || context.vehicleClass().isBlank() ||
+            "UNKNOWN".equals(context.vehicleClass()) || "DESCONHECIDO".equals(context.vehicleClass())) {
+            gates.add(new Gate("VEHICLE_CLASS", "MISSING",
+                "A classe de veículos leves (LDV) ainda não foi confirmada na triagem.",
+                "Preencher classe da frota na triagem", "PREP"));
+        } else if (!"LDV".equals(context.vehicleClass())) {
+            outside = true;
+            gates.add(new Gate("VEHICLE_CLASS", "OUT_OF_SCOPE",
+                "HDV ou classes mistas exigem outro ramo e conjunto de parâmetros.",
+                "Revisar classe de veículos e recorte metodológico", "PREP"));
         }
         Applicability a = context.applicability();
         if (a == null) {
