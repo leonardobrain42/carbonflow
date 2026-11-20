@@ -41,7 +41,7 @@ Estados: `PENDING_INTERNAL_REVIEW`, `BLOCKED_DOCUMENTARY`, `RETURNED_FOR_CORRECT
 
 - `GET /v1/projects/{project}/technical/open-monitoring/dossiers/{period}/method-review`
 - `GET .../method-review/versions/{dossierVersion}`
-- `POST .../method-review` com `If-Match: "N"`, `Idempotency-Key` e corpo `{outcome,rationale,checks}`.
+- `POST .../method-review` com `If-Match: "N"`, `Idempotency-Key` e corpo `{dossierVersion,outcome,rationale,checks}`. A revisão MR informada precisa coincidir exatamente com a versão atual, ou o servidor retorna HTTP 412. Isso protege contra aprovação de formulário antigo após novo vínculo de snapshot.
 
 Angular: seção existente Monitorar ED/EC → dossiês MR → avaliar VM0038 v1.1, sem submenus mutantes. PREP consulta; REV fundamenta; OP não visualiza.
 
