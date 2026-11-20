@@ -82,7 +82,7 @@ class OpenAssetEvidenceIntegrationTest {
             "LOCATION","Planta documental Norte 2027","página 2","proof-north.pdf",pdf)));
         assertEquals(409,upload(north+"/revisions/1",prep.cookie(),receipt,"LOCATION",
             "Referência diferente 2027","página 2","proof-north.pdf",pdf).statusCode());
-        assertEquals(400,upload(north+"/revisions/1",owner.cookie(),key(),"UNKNOWN",
+        assertEquals(422,upload(north+"/revisions/1",owner.cookie(),key(),"UNKNOWN",
             "Fonte normativa indevida","página 2","proof-north.pdf",pdf).statusCode());
         assertEquals(400,upload(north+"/revisions/1",owner.cookie(),key(),"LOCATION",
             "Planta Norte 2027","página 2","proof-north.pdf",
@@ -98,7 +98,7 @@ class OpenAssetEvidenceIntegrationTest {
             "Ficha fabricante DCFC 2027","página 4","charger-proof.pdf",
             (PDF+"power 150 kW\n").getBytes(StandardCharsets.US_ASCII));
         assertEquals(201,hardwareProof.statusCode(),hardwareProof.body());
-        assertEquals(400,upload(hardware+"/revisions/1",owner.cookie(),key(),"LOCATION",
+        assertEquals(422,upload(hardware+"/revisions/1",owner.cookie(),key(),"LOCATION",
             "Prova incorreta categoria","página 4","charger-proof.pdf",pdf).statusCode());
         assertEquals(2L,count("app_project_evidence_blob",project)); // same PDF dedup across two sites
         assertEquals(3L,count("app_open_asset_evidence",project));
