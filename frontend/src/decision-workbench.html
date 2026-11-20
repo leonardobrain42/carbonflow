@@ -1,0 +1,231 @@
+<section class="cf-journey-context" [attr.aria-label]="kind==='baseline'?'Jornada de linha de base':'Jornada de adicionalidade'">
+  <p class="cf-workspace-helper">
+    {{kind==='baseline'?'Frota EVR, comparáveis e fatores são originados de módulos canônicos e podem estar ausentes.':
+      'A adicionalidade depende de cronologia, direitos, excedente regulatório e parecer humano.'}}
+    Dados preenchidos não constituem aprovação VCS, Verra ou VVB.
+  </p>
+  <nav class="cf-triage-actions" [attr.aria-label]="kind==='baseline'?'Etapas da linha de base':'Etapas da adicionalidade'">
+    @for (item of steps();track item.id){
+      <button type="button" class="cf-workspace-outline" [attr.aria-current]="step().id===item.id?'step':null"
+        [disabled]="loading()" (click)="selectStep(item.id)">{{item.label}}</button>
+    }
+  </nav>
+  <h3>{{step().label}} — {{step().detail}}</h3>
+  @if (loading()){<p role="status">Lendo os registros autorizados do projeto…</p>}
+  @for (entry of ['typed','applicability','calculation','monitoring','fleet','pd'];track entry){
+    @if (failures()[$any(entry)]){
+      <p class="cf-workspace-note" role="status">{{entry}}: {{failures()[$any(entry)]}}</p>
+    }
+  }
+  @if (kind==='baseline'){
+    @switch (step().id){
+      @case ('contexto'){
+        <h4>Cenário contrafactual e condições de enquadramento</h4>
+        @if (applicability();as app){
+          <dl class="cf-tech-capabilities">
+            <div><dt>Rede</dt><dd>{{labelState(app.readiness.network)}}</dd></div>
+            <div><dt>Direitos</dt><dd>{{labelState(app.readiness.rights)}}</dd></div>
+            <div><dt>Revisão de aplicabilidade</dt><dd>v{{app.version}} · {{app.readiness.stale?'Rechecagem necessária':'Declaração vigente'}}</dd></div>
+          </dl>
+        } @else {
+          <p>Enquadramento indisponível ou ainda não autorizado para esta conta. Não presumimos elegibilidade.</p>
+        }
+        <p>Na rede OPEN, a linha de base usa a composição EVR do mercado pertinente
+          e comparáveis técnicos, não VIN de cada usuário. Vendas não substituem frota em circulação.</p>
+        @if (guide();as g){
+          <p>Premissas tipadas: {{labelState(g.state)}} · definição v{{g.definitionVersion}}.</p>
+        } @else {<p>Sem formulário estruturado disponível para esta metodologia e permissão.</p>}
+        <button class="cf-workspace-outline" type="button" (click)="selectStep('frota')">Consultar frota e comparáveis</button>
+      }
+      @case ('frota'){
+        <h4>Vínculos reais de frota e ratings por período</h4>
+        <p>Somente metadados de snapshots publicados para este projeto são mostrados.
+          O catálogo EVR/Inmetro/PBEV é administrado por equipe autorizada, com licenças e pareceres próprios.</p>
+        @if (!canViewMonitoring||!canViewFleet){
+          <p role="status">Esta conta não tem acesso aos períodos ou às seleções de frota.
+            Nenhum dado privado de fontes foi consultado.</p>
+        } @else if (dossiers().length){
+          @for (period of dossiers();track period.reference.code){
+            <section class="cf-journey-context">
+              <h5>Período {{period.reference.code}} · MR v{{period.reference.version}}</h5>
+              <p>{{labelState(period.state)}} · {{period.stale?'MR obsoleto':'MR em preparação'}}</p>
+              @for (selection of fleet();track selection.id){
+                @if (selection.period===period.reference.code){
+                  <dl class="cf-tech-capabilities">
+                    <div><dt>Snapshot EVR/ratings vinculado</dt><dd>Seleção v{{selection.version}} · ano {{selection.observationYear}}</dd></div>
+                    <div><dt>Ciclo</dt><dd>{{selection.cycle}}</dd></div>
+                    <div><dt>Estado</dt><dd>{{labelState(selection.state)}}</dd></div>
+                    <div><dt>Hash de seleção</dt><dd><code>{{selection.selectionSha256}}</code></dd></div>
+                  </dl>
+                  @for (gate of selection.gates;track gate){<p class="cf-workspace-note">{{gate}}</p>}
+                }
+              }
+              @if (!fleet().some(s=>s.period===period.reference.code)){
+                <p>Não há seleção consultável de EVR/PBEV para este período; isso não significa frota igual a zero.</p>
+              }
+            </section>
+          }
+        } @else {
+          <p>Nenhum período MR consultável. Prepare o monitoramento para vincular uma frota à etapa de cálculo.</p>
+        }
+        @if (fleetGates().length){
+          @for (gate of fleetGates();track gate.code){
+            <p class="cf-workspace-note">{{labelState(gate.state)}} — {{gate.reason}}. Próxima ação: {{gate.nextAction}}</p>
+          }
+        }
+        @if (canViewMonitoring){
+          <button class="cf-workspace-outline" type="button" (click)="openMonitoring.emit()">Abrir monitoramento e dossiês</button>
+        }
+      }
+      @case ('fatores'){
+        <h4>Parâmetros e memória de cálculo</h4>
+        @if (calculation();as c){
+          <p role="status">Cálculo: {{labelState(c.calculationState)}}.
+            {{c.canRunE8?'Verificar admissibilidade antes de executar.':'E8 não liberado para este projeto.'}}</p>
+          @for (gate of baselineGates();track gate.code){
+            <details class="cf-journey-context">
+              <summary>{{gate.code}} · {{labelState(gate.state)}}</summary>
+              <p>{{gate.reason}}</p><p>Próxima ação: {{gate.nextAction}} · Responsável: {{gate.owner}}</p>
+            </details>
+          } @empty {<p>Não há diagnóstico específico de fatores disponível neste momento.</p>}
+        } @else {
+          <p role="status">Diagnóstico de cálculo não disponível para esta conta. Nenhum resultado BE foi inferido.</p>
+        }
+        @if (canViewCalculation){
+          <button class="cf-workspace-outline" type="button" (click)="openCalculation.emit()">Abrir pré-cálculo e memória</button>
+        }
+      }
+      @case ('premissas'){
+        <h4>Premissas estruturadas do cenário</h4>
+        <p>Registre apenas informações contextuais e referências candidatas.
+          Composição EVR, pares de ratings e fatores reais são escolhidos nos respectivos módulos.</p>
+        <carbonflow-typed-guide [projectId]="projectId" guideId="baseline" [editable]="canSaveGuide"/>
+        <button class="cf-workspace-outline" type="button" (click)="openGuide.emit('baseline')">
+          Consultar notas textuais legadas e fontes do guia</button>
+      }
+      @case ('revisao'){
+        <h4>Lacunas de proveniência, admissibilidade e revisão</h4>
+        @if (guide();as g){
+          <p>Guia v{{g.version}} · {{labelState(g.state)}}.
+            O preenchimento não determina aceitação normativa.</p>
+          @for (missing of g.missing;track missing){<p class="cf-workspace-note">Campo pendente: {{missing}}</p>}
+        }
+        @if (calculation();as c){
+          @for (gate of c.gates;track gate.code){
+            <details class="cf-journey-context">
+              <summary>{{gate.code}} · {{labelState(gate.state)}}</summary>
+              <p>{{gate.reason}}</p><p>Próxima ação: {{gate.nextAction}} · Responsável: {{gate.owner}}</p>
+            </details>
+          }
+        } @else {<p>Não há avaliação de cálculo acessível; nenhuma fonte é considerada aprovada.</p>}
+        <button class="cf-workspace-outline" type="button" (click)="selectStep('pd')">Conferir vínculo ao PD</button>
+      }
+      @case ('pd'){
+        <carbonflow-pd-trace [kind]="kind" [guide]="guide()" [section]="currentPd()"
+          [canViewPd]="canViewPd" (openDocument)="pd.emit($event)" />
+      }
+    }
+  } @else {
+    @switch (step().id){
+      @case ('enquadramento'){
+        <h4>Enquadramento e rota candidata</h4>
+        @if (applicability();as a){
+          <dl class="cf-tech-capabilities">
+            <div><dt>Rede</dt><dd>{{labelState(a.readiness.network)}}</dd></div>
+            <div><dt>Direitos declarados</dt><dd>{{labelState(a.readiness.rights)}}</dd></div>
+            <div><dt>Fonte normativa</dt><dd>{{labelState(a.readiness.norm)}}</dd></div>
+          </dl>
+          @for (finding of additionalityGates();track finding.code){
+            @if (finding.code==='VMD0049_ROUTE'||finding.code==='MARKET_ROUTE'||finding.code==='REGULATORY_SURPLUS'){
+              <section class="cf-journey-context"><strong>{{finding.code}} · {{finding.state}}</strong>
+                <p>{{finding.text}}</p></section>
+            }
+          }
+        } @else {<p>Sem declaração de aplicabilidade consultável. Não há rota automaticamente aceita.</p>}
+        @if (guide();as g){
+          <p>Rota declarada no guia v{{g.version}}:
+            {{summary(g.answers['route'])}}. Situação: {{labelState(g.state)}}.</p>
+        }
+        <p>Lista positiva candidata (VMD0049) é distinta de excedente regulatório,
+          aplicabilidade do mercado e demonstração de adicionalidade. Sem parecer humano, não há conclusão.</p>
+        <button class="cf-workspace-outline" type="button" (click)="selectStep('cronologia')">Analisar a cronologia</button>
+      }
+      @case ('cronologia'){
+        <h4>Linha do tempo das declarações</h4>
+        <p>Estas datas vêm do guia tipado; não substituem eventos jurídicos, instrumentos,
+          datas documentais ou atos de início VCS dos owners #38/#99.</p>
+        <ol class="cf-tech-gates">
+          @for (event of chronologicalFacts();track event.key){
+            <li><strong>{{event.label}}</strong> · {{event.date??'Data ainda não informada'}}
+              <p>{{event.date?'Data declarada: pendente de documento e revisão.':'Pendente: registrar evento e prova separados.'}}</p>
+            </li>
+          }
+        </ol>
+        @if (guide();as g){
+          @if (g.answers['commitment']&&g.answers['considered']&&
+            summary(g.answers['commitment'])<summary(g.answers['considered'])){
+            <p role="alert" class="cf-workspace-note">Compromisso anterior à consideração da receita de carbono.
+              Exige análise de cronologia e prova; não é reprovação automática.</p>
+          }
+        }
+        <h4>Datas e justificativas tipadas</h4>
+        <carbonflow-typed-guide [projectId]="projectId" guideId="additionality" [editable]="canSaveGuide"/>
+        <button class="cf-workspace-outline" type="button" (click)="openGuide.emit('additionality')">
+          Consultar histórico e solicitações do guia</button>
+      }
+      @case ('direitos'){
+        <h4>Titularidade, publicação dos termos e duplo pleito</h4>
+        @if (applicability()?.latest?.answers;as rights){
+          <dl class="cf-tech-capabilities">
+            <div><dt>Titular declarado</dt><dd>{{rights.chargingOwner??'Não informado'}}</dd></div>
+            <div><dt>Referência de contrato</dt><dd>{{rights.carbonRightsContractRef??'Não informada'}}</dd></div>
+            <div><dt>Canal de divulgação</dt><dd>{{rights.driverDisclosureChannel??'Não informado'}}</dd></div>
+            <div><dt>Referência de divulgação</dt><dd>{{rights.driverDisclosureEvidenceRef??'Não informada'}}</dd></div>
+            <div><dt>Data de divulgação</dt><dd>{{rights.driverDisclosureEffectiveOn??'Não informada'}}</dd></div>
+            <div><dt>Duplo pleito</dt><dd>{{rights.doubleClaimingCheck??'Não avaliado'}}</dd></div>
+          </dl>
+          <p>Os campos acima são declarações, não vínculos de PP, procurações,
+            provas documentais aceitas nem concessões de poderes. Contas sem permissão não recebem estes dados.</p>
+        } @else {<p>Informações de direitos não acessíveis ou não declaradas.</p>}
+        @for (finding of additionalityGates();track finding.code){
+          @if (finding.code==='OWNER_CONTRACT'||finding.code==='DRIVER_DISCLOSURE'||
+            finding.code==='RIGHTS_DATE_GAP'||finding.code==='DOUBLE_CLAIMING'){
+            <p class="cf-workspace-note">{{finding.state}}: {{finding.text}}</p>
+          }
+        }
+        @if (canViewApplicability){
+          <button class="cf-workspace-outline" type="button" (click)="openApplicability.emit()">
+            Editar declaração de aplicabilidade e direitos</button>
+        }
+      }
+      @case ('revisao'){
+        <h4>Matriz de pendências da adicionalidade</h4>
+        @for (finding of additionalityGates();track finding.code){
+          <details class="cf-journey-context">
+            <summary>{{finding.code}} · {{finding.state}}</summary><p>{{finding.text}}</p>
+          </details>
+        } @empty {
+          <p>Sem critérios consultáveis; falta avaliação normativa ou permissão. Não há adicionalidade aprovada.</p>
+        }
+        @if (guide();as g){
+          <p>Guia tipado: {{labelState(g.state)}} (v{{g.version}}).</p>
+          @for (miss of g.missing;track miss){<p class="cf-workspace-note">{{miss}}</p>}
+        }
+        <p>O parecer interpretativo por requisito será produzido no workbench #38/#99.
+          Esta tela não o substitui nem presume aprovação.</p>
+        <button class="cf-workspace-outline" type="button" (click)="selectStep('pd')">Conferir vínculo ao PD</button>
+      }
+      @case ('pd'){
+        <carbonflow-pd-trace [kind]="kind" [guide]="guide()" [section]="currentPd()"
+          [canViewPd]="canViewPd" (openDocument)="pd.emit($event)" />
+      }
+    }
+  }
+  <footer class="cf-triage-actions">
+    <button type="button" class="cf-workspace-outline" (click)="load()" [disabled]="loading()">Atualizar dados deste projeto</button>
+    @if (step().id!=='pd'){
+      <button type="button" class="cf-workspace-primary" (click)="selectStep(steps()[steps().findIndex(s=>s.id===step().id)+1]?.id??'pd')">
+        Próxima etapa</button>
+    }
+  </footer>
+</section>
