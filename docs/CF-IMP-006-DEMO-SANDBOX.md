@@ -116,7 +116,7 @@ Para confirmar o histórico Flyway mesmo que o aplicativo não suba, no Compose 
 
 ```bash
 docker compose -p carbonflow-demo -f compose.yaml -f compose.demo.yaml up -d db
-docker compose -p carbonflow-demo -f compose.yaml -f compose.demo.yaml exec -T db psql -U carbonflow -d carbonflow -c "SELECT version, description, checksum, success FROM flyway_schema_history WHERE version IN ('69','70','71') ORDER BY installed_rank;"
+docker compose -p carbonflow-demo -f compose.yaml -f compose.demo.yaml exec -T db psql -U carbonflow -d carbonflow -c "SELECT version, description, checksum, success FROM flyway_schema_history WHERE version IN ('69','69.1','70') ORDER BY installed_rank;"
 ```
 
 O resultado esperado é a **V69 com checksum -1778044537**, a V70 quando a UX-07 estiver instalada, e a **V69.1 aplicada com sucesso**. Se você utiliza outro `CARBONFLOW_DEMO_PROJECT`, substitua `carbonflow-demo` pelo nome configurado. Para o Compose padrão, utilize `docker compose exec -T db ...` sem `-p/-f`.
