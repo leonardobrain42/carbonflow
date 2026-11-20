@@ -210,6 +210,8 @@ class OpenPeriodSupportIntegrationTest {
         JsonNode newMethod=json(call("GET",methodUrl,owner.cookie(),null,null));
         assertEquals(2,newMethod.path("dossierVersion").asInt());
         assertEquals("PENDING_INTERNAL_REVIEW",newMethod.path("state").asText());
+        assertEquals(412,postMethod(methodUrl,docsReviewer.cookie(),key(),"\"0\"",
+            methodBody).statusCode());
         assertEquals(1,json(call("GET",methodUrl+"/versions/1",
             owner.cookie(),null,null)).size());
         JsonNode pdObsolete=json(call("GET",technical+"/pd-reviews",owner.cookie(),null,null));
@@ -405,7 +407,7 @@ class OpenPeriodSupportIntegrationTest {
     }
 
     private static String methodAssessment() {
-        StringBuilder body=new StringBuilder("{\"outcome\":\"CHECKED_INTERNAL\",")
+        StringBuilder body=new StringBuilder("{\"dossierVersion\":1,\"outcome\":\"CHECKED_INTERNAL\",")
             .append("\"rationale\":\"Justificativa final da conformidade documental interna.\",")
             .append("\"checks\":[");
         String[] requirements={
