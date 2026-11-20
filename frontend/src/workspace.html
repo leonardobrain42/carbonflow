@@ -80,7 +80,10 @@
                 <div class="cf-workspace-info">
                   <strong>Próximo passo: preencher as informações técnicas</strong>
                   <p>Seu rascunho foi salvo. Inicie a triagem guiada e responda às cinco etapas no seu ritmo.</p>
-                  <a [routerLink]="['/workspace/projects', created.projectId, 'triage']" class="cf-workspace-primary cf-workspace-link">Iniciar triagem guiada</a>
+                  <a [routerLink]="['/workspace/projects', created.projectId, 'overview']"
+                    class="cf-workspace-primary cf-workspace-link">Abrir plano guiado do projeto</a>
+                  <a [routerLink]="['/workspace/projects', created.projectId, 'triage']"
+                    class="cf-workspace-link">Ir direto à triagem</a>
                 </div>
                 <a routerLink="/workspace" class="cf-workspace-primary cf-workspace-link">Ver meus projetos</a>
               </section>

@@ -1,5 +1,6 @@
 import {WorkspaceNavigationComponent} from './workspace-navigation';
-import {afterNextRender, Component, computed, ElementRef, inject, Injector, signal, viewChild} from '@angular/core';
+import {JourneyCheckpointService} from './journey-checkpoint';
+import {afterNextRender, Component, computed, effect, ElementRef, inject, Injector, signal, viewChild} from '@angular/core';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {ActivatedRoute, RouterLink} from '@angular/router';
 import {firstValueFrom} from 'rxjs';
@@ -63,6 +64,7 @@ type AnswerSet = Record<number, Values>;
 })
 export class ProjectTriageComponent {
   private readonly http = inject(HttpClient);
+  private readonly checkpoints = inject(JourneyCheckpointService);
   private readonly route = inject(ActivatedRoute);
   private readonly injector = inject(Injector);
   private readonly heading = viewChild<ElementRef<HTMLHeadingElement>>('stepHeading');
@@ -100,7 +102,21 @@ export class ProjectTriageComponent {
   private pendingKey = '';
   private pendingPayload = '';
 
-  constructor() { void this.load(); }
+  constructor() {
+    void this.load();
+    effect(()=>{
+      if(!this.loading()||!this.project()||!this.view())return;
+      // The triage owns its current step on the server, not a guessed URL fragment.
+      this.checkpoints.remember(this.projectId,{
+        area:'triage',screen:null,guide:null,step:null
+      });
+    });
+  }
+
+  canLeave(){
+    return !this.busy()&&(!this.dirty()||
+      confirm('Descartar as respostas de triagem ainda não salvas?'));
+  }
 
   async load() {
     if (this.busy()) return;
