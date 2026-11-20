@@ -108,6 +108,19 @@ class OpenCalculationReadiness {
                         ": "+vt0011+". Pesos Case 2 NÃO verificam OM nem convertem CO2 em CO2e.",
                     "Comprovar dados OM, opção TOOL07, fontes e vínculo horário ao EFel",
                     "PREP/REV"));
+                String simpleOm=OpenTool07SimpleOmRuns.state(connection,project,
+                    dossier.reference().code());
+                gates.add(new OpenCalculationPreflight.Gate(
+                    "E8_TOOL07_SIMPLE_OM_"+dossier.reference().code(),
+                    simpleOm.startsWith("STALE")?"STALE":
+                    "SIMPLE_OM_A1_MISSING".equals(simpleOm)?"MISSING":"NOT_ADMITTED",
+                    "Apuração preliminar Simple OM A1 de "+
+                        dossier.reference().code()+": "+simpleOm+
+                        ". Triagem LCMR e aritmética por usina não substituem a "+
+                        "validação das fontes, importações, anos ou CO2/CO2e.",
+                    "Verificar integralidade das usinas, combustíveis, dados oficiais e "+
+                        "requisitos condicionais TOOL07 antes da admissibilidade",
+                    "PREP/REV"));
             }
         }
         return new OpenCalculationPreflight.Result(base.projectId(),base.environment(),
