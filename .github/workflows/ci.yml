@@ -77,7 +77,22 @@ jobs:
             exit 1
           fi
           mvn -B -ntp --version
-          mvn -B -ntp clean verify
+          # Central may occasionally return HTTP 429 before tests start.
+          # Retry ONLY repository throttling; do not hide compiler/test failures.
+          set -o pipefail
+          attempt=1
+          while true; do
+            if mvn -B -ntp -U clean verify 2>&1 | tee /tmp/carbonflow-maven-run.log; then
+              break
+            fi
+            if [ "$attempt" -ge 3 ] || ! grep -Eiq 'HTTP Status: 429|HTTP 429|status code: 429|Too Many Requests' /tmp/carbonflow-maven-run.log; then
+              echo "::error::Maven build/test failure; not a transient Central 429 (or retries exhausted)."
+              exit 1
+            fi
+            echo "::warning::Maven Central rate-limited dependency download; retry $((attempt + 1))/3."
+            sleep $((attempt * 20))
+            attempt=$((attempt + 1))
+          done
       - uses: actions/upload-artifact@v4
         if: always()
         with:
