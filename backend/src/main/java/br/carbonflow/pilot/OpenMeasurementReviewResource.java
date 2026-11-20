@@ -31,7 +31,7 @@ public class OpenMeasurementReviewResource {
     public Response reviews(@CookieParam(AccountAccess.COOKIE) String cookie,
                             @PathParam("project") String project,
                             @PathParam("batchId") UUID batch) {
-        return noStore(qa.reviews(cookie,project,batch));
+        return noStore(qa.reviews(cookie,project,batch)).build();
     }
 
     @POST
@@ -53,7 +53,7 @@ public class OpenMeasurementReviewResource {
                            @PathParam("project") String project,
                            @QueryParam("from") OffsetDateTime from,
                            @QueryParam("until") OffsetDateTime until) {
-        return noStore(qa.preview(cookie,project,from,until));
+        return noStore(qa.preview(cookie,project,from,until)).build();
     }
 
     @POST
@@ -72,7 +72,7 @@ public class OpenMeasurementReviewResource {
     @Path("/period-qa/snapshots")
     public Response snapshots(@CookieParam(AccountAccess.COOKIE) String cookie,
                               @PathParam("project") String project) {
-        return noStore(qa.snapshots(cookie,project));
+        return noStore(qa.snapshots(cookie,project)).build();
     }
 
     record PeriodInput(OffsetDateTime from,OffsetDateTime until) {}
