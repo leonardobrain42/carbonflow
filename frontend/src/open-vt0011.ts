@@ -1,6 +1,7 @@
 import {Component, Input, OnChanges, SimpleChanges, inject, signal} from '@angular/core';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {firstValueFrom} from 'rxjs';
+import {OpenTool07SimpleOmComponent} from './open-tool07-simple-om';
 
 type Preview = {reference:string;caseCode:string;formula:string;
   omWeight:string;bmWeight:string;omFactorTco2PerMwh:string;
@@ -19,6 +20,7 @@ type Workbook = {id:string;period:string;version:number;efelCandidateId:string;
   state:string;stale:boolean;usableForE8:boolean;gates:string[]};
 
 @Component({selector:'carbonflow-vt0011-workbooks',standalone:true,
+  imports:[OpenTool07SimpleOmComponent],
   templateUrl:'./open-vt0011.html'})
 export class OpenVt0011WorkbooksComponent implements OnChanges {
   @Input({required:true}) projectId='';
@@ -28,6 +30,8 @@ export class OpenVt0011WorkbooksComponent implements OnChanges {
   @Input() canView=false;
   @Input() canSubmit=false;
   @Input() canReview=false;
+  @Input() canViewSimpleOm=false;
+  @Input() canPrepareSimpleOm=false;
   private readonly http=inject(HttpClient);
 
   readonly workbooks=signal<Workbook[]>([]);
