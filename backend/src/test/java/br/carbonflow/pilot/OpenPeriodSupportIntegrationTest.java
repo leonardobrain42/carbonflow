@@ -219,7 +219,9 @@ class OpenPeriodSupportIntegrationTest {
         assertEquals(64,energy.path("sourceSha256").asText().length());
         assertEquals(packageCreated.body(),postMethod(energyUrl,owner.cookie(),prepareKey,
             "\"1\"",energyPayload).body());
-        assertEquals(409,postMethod(energyUrl,owner.cookie(),prepareKey,"\"1\"",
+        // A mismatched If-Match is rejected as a stale precondition before
+        // the command's idempotency fingerprint can be reused.
+        assertEquals(412,postMethod(energyUrl,owner.cookie(),prepareKey,"\"1\"",
             "{\"dossierVersion\":1,\"methodReviewVersion\":2}").statusCode());
         assertEquals(1,json(call("GET",energyUrl,owner.cookie(),null,null)).size());
         JsonNode calcWithEnergy=json(call("GET",technical+"/open-calculation-readiness",
