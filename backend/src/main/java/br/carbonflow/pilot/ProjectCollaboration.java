@@ -18,7 +18,8 @@ final class ProjectCollaboration {
             "VIEW_OPEN_APPLICABILITY", "SAVE_OPEN_APPLICABILITY", "VIEW_OPEN_CALCULATION",
             "VIEW_OPEN_MONITORING", "SAVE_OPEN_MONITORING", "SUBMIT_OPEN_MEASUREMENTS",
             "VIEW_OPEN_PERIOD_ADMISSION", "SUBMIT_OPEN_PERIOD_EVIDENCE",
-            "SUBMIT_OPEN_MONITORING_EVENT", "VIEW_OPEN_METHOD_REVIEW");
+            "SUBMIT_OPEN_MONITORING_EVENT", "VIEW_OPEN_METHOD_REVIEW",
+            "VIEW_OPEN_E8_ENERGY_CANDIDATE", "PREPARE_OPEN_E8_ENERGY_CANDIDATE");
 
     private ProjectCollaboration() {}
 
@@ -53,8 +54,12 @@ final class ProjectCollaboration {
                     if ("MONITORING".equals(activity)) {
                         actions.add("VIEW_OPEN_MONITORING");
                         actions.add("VIEW_OPEN_PERIOD_ADMISSION");
-                        if (!"OP".equals(grant.role()))
+                        if (!"OP".equals(grant.role())) {
                             actions.add("VIEW_OPEN_METHOD_REVIEW");
+                            actions.add("VIEW_OPEN_E8_ENERGY_CANDIDATE");
+                        }
+                        if (preparer)
+                            actions.add("PREPARE_OPEN_E8_ENERGY_CANDIDATE");
                         if (preparer) actions.add("SAVE_OPEN_MONITORING");
                         if (preparer || "OP".equals(grant.role())) {
                             actions.add("SUBMIT_OPEN_MEASUREMENTS");
