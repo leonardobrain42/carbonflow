@@ -28,6 +28,8 @@ export class OpenEfelCandidatesComponent implements OnChanges {
   @Input() canViewVt0011=false;
   @Input() canSubmitVt0011=false;
   @Input() canReviewVt0011=false;
+  @Input() canViewSimpleOm=false;
+  @Input() canPrepareSimpleOm=false;
   private readonly http=inject(HttpClient);
   readonly loading=signal(false);
   readonly sending=signal(false);
