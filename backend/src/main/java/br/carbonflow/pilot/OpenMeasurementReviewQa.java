@@ -237,7 +237,7 @@ class OpenMeasurementReviewQa {
             throw conflict("Medidor, configuração atual, topologia ou calibração não comprova esta leitura.");
     }
 
-    private static OpenPeriodQa.Result evaluate(Connection c,String project,
+    static OpenPeriodQa.Result evaluate(Connection c,String project,
                                           OffsetDateTime from,OffsetDateTime until)
         throws SQLException {
         // Validate before querying; bound the requested period to 744 hours.
@@ -318,7 +318,7 @@ class OpenMeasurementReviewQa {
             r.getObject("created_by",UUID.class),
             r.getObject("created_at",OffsetDateTime.class));
     }
-    private static String hash(String project,OffsetDateTime from,OffsetDateTime until,
+    static String hash(String project,OffsetDateTime from,OffsetDateTime until,
                                List<OpenPeriodQa.Ref> refs) {
         StringBuilder payload=new StringBuilder(project).append('|')
             .append(from.toInstant()).append('|').append(until.toInstant());

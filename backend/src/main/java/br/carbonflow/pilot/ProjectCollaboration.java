@@ -16,7 +16,8 @@ final class ProjectCollaboration {
     static final Set<String> OWNER_TECHNICAL_ACTIONS = Set.of("VIEW_PROJECT_METADATA", "VIEW_CAPABILITIES", "VIEW_JOURNEY",
             "VIEW_PD_REVIEW", "VIEW_GUIDES", "SAVE_GUIDE", "VIEW_INTAKE", "SAVE_INTAKE", "VIEW_DOSSIER", "PREPARE_DOSSIER", "DOWNLOAD_DOSSIER",
             "VIEW_OPEN_APPLICABILITY", "SAVE_OPEN_APPLICABILITY", "VIEW_OPEN_CALCULATION",
-            "VIEW_OPEN_MONITORING", "SAVE_OPEN_MONITORING", "SUBMIT_OPEN_MEASUREMENTS");
+            "VIEW_OPEN_MONITORING", "SAVE_OPEN_MONITORING", "SUBMIT_OPEN_MEASUREMENTS",
+            "VIEW_OPEN_PERIOD_ADMISSION", "SUBMIT_OPEN_PERIOD_EVIDENCE");
 
     private ProjectCollaboration() {}
 
@@ -50,12 +51,16 @@ final class ProjectCollaboration {
                         actions.add("VIEW_OPEN_CALCULATION");
                     if ("MONITORING".equals(activity)) {
                         actions.add("VIEW_OPEN_MONITORING");
+                        actions.add("VIEW_OPEN_PERIOD_ADMISSION");
                         if (preparer) actions.add("SAVE_OPEN_MONITORING");
-                        if (preparer || "OP".equals(grant.role()))
+                        if (preparer || "OP".equals(grant.role())) {
                             actions.add("SUBMIT_OPEN_MEASUREMENTS");
+                            actions.add("SUBMIT_OPEN_PERIOD_EVIDENCE");
+                        }
                         if ("REV".equals(grant.role())) {
                             actions.add("REVIEW_OPEN_MEASUREMENTS");
                             actions.add("SNAPSHOT_OPEN_PERIOD");
+                            actions.add("REVIEW_OPEN_PERIOD_EVIDENCE");
                         }
                     }
                     if ("APPLICABILITY".equals(activity)) {

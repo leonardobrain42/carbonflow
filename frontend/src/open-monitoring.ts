@@ -31,6 +31,15 @@ type QaPeriod = {state:string;readyForInternalSnapshot:boolean;canRunE8:boolean;
   edKwh:string|null;ecKwh:string|null;gates:QaGate[]};
 type QaSnapshot = {id:string;projectId:string;from:string;until:string;
   edKwh:string;ecKwh:string;sourceSha256:string;status:string;usableForE8:boolean;createdAt:string};
+type SupportReview = {version:number;outcome:'DOCUMENT_CHECKED_INTERNAL'|'REJECTED';
+  reason:string;reviewedBy:string;reviewedAt:string};
+type SupportDocument = {id:string;snapshotId:string;kind:string;subjectCode:string;
+  evidenceReference:string;fileName:string;sha256:string;bytesCount:number;
+  submittedBy:string;submittedAt:string;review:SupportReview|null};
+type SupportGate = {code:string;subject:string|null;detail:string};
+type SupportReadiness = {snapshotId:string;state:string;stale:boolean;
+  documentaryComplete:boolean;usableForE8:boolean;historicalEdKwh:string;
+  historicalEcKwh:string;gates:SupportGate[];documents:SupportDocument[]};
 type ChargerForm = {code:string; siteCode:string; chargerKind:string; ratedPowerKw:string;
                     grid:string; topology:string; timeZone:string; sourceReference:string};
 type MeterForm = {code:string; chargerCode:string; energyKind:string; sourceSystem:string;
@@ -69,6 +78,18 @@ export class OpenMonitoringComponent implements OnChanges {
   readonly batches=signal<MeasurementBatch[]>([]);
   readonly reviews=signal<Record<string,QaReview>>({});
   readonly qaSnapshots=signal<QaSnapshot[]>([]);
+  readonly proofSnapshot=signal<string|null>(null);
+  readonly proofReadiness=signal<SupportReadiness|null>(null);
+  readonly proofLoading=signal(false);
+  readonly proofKind=signal<'METER_CALIBRATION'|'SOURCE_RIGHTS'>('METER_CALIBRATION');
+  readonly proofSubject=signal('');
+  readonly proofReference=signal('');
+  readonly proofFile=signal<File|null>(null);
+  readonly proofUploading=signal(false);
+  readonly proofReviewId=signal<string|null>(null);
+  readonly proofReviewOutcome=signal<'DOCUMENT_CHECKED_INTERNAL'|'REJECTED'>('REJECTED');
+  readonly proofReviewReason=signal('');
+  readonly proofReviewSaving=signal(false);
   readonly qaPreview=signal<QaPeriod|null>(null);
   readonly qaFrom=signal('');
   readonly qaUntil=signal('');
@@ -85,6 +106,7 @@ export class OpenMonitoringComponent implements OnChanges {
   private chargerRetry='';
   private meterRetry='';
   private uploadRetry='';
+  private proofRetry='';
 
   ngOnChanges(changes:SimpleChanges) {
     if(changes['projectId'])void this.load();
@@ -113,6 +135,10 @@ export class OpenMonitoringComponent implements OnChanges {
         this.data.set(result);
         this.batches.set(batches);
         this.qaSnapshots.set(snapshots);
+        if(this.proofSnapshot() && !snapshots.some(x=>x.id===this.proofSnapshot())) {
+          this.proofSnapshot.set(null);
+          this.proofReadiness.set(null);
+        }
         this.reviews.set(indexed);
       }
     } catch(problem) {
@@ -351,6 +377,86 @@ export class OpenMonitoringComponent implements OnChanges {
       this.notice.set('Snapshot '+snapshot.id+' preservado para QA interno. Não alimenta E8.');
     } catch(problem) {this.error.set(this.message(problem));}
     finally {this.qaLoading.set(false);}
+  }
+
+  async inspectSnapshot(snapshot:string) {
+    this.proofSnapshot.set(snapshot);
+    this.proofLoading.set(true);
+    this.error.set('');
+    try {
+      const state=await firstValueFrom(this.http.get<SupportReadiness>(
+        '/v1/projects/'+encodeURIComponent(this.projectId)+
+        '/technical/open-monitoring/period-qa/snapshots/'+snapshot+'/admissibility'));
+      if(this.proofSnapshot()===snapshot && state.snapshotId===snapshot)
+        this.proofReadiness.set(state);
+    } catch(problem) {this.error.set(this.message(problem));}
+    finally {this.proofLoading.set(false);}
+  }
+
+  chooseProofFile(event:Event) {
+    const input=event.target as HTMLInputElement;
+    this.proofFile.set(input.files?.[0]??null);
+    this.proofRetry='';
+  }
+
+  async uploadProof(event:Event) {
+    event.preventDefault();
+    const snapshot=this.proofSnapshot(),file=this.proofFile();
+    const subject=this.proofSubject().trim(),ref=this.proofReference().trim();
+    if(!this.canSubmit||!snapshot||!file||this.proofUploading())return;
+    if(file.size<16||file.size>2_000_000||!/^[A-Za-z0-9][A-Za-z0-9._-]{4,115}\.pdf$/.test(file.name) ||
+      !/^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$/.test(subject) ||
+      ref.length<8||ref.length>300) {
+      this.error.set('Informe tipo, identificador, referência e PDF de até 2 MB.');
+      return;
+    }
+    this.proofUploading.set(true);this.error.set('');
+    if(!this.proofRetry)this.proofRetry=crypto.randomUUID();
+    try {
+      await firstValueFrom(this.http.post(
+        '/v1/projects/'+encodeURIComponent(this.projectId)+
+        '/technical/open-monitoring/period-qa/snapshots/'+snapshot+'/support',
+        new Blob([file],{type:'application/pdf'}),{headers:{
+          'Content-Type':'application/pdf','X-Evidence-Kind':this.proofKind(),
+          'X-Subject-Code':subject,'X-Evidence-Reference':ref,'X-File-Name':file.name,
+          'Idempotency-Key':this.proofRetry}}));
+      this.proofRetry='';this.proofFile.set(null);
+      await this.inspectSnapshot(snapshot);
+      this.notice.set('Documento cifrado anexado. Aguarda conferência independente; E8 bloqueado.');
+    } catch(problem) {
+      this.error.set(this.message(problem));
+      if(problem instanceof HttpErrorResponse && problem.status>=400&&problem.status<500)
+        this.proofRetry='';
+    } finally {this.proofUploading.set(false);}
+  }
+
+  selectProofReview(document:SupportDocument) {
+    this.proofReviewId.set(document.id);
+    this.proofReviewReason.set(document.review?.reason??'');
+    this.proofReviewOutcome.set(document.review?.outcome??'REJECTED');
+  }
+
+  async saveProofReview(event:Event) {
+    event.preventDefault();
+    const doc=this.proofReadiness()?.documents.find(d=>d.id===this.proofReviewId());
+    const snapshot=this.proofSnapshot(),reason=this.proofReviewReason().trim();
+    if(!this.canReview||!doc||!snapshot||this.proofReviewSaving())return;
+    if(reason.length<15||reason.length>2000) {
+      this.error.set('Registre uma justificativa entre 15 e 2000 caracteres.');
+      return;
+    }
+    this.proofReviewSaving.set(true);this.error.set('');
+    try {
+      await firstValueFrom(this.http.post(
+        '/v1/projects/'+encodeURIComponent(this.projectId)+
+        '/technical/open-monitoring/period-qa/support/'+doc.id+'/reviews',
+        {outcome:this.proofReviewOutcome(),reason},
+        {headers:{'If-Match':'"'+(doc.review?.version??0)+'"'}}));
+      this.proofReviewId.set(null);
+      await this.inspectSnapshot(snapshot);
+      this.notice.set('Parecer documental interno versionado. Não equivale a admissão normativa.');
+    } catch(problem){this.error.set(this.message(problem));}
+    finally {this.proofReviewSaving.set(false);}
   }
 
   stateName(code:string) {

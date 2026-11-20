@@ -242,6 +242,46 @@ class OpenMeasurementIngestion {
         return new HashSet<>(values);
     }
 
+    /**
+     * Protected project evidence store reused for PDF documentation. A file
+     * matching the PDF envelope is NOT a verified certificate or legal right.
+     * Never serve original bytes in a publicly accessible API.
+     */
+    UUID storeSupportPdf(Connection c,DynamicProjectScope.Context scope,
+                         String filename,byte[] original) throws SQLException {
+        if(key==null)throw new PilotProblem(503,"CHAVE_DE_EVIDENCIA_AUSENTE",
+            "file",RULE,"Chave de evidência cifrada não configurada.");
+        if(filename==null || !filename.matches("[A-Za-z0-9][A-Za-z0-9._-]{4,115}\\.pdf")
+            || filename.contains("..") || original==null ||
+            original.length<16 || original.length>2_000_000) {
+            throw PilotProblem.invalid("PROVA_INVALIDA","file",RULE,
+                "Envie documento PDF até 2 MB com nome seguro.");
+        }
+        String signature=new String(original,0,Math.min(5,original.length),
+            StandardCharsets.US_ASCII);
+        if(!"%PDF-".equals(signature)) {
+            throw PilotProblem.invalid("PROVA_INVALIDA","file",RULE,
+                "O arquivo não apresenta cabeçalho PDF. Isso não comprova autenticidade.");
+        }
+        byte[] digest=sha(original);
+        UUID existing=first(c,"""
+            SELECT id FROM app_project_evidence_blob
+            WHERE project_id=? AND sha256=? AND mime_type='application/pdf'
+            """,r->r.getObject(1,UUID.class),scope.id(),digest);
+        if(existing!=null)return existing;
+        UUID id=UUID.randomUUID();
+        byte[] nonce=AccessSecrets.randomBytes(12);
+        byte[] encrypted=encrypt(scope.organization(),scope.id(),id,digest,nonce,original);
+        update(c,"""
+            INSERT INTO app_project_evidence_blob
+              (id,project_id,organization_id,environment,mime_type,file_name,
+               sha256,nonce,encrypted,size_bytes,uploaded_by)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?)
+            """,id,scope.id(),scope.organization(),scope.environment(),
+            "application/pdf",filename,digest,nonce,encrypted,original.length,scope.actor().id());
+        return id;
+    }
+
     private byte[] encrypt(UUID organization,String project,UUID blob,byte[] sha,
                            byte[] nonce,byte[] bytes) {
         try {

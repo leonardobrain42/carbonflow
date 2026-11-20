@@ -319,9 +319,120 @@
             <p>ED {{snap.edKwh}} kWh · EC {{snap.ecKwh}} kWh · SHA-256
               {{snap.sourceSha256.slice(0,16)}}…</p>
             <small>Este histórico não demonstra admissão metodológica e não autoriza E8.</small>
+            <button type="button" class="cf-workspace-outline"
+              [disabled]="proofLoading()"
+              (click)="inspectSnapshot(snap.id)">
+              Verificar vigência e documentos
+            </button>
           </li>
         }
       </ul>
+    }
+
+
+    @if (proofSnapshot(); as snapshotId) {
+      <section class="cf-journey-context" aria-labelledby="cf-proof-title">
+        <h4 id="cf-proof-title">Evidências e vigência do snapshot</h4>
+        <p>Snapshot {{snapshotId}}. Conferência documental interna não é validação
+          metodológica nem autorização de uso dos dados para E8.</p>
+        @if (proofLoading()) {
+          <p role="status">Reavaliando referências, pareceres e evidências…</p>
+        }
+        @if (proofReadiness(); as proof) {
+          <p role="status"><strong>{{proof.state}}</strong> ·
+            {{proof.stale?'Snapshot obsoleto, bloqueado':'Histórico coerente com o QA atual'}}</p>
+          <p>Energia histórica registrada: ED {{proof.historicalEdKwh}} kWh ·
+            EC {{proof.historicalEcKwh}} kWh. Nenhum valor é admissível no E8 por esta tela.</p>
+          <p>Documentação revisada internamente:
+            {{proof.documentaryComplete ? 'Sim, pendente da avaliação normativa' : 'Não'}}.
+            Uso para E8: <strong>Não</strong>.</p>
+          @if (proof.gates.length) {
+            <ul class="cf-tech-gates" aria-label="Impedimentos de vigência">
+              @for (gate of proof.gates; track $index) {
+                <li><strong>{{gate.code}}</strong>
+                  @if (gate.subject) {<small> · {{gate.subject}}</small>}
+                  <p>{{gate.detail}}</p>
+                </li>
+              }
+            </ul>
+          }
+          @if (proof.documents.length) {
+            <h5>Documentos enviados</h5>
+            <ul class="cf-tech-gates">
+              @for (doc of proof.documents; track doc.id) {
+                <li>
+                  <strong>{{doc.kind}} · {{doc.subjectCode}}</strong>
+                  <p>{{doc.fileName}} · SHA-256 {{doc.sha256.slice(0,16)}}…
+                    · {{doc.review?.outcome || 'Parecer pendente'}}</p>
+                  <p>Referência: {{doc.evidenceReference}}</p>
+                  @if (canReview) {
+                    <button type="button" class="cf-workspace-outline"
+                      (click)="selectProofReview(doc)" [disabled]="proofReviewSaving()">
+                      Conferir documento (revisor independente)
+                    </button>
+                  }
+                </li>
+              }
+            </ul>
+          }
+          @if (canSubmit) {
+            <form class="cf-open-monitoring-form" (submit)="uploadProof($event)">
+              <fieldset [disabled]="proofUploading()">
+                <legend>Anexar comprovação ao snapshot</legend>
+                <p>O arquivo será armazenado cifrado. Confirme o identificador do medidor
+                  ou sistema de origem nas pendências acima; um PDF não é validado automaticamente.</p>
+                <div class="cf-journey-fields">
+                  <div><label for="cf-proof-kind">Tipo da comprovação</label>
+                    <select id="cf-proof-kind" [value]="proofKind()"
+                      (change)="proofKind.set($any($event.target).value)">
+                      <option value="METER_CALIBRATION">Calibração do medidor</option>
+                      <option value="SOURCE_RIGHTS">Direitos de utilização dos dados</option>
+                    </select></div>
+                  <div><label for="cf-proof-subject">Código do medidor ou origem</label>
+                    <input id="cf-proof-subject" maxlength="80" required
+                      [value]="proofSubject()"
+                      (input)="proofSubject.set($any($event.target).value)" /></div>
+                  <div><label for="cf-proof-ref">Referência documental verificável</label>
+                    <input id="cf-proof-ref" maxlength="300" required minlength="8"
+                      [value]="proofReference()"
+                      (input)="proofReference.set($any($event.target).value)" /></div>
+                  <div><label for="cf-proof-file">PDF de suporte (até 2 MB)</label>
+                    <input id="cf-proof-file" type="file" accept=".pdf,application/pdf"
+                      required (change)="chooseProofFile($event)" /></div>
+                </div>
+                <button type="submit" class="cf-workspace-primary"
+                  [disabled]="proofUploading() || !proofFile()">
+                  Anexar PDF cifrado
+                </button>
+              </fieldset>
+            </form>
+          }
+          @if (canReview && proofReviewId()) {
+            <form class="cf-open-monitoring-form" (submit)="saveProofReview($event)">
+              <fieldset [disabled]="proofReviewSaving()">
+                <legend>Parecer documental interno versionado</legend>
+                <p>Quem enviou o documento ou criou o snapshot não pode aprovar sua
+                  conferência documental. Esta revisão não decide o direito legal
+                  nem habilita E8.</p>
+                <label for="cf-proof-review-outcome">Decisão interna</label>
+                <select id="cf-proof-review-outcome" [value]="proofReviewOutcome()"
+                  (change)="proofReviewOutcome.set($any($event.target).value)">
+                  <option value="REJECTED">Rejeitar prova</option>
+                  <option value="DOCUMENT_CHECKED_INTERNAL">Conferido para análise normativa</option>
+                </select>
+                <label for="cf-proof-review-reason">Fundamentação (15 a 2000 caracteres)</label>
+                <textarea id="cf-proof-review-reason" minlength="15" maxlength="2000"
+                  rows="3" required [value]="proofReviewReason()"
+                  (input)="proofReviewReason.set($any($event.target).value)"></textarea>
+                <button type="submit" class="cf-workspace-primary"
+                  [disabled]="proofReviewSaving()">Salvar parecer</button>
+                <button type="button" class="cf-workspace-outline"
+                  (click)="proofReviewId.set(null)">Cancelar</button>
+              </fieldset>
+            </form>
+          }
+        }
+      </section>
     }
 
     <h4>Pendências do monitoramento</h4>
