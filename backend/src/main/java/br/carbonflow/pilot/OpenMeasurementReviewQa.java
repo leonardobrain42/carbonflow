@@ -249,6 +249,10 @@ class OpenMeasurementReviewQa {
             """,r->r.getString(1),project);
         List<OpenPeriodQa.Meter> meters=query(c,"""
             SELECT DISTINCT ON (m.meter_code) m.meter_code,m.version,m.charger_code,
+              m.charger_version,
+              (SELECT max(version) FROM app_open_charger_revision x
+                WHERE x.project_id=m.project_id AND x.charger_code=m.charger_code)
+                AS current_charger_version,
               m.energy_kind,ch.charger_kind,ch.grid,ch.topology,
               (m.calibration_evidence_ref IS NOT NULL) AS has_certificate,
               m.calibration_valid_from,m.calibration_valid_until,
@@ -259,7 +263,8 @@ class OpenMeasurementReviewQa {
             WHERE m.project_id=?
             ORDER BY m.meter_code,m.version DESC
             """,r->new OpenPeriodQa.Meter(r.getString("meter_code"),r.getInt("version"),
-                r.getString("charger_code"),r.getString("energy_kind"),
+                r.getString("charger_code"),r.getInt("charger_version"),
+                r.getInt("current_charger_version"),r.getString("energy_kind"),
                 r.getString("charger_kind"),r.getString("grid"),r.getString("topology"),
                 r.getBoolean("has_certificate"),instant(r,"calibration_valid_from"),
                 instant(r,"calibration_valid_until"),instant(r,"configured_from"),
