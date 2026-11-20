@@ -95,7 +95,7 @@ class OpenMethodReview {
             String command=PilotCommands.key(key);
             int expected=PilotCommands.expected(match);
             var evidence=OpenPeriodSupport.diagnose(c,project,mr.snapshotId());
-            String checksum=lineage(project,code,mr,evidence);
+            String checksum=lineage(c,project,code,mr,evidence);
             if("CHECKED_INTERNAL".equals(normalized.outcome()) &&
                (!"READY_FOR_NORMATIVE_REVIEW".equals(evidence.state()) ||
                 normalized.checks().stream().anyMatch(
@@ -150,10 +150,14 @@ class OpenMethodReview {
         if(mr==null)throw unavailable();
         var support=OpenPeriodSupport.diagnose(c,project,mr.snapshotId());
         var review=latestReview(c,project,code,mr.version());
-        String currentHash=lineage(project,code,mr,support);
+        String currentHash=lineage(c,project,code,mr,support);
         var gates=new ArrayList<Gate>();
-        boolean stale=support.stale() ||
+        boolean methodologyChanged=ProjectJourney.profile(
+            ProjectGuides.candidate(c,project))!=ProjectJourney.VM0038;
+        boolean stale=support.stale() || methodologyChanged ||
             review!=null && !currentHash.equals(review.evidenceSha256());
+        if(methodologyChanged)gates.add(new Gate("METHOD_PROJECT_METHODOLOGY_CHANGED",
+            "A metodologia candidata do projeto mudou. O parecer de VM0038 v1.1 não permanece vigente."));
         if(support.stale())gates.add(new Gate("METHOD_SNAPSHOT_STALE",
             "As leituras, medidores ou ocorrências deixaram de corresponder ao snapshot."));
         if(review!=null && !currentHash.equals(review.evidenceSha256()))
@@ -176,12 +180,23 @@ class OpenMethodReview {
             state,stale,false,List.copyOf(gates),review);
     }
 
-    private static String lineage(String project,String code,Target mr,
-                                  OpenPeriodSupport.Readiness support) {
+    private static String lineage(Connection c,String project,String code,Target mr,
+                                  OpenPeriodSupport.Readiness support) throws SQLException {
         StringBuilder value=new StringBuilder("CF-OPEN-METHOD-REVIEW-V1|")
             .append(project).append('|').append(code).append('|')
             .append(mr.version()).append('|').append(mr.snapshotId()).append('|')
             .append(mr.sourceSha()).append('|').append(METHOD).append(':').append(EDITION);
+        // A checklist cannot remain current after project intake, triage or
+        // applicability changes. These are distinct from measurement QA.
+        for(String table:List.of("app_project_triage_revision",
+                "app_project_intake_draft_revision",
+                "app_project_open_applicability_revision")) {
+            // SQL identifiers come exclusively from this private hardcoded list.
+            Integer version=first(c,"SELECT coalesce(max(version),0) FROM "+table+
+                " WHERE project_id=?",r->r.getInt(1),project);
+            value.append('|').append(table).append('=').append(version);
+        }
+        value.append("|candidate=").append(ProjectGuides.candidate(c,project));
         support.documents().stream().sorted(Comparator.comparing(
             (OpenPeriodSupport.Document d)->d.id().toString())).forEach(doc->{
                 value.append('|').append(doc.kind()).append(':')
