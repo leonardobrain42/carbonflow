@@ -271,6 +271,114 @@
       </form>
     }
 
+    <h4>Ocorrências operacionais e integridade da medição</h4>
+    <p>Registre interrupções de fonte, manutenção de medidor, desvio de relógio e
+      lacunas conhecidas. Qualquer ocorrência que alcance um período bloqueia
+      seu QA até parecer de outro REV. A liberação interna <strong>não substitui
+      leituras faltantes</strong> e não autoriza crédito de carbono.</p>
+    @if (canReportEvent) {
+      <form class="cf-open-monitoring-form" (submit)="reportEvent($event)">
+        <fieldset [disabled]="eventSubmitting()">
+          <legend>Registrar ocorrência verificável</legend>
+          <div class="cf-journey-fields">
+            <div><label for="cf-event-kind">Tipo de ocorrência</label>
+              <select id="cf-event-kind" [value]="eventForm().kind"
+                (change)="chooseEventKind($any($event.target).value)">
+                <option value="SOURCE_OUTAGE">Indisponibilidade da fonte de dados</option>
+                <option value="METER_MAINTENANCE">Manutenção do medidor</option>
+                <option value="CLOCK_DRIFT">Divergência de relógio do medidor</option>
+                <option value="DATA_GAP">Lacuna identificada de medição</option>
+              </select></div>
+            <div><label for="cf-event-type">Fronteira afetada</label>
+              <select id="cf-event-type" [value]="eventForm().subjectType"
+                (change)="updateEvent('subjectType',$any($event.target).value)">
+                <option value="SOURCE">Origem / sistema de dados</option>
+                <option value="METER">Medidor</option>
+                <option value="CHARGER">Carregador (lacunas)</option>
+              </select></div>
+            <div><label for="cf-event-subject">Código da origem, medidor ou carregador</label>
+              <input id="cf-event-subject" required maxlength="80"
+                [value]="eventForm().subjectCode"
+                (input)="updateEvent('subjectCode',$any($event.target).value)"
+                placeholder="METER-API-1 ou ED-1"/></div>
+            <div><label for="cf-event-from">Início da ocorrência (ISO com fuso)</label>
+              <input id="cf-event-from" required [value]="eventForm().from"
+                (input)="updateEvent('from',$any($event.target).value)"
+                placeholder="2027-02-01T00:20:00Z"/></div>
+            <div><label for="cf-event-until">Fim exclusivo (ISO com fuso)</label>
+              <input id="cf-event-until" required [value]="eventForm().until"
+                (input)="updateEvent('until',$any($event.target).value)"
+                placeholder="2027-02-01T00:40:00Z"/></div>
+            <div><label for="cf-event-reference">Referência verificável do incidente</label>
+              <input id="cf-event-reference" required minlength="8" maxlength="300"
+                [value]="eventForm().incidentReference"
+                (input)="updateEvent('incidentReference',$any($event.target).value)"
+                placeholder="TICKET-OPERADOR-2027-001"/></div>
+          </div>
+          <label for="cf-event-description">Descrição, impacto e origem da ocorrência</label>
+          <textarea id="cf-event-description" rows="3" required minlength="15" maxlength="2000"
+            [value]="eventForm().description"
+            (input)="updateEvent('description',$any($event.target).value)"></textarea>
+          <button class="cf-workspace-primary" type="submit" [disabled]="eventSubmitting()">
+            {{eventSubmitting()?'Registrando…':'Registrar ocorrência imutável'}}
+          </button>
+        </fieldset>
+      </form>
+    }
+
+    @if (operationalEvents().length) {
+      <ul class="cf-tech-gates" aria-label="Histórico de ocorrências operacionais">
+        @for (event of operationalEvents(); track event.id) {
+          <li>
+            <strong>{{event.kind}} · {{event.subjectType}}/{{event.subjectCode}}</strong>
+            <p>{{event.from}} até {{event.until}} · {{event.incidentReference}}</p>
+            <p>{{event.description}}</p>
+            <p>Estado de QA: {{event.review?.outcome || 'PENDENTE DE PARECER'}}
+              @if (event.review) {
+                · revisão {{event.review.version}} · {{event.review.evidenceReference}}
+              }
+            </p>
+            @if (canReviewEvent) {
+              <button type="button" class="cf-workspace-outline"
+                [disabled]="eventReviewSaving()" (click)="selectEventReview(event)">
+                Registrar parecer independente
+              </button>
+            }
+          </li>
+        }
+      </ul>
+    } @else {
+      <p>Nenhuma ocorrência operacional registrada no projeto.</p>
+    }
+    @if (canReviewEvent && eventReviewId()) {
+      <form class="cf-open-monitoring-form" (submit)="saveEventReview($event)">
+        <fieldset [disabled]="eventReviewSaving()">
+          <legend>Parecer independente sobre ocorrência</legend>
+          <p>Uma liberação resolve apenas o bloqueio do incidente para QA; não cria
+            dados medidos, não verifica documentos externos e não revalida snapshots antigos.</p>
+          <label for="cf-event-review-outcome">Decisão de QA interno</label>
+          <select id="cf-event-review-outcome" [value]="eventReviewOutcome()"
+            (change)="eventReviewOutcome.set($any($event.target).value)">
+            <option value="CONFIRMED_BLOCKING">Confirmar impedimento</option>
+            <option value="CLEARED_FOR_INTERNAL_QA">Liberar incidente para novo QA interno</option>
+          </select>
+          <label for="cf-event-review-evidence">Referência da prova e providência</label>
+          <input id="cf-event-review-evidence" minlength="8" maxlength="300" required
+            [value]="eventReviewEvidence()"
+            (input)="eventReviewEvidence.set($any($event.target).value)"/>
+          <label for="cf-event-review-reason">Fundamentação técnica (15 a 2000 caracteres)</label>
+          <textarea id="cf-event-review-reason" required rows="3" minlength="15"
+            maxlength="2000" [value]="eventReviewReason()"
+            (input)="eventReviewReason.set($any($event.target).value)"></textarea>
+          <button type="submit" class="cf-workspace-primary" [disabled]="eventReviewSaving()">
+            Salvar versão do parecer
+          </button>
+          <button type="button" class="cf-workspace-outline"
+            (click)="eventReviewId.set(null)">Cancelar</button>
+        </fieldset>
+      </form>
+    }
+
     <h4>Reconciliação ED/EC por período</h4>
     <p>Informe horas completas com fuso, por exemplo 2027-02-01T00:00:00Z.
       Um período só fica pronto para snapshot de QA interno quando todas as horas

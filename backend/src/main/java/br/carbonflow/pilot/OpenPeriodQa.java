@@ -29,6 +29,9 @@ final class OpenPeriodQa {
                    String batchState,String reviewOutcome,int reviewVersion,String sourceHash,String lineHash) {}
 
     record Gate(String code,String detail,String charger,String meter,Instant hour) {}
+    /** Event history is always part of snapshot lineage, even after disposition. */
+    record Incident(UUID id,String kind,String subjectType,String subjectCode,
+                    Instant from,Instant until,int reviewVersion,String outcome) {}
     record Ref(UUID batch,int line,int reviewVersion,String meter,int version,Instant start,Instant end,
                String sourceHash,String lineHash) {}
     record Result(String state,boolean readyForInternalSnapshot,boolean canRunE8,
@@ -38,6 +41,12 @@ final class OpenPeriodQa {
 
     static Result evaluate(OffsetDateTime from,OffsetDateTime until,
                            List<String> chargers,List<Meter> meters,List<Reading> rows) {
+        return evaluate(from,until,chargers,meters,rows,List.of());
+    }
+
+    static Result evaluate(OffsetDateTime from,OffsetDateTime until,
+                           List<String> chargers,List<Meter> meters,List<Reading> rows,
+                           List<Incident> incidents) {
         if(from==null || until==null)throw invalid("period","Informe início e fim em ISO 8601.");
         Instant start=from.toInstant(),end=until.toInstant();
         long minutes=Duration.between(start,end).toMinutes();
@@ -49,6 +58,19 @@ final class OpenPeriodQa {
         Set<String> duplicateGate=new HashSet<>();
         List<Ref> accepted=new ArrayList<>();
         BigDecimal ed=BigDecimal.ZERO,ec=BigDecimal.ZERO;
+        // A report is blocking until a different REV documents a disposition.
+        // A disposition clears ONLY this incident gate, not missing hours or
+        // independent measurement/documentary/Verra approvals.
+        for(Incident event:incidents) {
+            if(event.from().isBefore(end) && event.until().isAfter(start) &&
+               !"CLEARED_FOR_INTERNAL_QA".equals(event.outcome())) {
+                add(gates,duplicateGate,"OPERATIONAL_"+event.kind(),
+                    "Ocorrência "+event.subjectType()+"/"+event.subjectCode()+
+                    " ainda não liberada por revisão independente para QA interno.",
+                    "CHARGER".equals(event.subjectType())?event.subjectCode():null,
+                    "METER".equals(event.subjectType())?event.subjectCode():null,event.from());
+            }
+        }
         Map<String,Meter> byCode=new HashMap<>();
         Map<String,List<Meter>> byCharger=new HashMap<>();
         for(Meter m:meters) {

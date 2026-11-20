@@ -40,6 +40,16 @@ type SupportGate = {code:string;subject:string|null;detail:string};
 type SupportReadiness = {snapshotId:string;state:string;stale:boolean;
   documentaryComplete:boolean;usableForE8:boolean;historicalEdKwh:string;
   historicalEcKwh:string;gates:SupportGate[];documents:SupportDocument[]};
+type OperationalEventReview = {version:number;outcome:'CONFIRMED_BLOCKING'|'CLEARED_FOR_INTERNAL_QA';
+  reason:string;evidenceReference:string;reviewedBy:string;reviewedAt:string};
+type OperationalEvent = {id:string;projectId:string;kind:string;subjectType:string;
+  subjectCode:string;from:string;until:string;incidentReference:string;
+  description:string;submittedBy:string;submittedAt:string;review:OperationalEventReview|null};
+type EventForm = {kind:string;subjectType:string;subjectCode:string;
+  from:string;until:string;incidentReference:string;description:string};
+const NEW_EVENT:EventForm = {kind:'SOURCE_OUTAGE',subjectType:'SOURCE',
+  subjectCode:'',from:'',until:'',incidentReference:'',description:''};
+
 type ChargerForm = {code:string; siteCode:string; chargerKind:string; ratedPowerKw:string;
                     grid:string; topology:string; timeZone:string; sourceReference:string};
 type MeterForm = {code:string; chargerCode:string; energyKind:string; sourceSystem:string;
@@ -66,6 +76,8 @@ export class OpenMonitoringComponent implements OnChanges {
   @Input() editable=false;
   @Input() canSubmit=false;
   @Input() canReview=false;
+  @Input() canReportEvent=false;
+  @Input() canReviewEvent=false;
   private readonly http=inject(HttpClient);
   readonly data=signal<View|null>(null);
   readonly charger=signal<ChargerForm>({...NEW_CHARGER});
@@ -78,6 +90,14 @@ export class OpenMonitoringComponent implements OnChanges {
   readonly batches=signal<MeasurementBatch[]>([]);
   readonly reviews=signal<Record<string,QaReview>>({});
   readonly qaSnapshots=signal<QaSnapshot[]>([]);
+  readonly operationalEvents=signal<OperationalEvent[]>([]);
+  readonly eventForm=signal<EventForm>({...NEW_EVENT});
+  readonly eventSubmitting=signal(false);
+  readonly eventReviewId=signal<string|null>(null);
+  readonly eventReviewOutcome=signal<'CONFIRMED_BLOCKING'|'CLEARED_FOR_INTERNAL_QA'>('CONFIRMED_BLOCKING');
+  readonly eventReviewReason=signal('');
+  readonly eventReviewEvidence=signal('');
+  readonly eventReviewSaving=signal(false);
   readonly proofSnapshot=signal<string|null>(null);
   readonly proofReadiness=signal<SupportReadiness|null>(null);
   readonly proofLoading=signal(false);
@@ -106,6 +126,7 @@ export class OpenMonitoringComponent implements OnChanges {
   private chargerRetry='';
   private meterRetry='';
   private uploadRetry='';
+  private eventRetry='';
   private proofRetry='';
 
   ngOnChanges(changes:SimpleChanges) {
@@ -119,10 +140,11 @@ export class OpenMonitoringComponent implements OnChanges {
     this.error.set('');
     try {
       const root='/v1/projects/'+encodeURIComponent(this.projectId)+'/technical/open-monitoring';
-      const [result, batches, snapshots]=await Promise.all([
+      const [result, batches, snapshots, operationalEvents]=await Promise.all([
         firstValueFrom(this.http.get<View>(root)),
         firstValueFrom(this.http.get<MeasurementBatch[]>(root+'/batches')),
-        firstValueFrom(this.http.get<QaSnapshot[]>(root+'/period-qa/snapshots'))
+        firstValueFrom(this.http.get<QaSnapshot[]>(root+'/period-qa/snapshots')),
+        firstValueFrom(this.http.get<OperationalEvent[]>(root+'/events'))
       ]);
       const reviewGroups=await Promise.all(batches.map(batch=>
         firstValueFrom(this.http.get<QaReview[]>(root+'/batches/'+batch.id+'/reviews'))));
@@ -135,6 +157,7 @@ export class OpenMonitoringComponent implements OnChanges {
         this.data.set(result);
         this.batches.set(batches);
         this.qaSnapshots.set(snapshots);
+        this.operationalEvents.set(operationalEvents);
         if(this.proofSnapshot() && !snapshots.some(x=>x.id===this.proofSnapshot())) {
           this.proofSnapshot.set(null);
           this.proofReadiness.set(null);
@@ -457,6 +480,83 @@ export class OpenMonitoringComponent implements OnChanges {
       this.notice.set('Parecer documental interno versionado. Não equivale a admissão normativa.');
     } catch(problem){this.error.set(this.message(problem));}
     finally {this.proofReviewSaving.set(false);}
+  }
+
+  updateEvent(field:keyof EventForm,value:string) {
+    this.eventRetry='';
+    this.eventForm.update(current=>({...current,[field]:value}));
+  }
+
+  chooseEventKind(kind:string) {
+    const subjectType=kind==='SOURCE_OUTAGE'?'SOURCE':
+      kind==='DATA_GAP'?'SOURCE':'METER';
+    this.eventRetry='';
+    this.eventForm.update(current=>({...current,kind,subjectType,subjectCode:''}));
+  }
+
+  async reportEvent(event:Event) {
+    event.preventDefault();
+    if(!this.canReportEvent||this.eventSubmitting())return;
+    const body=this.eventForm();
+    if(!/^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$/.test(body.subjectCode) ||
+       body.incidentReference.trim().length<8 || body.description.trim().length<15 ||
+       !body.from.trim()||!body.until.trim()) {
+      this.error.set('Informe ativo, horário com fuso, referência e descrição da ocorrência.');
+      return;
+    }
+    if(!this.eventRetry)this.eventRetry=crypto.randomUUID();
+    this.eventSubmitting.set(true);this.error.set('');this.notice.set('');
+    try {
+      await firstValueFrom(this.http.post(
+        '/v1/projects/'+encodeURIComponent(this.projectId)+
+        '/technical/open-monitoring/events',
+        {...body,subjectCode:body.subjectCode.trim(),
+          incidentReference:body.incidentReference.trim(),
+          description:body.description.trim()},
+        {headers:{'Idempotency-Key':this.eventRetry}}));
+      this.eventRetry='';this.eventForm.set({...NEW_EVENT});
+      this.qaPreview.set(null);
+      await this.load();
+      if(this.proofSnapshot())await this.inspectSnapshot(this.proofSnapshot()!);
+      this.notice.set('Ocorrência registrada. Períodos afetados exigem revisão; snapshots antigos são reavaliados.');
+    } catch(problem) {
+      this.error.set(this.message(problem));
+      if(problem instanceof HttpErrorResponse&&problem.status>=400&&problem.status<500)
+        this.eventRetry='';
+    } finally {this.eventSubmitting.set(false);}
+  }
+
+  selectEventReview(incident:OperationalEvent) {
+    this.eventReviewId.set(incident.id);
+    this.eventReviewOutcome.set(incident.review?.outcome??'CONFIRMED_BLOCKING');
+    this.eventReviewReason.set(incident.review?.reason??'');
+    this.eventReviewEvidence.set(incident.review?.evidenceReference??'');
+  }
+
+  async saveEventReview(event:Event) {
+    event.preventDefault();
+    const incident=this.operationalEvents().find(e=>e.id===this.eventReviewId());
+    if(!this.canReviewEvent||!incident||this.eventReviewSaving())return;
+    const reason=this.eventReviewReason().trim();
+    const evidence=this.eventReviewEvidence().trim();
+    if(reason.length<15||reason.length>2000||evidence.length<8||evidence.length>300) {
+      this.error.set('Registre motivo (15–2000 caracteres) e referência de evidência (8–300).');
+      return;
+    }
+    this.eventReviewSaving.set(true);this.error.set('');this.notice.set('');
+    try {
+      await firstValueFrom(this.http.post(
+        '/v1/projects/'+encodeURIComponent(this.projectId)+
+        '/technical/open-monitoring/events/'+incident.id+'/reviews',
+        {outcome:this.eventReviewOutcome(),reason,evidenceReference:evidence},
+        {headers:{'If-Match':'"'+(incident.review?.version??0)+'"'}}));
+      this.eventReviewId.set(null);
+      this.qaPreview.set(null);
+      await this.load();
+      if(this.proofSnapshot())await this.inspectSnapshot(this.proofSnapshot()!);
+      this.notice.set('Parecer de ocorrência versionado. Liberação para QA não valida dados nem ressuscita snapshots.');
+    } catch(problem){this.error.set(this.message(problem));}
+    finally {this.eventReviewSaving.set(false);}
   }
 
   stateName(code:string) {

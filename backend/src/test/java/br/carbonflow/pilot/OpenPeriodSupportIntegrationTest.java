@@ -134,6 +134,68 @@ class OpenPeriodSupportIntegrationTest {
             """,r->r.getBytes(1),project));
         assertFalse(new String(ciphertext,StandardCharsets.ISO_8859_1).contains("%PDF-"));
 
+        // Operational source interruption reported after a frozen QA snapshot
+        // must immediately invalidate its current admissibility. Review outcome
+        // never mutates the historical snapshot or implies E8 admission.
+        String events=root+"/events";
+        String occurrence="""
+            {"kind":"SOURCE_OUTAGE","subjectType":"SOURCE",
+             "subjectCode":"METER-API-1",
+             "from":"2027-02-01T00:20:00Z","until":"2027-02-01T00:40:00Z",
+             "incidentReference":"OUTAGE-2027-001",
+             "description":"Interrupção do provedor operacional durante o intervalo medido."}
+            """;
+        String eventKey=key();
+        var reported=postEvent(events,op.cookie(),eventKey,occurrence);
+        assertEquals(201,reported.statusCode(),reported.body());
+        String eventId=json(reported).path("id").asText();
+        var visibleEvents=json(call("GET",events,owner.cookie(),null,null));
+        assertEquals(1,visibleEvents.size());
+        assertEquals(eventId,visibleEvents.get(0).path("id").asText());
+        assertTrue(visibleEvents.get(0).path("review").isNull());
+        assertEquals(422,postEvent(events,op.cookie(),key(),
+            occurrence.replace("METER-API-1","UNKNOWN-EXTERNAL-SOURCE")).statusCode());
+        assertEquals(eventId,json(postEvent(events,op.cookie(),eventKey,occurrence))
+            .path("id").asText());
+        assertEquals(409,postEvent(events,op.cookie(),eventKey,
+            occurrence.replace("OUTAGE-2027-001","OUTAGE-2027-002")).statusCode());
+        assertEquals(404,call("GET",events,outside.cookie(),null,null).statusCode());
+        assertEquals(404,call("POST",events+"/"+eventId+"/reviews",
+            op.cookie(),"\"0\"", """
+            {"outcome":"CLEARED_FOR_INTERNAL_QA",
+             "reason":"A origem confirmou a janela e comprovou reprocessamento integral.",
+             "evidenceReference":"REPROCESS-2027-001"}
+            """).statusCode());
+        assertTrue(json(call("GET",root+
+            "/period-qa?from=2027-02-01T00%3A00%3A00Z&until=2027-02-01T01%3A00%3A00Z",
+            owner.cookie(),null,null)).path("gates").toString().contains("OPERATIONAL_SOURCE_OUTAGE"));
+        assertEquals("BLOCKED_STALE",json(call("GET",admission,owner.cookie(),null,null))
+            .path("state").asText());
+        String clearOccurrence="""
+            {"outcome":"CLEARED_FOR_INTERNAL_QA",
+             "reason":"A origem confirmou a janela e comprovou reprocessamento integral.",
+             "evidenceReference":"REPROCESS-2027-001"}
+            """;
+        var cleared=call("POST",events+"/"+eventId+"/reviews",docsReviewer.cookie(),
+            "\"0\"",clearOccurrence);
+        assertEquals(200,cleared.statusCode(),cleared.body());
+        assertEquals("\"1\"",cleared.headers().firstValue("ETag").orElseThrow());
+        assertEquals(1,json(cleared).path("version").asInt());
+        var afterReview=json(call("GET",events,owner.cookie(),null,null));
+        assertEquals("CLEARED_FOR_INTERNAL_QA",
+            afterReview.get(0).at("/review/outcome").asText());
+        assertEquals("READY_FOR_INTERNAL_QA_SNAPSHOT",json(call("GET",root+
+            "/period-qa?from=2027-02-01T00%3A00%3A00Z&until=2027-02-01T01%3A00%3A00Z",
+            owner.cookie(),null,null)).path("state").asText());
+        // Clearance changes SHA lineage; the old snapshot never resurrects.
+        JsonNode oldSnapshot=json(call("GET",admission,owner.cookie(),null,null));
+        assertEquals("BLOCKED_STALE",oldSnapshot.path("state").asText());
+        assertTrue(oldSnapshot.path("gates").toString().contains("SNAPSHOT_REVISIONS_CHANGED"));
+        assertFalse(oldSnapshot.path("usableForE8").asBoolean());
+        assertEquals(1L,database.read(c->first(c,
+            "SELECT count(*) FROM app_open_operational_event WHERE project_id=?",
+            r->r.getLong(1),project)).longValue());
+
         String rejected="{\"outcome\":\"REJECTED\",\"reason\":\"Amostra não validada; outra prova necessária para manter a série.\"}";
         var change=call("POST",root+"/batches/"+id+"/rows/2/reviews",
             qaReviewer.cookie(),"\"1\"",rejected);
@@ -205,6 +267,14 @@ class OpenPeriodSupportIntegrationTest {
             .header("X-Evidence-Reference","Documento de suporte verificado #1")
             .header("X-File-Name","support-evidence.pdf").header("Idempotency-Key",key)
             .POST(HttpRequest.BodyPublishers.ofString(payload)).build();
+        return http.send(request,HttpResponse.BodyHandlers.ofString());
+    }
+    private HttpResponse<String> postEvent(String path,String cookie,String idempotency,
+                                            String body) throws Exception {
+        var request=HttpRequest.newBuilder(URI.create(base.toExternalForm()).resolve(path))
+            .header("Cookie",cookie).header("Content-Type","application/json")
+            .header("Idempotency-Key",idempotency)
+            .POST(HttpRequest.BodyPublishers.ofString(body)).build();
         return http.send(request,HttpResponse.BodyHandlers.ofString());
     }
     private HttpResponse<String> call(String method,String path,String cookie,
