@@ -20,6 +20,10 @@ type Readiness = {
   edKwh:string|null; ecKwh:string|null; gates:Gate[];
 };
 type View = {projectId:string; environment:string; chargers:Charger[]; meters:Meter[]; readiness:Readiness};
+type MeasurementRow = {line:number;meterCode:string|null;sequence:string|null;kind:string|null;
+  start:string|null;end:string|null;zone:string|null;kwh:string|null;state:string;reasons:string[]};
+type MeasurementBatch = {id:string;projectId:string;source:string;fileName:string;sha256:string;
+  rowCount:number;status:'CANDIDATE'|'QUARANTINED';submittedAt:string;rows:MeasurementRow[]};
 type ChargerForm = {code:string; siteCode:string; chargerKind:string; ratedPowerKw:string;
                     grid:string; topology:string; timeZone:string; sourceReference:string};
 type MeterForm = {code:string; chargerCode:string; energyKind:string; sourceSystem:string;
@@ -44,6 +48,7 @@ const NEW_METER:MeterForm = {
 export class OpenMonitoringComponent implements OnChanges {
   @Input({required:true}) projectId='';
   @Input() editable=false;
+  @Input() canSubmit=false;
   private readonly http=inject(HttpClient);
   readonly data=signal<View|null>(null);
   readonly charger=signal<ChargerForm>({...NEW_CHARGER});
@@ -52,11 +57,16 @@ export class OpenMonitoringComponent implements OnChanges {
   readonly meterVersion=signal(0);
   readonly loading=signal(true);
   readonly saving=signal(false);
+  readonly uploading=signal(false);
+  readonly batches=signal<MeasurementBatch[]>([]);
+  readonly selectedCsv=signal<File|null>(null);
+  readonly uploadSource=signal('');
   readonly error=signal('');
   readonly notice=signal('');
   private sequence=0;
   private chargerRetry='';
   private meterRetry='';
+  private uploadRetry='';
 
   ngOnChanges(changes:SimpleChanges) {
     if(changes['projectId'])void this.load();
@@ -68,12 +78,17 @@ export class OpenMonitoringComponent implements OnChanges {
     this.loading.set(true);
     this.error.set('');
     try {
-      const result=await firstValueFrom(this.http.get<View>(
-        '/v1/projects/'+encodeURIComponent(this.projectId)+'/technical/open-monitoring'));
+      const root='/v1/projects/'+encodeURIComponent(this.projectId)+'/technical/open-monitoring';
+      const [result, batches]=await Promise.all([
+        firstValueFrom(this.http.get<View>(root)),
+        firstValueFrom(this.http.get<MeasurementBatch[]>(root+'/batches'))
+      ]);
       if(id===this.sequence) {
-        if(result.projectId!==this.projectId||result.environment!=='SANDBOX')
+        if(result.projectId!==this.projectId||result.environment!=='SANDBOX' ||
+           batches.some(batch=>batch.projectId!==this.projectId))
           throw new Error('Incompatible scope');
         this.data.set(result);
+        this.batches.set(batches);
       }
     } catch(problem) {
       if(id===this.sequence)this.error.set(this.message(problem));
@@ -197,6 +212,50 @@ export class OpenMonitoringComponent implements OnChanges {
     } finally {this.saving.set(false);}
   }
 
+  pickCsv(event:Event) {
+    const input=event.target as HTMLInputElement;
+    this.selectedCsv.set(input.files?.[0]??null);
+    this.uploadRetry='';
+  }
+
+  changeSource(source:string) {
+    this.uploadSource.set(source);
+    this.uploadRetry='';
+  }
+
+  async uploadCsv(event:Event) {
+    event.preventDefault();
+    if(!this.canSubmit||this.uploading())return;
+    const file=this.selectedCsv();
+    const source=this.uploadSource().trim();
+    if(!file || file.size<=0 || file.size>2_000_000 ||
+        !/^[A-Za-z0-9][A-Za-z0-9._-]{4,115}\.csv$/.test(file.name) ||
+        !/^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$/.test(source)) {
+      this.error.set('Escolha CSV UTF-8 válido, até 2 MB, e informe a origem cadastrada do medidor.');
+      return;
+    }
+    if(!this.uploadRetry)this.uploadRetry=crypto.randomUUID();
+    this.error.set('');this.notice.set('');this.uploading.set(true);
+    try {
+      const result=await firstValueFrom(this.http.post<MeasurementBatch>(
+        '/v1/projects/'+encodeURIComponent(this.projectId)+'/technical/open-monitoring/batches',
+        new Blob([file],{type:'text/csv'}),{headers:{
+          'Content-Type':'text/csv','X-Source-Id':source,'X-File-Name':file.name,
+          'Idempotency-Key':this.uploadRetry
+        }}));
+      this.selectedCsv.set(null);
+      this.uploadRetry='';
+      await this.load();
+      this.notice.set(result.status==='QUARANTINED'
+        ? 'Lote preservado em quarentena. Confira as causas por linha; nenhum dado entrou no E8.'
+        : 'CSV preservado como candidato. Ainda exige revisão independente e não alimenta o E8.');
+    } catch(problem) {
+      this.error.set(this.message(problem));
+      if(problem instanceof HttpErrorResponse&&problem.status>=400&&problem.status<500)
+        this.uploadRetry='';
+    } finally {this.uploading.set(false);}
+  }
+
   stateName(code:string) {
     const labels:Record<string,string>={
       MISSING:'A informar',STALE:'Rever revisão',
@@ -213,7 +272,8 @@ export class OpenMonitoringComponent implements OnChanges {
       if(problem.status===428)return 'É necessária a versão atual do registro.';
       if([401,403,404].includes(problem.status))return 'Seu acesso ao monitoramento está indisponível.';
       if(problem.status===409)return 'Existe conflito com a configuração. Recarregue e confira os códigos e versões.';
-      if(problem.status===400||problem.status===422)return 'Confira campos, datas com fuso e referência de calibração.';
+      if(problem.status===503)return 'Armazenamento cifrado indisponível. A equipe deve configurar a chave de evidências.';
+      if(problem.status===400||problem.status===422)return 'Confira campos, datas com fuso, unidade e referência de origem/calibração.';
     }
     return 'Não foi possível consultar ou salvar o monitoramento.';
   }
