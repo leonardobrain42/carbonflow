@@ -31,7 +31,8 @@ import jakarta.enterprise.context.ApplicationScoped;
 class OpenE8FleetSelections {
     private static final String RULE="CF-OPEN-008";
     record Option(String projectId,String period,UUID organizationId,
-                  UUID energyBindingId,int energyBindingVersion,int year) {}
+                  UUID energyBindingId,int energyBindingVersion,int year,
+                  int currentSelectionVersion) {}
     record Input(String projectId,String period,UUID energyBindingId,
                  UUID ratingSnapshotId) {}
     record View(UUID id,String projectId,String period,int version,
@@ -102,8 +103,13 @@ class OpenE8FleetSelections {
                             OpenE8InputBindings.state(c,project,period,id)))continue;
                     if(ProjectJourney.profile(ProjectGuides.candidate(c,project))
                         !=ProjectJourney.VM0038)continue;
+                    Integer selected=first(c,"""
+                        SELECT coalesce(max(version),0)
+                        FROM app_open_e8_fleet_selection
+                        WHERE project_id=? AND period_code=?
+                        """,r->r.getInt(1),project,period);
                     result.add(new Option(project,period,(UUID)row[1],id,
-                        (Integer)row[4],(Integer)row[5]));
+                        (Integer)row[4],(Integer)row[5],selected));
                 }
                 ComplianceStaff.audit(c,actor.id(),null,"VIEW_OPEN_E8_FLEET_PROJECT_OPTIONS");
                 return List.copyOf(result);
