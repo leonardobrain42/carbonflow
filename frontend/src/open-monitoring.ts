@@ -660,11 +660,13 @@ export class OpenMonitoringComponent implements OnChanges {
 
   async inspectMethod(period:string) {
     if(!this.canViewMethod)return;
+    const project=this.projectId;
     this.methodLoading.set(true);this.error.set('');
     try {
       const view=await firstValueFrom(this.http.get<MethodView>(
         '/v1/projects/'+encodeURIComponent(this.projectId)+
         '/technical/open-monitoring/dossiers/'+encodeURIComponent(period)+'/method-review'));
+      if(this.projectId!==project)return;
       this.methodSelected.set(view);
       this.methodChecks.set(view.review?.checks.map(c=>({...c}))??emptyMethodChecks());
       this.methodOutcome.set(view.review?.outcome??'RETURNED');
