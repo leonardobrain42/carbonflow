@@ -19,6 +19,7 @@
     <p>Para projetos reais, não são importadas leituras, registros de cobrança ou dados do piloto sintético.
       Mesmo com certificados informados, a calibração e a fronteira devem ser revisadas.</p>
 
+    @if (view === 'all' || view === 'inventory') {
     <h4>Inventário de carregadores</h4>
     @if (plan.chargers.length) {
       <ul class="cf-tech-gates">
@@ -182,6 +183,8 @@
       </form>
     }
 
+    }
+    @if (view === 'all' || view === 'readings') {
     <h4>Lotes de leituras recebidas (candidatos)</h4>
     <p>Esta importação recebe CSV UTF-8, preserva o original cifrado e identifica
       problemas por linha. <strong>Uma linha candidata não é uma medição admitida.</strong>
@@ -379,6 +382,8 @@
       </form>
     }
 
+    }
+    @if (view === 'all' || view === 'qa') {
     <h4>Reconciliação ED/EC por período</h4>
     <p>Informe horas completas com fuso, por exemplo 2027-02-01T00:00:00Z.
       Um período só fica pronto para snapshot de QA interno quando todas as horas
@@ -543,6 +548,8 @@
       </section>
     }
 
+    }
+    @if (view === 'all' || view === 'dossiers') {
     <h4>Dossiês de monitoramento (MR) e propagação de STALE</h4>
     <p>O dossiê MR referencia um snapshot de QA por período (M1, M2 etc.).
       Alterações em medidores, medições, ocorrências ou documentos podem
@@ -764,6 +771,7 @@
       </section>
     }
 
+    }
     <h4>Pendências do monitoramento</h4>
     <ul class="cf-tech-gates">
       @for (gate of plan.readiness.gates; track gate.code+'-'+gate.chargerCode+'-'+gate.meterCode) {

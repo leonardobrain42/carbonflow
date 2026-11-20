@@ -21,21 +21,167 @@
           </p>
         </header>
 
-        <nav class="cf-triage-steps cf-technical-steps" aria-label="Seções da preparação técnica">
-          @for (item of sections(); track item.id) {
-            <button type="button" class="cf-triage-step" [disabled]="saving()"
-              [class.cf-triage-step-active]="section().id === item.id"
-              [attr.aria-current]="section().id === item.id ? 'page' : null"
-              (click)="open(item.id)">{{ item.title }}</button>
-          }
-        </nav>
+        <div class="cf-tech-workbench">
+          <nav class="cf-triage-steps cf-technical-steps cf-tech-module-nav"
+               aria-label="Seções da preparação técnica">
+            @for (item of sections(); track item.id; let i=$index) {
+              @if (i === 0 || sections()[i-1].group !== item.group) {
+                <p class="cf-tech-module-group">{{item.group}}</p>
+              }
+              <button type="button" class="cf-triage-step" [disabled]="saving()"
+                [class.cf-triage-step-active]="section().id === item.id"
+                [attr.aria-current]="section().id === item.id ? 'page' : null"
+                (click)="open(item.id)">{{ item.title }}</button>
+            }
+          </nav>
+          <div class="cf-tech-module-panel">
+            @if (error()) { <div role="alert" class="cf-workspace-alert">{{ error() }}</div> }
+            @if (notice()) { <div role="status" class="cf-workspace-note">{{ notice() }}</div> }
 
-        @if (error()) { <div role="alert" class="cf-workspace-alert">{{ error() }}</div> }
-        @if (notice()) { <div role="status" class="cf-workspace-note">{{ notice() }}</div> }
-
-        <section class="cf-workspace-card" aria-labelledby="cf-tech-section-title">
+            <section class="cf-workspace-card" aria-labelledby="cf-tech-section-title">
           <h2 id="cf-tech-section-title" #sectionHeading tabindex="-1">{{ section().title }}</h2>
           @switch (section().id) {
+            @case ('inicio') {
+              <p>Escolha uma frente. Todas as etapas compartilham o mesmo projeto e
+                preservam o histórico de revisões. Preparação interna não equivale
+                a aprovação da metodologia, da Verra ou da VVB.</p>
+              <dl class="cf-tech-capabilities">
+                <div><dt>Metodologia candidata</dt><dd>{{saved.journey.title}}</dd></div>
+                <div><dt>Dados iniciais</dt><dd>{{saved.version ? 'Revisão '+saved.version+' salva' : 'A iniciar'}}</dd></div>
+                <div><dt>Requisitos a comprovar</dt><dd>{{saved.outstandingGates.length}}</dd></div>
+                <div><dt>Motor E8</dt><dd>Não admitido para projetos novos</dd></div>
+              </dl>
+              <div class="cf-tech-portal-grid" aria-label="Entrar em um módulo">
+                <button type="button" (click)="open('preparar')">
+                  <strong>Dados iniciais</strong><span>Atividade, localização e marco de referência.</span>
+                </button>
+                <button type="button" (click)="open('analisar')">
+                  <strong>Aplicabilidade</strong><span>Fronteira, elegibilidade e direitos.</span>
+                </button>
+                @if (can('VIEW_GUIDES')) {
+                  <button type="button" (click)="open('linha-base')">
+                    <strong>Linha de base</strong><span>Dados, referência contrafactual e justificativas.</span>
+                  </button>
+                  <button type="button" (click)="open('adicionalidade')">
+                    <strong>Adicionalidade</strong><span>Cronologia das decisões e respectivas provas.</span>
+                  </button>
+                }
+                @if (can('VIEW_OPEN_MONITORING')) {
+                  <button type="button" (click)="openMonitoring('inventario')">
+                    <strong>Monitoramento</strong><span>Inventário, leituras, QA, MR e fatores elétricos.</span>
+                  </button>
+                  <button type="button" (click)="open('evidencias')">
+                    <strong>Evidências</strong><span>Comprovação e vigência dos snapshots de QA.</span>
+                  </button>
+                }
+                @if (can('VIEW_OPEN_CALCULATION')) {
+                  <button type="button" (click)="open('quantificar')">
+                    <strong>Quantificação</strong><span>Equações, fontes e bloqueios para BE/PE/ER.</span>
+                  </button>
+                }
+                @if (can('VIEW_DOSSIER')) {
+                  <button type="button" (click)="open('redigir')">
+                    <strong>Documento do projeto</strong><span>Elaborar e revisar seções do PD.</span>
+                  </button>
+                }
+              </div>
+              @if (saved.journey.candidate !== 'VM0038') {
+                <p class="cf-workspace-note">As ferramentas E8/OPEN se aplicam somente
+                  ao recorte VM0038 suportado. Não utilizar modelos de outra metodologia.</p>
+              }
+            }
+
+            @case ('linha-base') {
+              <p>Organize a hipótese contrafactual e a frota de referência.
+                EVR/PBEV e fatores de combustível continuam candidatos até
+                revisão normativa, admissibilidade de direitos e vínculo ao cálculo.</p>
+              @if (saved.journey.candidate === 'VM0038') {
+                <carbonflow-project-guides [projectId]="projectId"
+                  [initialGuide]="'baseline'" [canOpenDocument]="can('VIEW_DOSSIER')"
+                  [canOpenIntake]="can('VIEW_INTAKE')"
+                  (prepare)="open('preparar')" (document)="open('redigir',$event)"
+                  (saved)="updateGuide($event)" />
+              } @else {
+                <p>O guia de linha de base específico desta metodologia ainda
+                  não está disponível. Registre o requisito sem inventar entradas.</p>
+              }
+              <div class="cf-triage-actions">
+                @if (can('VIEW_OPEN_CALCULATION')) {
+                  <button type="button" class="cf-workspace-outline"
+                    (click)="open('quantificar')">Ver dependências do pré-cálculo</button>
+                }
+                @if (can('VIEW_OPEN_MONITORING')) {
+                  <button type="button" class="cf-workspace-outline"
+                    (click)="openMonitoring('dossies')">Ver MR e EFel</button>
+                }
+              </div>
+            }
+
+            @case ('adicionalidade') {
+              <p>Documente quando o projeto considerou o incentivo do carbono,
+                quais compromissos já existiam e as provas de anterioridade.
+                O preenchimento não concede aprovação de adicionalidade.</p>
+              @if (saved.journey.candidate === 'VM0038') {
+                <carbonflow-project-guides [projectId]="projectId"
+                  [initialGuide]="'additionality'" [canOpenDocument]="can('VIEW_DOSSIER')"
+                  [canOpenIntake]="can('VIEW_INTAKE')"
+                  (prepare)="open('preparar')" (document)="open('redigir',$event)"
+                  (saved)="updateGuide($event)" />
+              } @else {
+                <p>O guia específico de adicionalidade ainda não está disponível
+                  para a metodologia selecionada.</p>
+              }
+            }
+
+            @case ('evidencias') {
+              <p>Verifique documentos anexados aos snapshots, seus prazos e
+                pareceres independentes. A evidência submetida não significa
+                certificação ou autorização de cálculo.</p>
+              @if (saved.journey.candidate === 'VM0038') {
+                <carbonflow-open-monitoring [projectId]="projectId" [view]="'qa'"
+                  [editable]="can('SAVE_OPEN_MONITORING')"
+                  [canSubmit]="can('SUBMIT_OPEN_MEASUREMENTS')"
+                  [canReview]="can('REVIEW_OPEN_MEASUREMENTS')" />
+              } @else {
+                <p>O fluxo de comprovação dos medidores VM0038 não é
+                  aplicável à metodologia atual.</p>
+              }
+              @if (can('VIEW_DOSSIER')) {
+                <div class="cf-triage-actions">
+                  <button type="button" class="cf-workspace-outline"
+                    (click)="open('redigir')">Abrir documentação do PD</button>
+                </div>
+              }
+            }
+
+            @case ('quantificar') {
+              <p>Acompanhe as equações e a proveniência exigidas pela VM0038.
+                Nenhuma estimativa é apresentada como cálculo verificado.
+                BE, PE, LE e ER permanecem bloqueados até admissão normativa.</p>
+              @if (saved.journey.candidate === 'VM0038' && can('VIEW_OPEN_CALCULATION')) {
+                <carbonflow-open-calculation-readiness [projectId]="projectId" />
+              } @else {
+                <p>Não existe execução E8 habilitada para esta metodologia e perfil.</p>
+              }
+              @if (can('VIEW_OPEN_MONITORING')) {
+                <button type="button" class="cf-workspace-outline"
+                  (click)="openMonitoring('dossies')">Consultar MR, EFel, VT0011 e TOOL07</button>
+              }
+            }
+
+            @case ('fontes') {
+              <p>Os dados nacionais e suas licenças são gerenciados em um ambiente
+                separado, por pessoas autorizadas, com MFA e revisão independente.</p>
+              <div class="cf-journey-context">
+                <strong>Fontes ambientais e fatores — acesso administrativo</strong>
+                <p>Frota EVR, comparáveis PBEV, EFfuel, documentos e decisões
+                  sobre admissibilidade não são liberados ao preparador
+                  automaticamente. Solicite uma publicação apropriada ao projeto.</p>
+                <a class="cf-workspace-link" href="/workspace/platform/sources">
+                  Abrir gestão de fontes (requer permissão staff)</a>
+              </div>
+            }
+
             @case ('entender') {
               <p>{{ saved.journey.description }}</p>
               @if (!saved.journey.candidate && form().candidateMethodology) {
@@ -185,8 +331,17 @@
             }
 
             @case ('monitorar') {
+              <nav class="cf-tech-monitor-subnav" aria-label="Etapas do monitoramento">
+                @for (step of monitoringSteps; track step.id) {
+                  <button type="button" class="cf-workspace-outline"
+                    [attr.aria-current]="(queryEtapa() || 'inventario') === step.id ? 'step' : null"
+                    (click)="openMonitoring(step.id)">{{step.label}}</button>
+                }
+              </nav>
+              <p class="cf-workspace-helper">As etapas possuem URLs próprias.
+                Fontes, provas e revisões continuam com as permissões originais.</p>
               @if (can('VIEW_OPEN_MONITORING')) {
-                <carbonflow-open-monitoring [projectId]="projectId"
+                <carbonflow-open-monitoring [projectId]="projectId" [view]="monitoringView()"
                   [editable]="can('SAVE_OPEN_MONITORING')"
                   [canSubmit]="can('SUBMIT_OPEN_MEASUREMENTS')"
                   [canReview]="can('REVIEW_OPEN_MEASUREMENTS')"
@@ -268,7 +423,9 @@
               </div>
             }
           }
-        </section>
+            </section>
+          </div>
+        </div>
       } @else if (project() && (can('VIEW_GUIDES') || can('VIEW_OPEN_MONITORING') || can('VIEW_OPEN_CALCULATION'))) {
         @if (can('VIEW_GUIDES')) {
           <section class="cf-workspace-card"><h1>Guias técnicos</h1>

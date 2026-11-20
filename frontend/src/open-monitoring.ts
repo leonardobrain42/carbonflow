@@ -111,6 +111,8 @@ const NEW_METER:MeterForm = {
   templateUrl:'./open-monitoring.html',
 })
 export class OpenMonitoringComponent implements OnChanges {
+  /** Distinct screens, with all retained for legacy URLs and role-specific views. */
+  @Input() view:'all'|'inventory'|'readings'|'qa'|'dossiers'='all';
   @Input({required:true}) projectId='';
   @Input() editable=false;
   @Input() canSubmit=false;

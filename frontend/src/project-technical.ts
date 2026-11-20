@@ -87,14 +87,22 @@ export const resolveTechnicalAccess: ResolveFn<TechnicalAccess> = route => {
   );
 };
 
+/** Stable technical navigation: sections do not appear or disappear after each click.
+ * The original URLs, labels and backend actions remain supported. */
 const SECTIONS = [
-  {id: 'entender', title: 'Entender'},
-  {id: 'preparar', title: 'Preparar informações'},
-  {id: 'analisar', title: 'Analisar'},
-  {id: 'monitorar', title: 'Monitorar ED/EC'},
-  {id: 'guias', title: 'Guias técnicos'},
-  {id: 'redigir', title: 'Redigir'},
-  {id: 'revisar', title: 'Revisar'},
+  {id:'inicio',title:'Painel de trabalho',group:'Começar'},
+  {id:'entender',title:'Entender',group:'Começar'},
+  {id:'preparar',title:'Preparar informações',group:'Começar'},
+  {id:'analisar',title:'Analisar',group:'Fundamentação'},
+  {id:'linha-base',title:'Linha de base',group:'Fundamentação'},
+  {id:'adicionalidade',title:'Adicionalidade',group:'Fundamentação'},
+  {id:'monitorar',title:'Monitorar ED/EC',group:'Medição'},
+  {id:'evidencias',title:'Evidências',group:'Medição'},
+  {id:'quantificar',title:'Quantificação',group:'Medição'},
+  {id:'fontes',title:'Fontes e parâmetros',group:'Medição'},
+  {id:'guias',title:'Guias técnicos',group:'Documentação'},
+  {id:'redigir',title:'Redigir',group:'Documentação'},
+  {id:'revisar',title:'Revisar',group:'Documentação'},
 ] as const;
 type Section = (typeof SECTIONS)[number]['id'];
 type IntakeForm = Record<keyof IntakeData, string>;
@@ -141,11 +149,28 @@ export class ProjectTechnicalComponent {
   readonly form = signal<IntakeForm>(formValues(null));
   readonly owner = computed(() => this.capabilities()?.owner !== false && !!this.capabilities());
   readonly sections = computed(() => SECTIONS.filter(item => {
-    if (item.id === 'guias') return this.capabilities()?.actions?.includes('VIEW_GUIDES') === true;
-    if (item.id === 'monitorar') return this.can('VIEW_OPEN_MONITORING');
+    if (item.id === 'inicio') return this.can('VIEW_INTAKE');
+    if (item.id === 'guias' || item.id === 'linha-base' || item.id === 'adicionalidade')
+      return this.can('VIEW_GUIDES');
+    if (item.id === 'monitorar' || item.id === 'evidencias')
+      return this.can('VIEW_OPEN_MONITORING');
+    if (item.id === 'quantificar') return this.can('VIEW_OPEN_CALCULATION');
     if (item.id === 'redigir' || item.id === 'revisar') return this.can('VIEW_DOSSIER');
     return this.can('VIEW_INTAKE');
   }));
+  readonly queryEtapa = computed(() => this.query()?.get('etapa'));
+  readonly monitoringView = computed(() => {
+    const selected=this.query()?.get('etapa');
+    return selected === 'leituras' ? 'readings' as const :
+      selected === 'qa' ? 'qa' as const :
+      selected === 'dossies' ? 'dossiers' as const : 'inventory' as const;
+  });
+  readonly monitoringSteps = [
+    {id:'inventario',label:'1. Instalações e medidores'},
+    {id:'leituras',label:'2. Leituras e ocorrências'},
+    {id:'qa',label:'3. QA e evidências'},
+    {id:'dossies',label:'4. MR, EFel e VT0011'},
+  ] as const;
   readonly section = computed(() => this.sections().find(item => item.id === this.query()?.get('secao')) ?? this.sections()[0] ?? SECTIONS[0]);
   readonly dirty = computed(() => JSON.stringify(formValues(this.intake()?.data ?? null)) !== JSON.stringify(this.form()));
   readonly otherMethodology = signal(false);
@@ -207,6 +232,16 @@ export class ProjectTechnicalComponent {
     const {boundary,incidence,rights} = guide.answers;
     this.intake.update(state => state && {...state,applicability:{revision:guide.version,
       boundary:boundary ?? null,incidence:incidence ?? null,rights:rights ?? null}});
+  }
+
+  /** Bookmarked monitoring screens share one secured project API and preserve history. */
+  async openMonitoring(step:'inventario'|'leituras'|'qa'|'dossies') {
+    if (this.saving() || !this.canLeaveGuides()) return;
+    if (!this.can('VIEW_OPEN_MONITORING')) return;
+    await this.router.navigate([], {relativeTo:this.route,
+      queryParams:{secao:'monitorar',etapa:step,guia:null},
+      queryParamsHandling:'merge'});
+    afterNextRender(() => this.heading()?.nativeElement.focus(), {injector:this.injector});
   }
 
   async open(section: Section, guide: string | null = null) {

@@ -132,7 +132,22 @@ test('CF-IMP-008: rascunho da conta cruza intake e prévia sem adquirir autorida
     await page.getByRole('heading', {name: 'Preparação técnica'}).waitFor();
     const sections = page.getByRole('navigation', {name:'Seções da preparação técnica'});
     await page.getByText('Rascunho técnico ainda não iniciado').waitFor();
+    await page.getByRole('heading',{name:'Painel de trabalho'}).waitFor();
+    const groups=await sections.locator('.cf-tech-module-group').allTextContents();
+    assert.deepEqual(groups,['Começar','Fundamentação','Medição','Documentação']);
+    const labels=await sections.getByRole('button').allTextContents();
+    assert.ok(labels.includes('Linha de base'));
+    assert.ok(labels.includes('Adicionalidade'));
+    assert.ok(labels.includes('Evidências'));
+    assert.ok(labels.includes('Quantificação'));
     assert.equal(await page.getByLabel('Atividade planejada').count(), 0);
+    await sections.getByRole('button',{name:'Fontes e parâmetros'}).click();
+    await page.getByRole('link',{name:'Abrir gestão de fontes (requer permissão staff)'}).waitFor();
+    assert.equal(await page.getByRole('link',
+      {name:'Abrir gestão de fontes (requer permissão staff)'}).getAttribute('href'),
+      '/workspace/platform/sources');
+    await sections.getByRole('button',{name:'Painel de trabalho'}).click();
+    await page.getByRole('heading',{name:'Painel de trabalho'}).waitFor();
     await sections.getByRole('button', {name:'Preparar informações'}).click();
 
     await page.getByLabel('Atividade planejada').fill('Recarga elétrica em ambiente urbano');
@@ -233,6 +248,34 @@ test('CF-IMP-008: rascunho da conta cruza intake e prévia sem adquirir autorida
     assert.deepEqual(await menu.getByRole('link').allTextContents(), menuItems);
     assert.equal(await menu.getByRole('link', {name:'Planos de convite'}).getAttribute('aria-current'), 'page');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth), false);
+
+    // A view from the monitoring rail must be bookmarkable and independently
+    // rendered; underlying access and source data still come from the API.
+    await page.route('**/v1/projects/*/technical/open-monitoring', route =>
+      route.fulfill({json:{projectId,environment:'SANDBOX',chargers:[],
+        meters:[],readiness:{state:'NOT_READY',canPrepare:false,
+        canUseForE8:false,edKwh:null,ecKwh:null,gates:[]}}}));
+    await page.route('**/v1/projects/*/technical/open-monitoring/**', route =>
+      route.fulfill({json:[]}));
+    await page.goto(base + '/workspace/projects/' + projectId +
+      '/technical?secao=monitorar&etapa=leituras');
+    const monitorSteps=page.getByRole('navigation',{name:'Etapas do monitoramento'});
+    await monitorSteps.waitFor();
+    assert.equal(await monitorSteps.getByRole('button',
+      {name:'2. Leituras e ocorrências'}).getAttribute('aria-current'),'step');
+    await page.getByRole('heading',
+      {name:'Lotes de leituras recebidas (candidatos)'}).waitFor();
+    assert.equal(await page.getByRole('heading',{name:'Inventário de carregadores'}).count(),0);
+    await monitorSteps.getByRole('button',{name:'3. QA e evidências'}).click();
+    await page.waitForURL('**/technical?secao=monitorar&etapa=qa**');
+    await page.getByRole('heading',{name:'Reconciliação ED/EC por período'}).waitFor();
+    assert.equal(await page.getByRole('heading',{name:'Lotes de leituras recebidas (candidatos)'}).count(),0);
+    await page.reload();
+    await page.getByRole('heading',{name:'Reconciliação ED/EC por período'}).waitFor();
+    assert.equal(await monitorSteps.getByRole('button',
+      {name:'3. QA e evidências'}).getAttribute('aria-current'),'step');
+    await sections.getByRole('button',{name:'Painel de trabalho'}).click();
+    await page.getByRole('heading',{name:'Painel de trabalho'}).waitFor();
 
     await page.route('**/v1/projects/*/technical/capabilities', route => route.fulfill({
       json:{projectId, environment:'SANDBOX', owner:false, actions:['VIEW_INTAKE'], modules:{}},
