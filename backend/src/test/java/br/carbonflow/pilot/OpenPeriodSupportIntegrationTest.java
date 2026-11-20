@@ -340,6 +340,25 @@ class OpenPeriodSupportIntegrationTest {
             owner.cookie(),null,null).statusCode());
         assertFalse(json(call("GET",technical+"/open-calculation-readiness",
             owner.cookie(),null,null)).path("canRunE8").asBoolean());
+        // Staff-catalogue EVR/PBEV remains PRIVATE. Only an explicit staff
+        // handoff can publish metadata to the project after a current V63
+        // energy/factor binding; a project owner is not platform staff.
+        String fleetRoute=dossierUrl+"/M1/e8-fleet-selections";
+        assertEquals(0,json(call("GET",fleetRoute,owner.cookie(),null,null)).size());
+        assertEquals(404,call("GET",fleetRoute,op.cookie(),null,null).statusCode());
+        assertEquals(404,call("GET",fleetRoute,outside.cookie(),null,null).statusCode());
+        assertEquals(404,call("GET",fleetRoute+
+            "/00000000-0000-0000-0000-000000000001",
+            owner.cookie(),null,null).statusCode());
+        String staffRoute="/v1/platform/e8-fleet-selections";
+        assertTrue(call("GET",staffRoute+"/options",owner.cookie(),null,null)
+            .statusCode()>=400);
+        assertTrue(call("POST",staffRoute,owner.cookie(),"\"0\"",
+            "{\"projectId\":\""+project+"\",\"period\":\"M1\","+
+            "\"energyBindingId\":\""+boundE8.path("id").asText()+
+            "\",\"ratingSnapshotId\":\"00000000-0000-0000-0000-000000000001\"}")
+            .statusCode()>=400);
+        assertEquals(0,json(call("GET",fleetRoute,owner.cookie(),null,null)).size());
 
         String vtUrl=efelUrl+"/"+efel.path("id").asText()+"/vt0011-workbooks";
         assertEquals(0,json(call("GET",vtUrl,owner.cookie(),null,null)).size());
