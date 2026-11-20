@@ -135,6 +135,19 @@ class OpenMonitoringDossiers {
                     "Período "+item.reference().code()+" requer correção: "+
                     item.gates().stream().map(Gate::detail).findFirst().orElse("revisar dados e documentos")));
         }
+        // The quantification section may not progress on the strength of
+        // documentary QA alone; a distinct, independent VM0038 checklist
+        // is required. The monitoring plan (PD) remains preparable without
+        // treating this as external certification.
+        if("quantification".equals(section)) {
+            for(Dossier item:current.dossiers()) {
+                String methodState=OpenMethodReview.status(c,project,item.reference().code());
+                if(!"CHECKED_INTERNAL_AWAITING_NORMATIVE_ADMISSION".equals(methodState))
+                    gates.add(new Gate("METHOD_"+methodState,
+                        "Período "+item.reference().code()+
+                        " requer avaliação interna independente da VM0038 v1.1."));
+            }
+        }
         boolean blocked=!gates.isEmpty();
         return new PdDependency(changed?"STALE":blocked?"BLOCKED_MONITORING_REQUIREMENTS":
             "READY_FOR_INTERNAL_PD_REVIEW",blocked,!blocked,pinned,current.sha256(),List.copyOf(gates));

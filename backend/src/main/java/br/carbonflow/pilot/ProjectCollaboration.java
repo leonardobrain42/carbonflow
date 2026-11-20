@@ -18,7 +18,7 @@ final class ProjectCollaboration {
             "VIEW_OPEN_APPLICABILITY", "SAVE_OPEN_APPLICABILITY", "VIEW_OPEN_CALCULATION",
             "VIEW_OPEN_MONITORING", "SAVE_OPEN_MONITORING", "SUBMIT_OPEN_MEASUREMENTS",
             "VIEW_OPEN_PERIOD_ADMISSION", "SUBMIT_OPEN_PERIOD_EVIDENCE",
-            "SUBMIT_OPEN_MONITORING_EVENT");
+            "SUBMIT_OPEN_MONITORING_EVENT", "VIEW_OPEN_METHOD_REVIEW");
 
     private ProjectCollaboration() {}
 
@@ -53,6 +53,8 @@ final class ProjectCollaboration {
                     if ("MONITORING".equals(activity)) {
                         actions.add("VIEW_OPEN_MONITORING");
                         actions.add("VIEW_OPEN_PERIOD_ADMISSION");
+                        if (!"OP".equals(grant.role()))
+                            actions.add("VIEW_OPEN_METHOD_REVIEW");
                         if (preparer) actions.add("SAVE_OPEN_MONITORING");
                         if (preparer || "OP".equals(grant.role())) {
                             actions.add("SUBMIT_OPEN_MEASUREMENTS");
@@ -64,6 +66,7 @@ final class ProjectCollaboration {
                             actions.add("SNAPSHOT_OPEN_PERIOD");
                             actions.add("REVIEW_OPEN_PERIOD_EVIDENCE");
                             actions.add("REVIEW_OPEN_MONITORING_EVENT");
+                            actions.add("REVIEW_OPEN_METHOD_REVIEW");
                         }
                     }
                     if ("APPLICABILITY".equals(activity)) {

@@ -55,6 +55,32 @@ type MrReference = {code:string;version:number;snapshotId:string;snapshotSha256:
 type MrGate = {code:string;detail:string};
 type MrDossier = {reference:MrReference;state:string;stale:boolean;
   canUseForE8:boolean;gates:MrGate[]};
+type MethodCriterion = 'BOUNDARY_DCFC_SIN'|'METER_CALIBRATION'|'SOURCE_RIGHTS'|
+  'HOURLY_ED_EC'|'CLOCK_GAPS_MAINTENANCE'|'DOUBLE_CLAIMING';
+type MethodCheck = {requirement:MethodCriterion;finding:'SUPPORTED_INTERNAL'|'OPEN';
+  evidenceReference:string;reason:string};
+type MethodReview = {version:number;outcome:'CHECKED_INTERNAL'|'RETURNED';
+  rationale:string;checks:MethodCheck[];evidenceSha256:string;
+  reviewedBy:string;reviewedAt:string};
+type MethodView = {period:string;dossierVersion:number;snapshotId:string;
+  methodology:string;methodologyEdition:string;state:string;stale:boolean;
+  canUseForE8:boolean;gates:{code:string;detail:string}[];review:MethodReview|null};
+const METHOD_CRITERIA:MethodCriterion[]=[
+  'BOUNDARY_DCFC_SIN','METER_CALIBRATION','SOURCE_RIGHTS',
+  'HOURLY_ED_EC','CLOCK_GAPS_MAINTENANCE','DOUBLE_CLAIMING'
+];
+const METHOD_LABELS:Record<MethodCriterion,string>={
+  BOUNDARY_DCFC_SIN:'Fronteira VM0038 v1.1, DCFC/SIN e topologia elegível',
+  METER_CALIBRATION:'Calibração, período, identificação e posição dos medidores',
+  SOURCE_RIGHTS:'Direito de usar as leituras e evidências de origem',
+  HOURLY_ED_EC:'Cobertura horária real com ED e EC separados',
+  CLOCK_GAPS_MAINTENANCE:'Relógio, lacunas, manutenção e reconciliação',
+  DOUBLE_CLAIMING:'Titularidade, exclusividade e possível dupla contagem'
+};
+const emptyMethodChecks=():MethodCheck[]=>METHOD_CRITERIA.map(requirement=>({
+  requirement,finding:'OPEN' as const,evidenceReference:'',reason:''
+}));
+
 type ChargerForm = {code:string; siteCode:string; chargerKind:string; ratedPowerKw:string;
                     grid:string; topology:string; timeZone:string; sourceReference:string};
 type MeterForm = {code:string; chargerCode:string; energyKind:string; sourceSystem:string;
@@ -83,6 +109,8 @@ export class OpenMonitoringComponent implements OnChanges {
   @Input() canReview=false;
   @Input() canReportEvent=false;
   @Input() canReviewEvent=false;
+  @Input() canViewMethod=false;
+  @Input() canReviewMethod=false;
   private readonly http=inject(HttpClient);
   readonly data=signal<View|null>(null);
   readonly charger=signal<ChargerForm>({...NEW_CHARGER});
@@ -100,6 +128,13 @@ export class OpenMonitoringComponent implements OnChanges {
   readonly mrSnapshot=signal('');
   readonly mrNote=signal('');
   readonly mrBusy=signal(false);
+  readonly methodSelected=signal<MethodView|null>(null);
+  readonly methodLoading=signal(false);
+  readonly methodBusy=signal(false);
+  readonly methodChecks=signal<MethodCheck[]>(emptyMethodChecks());
+  readonly methodOutcome=signal<'CHECKED_INTERNAL'|'RETURNED'>('RETURNED');
+  readonly methodRationale=signal('');
+  readonly methodLabels=METHOD_LABELS;
   readonly operationalEvents=signal<OperationalEvent[]>([]);
   readonly eventForm=signal<EventForm>({...NEW_EVENT});
   readonly eventSubmitting=signal(false);
@@ -596,9 +631,63 @@ export class OpenMonitoringComponent implements OnChanges {
         {snapshotId,note},
         {headers:{'If-Match':'"'+(current?.reference.version??0)+'"'}}));
       await this.load();
+      this.methodSelected.set(null);
       this.notice.set('Vínculo MR versionado. O dossiê permanece sem admissão metodológica e sem E8.');
     } catch(problem){this.error.set(this.message(problem));}
     finally {this.mrBusy.set(false);}
+  }
+
+  async inspectMethod(period:string) {
+    if(!this.canViewMethod)return;
+    this.methodLoading.set(true);this.error.set('');
+    try {
+      const view=await firstValueFrom(this.http.get<MethodView>(
+        '/v1/projects/'+encodeURIComponent(this.projectId)+
+        '/technical/open-monitoring/dossiers/'+encodeURIComponent(period)+'/method-review'));
+      this.methodSelected.set(view);
+      this.methodChecks.set(view.review?.checks.map(c=>({...c}))??emptyMethodChecks());
+      this.methodOutcome.set(view.review?.outcome??'RETURNED');
+      this.methodRationale.set(view.review?.rationale??'');
+    } catch(problem){this.error.set(this.message(problem));}
+    finally {this.methodLoading.set(false);}
+  }
+
+  updateMethodCheck(requirement:MethodCriterion, field:keyof Omit<MethodCheck,'requirement'>,
+                    value:string) {
+    this.methodChecks.update(all=>all.map(item=>item.requirement===requirement?
+      {...item,[field]:value}:item));
+  }
+
+  async saveMethodReview(event:Event) {
+    event.preventDefault();
+    const selected=this.methodSelected();
+    if(!this.canReviewMethod||!selected||this.methodBusy())return;
+    const checks=this.methodChecks().map(x=>({
+      ...x,evidenceReference:x.evidenceReference.trim(),reason:x.reason.trim()
+    }));
+    const rationale=this.methodRationale().trim();
+    if(rationale.length<15||rationale.length>2000 ||
+       checks.length!==METHOD_CRITERIA.length ||
+       checks.some(c=>c.evidenceReference.length<8||c.reason.length<15) ||
+       this.methodOutcome()==='CHECKED_INTERNAL' &&
+         checks.some(c=>c.finding!=='SUPPORTED_INTERNAL')) {
+      this.error.set('Para concluir a conferência, fundamente os seis critérios e informe referências verificáveis.');
+      return;
+    }
+    this.methodBusy.set(true);this.error.set('');this.notice.set('');
+    try {
+      await firstValueFrom(this.http.post<MethodView>(
+        '/v1/projects/'+encodeURIComponent(this.projectId)+
+        '/technical/open-monitoring/dossiers/'+encodeURIComponent(selected.period)+'/method-review',
+        {dossierVersion:selected.dossierVersion,outcome:this.methodOutcome(),rationale,checks},
+        {headers:{
+          'If-Match':'"'+(selected.review?.version??0)+'"',
+          'Idempotency-Key':crypto.randomUUID()
+        }}));
+      await this.inspectMethod(selected.period);
+      this.notice.set('Parecer metodológico interno versionado. E8, VVB e VCU continuam bloqueados.');
+    } catch(problem){this.error.set(this.message(problem));}
+    finally {this.methodBusy.set(false);}
   }
 
   stateName(code:string) {

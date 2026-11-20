@@ -191,7 +191,9 @@
                   [canSubmit]="can('SUBMIT_OPEN_MEASUREMENTS')"
                   [canReview]="can('REVIEW_OPEN_MEASUREMENTS')"
                   [canReportEvent]="can('SUBMIT_OPEN_MONITORING_EVENT')"
-                  [canReviewEvent]="can('REVIEW_OPEN_MONITORING_EVENT')" />
+                  [canReviewEvent]="can('REVIEW_OPEN_MONITORING_EVENT')"
+                  [canViewMethod]="can('VIEW_OPEN_METHOD_REVIEW')"
+                  [canReviewMethod]="can('REVIEW_OPEN_METHOD_REVIEW')" />
               }
             }
 
@@ -270,7 +272,9 @@
                   [canSubmit]="can('SUBMIT_OPEN_MEASUREMENTS')"
                   [canReview]="can('REVIEW_OPEN_MEASUREMENTS')"
                   [canReportEvent]="can('SUBMIT_OPEN_MONITORING_EVENT')"
-                  [canReviewEvent]="can('REVIEW_OPEN_MONITORING_EVENT')" />
+                  [canReviewEvent]="can('REVIEW_OPEN_MONITORING_EVENT')"
+                  [canViewMethod]="can('VIEW_OPEN_METHOD_REVIEW')"
+                  [canReviewMethod]="can('REVIEW_OPEN_METHOD_REVIEW')" />
           </section>
         }
         @if (can('VIEW_OPEN_CALCULATION')) {
