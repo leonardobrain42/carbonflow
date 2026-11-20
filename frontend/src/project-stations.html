@@ -1,0 +1,172 @@
+<section class="cf-journey-context" aria-labelledby="cf-sites-title">
+  <h3 id="cf-sites-title">Estações, carregadores e fronteira do projeto</h3>
+  <p>Cadastre a localização e o estado de cada estação, associe seus carregadores ao inventário existente
+    e indique quais unidades integram a fronteira. Esta seleção é preparatória; não comprova direitos,
+    início VCS, dados medidos nem elegibilidade.</p>
+  <nav class="cf-triage-actions" aria-label="Etapas do inventário e fronteira">
+    <button type="button" class="cf-workspace-outline" [attr.aria-current]="mode()==='sites'?'step':null"
+      (click)="chooseMode('sites')">1. Estações</button>
+    <button type="button" class="cf-workspace-outline" [attr.aria-current]="mode()==='chargers'?'step':null"
+      (click)="chooseMode('chargers')">2. Carregadores DCFC</button>
+    <button type="button" class="cf-workspace-outline" [attr.aria-current]="mode()==='boundary'?'step':null"
+      (click)="chooseMode('boundary')">3. Fronteira</button>
+  </nav>
+  @if (loading()){<p role="status">Consultando estações e versões do inventário…</p>}
+  @if (error()){<p class="cf-workspace-alert" role="alert">{{error()}}</p>
+    <button class="cf-workspace-outline" type="button" (click)="load()" [disabled]="busy()">Recarregar</button>}
+  @if (notice()){<p class="cf-workspace-note" role="status">{{notice()}}</p>}
+  @if (data();as catalog){
+    <dl class="cf-tech-capabilities">
+      <div><dt>Estações cadastradas</dt><dd>{{catalog.sites.length}}</dd></div>
+      <div><dt>Carregadores inventariados</dt><dd>{{catalog.chargers.length}}</dd></div>
+      <div><dt>Selecionados na fronteira</dt><dd>{{catalog.boundary.selected.length}}</dd></div>
+      <div><dt>Estado da fronteira</dt><dd>{{catalog.boundary.state==='STALE'?'Versões desatualizadas':
+        catalog.boundary.state==='NO_SELECTION'?'Sem seleção':'Rascunho para revisão'}}</dd></div>
+    </dl>
+    @if (mode()==='sites'){
+      <h4>Estações cadastradas</h4>
+      <p class="cf-workspace-helper">O código da estação identifica uma instalação em todo o projeto.
+        Alterações criam revisões novas; a seleção de fronteira anterior pode ficar obsoleta.</p>
+      <ul class="cf-tech-gates">
+        @for (item of catalog.sites;track item.code){
+          <li><strong>{{item.details.name}} · {{item.code}}</strong>
+            <p>{{item.details.municipality}} / {{item.details.state}} ·
+              {{item.details.operationalState==='ACTIVE'?'Ativa declarada':
+                item.details.operationalState==='INSTALLED'?'Instalada declarada':'Planejada'}} · revisão {{item.version}}</p>
+            <p>{{item.details.address || 'Endereço ainda não informado'}} ·
+              {{item.details.sourceReference?'Referência informada: '+item.details.sourceReference:'Sem referência de prova'}}</p>
+            @if (editable){<button type="button" class="cf-workspace-outline" [disabled]="busy()"
+              (click)="pickSite(item)">Editar em nova revisão</button>}
+          </li>
+        } @empty {<li>Nenhuma estação cadastrada. Comece pelo formulário abaixo.</li>}
+      </ul>
+      @if (editable){
+        <form (submit)="saveSite($event)">
+          <fieldset class="cf-journey-fieldset" [disabled]="busy()">
+            <legend>{{siteVersion()?'Revisar estação':'Cadastrar estação'}}</legend>
+            <div class="cf-journey-fields">
+              <div><label for="cf-site-code">Código único da estação</label>
+                <input id="cf-site-code" maxlength="80" required [readOnly]="siteVersion()>0"
+                  [value]="site().code" (input)="changeSite('code',$any($event.target).value)"
+                  placeholder="Ex.: BRASILIA-NORTE-01"/></div>
+              <div><label for="cf-site-name">Nome da estação</label>
+                <input id="cf-site-name" maxlength="120" required [value]="site().name"
+                  (input)="changeSite('name',$any($event.target).value)"/></div>
+              <div><label for="cf-site-city">Município</label>
+                <input id="cf-site-city" maxlength="100" required [value]="site().municipality"
+                  (input)="changeSite('municipality',$any($event.target).value)"/></div>
+              <div><label for="cf-site-state">UF</label>
+                <input id="cf-site-state" maxlength="2" required [value]="site().state"
+                  (input)="changeSite('state',$any($event.target).value)"/></div>
+              <div><label for="cf-site-address">Endereço (opcional no rascunho)</label>
+                <input id="cf-site-address" maxlength="200" [value]="site().address"
+                  (input)="changeSite('address',$any($event.target).value)"/></div>
+              <div><label for="cf-site-status">Estado operacional declarado</label>
+                <select id="cf-site-status" [value]="site().operationalState"
+                  (change)="changeSite('operationalState',$any($event.target).value)">
+                  <option value="PLANNED">Planejada</option>
+                  <option value="INSTALLED">Instalada (sem operação comprovada)</option>
+                  <option value="ACTIVE">Ativa declarada (com data)</option>
+                </select></div>
+              <div><label for="cf-site-planned">Previsão operacional</label>
+                <input id="cf-site-planned" type="date" [value]="site().plannedOn"
+                  (input)="changeSite('plannedOn',$any($event.target).value)"/></div>
+              <div><label for="cf-site-commissioned">Início operacional declarado (não é início VCS)</label>
+                <input id="cf-site-commissioned" type="date" [value]="site().commissionedOn"
+                  (input)="changeSite('commissionedOn',$any($event.target).value)"/></div>
+              <div><label for="cf-site-source">Referência documental (não é anexo validado)</label>
+                <input id="cf-site-source" maxlength="300" [value]="site().sourceReference"
+                  (input)="changeSite('sourceReference',$any($event.target).value)"/></div>
+            </div>
+            <div class="cf-triage-actions">
+              <button class="cf-workspace-primary" type="submit" [disabled]="busy()">Salvar versão da estação</button>
+              <button type="button" class="cf-workspace-outline" [disabled]="busy()" (click)="resetSite()">Nova estação</button>
+            </div>
+          </fieldset>
+        </form>
+      }
+    } @else if(mode()==='chargers'){
+      <h4>Carregadores do inventário canônico</h4>
+      <p class="cf-workspace-helper">Nesta jornada inicial somente DCFC ligado ao SIN e sem geração,
+        bateria ou V2G. Outros perfis existentes são mostrados como fora do escopo, nunca admitidos.</p>
+      <ul class="cf-tech-gates">
+        @for (item of catalog.chargers;track item.code){
+          <li><strong>{{item.code}} · {{item.siteCode}} · v{{item.version}}</strong>
+            <p>{{item.kind}} · {{item.powerKw ?? 'Potência pendente'}} kW · {{item.grid}} · {{item.topology}}</p>
+            @if (!eligible(item)){<p>Fora do recorte ou estação ainda não cadastrada; não pode ser selecionado.</p>}
+            @if (editable&&eligible(item)){<button type="button" class="cf-workspace-outline" [disabled]="busy()"
+              (click)="pickCharger(item)">Revisar configuração</button>}
+          </li>
+        } @empty {<li>Não há carregadores. Cadastre um equipamento abaixo.</li>}
+      </ul>
+      @if (editable){
+        <form (submit)="saveCharger($event)">
+          <fieldset class="cf-journey-fieldset" [disabled]="busy()||!catalog.sites.length">
+            <legend>{{chargerVersion()?'Revisar carregador DCFC':'Adicionar carregador DCFC'}}</legend>
+            <label for="cf-site-charger-code">Identificador do equipamento</label>
+            <input id="cf-site-charger-code" maxlength="80" required [readOnly]="chargerVersion()>0"
+              [value]="charger().code" (input)="changeCharger('code',$any($event.target).value)"/>
+            <label for="cf-site-charger-site">Estação vinculada</label>
+            <select id="cf-site-charger-site" required [value]="charger().siteCode"
+              (change)="changeCharger('siteCode',$any($event.target).value)">
+              <option value="">Selecione a estação</option>
+              @for (item of catalog.sites;track item.code){
+                <option [value]="item.code">{{item.details.name}} · {{item.code}}</option>
+              }
+            </select>
+            <label for="cf-site-charger-power">Potência nominal (kW) — pode ficar pendente</label>
+            <input id="cf-site-charger-power" type="number" min="0.001" max="10000" step="0.001"
+              [value]="charger().powerKw" (input)="changeCharger('powerKw',$any($event.target).value)"/>
+            <label for="cf-site-charger-zone">Fuso para os registros da instalação</label>
+            <select id="cf-site-charger-zone" [value]="charger().timeZone"
+              (change)="changeCharger('timeZone',$any($event.target).value)">
+              <option value="America/Sao_Paulo">America/Sao_Paulo</option>
+              <option value="UTC">UTC</option>
+              <option value="UNKNOWN">Ainda desconhecido</option>
+            </select>
+            <label for="cf-site-charger-ref">Referência técnica da ficha ou comissionamento</label>
+            <input id="cf-site-charger-ref" maxlength="300" [value]="charger().sourceReference"
+              (input)="changeCharger('sourceReference',$any($event.target).value)"/>
+            <p class="cf-workspace-helper">Tecnologia DCFC · rede SIN · topologia somente rede.
+              Outros ramos não podem ser selecionados por este cadastro.</p>
+            <div class="cf-triage-actions">
+              <button type="submit" class="cf-workspace-primary" [disabled]="busy()">Salvar carregador</button>
+              <button type="button" class="cf-workspace-outline" [disabled]="busy()" (click)="resetCharger()">Novo carregador</button>
+            </div>
+          </fieldset>
+        </form>
+      }
+    } @else {
+      <h4>Seleção de carregadores na fronteira</h4>
+      <p>As caixas representam referências a versões reais do inventário. Inclusão ou retirada cria
+        revisão própria; não altera os registros de medição existentes.</p>
+      <fieldset class="cf-journey-fieldset" [disabled]="!editable||busy()">
+        <legend>Equipamentos deste projeto</legend>
+        @for (item of catalog.chargers;track item.code){
+          <div class="cf-journey-context">
+            <label [for]="'cf-boundary-'+item.code">
+              <input type="checkbox" [id]="'cf-boundary-'+item.code"
+                [checked]="chosen(item.code)"
+                [disabled]="!eligible(item)&&!chosen(item.code)"
+                (change)="toggle(item.code,$any($event.target).checked)"/>
+              {{item.code}} · {{item.siteCode}} · revisão {{item.version}}
+            </label>
+            <p class="cf-workspace-helper">{{item.powerKw ?? 'Potência ainda não informada'}} kW ·
+              {{eligible(item)?'Candidato ao recorte DCFC/SIN': 'Não suportado ou falta estação cadastrada'}}</p>
+          </div>
+        } @empty {<p>Cadastre a estação e ao menos um carregador antes de selecionar a fronteira.</p>}
+      </fieldset>
+      <p class="cf-workspace-note">Versão {{catalog.boundary.version}} ·
+        {{catalog.boundary.state==='STALE'?'Fronteira obsoleta, reconciliar versões':
+          'Rascunho sujeito a revisão humana'}}</p>
+      @for (finding of catalog.boundary.findings;track finding){<p class="cf-workspace-helper">{{finding}}</p>}
+      @if (editable){
+        <button type="button" class="cf-workspace-primary" [disabled]="busy()||
+          (!boundaryDirty()&&catalog.boundary.state!=='STALE')"
+          (click)="saveBoundary()">Salvar seleção versionada</button>
+      }
+      <p class="cf-workspace-helper">Mesmo com todas as caixas marcadas, a fronteira não é admitida
+        para cálculo, PD aprovado, registro ou emissão VCU.</p>
+    }
+  }
+</section>

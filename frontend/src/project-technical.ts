@@ -5,6 +5,7 @@ import {ProjectGuidesComponent} from './project-guides';
 import {OpenApplicabilityComponent} from './open-applicability';
 import {OpenCalculationReadinessComponent} from './open-calculation-readiness';
 import {OpenMonitoringComponent} from './open-monitoring';
+import {ProjectStationsComponent} from './project-stations';
 import {WorkspaceNavigationComponent} from './workspace-navigation';
 import {afterNextRender, Component, computed, ElementRef, inject, Injector, signal, viewChild} from '@angular/core';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
@@ -94,6 +95,7 @@ const SECTIONS = [
   {id:'entender',title:'Entender',group:'Começar'},
   {id:'preparar',title:'Preparar informações',group:'Começar'},
   {id:'analisar',title:'Analisar',group:'Fundamentação'},
+  {id:'estacoes',title:'Estações e fronteira',group:'Fundamentação'},
   {id:'linha-base',title:'Linha de base',group:'Fundamentação'},
   {id:'adicionalidade',title:'Adicionalidade',group:'Fundamentação'},
   {id:'monitorar',title:'Monitorar ED/EC',group:'Medição'},
@@ -117,7 +119,7 @@ function formValues(data: IntakeData | null): IntakeForm {
 
 @Component({
   selector: 'carbonflow-project-technical',
-  imports: [RouterLink, WorkspaceNavigationComponent, ProjectGuidesComponent, OpenApplicabilityComponent, OpenCalculationReadinessComponent, OpenMonitoringComponent, PdSectionsComponent, PdReviewsComponent, TechnicalGlossaryComponent],
+  imports: [RouterLink, WorkspaceNavigationComponent, ProjectGuidesComponent, OpenApplicabilityComponent, OpenCalculationReadinessComponent, OpenMonitoringComponent, ProjectStationsComponent, PdSectionsComponent, PdReviewsComponent, TechnicalGlossaryComponent],
   templateUrl: './project-technical.html',
 })
 export class ProjectTechnicalComponent {
@@ -126,9 +128,10 @@ export class ProjectTechnicalComponent {
   private readonly router = inject(Router);
   private readonly injector = inject(Injector);
   private readonly guideEditor = viewChild(ProjectGuidesComponent);
+  private readonly stationsEditor = viewChild(ProjectStationsComponent);
   private readonly pdEditor = viewChild(PdSectionsComponent);
   private readonly pdReview = viewChild(PdReviewsComponent);
-  readonly canLeaveGuides = () => (this.guideEditor()?.canLeave() ?? true) && (this.pdEditor()?.canLeave() ?? true) && (this.pdReview()?.canLeave() ?? true);
+  readonly canLeaveGuides = () => (this.guideEditor()?.canLeave() ?? true) && (this.stationsEditor()?.canLeave() ?? true) && (this.pdEditor()?.canLeave() ?? true) && (this.pdReview()?.canLeave() ?? true);
   private readonly heading = viewChild<ElementRef<HTMLHeadingElement>>('sectionHeading');
   private readonly query = toSignal(this.route.queryParamMap);
   readonly selectedGuide = computed(() => this.query()?.get('guia') ?? null);
@@ -152,7 +155,7 @@ export class ProjectTechnicalComponent {
     if (item.id === 'inicio') return this.can('VIEW_INTAKE');
     if (item.id === 'guias' || item.id === 'linha-base' || item.id === 'adicionalidade')
       return this.can('VIEW_GUIDES');
-    if (item.id === 'monitorar' || item.id === 'evidencias')
+    if (item.id === 'monitorar' || item.id === 'evidencias' || item.id === 'estacoes')
       return this.can('VIEW_OPEN_MONITORING');
     if (item.id === 'quantificar') return this.can('VIEW_OPEN_CALCULATION');
     if (item.id === 'redigir' || item.id === 'revisar') return this.can('VIEW_DOSSIER');
