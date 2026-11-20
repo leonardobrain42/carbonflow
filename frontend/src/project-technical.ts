@@ -191,8 +191,16 @@ export class ProjectTechnicalComponent {
     {id:'qa',label:'3. QA e evidências'},
     {id:'dossies',label:'4. MR, EFel e VT0011'},
   ] as const;
-  readonly section = computed(() => this.sections().find(item => item.id === this.query()?.get('secao')) ?? this.sections()[0] ?? SECTIONS[0]);
-  readonly dirty = computed(() => JSON.stringify(formValues(this.intake()?.data ?? null)) !== JSON.stringify(this.form()));
+  readonly section = computed(() => {
+    const allowed=this.sections();
+    const target=allowed.find(item=>item.id===this.query()?.get('secao'));
+    // Stable, role-aware landing: the first permitted domain module should not
+    // silently replace the intended general guide landing after UX-BL/ADD.
+    return target ?? allowed.find(item=>item.id==='inicio') ??
+      allowed.find(item=>item.id==='guias') ?? allowed[0] ?? SECTIONS[0];
+  });
+  readonly dirty = computed(() => this.can('VIEW_INTAKE') &&
+    JSON.stringify(formValues(this.intake()?.data ?? null)) !== JSON.stringify(this.form()));
   readonly otherMethodology = signal(false);
   readonly otherOption = OTHER_METHODOLOGY;
   readonly methodologyChoice = computed(() => {
