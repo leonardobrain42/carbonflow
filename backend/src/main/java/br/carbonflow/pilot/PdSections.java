@@ -58,7 +58,8 @@ class PdSections {
             String currentMrManifest = OpenMonitoringDossiers.manifest(c,project).sha256();
             String pinnedMrManifest = OpenMonitoringDossiers.pinnedPd(c,project,id,
                 current==null?0:current.number());
-            boolean sameMonitoringDependencies = java.util.Objects.equals(currentMrManifest,pinnedMrManifest);
+            boolean sameMonitoringDependencies = !java.util.Set.of("monitoring","quantification").contains(id)
+                || java.util.Objects.equals(currentMrManifest,pinnedMrManifest);
             String text = input.narrative().strip();
             if (current != null && expected == current.number()-1 && current.author().equals(scope.actor().id())
                     && input.guideVersion() == current.guideVersion() && text.equals(current.narrative())
