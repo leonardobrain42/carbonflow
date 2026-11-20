@@ -67,6 +67,9 @@
                   </button>
                 }
                 @if (can('VIEW_OPEN_MONITORING')) {
+                  <button type="button" (click)="open('estacoes')">
+                    <strong>Estações e fronteira</strong><span>Cadastre instalações, carregadores e selecione a fronteira versionada.</span>
+                  </button>
                   <button type="button" (click)="openMonitoring('inventario')">
                     <strong>Monitoramento</strong><span>Inventário, leituras, QA, MR e fatores elétricos.</span>
                   </button>
@@ -88,6 +91,25 @@
               @if (saved.journey.candidate !== 'VM0038') {
                 <p class="cf-workspace-note">As ferramentas E8/OPEN se aplicam somente
                   ao recorte VM0038 suportado. Não utilizar modelos de outra metodologia.</p>
+              }
+            }
+
+            @case ('estacoes') {
+              <p>Cadastre uma ou mais estações e selecione carregadores DCFC/SIN na fronteira;
+                os dados são preparatórios e mantêm histórico por versão.
+                Cadastro operacional e data de início VCS são coisas diferentes.</p>
+              @if (saved.journey.candidate === 'VM0038' && can('VIEW_OPEN_MONITORING')) {
+                <carbonflow-project-stations [projectId]="projectId"
+                  [editable]="can('SAVE_OPEN_MONITORING')" />
+                <div class="cf-triage-actions">
+                  <button type="button" class="cf-workspace-outline"
+                    (click)="openMonitoring('inventario')">Medidores e configuração avançada</button>
+                  <button type="button" class="cf-workspace-outline"
+                    (click)="open('analisar')">Ver aplicabilidade e direitos</button>
+                </div>
+              } @else {
+                <p>O cadastro de estações deste recorte só está disponível para a VM0038 com acesso
+                  ao inventário do projeto. Nenhuma outra metodologia é assumida como equivalente.</p>
               }
             }
 
@@ -273,6 +295,12 @@
             }
 
             @case ('analisar') {
+              @if (saved.journey.candidate === 'VM0038' && can('VIEW_OPEN_MONITORING')) {
+                <div class="cf-triage-actions">
+                  <button type="button" class="cf-workspace-outline"
+                    (click)="open('estacoes')">Cadastrar estações e delimitar fronteira</button>
+                </div>
+              }
               @if (saved.journey.candidate === 'VM0038' && can('VIEW_OPEN_APPLICABILITY')) {
                 <carbonflow-open-applicability [projectId]="projectId"
                   [editable]="can('SAVE_OPEN_APPLICABILITY')">
