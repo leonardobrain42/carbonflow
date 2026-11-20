@@ -20,8 +20,13 @@ import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
-@QuarkusTestResource(value=VehicleRatingIntegrationTest.Settings.class,restrictToAnnotatedClass=true)
+@QuarkusTestResource(value=OpenPeriodSupportIntegrationTest.Settings.class,restrictToAnnotatedClass=true)
 class OpenPeriodSupportIntegrationTest {
+    static final UUID E8_STAFF_MANAGER=UUID.fromString("e8000000-0000-4000-8000-000000000001");
+    static final UUID E8_STAFF_REVIEWER=UUID.fromString("e8000000-0000-4000-8000-000000000002");
+    static final UUID E8_STAFF_ORG=UUID.fromString("e8000000-0000-4000-8000-000000000003");
+    static final byte[] E8_STAFF_SECRET="12345123451234512345"
+        .getBytes(StandardCharsets.US_ASCII);
     @Inject PilotDatabase database;
     @Inject ObjectMapper mapper;
     @TestHTTPResource URL base;
@@ -54,10 +59,10 @@ class OpenPeriodSupportIntegrationTest {
     @Test
     void proofFilesAreEncryptedReviewedIndependentlyAndSnapshotTurnsStale() throws Exception {
         Actor owner=actor(),op=actor(),qaReviewer=actor(),docsReviewer=actor(),outside=actor();
-        Actor staffManager=actorWithId(VehicleRatingIntegrationTest.MANAGER);
-        Actor staffReviewer=actorWithId(VehicleRatingIntegrationTest.REVIEWER);
+        Actor staffManager=actorWithId(E8_STAFF_MANAGER);
+        Actor staffReviewer=actorWithId(E8_STAFF_REVIEWER);
         verifyStaff(staffManager);
-        UUID org=organization(owner.id(),VehicleRatingIntegrationTest.ORG);
+        UUID org=organization(owner.id(),E8_STAFF_ORG);
         String project=project(owner,org);
         configure(owner,project);
         grant(project,org,owner.id(),op.id(),"OP");
@@ -1143,11 +1148,27 @@ class OpenPeriodSupportIntegrationTest {
             "SELECT floor(extract(epoch from statement_timestamp())/30)::bigint",
             r->r.getLong(1)));
         String body="{\"code\":\""+ComplianceStaff.codeAt(
-            VehicleRatingIntegrationTest.SECRET,counter)+"\"}";
+            E8_STAFF_SECRET,counter)+"\"}";
         var response=call("POST","/v1/compliance/session",
             manager.cookie(),null,body);
         assertEquals(200,response.statusCode(),response.body());
     }
+    public static class Settings extends AccountAccessTest.Inbox {
+        @Override public java.util.Map<String,String> start(){
+            var properties=new java.util.HashMap<>(super.start());
+            String secret=java.util.Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(E8_STAFF_SECRET);
+            properties.put("carbonflow.compliance.staff",
+                E8_STAFF_MANAGER+":"+secret+":"+E8_STAFF_ORG+";"+
+                E8_STAFF_REVIEWER+":"+secret+":"+E8_STAFF_ORG);
+            properties.put("carbonflow.platform.source-readiness.viewers",
+                E8_STAFF_MANAGER+","+E8_STAFF_REVIEWER);
+            properties.put("carbonflow.platform.source-work.managers",
+                E8_STAFF_MANAGER.toString());
+            return properties;
+        }
+    }
+
     private void grant(String project,UUID org,UUID owner,UUID actor,String role) {
         database.transaction(c->{
             update(c,"""
