@@ -84,7 +84,7 @@ class OpenAssetEvidenceIntegrationTest {
             "Referência diferente 2027","página 2","proof-north.pdf",pdf).statusCode());
         assertEquals(422,upload(north+"/revisions/1",owner.cookie(),key(),"UNKNOWN",
             "Fonte normativa indevida","página 2","proof-north.pdf",pdf).statusCode());
-        assertEquals(400,upload(north+"/revisions/1",owner.cookie(),key(),"LOCATION",
+        assertEquals(422,upload(north+"/revisions/1",owner.cookie(),key(),"LOCATION",
             "Planta Norte 2027","página 2","proof-north.pdf",
             "documento nao pdf".getBytes(StandardCharsets.UTF_8)).statusCode());
         assertEquals(412,upload(north+"/revisions/2",owner.cookie(),key(),"LOCATION",
@@ -94,6 +94,8 @@ class OpenAssetEvidenceIntegrationTest {
             "Planta documental Sul 2027","página 3","proof-south.pdf",pdf);
         assertEquals(201,second.statusCode(),second.body());
         assertNotEquals(firstProof.path("id").asText(),json(second).path("id").asText());
+        assertEquals("proof-south.pdf",json(second).path("fileName").asText(),
+            "A deduplicação dos bytes não pode trocar o nome enviado em outra estação.");
         var hardwareProof=upload(hardware+"/revisions/1",owner.cookie(),key(),"SPECIFICATION",
             "Ficha fabricante DCFC 2027","página 4","charger-proof.pdf",
             (PDF+"power 150 kW\n").getBytes(StandardCharsets.US_ASCII));

@@ -91,15 +91,15 @@ class OpenAssetEvidence {
                 update(c,"""
                     INSERT INTO app_open_asset_evidence
                     (id,project_id,organization_id,environment,site_code,site_version,
-                     charger_code,charger_version,purpose,evidence_blob_id,evidence_reference,
+                     charger_code,charger_version,purpose,evidence_blob_id,submitted_file_name,evidence_reference,
                      locator,submitted_by)
-                    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                     """,id,project,scope.organization(),scope.environment(),
                     "SITE".equals(target.type())?target.code():null,
                     "SITE".equals(target.type())?version:null,
                     "CHARGER".equals(target.type())?target.code():null,
                     "CHARGER".equals(target.type())?version:null,
-                    purpose,blob,ref,location,scope.actor().id());
+                    purpose,blob,filename,ref,location,scope.actor().id());
             }
             update(c,"""
                 INSERT INTO app_open_asset_evidence_command
@@ -176,7 +176,7 @@ class OpenAssetEvidence {
     private static final String BASE="""
         SELECT d.id,d.site_code,d.site_version,d.charger_code,d.charger_version,
           d.purpose,d.evidence_reference,d.locator,d.submitted_by,d.submitted_at,
-          o.file_name,encode(o.sha256,'hex') AS sha256,o.size_bytes
+          d.submitted_file_name AS file_name,encode(o.sha256,'hex') AS sha256,o.size_bytes
         FROM app_open_asset_evidence d
         JOIN app_project_evidence_blob o ON o.project_id=d.project_id AND o.id=d.evidence_blob_id
         """;
