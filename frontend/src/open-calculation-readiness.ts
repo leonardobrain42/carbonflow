@@ -9,6 +9,15 @@ interface CalculationGate {
   nextAction:string;
   owner:string;
 }
+interface EquationStep {
+  outputCode:string;
+  ruleReference:string;
+  unit:string;
+  description:string;
+  requiredInputs:string[];
+  blockedBy:string[];
+  status:string;
+}
 interface OpenCalculationReadiness {
   projectId:string;
   environment:string;
@@ -24,6 +33,7 @@ interface OpenCalculationReadiness {
     erTco2e:string|null;erDisplay:string|null;
   };
   gates:CalculationGate[];
+  equationPlan:EquationStep[];
 }
 
 @Component({
@@ -80,6 +90,7 @@ export class OpenCalculationReadinessComponent implements OnChanges {
       NOT_ADMITTED:'Sem admissão normativa',
       MISSING_BINDING:'Fonte ainda não vinculada',
       PENDING_MEASUREMENT:'Medição pendente',
+      NOT_CALCULATED:'Não calculado — aguardando dados admitidos',
     };
     return labels[value]??value;
   }
