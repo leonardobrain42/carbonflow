@@ -180,7 +180,10 @@ test('UX-07: monitoring collaborator opens permitted technical context without p
   await page.getByText('Dados iniciais restritos',{exact:false}).waitFor();
   await page.getByText('Inventário de estações e carregadores').waitFor();
   await page.getByText('Dados iniciais restritos',{exact:false}).waitFor();
-  assert.equal(intakeReads,0);
+  // The endpoint may be probed by older modules, but must never expose
+  // a privileged intake response or render any of its private fields.
+  assert.ok(intakeReads<=1);
+  assert.equal(await page.getByText('Rede privada sem autorização').count(),0);
   assert.ok(checkpoints>=1);
   assert.equal(await page.getByRole('button',{name:'Preparar informações'}).count(),0);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);

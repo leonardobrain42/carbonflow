@@ -142,7 +142,11 @@ export class ProjectTechnicalComponent {
   private readonly decisionEditor = viewChild(DecisionWorkbenchComponent);
   private readonly pdEditor = viewChild(PdSectionsComponent);
   private readonly pdReview = viewChild(PdReviewsComponent);
-  readonly canLeaveGuides = () => (!this.dirty() || confirm('Descartar as informações técnicas ainda não salvas?')) && (this.guideEditor()?.canLeave() ?? true) && (this.stationsEditor()?.canLeave() ?? true) && (this.decisionEditor()?.canLeave() ?? true) && (this.pdEditor()?.canLeave() ?? true) && (this.pdReview()?.canLeave() ?? true);
+  // Internal tab changes keep the intake form mounted and must never discard drafts.
+  readonly canLeaveGuides = () => (this.guideEditor()?.canLeave() ?? true) && (this.stationsEditor()?.canLeave() ?? true) && (this.decisionEditor()?.canLeave() ?? true) && (this.pdEditor()?.canLeave() ?? true) && (this.pdReview()?.canLeave() ?? true);
+  readonly canLeaveWorkspace = () => (!this.dirty() ||
+    confirm('Sair da preparação e descartar as informações técnicas ainda não salvas?')) &&
+    this.canLeaveGuides();
   private readonly heading = viewChild<ElementRef<HTMLHeadingElement>>('sectionHeading');
   private readonly query = toSignal(this.route.queryParamMap);
   readonly selectedGuide = computed(() => this.query()?.get('guia') ?? null);
@@ -247,15 +251,45 @@ export class ProjectTechnicalComponent {
       } else {
         // A collaborator can view monitoring or guides without VIEW_INTAKE.
         // Reuse the authorized method profile, NEVER private intake answers.
-        const journey=await firstValueFrom(this.http.get<JourneyAccess>(this.root+'/journey'));
-        if (journey.projectId!==this.projectId || journey.environment!=='SANDBOX' ||
-            !journey.journeyProfile) throw new Error('Contexto de jornada incorreto');
+        let method:JourneyProfile|null=null;
+        try {
+          const journey=await firstValueFrom(this.http.get<JourneyAccess>(this.root+'/journey'));
+          if (journey.projectId===this.projectId && journey.environment==='SANDBOX')
+            method=journey.journeyProfile??null;
+        }catch{
+          // Legacy guide-scoped clients can lack the newer journey projection.
+          // Fall back only to the methodology ID returned by the authorized
+          // guide catalog; never read intake or infer normative eligibility.
+          if(this.can('VIEW_GUIDES')){
+            try {
+              const catalog=await firstValueFrom(this.http.get<{methodology:string}>(
+                this.technical+'/guides'));
+              if(catalog.methodology==='VM0038_V1_1')
+                method={
+                  id:'VM0038_V1_1',candidate:'VM0038',edition:'1.1',
+                  title:'VM0038 v1.1 · Guia técnico de recarga',
+                  activitiesTitle:'Escopo da atividade',detailsTitle:'Dados técnicos',
+                  description:'Guia preparatório. O enquadramento ainda depende de provas e revisão.',
+                  sourceUrl:null,technicalTopics:[],questions:[]
+                };
+            }catch{
+              // A failed catalog read does not authorize any additional module.
+            }
+          }
+        }
+        if(!method){
+          method={
+            id:'GENERAL',candidate:null,edition:null,title:'Preparação autorizada',
+            activitiesTitle:'Escopo',detailsTitle:'Registros disponíveis',
+            description:'Consulte apenas os módulos concedidos para esta conta.',
+            sourceUrl:null,technicalTopics:[],questions:[]
+          };
+        }
         this.acceptIntake({
           projectId:this.projectId,organizationId:project.organizationId,
           environment:'SANDBOX',version:0,state:'ACCESS_LIMITED',
           reviewState:'NOT_VISIBLE',data:null,outstandingGates:[],
-          triageCandidate:journey.journeyProfile.candidate,
-          journey:journey.journeyProfile,methodologies:[]
+          triageCandidate:method.candidate,journey:method,methodologies:[]
         });
       }
       this.dossier.set(dossier);
