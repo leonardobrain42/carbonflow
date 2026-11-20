@@ -77,3 +77,8 @@
 @media (prefers-reduced-motion:reduce){
   .cf-overview-progress-track>span{transition:none}
 }
+
+.cf-overview-up-next{margin-top:1.2rem;border-top:1px solid rgba(173,204,184,.22);padding-top:.9rem}
+.cf-overview-up-next ul{list-style:none;margin:.5rem 0 0;padding:0}
+.cf-overview-up-next li{display:flex;justify-content:space-between;align-items:center;gap:.8rem;font-size:.9rem;padding:.45rem 0}
+.cf-overview-up-next a{min-height:35px;display:inline-flex;align-items:center}

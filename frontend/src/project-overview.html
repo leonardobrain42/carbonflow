@@ -58,6 +58,23 @@
                   [routerLink]="routeFor(project.projectId,destination)"
                   [queryParams]="queryFor(destination)">Continuar tarefa</a>
               }
+              @if (recommended().length>1){
+                <div class="cf-overview-up-next">
+                  <p class="cf-overview-eyebrow">OUTRAS AÇÕES DISPONÍVEIS</p>
+                  <ul>
+                    @for (item of recommended().slice(1);track item.id){
+                      @if (item.destination;as destination){
+                        <li>
+                          <span>{{item.title}}</span>
+                          <a class="cf-workspace-link" [routerLink]="routeFor(project.projectId,destination)"
+                            [queryParams]="queryFor(destination)"
+                            [attr.aria-label]="'Continuar '+item.title">Abrir</a>
+                        </li>
+                      }
+                    }
+                  </ul>
+                </div>
+              }
             } @else {
               <h3>Nenhuma ação disponível no momento</h3>
               <p>Consulte as tarefas abaixo. Pode haver atividades de outros responsáveis,

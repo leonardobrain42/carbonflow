@@ -5,7 +5,7 @@ import {ActivatedRoute, RouterLink} from '@angular/router';
 import {catchError, distinctUntilChanged, map, of, startWith, Subject, switchMap} from 'rxjs';
 import {WorkspaceNavigationComponent} from './workspace-navigation';
 
-type Role = 'DRAFT_OWNER' | 'PREP' | 'REV';
+type Role = 'DRAFT_OWNER' | 'PREP' | 'REV' | 'PP' | 'OP' | 'VVB';
 type TaskState = 'NOT_STARTED' | 'NEEDS_DATA' | 'IN_PROGRESS' | 'COMPLETED' | 'IN_REVIEW' | 'RETURNED' | 'REQUIRES_RECHECK';
 type TaskKind = 'TRIAGE' | 'INTAKE' | 'GUIDE' | 'DOSSIER' | 'SECTION' | 'REVIEW';
 type Filter = 'all'|'actionable'|'attention'|'review';
@@ -165,7 +165,10 @@ export class ProjectOverviewComponent {
   readonly roleNames:Record<Role,string>={
     DRAFT_OWNER:'Titular do rascunho',
     PREP:'Preparação técnica (PREP)',
-    REV:'Revisão interna (REV)'
+    REV:'Revisão interna (REV)',
+    PP:'Proponente (PP)',
+    OP:'Operação e monitoramento (OP)',
+    VVB:'Validação ou verificação externa (VVB)'
   };
   readonly stateNames:Record<TaskState,string>={
     NOT_STARTED:'A iniciar',
