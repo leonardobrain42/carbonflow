@@ -269,7 +269,9 @@ class OpenPeriodSupportIntegrationTest {
         assertEquals(404,call("GET",bindingUrl,outside.cookie(),null,null).statusCode());
         assertEquals(404,postMethod(bindingUrl,docsReviewer.cookie(),key(),
             "\"0\"",bindingBody).statusCode());
-        assertEquals(409,postMethod(bindingUrl,owner.cookie(),key(),
+        // A fresh command with an obsolete If-Match is rejected before
+        // any business-level duplicate-content check.
+        assertEquals(412,postMethod(bindingUrl,owner.cookie(),key(),
             "\"0\"",bindingBody).statusCode());
         String efelReviewUrl=efelUrl+"/"+efel.path("id").asText()+"/reviews";
         String efelReviewBody="""
