@@ -92,6 +92,23 @@ class DemoSandboxTest(unittest.TestCase):
             with patch.object(demo, "PORT", "18089"):
                 self.assertFalse(demo.doctor())
 
+
+    def test_host_readiness_retries_after_compose_health_without_changing_files(self):
+        with patch.object(demo, "health_status",
+                          side_effect=[(None, "sem resposta"), (503, "não pronto"), (200, "OK")]) as health, \
+             patch.object(demo.time, "sleep") as sleep:
+            demo.wait_for_health(attempts=3)
+            self.assertEqual(health.call_count, 3)
+            self.assertEqual(sleep.call_count, 2)
+
+    def test_host_readiness_exhaustion_reports_port_and_diagnostic(self):
+        with patch.object(demo, "PORT", "18088"), \
+             patch.object(demo, "health_status", return_value=(None, "sem resposta")), \
+             patch.object(demo.time, "sleep") as sleep:
+            with self.assertRaisesRegex(RuntimeError, "porta 18088"):
+                demo.wait_for_health(attempts=3)
+            self.assertEqual(sleep.call_count, 2)
+
     def test_compose_names_are_restricted(self):
         with patch.object(demo, "PROJECT", "prod/../../etc"), patch.object(demo, "PORT", "18088"):
             with self.assertRaises(ValueError):
