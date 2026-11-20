@@ -68,17 +68,16 @@ jobs:
       - name: Run tests against disposable PostgreSQL
         working-directory: backend
         run: |
-          # Ubuntu runners ship Maven 3.9.x. Prefer that verified local
-          # installation: the wrapper 3.9.12 download occasionally fails
-          # before any Java compilation and falsely marks tests as failed.
-          # Keep ./mvnw pinned for local or runner environments lacking 3.9.x.
-          if command -v mvn >/dev/null 2>&1 && mvn --version | grep -Eq '^Apache Maven 3\.9\.'; then
-            mvn --version
-            mvn -B -ntp clean verify
-          else
-            chmod +x ./mvnw
-            ./mvnw -B -ntp clean verify
+          # The ubuntu-24.04 image provides Maven. Always use the local
+          # executable in CI: the wrapper may attempt a 3.9.12 zip download
+          # and fail before running any tests when Maven Central is flaky.
+          # The pinned ./mvnw remains available to developers locally.
+          if ! command -v mvn >/dev/null 2>&1; then
+            echo "::error::Maven not installed on the configured CI runner."
+            exit 1
           fi
+          mvn -B -ntp --version
+          mvn -B -ntp clean verify
       - uses: actions/upload-artifact@v4
         if: always()
         with:
