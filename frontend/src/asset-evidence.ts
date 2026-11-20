@@ -161,6 +161,7 @@ export class AssetEvidenceComponent implements OnChanges {
     }[state];
   }
   purposeLabel(id:string){return this.availablePurposes().find(p=>p.id===id)?.label??id;}
+  fileUrl(id:string){return this.root+'/documents/'+encodeURIComponent(id)+'/file';}
   private message(cause:unknown){
     if(cause instanceof HttpErrorResponse){
       if(cause.status===412)return 'O ativo mudou. Recarregue a estação ou o equipamento.';

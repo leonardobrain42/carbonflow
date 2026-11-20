@@ -31,6 +31,17 @@ public class OpenAssetEvidenceResource {
         return secure(Response.status(201).entity(evidence.upload(cookie,project,type,code,
             version,purpose,reference,locator,filename,key,pdf))).build();
     }
+    @GET @Path("/documents/{id}/file")
+    @Produces("application/pdf")
+    public Response download(@CookieParam(AccountAccess.COOKIE) String cookie,
+        @PathParam("project") String project,@PathParam("id") UUID id){
+        var document=evidence.download(cookie,project,id);
+        return secure(Response.ok(document.bytes(),"application/pdf")
+            .header("Content-Disposition","attachment; filename=\""+document.name()+"\""))
+            .header("Content-Security-Policy","sandbox")
+            .header("Referrer-Policy","no-referrer")
+            .build();
+    }
     @POST @Path("/documents/{id}/review") @Consumes(MediaType.APPLICATION_JSON)
     public Response review(@CookieParam(AccountAccess.COOKIE) String cookie,
         @PathParam("project") String project,@PathParam("id") UUID id,

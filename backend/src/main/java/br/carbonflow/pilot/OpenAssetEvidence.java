@@ -27,6 +27,7 @@ class OpenAssetEvidence {
     record Catalog(String subjectType,String subjectCode,int currentVersion,
         List<Document> documents,boolean canUpload,boolean canReview) {}
     record Decision(String outcome,String reason) {}
+    record PdfDownload(String name,byte[] bytes) {}
     private record Receipt(UUID document,byte[] fingerprint) {}
     private record Target(String type,String code,String column,String versionColumn) {}
     private final DynamicProjectScope scopes;
@@ -107,6 +108,18 @@ class OpenAssetEvidence {
                 VALUES(?,?,?,?,?)
                 """,scope.actor().id(),command,project,fingerprint,id);
             return document(c,project,id);
+        });
+    }
+
+    PdfDownload download(String token,String project,UUID id){
+        return scopes.read(token,project,"VIEW_OPEN_MONITORING",(c,scope)->{
+            Document doc=document(c,project,id); // current scoped metadata and ACL
+            UUID blob=first(c,"""
+                SELECT evidence_blob_id FROM app_open_asset_evidence
+                WHERE project_id=? AND id=?
+                """,r->r.getObject(1,UUID.class),project,id);
+            if(blob==null)throw hidden();
+            return new PdfDownload(doc.fileName(),storage.readSupportPdf(c,scope,blob));
         });
     }
 

@@ -119,6 +119,17 @@ class OpenAssetEvidenceIntegrationTest {
         JsonNode staffList=json(call("GET",north,reviewer.cookie(),null,null,null));
         assertFalse(staffList.path("canUpload").asBoolean());
         assertTrue(staffList.path("canReview").asBoolean());
+        String proofFile=evidence+"/documents/"+firstProof.path("id").asText()+"/file";
+        assertEquals(404,call("GET",proofFile,outsider.cookie(),null,null,null).statusCode());
+        var original=call("GET",proofFile,reviewer.cookie(),null,null,null);
+        assertEquals(200,original.statusCode(),original.body());
+        assertEquals(PDF,original.body());
+        assertTrue(original.headers().firstValue("Content-Type").orElse("")
+            .startsWith("application/pdf"));
+        assertTrue(original.headers().firstValue("Content-Disposition").orElse("")
+            .contains("proof-north.pdf"));
+        assertTrue(original.headers().firstValue("Cache-Control").orElse("")
+            .contains("no-store"));
         String review=evidence+"/documents/"+firstProof.path("id").asText()+"/review";
         assertEquals(404,call("POST",review,owner.cookie(),null,"\"0\"",VALID_REVIEW).statusCode());
         assertEquals(404,call("POST",review,prep.cookie(),null,"\"0\"",VALID_REVIEW).statusCode());

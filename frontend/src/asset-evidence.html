@@ -22,6 +22,8 @@
           <strong>{{purposeLabel(doc.purpose)}} · v{{doc.subjectVersion}}</strong>
           <p>{{stateLabel(doc.state)}} · {{doc.fileName}} · {{doc.bytesCount}} bytes</p>
           <p class="cf-workspace-helper">SHA-256: <code>{{doc.sha256}}</code></p>
+          <p><a class="cf-workspace-link" [href]="fileUrl(doc.id)">
+            Baixar PDF privado para conferência</a></p>
           <p>Referência: {{doc.evidenceReference}}
             @if (doc.locator){ · Localizador: {{doc.locator}} }</p>
           @if (doc.review){
