@@ -20,7 +20,7 @@ import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
-@QuarkusTestResource(value=AccountAccessTest.Inbox.class,restrictToAnnotatedClass=true)
+@QuarkusTestResource(value=VehicleRatingIntegrationTest.Settings.class,restrictToAnnotatedClass=true)
 class OpenPeriodSupportIntegrationTest {
     @Inject PilotDatabase database;
     @Inject ObjectMapper mapper;
@@ -54,7 +54,10 @@ class OpenPeriodSupportIntegrationTest {
     @Test
     void proofFilesAreEncryptedReviewedIndependentlyAndSnapshotTurnsStale() throws Exception {
         Actor owner=actor(),op=actor(),qaReviewer=actor(),docsReviewer=actor(),outside=actor();
-        UUID org=organization(owner.id());
+        Actor staffManager=actorWithId(VehicleRatingIntegrationTest.MANAGER);
+        Actor staffReviewer=actorWithId(VehicleRatingIntegrationTest.REVIEWER);
+        verifyStaff(staffManager);
+        UUID org=organization(owner.id(),VehicleRatingIntegrationTest.ORG);
         String project=project(owner,org);
         configure(owner,project);
         grant(project,org,owner.id(),op.id(),"OP");
@@ -879,13 +882,14 @@ class OpenPeriodSupportIntegrationTest {
     private JsonNode json(HttpResponse<String> response) throws Exception {
         return mapper.readTree(response.body());
     }
-    private Actor actor() {
-        UUID id=UUID.randomUUID();
+    private Actor actor(){return actorWithId(UUID.randomUUID());}
+    private Actor actorWithId(UUID id){
         String token=AccessSecrets.newToken();
         database.transaction(c->{
             update(c,"""
                 INSERT INTO app_identity(id,email_normalized,display_name,status,email_verified_at)
                 VALUES (?,?,'QA documentary','ACTIVE',statement_timestamp())
+                ON CONFLICT (id) DO NOTHING
                 """,id,id+"@example.invalid");
             update(c,"""
                 INSERT INTO app_account_session(token_hash,identity_id,expires_at)
@@ -895,10 +899,14 @@ class OpenPeriodSupportIntegrationTest {
         });
         return new Actor(id,AccountAccess.COOKIE+"="+token);
     }
-    private UUID organization(UUID owner) {
-        UUID org=UUID.randomUUID();
+    private UUID organization(UUID owner){return organization(owner,UUID.randomUUID());}
+    private UUID organization(UUID owner,UUID org){
         database.transaction(c->{
-            update(c,"INSERT INTO app_organization(id,environment,display_name) VALUES (?,'SANDBOX','Docs carbon')",org);
+            update(c,"""
+                INSERT INTO app_organization(id,environment,display_name)
+                VALUES (?,'SANDBOX','Docs carbon')
+                ON CONFLICT (id) DO NOTHING
+                """,org);
             update(c,"INSERT INTO app_organization_membership(organization_id,identity_id,role) VALUES (?,?,'DRAFT_OWNER')",org,owner);
             return null;
         });
@@ -912,6 +920,16 @@ class OpenPeriodSupportIntegrationTest {
         var result=http.send(req,HttpResponse.BodyHandlers.ofString());
         assertEquals(201,result.statusCode(),result.body());
         return json(result).path("projectId").asText();
+    }
+    private void verifyStaff(Actor manager) throws Exception {
+        long counter=database.read(c->first(c,
+            "SELECT floor(extract(epoch from statement_timestamp())/30)::bigint",
+            r->r.getLong(1)));
+        String body="{\"code\":\""+ComplianceStaff.codeAt(
+            VehicleRatingIntegrationTest.SECRET,counter)+"\"}";
+        var response=call("POST","/v1/compliance/session",
+            manager.cookie(),null,body);
+        assertEquals(200,response.statusCode(),response.body());
     }
     private void grant(String project,UUID org,UUID owner,UUID actor,String role) {
         database.transaction(c->{
