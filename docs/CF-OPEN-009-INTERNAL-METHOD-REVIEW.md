@@ -33,7 +33,7 @@ Todo critério exige `finding` (`SUPPORTED_INTERNAL` ou `OPEN`), referência doc
 
 A decisão fixa o hash SHA-256 da versão do MR + snapshot QA + edição VM0038 + documentos cifrados identificados por hash e referência + versão/resultado de cada parecer documental.
 
-Toda leitura/ocorrência que invalide o snapshot ou alteração da evidência conferida faz `GET` passar a `BLOCKED_STALE`. O resultado histórico é preservado. Nova versão MR nunca herda o parecer da anterior, mesmo se referenciar o mesmo snapshot. A API permite ler o histórico de uma versão anterior.
+Toda leitura/ocorrência que invalide o snapshot ou alteração da evidência conferida faz `GET` passar a `BLOCKED_STALE`. Mudanças nas revisões da triagem, preparação inicial, aplicabilidade OPEN ou na metodologia candidata também alteram o hash, evitando que o parecer anterior seja interpretado como vigente para outro cenário. O resultado histórico é preservado. Nova versão MR nunca herda o parecer da anterior, mesmo se referenciar o mesmo snapshot. A API permite ler o histórico de uma versão anterior.
 
 Estados: `PENDING_INTERNAL_REVIEW`, `BLOCKED_DOCUMENTARY`, `RETURNED_FOR_CORRECTION`, `CHECKED_INTERNAL_AWAITING_NORMATIVE_ADMISSION`, `BLOCKED_STALE`; todas as respostas têm **`canUseForE8=false`**.
 
