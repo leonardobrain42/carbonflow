@@ -32,6 +32,18 @@ class OpenCalculationPreflightTest {
         assertNull(result.emissions().erTco2e());
         assertNull(result.emissions().erDisplay());
         assertTrue(result.engine().contains("preflight"));
+        assertEquals(7,result.equationPlan().size());
+        assertEquals(List.of("AFEC","MPG","BE","PE","LE","DY","ER"),
+            result.equationPlan().stream().map(
+                OpenCalculationTransparency.Stage::outputCode).toList());
+        var be=result.equationPlan().stream().filter(e->e.outputCode().equals("BE"))
+            .findFirst().orElseThrow();
+        assertEquals("VM0038-1.1-EQ1",be.ruleReference());
+        assertEquals("NOT_CALCULATED",be.status());
+        assertTrue(be.requiredInputs().containsAll(List.of("ED","EF_FUEL","IR","AFEC","MPG")));
+        assertTrue(be.blockedBy().containsAll(
+            List.of("NORMATIVE_PACK","EVR","EF_FUEL","IR","ED")));
+        assertFalse(result.equationPlan().toString().contains("EF-SYN"));
         Set<String> codes=result.gates().stream().map(OpenCalculationPreflight.Gate::code)
             .collect(Collectors.toSet());
         assertTrue(codes.containsAll(Set.of("NORMATIVE_PACK","CARBON_RIGHTS","EVR",
@@ -73,6 +85,8 @@ class OpenCalculationPreflightTest {
             g.code().equals("TECHNICAL_BRANCH") && g.state().equals("OUT_OF_SCOPE")));
 
         assertEquals("BLOCKED_NOT_ADMISSIBLE",eval("VM0042",0,open(0)).calculationState());
+        assertTrue(eval("VM0042",0,open(0)).equationPlan().stream()
+            .allMatch(stage->stage.status().equals("OUT_OF_SCOPE")));
     }
 
     @Test
