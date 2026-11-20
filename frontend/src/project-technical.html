@@ -21,19 +21,24 @@
           </p>
         </header>
 
-        <nav class="cf-triage-steps cf-technical-steps" aria-label="Seções da preparação técnica">
-          @for (item of sections(); track item.id) {
-            <button type="button" class="cf-triage-step" [disabled]="saving()"
-              [class.cf-triage-step-active]="section().id === item.id"
-              [attr.aria-current]="section().id === item.id ? 'page' : null"
-              (click)="open(item.id)">{{ item.title }}</button>
-          }
-        </nav>
+        <div class="cf-tech-workbench">
+          <nav class="cf-triage-steps cf-technical-steps cf-tech-module-nav"
+               aria-label="Seções da preparação técnica">
+            @for (item of sections(); track item.id; let i=$index) {
+              @if (i === 0 || sections()[i-1].group !== item.group) {
+                <p class="cf-tech-module-group">{{item.group}}</p>
+              }
+              <button type="button" class="cf-triage-step" [disabled]="saving()"
+                [class.cf-triage-step-active]="section().id === item.id"
+                [attr.aria-current]="section().id === item.id ? 'page' : null"
+                (click)="open(item.id)">{{ item.title }}</button>
+            }
+          </nav>
+          <div class="cf-tech-module-panel">
+            @if (error()) { <div role="alert" class="cf-workspace-alert">{{ error() }}</div> }
+            @if (notice()) { <div role="status" class="cf-workspace-note">{{ notice() }}</div> }
 
-        @if (error()) { <div role="alert" class="cf-workspace-alert">{{ error() }}</div> }
-        @if (notice()) { <div role="status" class="cf-workspace-note">{{ notice() }}</div> }
-
-        <section class="cf-workspace-card" aria-labelledby="cf-tech-section-title">
+            <section class="cf-workspace-card" aria-labelledby="cf-tech-section-title">
           <h2 id="cf-tech-section-title" #sectionHeading tabindex="-1">{{ section().title }}</h2>
           @switch (section().id) {
             @case ('entender') {
@@ -185,8 +190,17 @@
             }
 
             @case ('monitorar') {
+              <nav class="cf-tech-monitor-subnav" aria-label="Etapas do monitoramento">
+                @for (step of monitoringSteps; track step.id) {
+                  <button type="button" class="cf-workspace-outline"
+                    [attr.aria-current]="(queryEtapa() || 'inventario') === step.id ? 'step' : null"
+                    (click)="openMonitoring(step.id)">{{step.label}}</button>
+                }
+              </nav>
+              <p class="cf-workspace-helper">As etapas possuem URLs próprias.
+                Fontes, provas e revisões continuam com as permissões originais.</p>
               @if (can('VIEW_OPEN_MONITORING')) {
-                <carbonflow-open-monitoring [projectId]="projectId"
+                <carbonflow-open-monitoring [projectId]="projectId" [view]="monitoringView()"
                   [editable]="can('SAVE_OPEN_MONITORING')"
                   [canSubmit]="can('SUBMIT_OPEN_MEASUREMENTS')"
                   [canReview]="can('REVIEW_OPEN_MEASUREMENTS')"
@@ -268,7 +282,9 @@
               </div>
             }
           }
-        </section>
+            </section>
+          </div>
+        </div>
       } @else if (project() && (can('VIEW_GUIDES') || can('VIEW_OPEN_MONITORING') || can('VIEW_OPEN_CALCULATION'))) {
         @if (can('VIEW_GUIDES')) {
           <section class="cf-workspace-card"><h1>Guias técnicos</h1>
