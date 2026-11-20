@@ -51,6 +51,8 @@ final class OpenTool07SimpleOmMath {
             throw new IllegalArgumentException("São necessários cinco anos contíguos de geração LCMR.");
         if(input.plants()==null||input.plants().isEmpty()||input.plants().size()>500)
             throw new IllegalArgumentException("Inventário de unidades geradoras ausente ou excessivo.");
+        if(input.shares().stream().anyMatch(java.util.Objects::isNull))
+            throw new IllegalArgumentException("Dados quinquenais não podem conter ano nulo.");
         List<ShareYear> shares=new ArrayList<>(input.shares());
         shares.sort(Comparator.comparingInt(ShareYear::year));
         BigDecimal sumShares=BigDecimal.ZERO,totalGrid=BigDecimal.ZERO,totalLcmr=BigDecimal.ZERO;
@@ -96,6 +98,9 @@ final class OpenTool07SimpleOmMath {
                     .multiply(f.ncvGjPerTonne(),MC)
                     .multiply(f.efTco2PerGj(),MC),MC);
             }
+            if(unitEmission.precision()>30 ||
+               unitEmission.precision()-unitEmission.scale()>18)
+                throw new IllegalArgumentException("CO2 de unidade excede precisão suportada.");
             BigDecimal rate=unitEmission.divide(p.netGenerationMwh(),18,RoundingMode.HALF_EVEN);
             breakdown.add(new PlantResult(p.plantCode(),p.netGenerationMwh().toPlainString(),
                 unitEmission.toPlainString(),rate.toPlainString()));
@@ -106,6 +111,9 @@ final class OpenTool07SimpleOmMath {
             .subtract(shares.get(4).lcmrMwh());
         if(generation.compareTo(expected)!=0)
             throw new IllegalArgumentException("Soma de geração não LCMR difere de total da rede menos LCMR em y.");
+        if(emissions.precision()>30 ||
+           emissions.precision()-emissions.scale()>18)
+            throw new IllegalArgumentException("Soma das emissões excede precisão suportada.");
         BigDecimal om=emissions.divide(generation,18,RoundingMode.HALF_EVEN);
         BigDecimal omKwh=om.divide(new BigDecimal("1000"),21,RoundingMode.HALF_EVEN);
         boolean sharePassed=selected.compareTo(ONE_HALF)<0;
