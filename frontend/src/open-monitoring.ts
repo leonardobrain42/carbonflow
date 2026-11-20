@@ -81,6 +81,12 @@ const emptyMethodChecks=():MethodCheck[]=>METHOD_CRITERIA.map(requirement=>({
   requirement,finding:'OPEN' as const,evidenceReference:'',reason:''
 }));
 
+type EnergyHour = {chargerCode:string;from:string;until:string;edKwh:string;ecKwh:string;
+  edBatchId:string;edLine:number;edReview:number;ecBatchId:string;ecLine:number;ecReview:number};
+type EnergyCandidate = {id:string;projectId:string;period:string;dossierVersion:number;
+  methodReviewVersion:number;snapshotId:string;sourceSha256:string;edKwh:string;ecKwh:string;
+  hourCount:number;slotCount:number;state:'NOT_ADMITTED'|'STALE_NOT_ADMITTED';
+  stale:boolean;usableForE8:boolean;createdAt:string;gates:string[];hours:EnergyHour[]};
 type ChargerForm = {code:string; siteCode:string; chargerKind:string; ratedPowerKw:string;
                     grid:string; topology:string; timeZone:string; sourceReference:string};
 type MeterForm = {code:string; chargerCode:string; energyKind:string; sourceSystem:string;
@@ -111,6 +117,8 @@ export class OpenMonitoringComponent implements OnChanges {
   @Input() canReviewEvent=false;
   @Input() canViewMethod=false;
   @Input() canReviewMethod=false;
+  @Input() canViewEnergy=false;
+  @Input() canPrepareEnergy=false;
   private readonly http=inject(HttpClient);
   readonly data=signal<View|null>(null);
   readonly charger=signal<ChargerForm>({...NEW_CHARGER});
@@ -128,6 +136,10 @@ export class OpenMonitoringComponent implements OnChanges {
   readonly mrSnapshot=signal('');
   readonly mrNote=signal('');
   readonly mrBusy=signal(false);
+  readonly energyPeriod=signal<string|null>(null);
+  readonly energyHistory=signal<EnergyCandidate[]>([]);
+  readonly energyBusy=signal(false);
+  readonly energyPreparing=signal(false);
   readonly methodSelected=signal<MethodView|null>(null);
   readonly methodLoading=signal(false);
   readonly methodBusy=signal(false);
@@ -175,7 +187,16 @@ export class OpenMonitoringComponent implements OnChanges {
   private proofRetry='';
 
   ngOnChanges(changes:SimpleChanges) {
-    if(changes['projectId'])void this.load();
+    if(changes['projectId']) {
+      // Never display a previous project's energy inputs or evidence while
+      // a different project is loading, even if both use period "M1".
+      this.energyPeriod.set(null);
+      this.energyHistory.set([]);
+      this.methodSelected.set(null);
+      this.proofSnapshot.set(null);
+      this.proofReadiness.set(null);
+      void this.load();
+    }
   }
 
   async load() {
@@ -639,11 +660,13 @@ export class OpenMonitoringComponent implements OnChanges {
 
   async inspectMethod(period:string) {
     if(!this.canViewMethod)return;
+    const project=this.projectId;
     this.methodLoading.set(true);this.error.set('');
     try {
       const view=await firstValueFrom(this.http.get<MethodView>(
         '/v1/projects/'+encodeURIComponent(this.projectId)+
         '/technical/open-monitoring/dossiers/'+encodeURIComponent(period)+'/method-review'));
+      if(this.projectId!==project)return;
       this.methodSelected.set(view);
       this.methodChecks.set(view.review?.checks.map(c=>({...c}))??emptyMethodChecks());
       this.methodOutcome.set(view.review?.outcome??'RETURNED');
@@ -688,6 +711,48 @@ export class OpenMonitoringComponent implements OnChanges {
       this.notice.set('Parecer metodológico interno versionado. E8, VVB e VCU continuam bloqueados.');
     } catch(problem){this.error.set(this.message(problem));}
     finally {this.methodBusy.set(false);}
+  }
+
+  async inspectEnergy(period:string) {
+    if(!this.canViewEnergy)return;
+    const project=this.projectId;
+    this.energyPeriod.set(period);
+    this.energyBusy.set(true);this.error.set('');
+    try {
+      const records=await firstValueFrom(this.http.get<EnergyCandidate[]>(
+        '/v1/projects/'+encodeURIComponent(this.projectId)+
+        '/technical/open-monitoring/dossiers/'+encodeURIComponent(period)+
+        '/e8-energy-candidates'));
+      if(this.projectId===project && this.energyPeriod()===period)
+        this.energyHistory.set(records);
+    } catch(problem){this.error.set(this.message(problem));}
+    finally {this.energyBusy.set(false);}
+  }
+
+  async prepareEnergy(item:MrDossier) {
+    if(!this.canPrepareEnergy || this.energyPreparing())return;
+    const project=this.projectId;
+    this.energyPreparing.set(true);this.error.set('');this.notice.set('');
+    const root='/v1/projects/'+encodeURIComponent(this.projectId)+
+      '/technical/open-monitoring/dossiers/'+encodeURIComponent(item.reference.code);
+    try {
+      const current=await firstValueFrom(this.http.get<MethodView>(root+'/method-review'));
+      if(this.projectId!==project)return;
+      if(current.state!=='CHECKED_INTERNAL_AWAITING_NORMATIVE_ADMISSION' ||
+          !current.review || current.dossierVersion!==item.reference.version) {
+        this.error.set('O MR e a conferência interna precisam estar vigentes. Confira as pendências.');
+        return;
+      }
+      await firstValueFrom(this.http.post<EnergyCandidate>(root+'/e8-energy-candidates',
+        {dossierVersion:item.reference.version,methodReviewVersion:current.review.version},
+        {headers:{'If-Match':'"'+current.review.version+'"',
+          'Idempotency-Key':crypto.randomUUID()}}));
+      if(this.projectId===project) {
+        await this.inspectEnergy(item.reference.code);
+        this.notice.set('Pacote ED/EC histórico preparado. NOT_ADMITTED: ainda não pode entrar no cálculo E8.');
+      }
+    } catch(problem){this.error.set(this.message(problem));}
+    finally {this.energyPreparing.set(false);}
   }
 
   stateName(code:string) {

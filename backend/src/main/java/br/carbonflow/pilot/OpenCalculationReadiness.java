@@ -76,6 +76,16 @@ class OpenCalculationReadiness {
                     "Avaliação VM0038 v1.1 ("+dossier.reference().code()+"): "+
                         methodState+". Parecer interno NÃO admite ED/EC para cálculo real.",
                     "Conferência normativa e decisão independente de admissibilidade","REV"));
+                String energyState=OpenE8EnergyCandidates.state(connection,project,
+                    dossier.reference().code());
+                gates.add(new OpenCalculationPreflight.Gate(
+                    "E8_ENERGY_INPUT_"+dossier.reference().code(),
+                    "STALE_NOT_ADMITTED".equals(energyState)?"STALE":
+                    "CANDIDATE_MISSING".equals(energyState)?"PENDING_MEASUREMENT":"NOT_ADMITTED",
+                    "Pacote horário ED/EC do período "+dossier.reference().code()+
+                        ": "+energyState+
+                        ". A preparação não substitui admissão normativa nem habilita o motor.",
+                    "Conferir cadeia de evidências e completar os parâmetros do E8","PREP/REV"));
             }
         }
         return new OpenCalculationPreflight.Result(base.projectId(),base.environment(),

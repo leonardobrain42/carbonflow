@@ -577,6 +577,18 @@
                 Selecionar para nova revisão
               </button>
             }
+            @if (canViewEnergy) {
+              <button type="button" class="cf-workspace-outline"
+                [disabled]="energyBusy()" (click)="inspectEnergy(item.reference.code)">
+                Consultar pacotes horários ED/EC
+              </button>
+            }
+            @if (canPrepareEnergy) {
+              <button type="button" class="cf-workspace-outline"
+                [disabled]="energyPreparing()" (click)="prepareEnergy(item)">
+                Preparar pacote candidato para E8
+              </button>
+            }
           </li>
         }
       </ul>
@@ -682,6 +694,62 @@
         }
         <button type="button" class="cf-workspace-outline"
           (click)="methodSelected.set(null)">Fechar avaliação</button>
+      </section>
+    }
+
+    @if (energyPeriod(); as period) {
+      <section class="cf-journey-context" aria-labelledby="cf-hourly-candidate">
+        <h4 id="cf-hourly-candidate">Pacotes candidatos de energia · {{period}}</h4>
+        <p>Somente dados reais vinculados ao snapshot de QA e à revisão metodológica
+          interna vigente. A preparação não constitui admissão, cálculo de BE/PE/ER
+          ou autorização de emissão de créditos.</p>
+        @if (energyBusy()) {
+          <p role="status">Conferindo integridade do pacote horário…</p>
+        }
+        @if (energyHistory().length) {
+          <ul class="cf-tech-gates">
+            @for (item of energyHistory(); track item.id) {
+              <li>
+                <strong>{{item.state}} · MR v{{item.dossierVersion}}
+                  · parecer interno v{{item.methodReviewVersion}}</strong>
+                <p>ED {{item.edKwh}} kWh · EC {{item.ecKwh}} kWh,
+                  {{item.hourCount}} hora(s), {{item.slotCount}} par(es) carregador/hora.</p>
+                <p>Hash de proveniência SHA-256: {{item.sourceSha256}}</p>
+                @if (item.stale) {
+                  <p role="alert">Pacote obsoleto: não reflete mais o MR,
+                    documentos, medidores ou pareceres atuais.</p>
+                }
+                @for (gate of item.gates; track gate) {
+                  <p>{{gate}}</p>
+                }
+                <small>Uso para E8: não admitido. A admissão normativa dos fatores,
+                  parâmetros e medições é uma etapa posterior.</small>
+                <table>
+                  <thead><tr><th>Carregador</th><th>Hora UTC</th>
+                    <th>ED (kWh)</th><th>EC (kWh)</th></tr></thead>
+                  <tbody>
+                    @for (slot of item.hours.slice(0,48); track slot.chargerCode+'-'+slot.from) {
+                      <tr>
+                        <td>{{slot.chargerCode}}</td><td>{{slot.from}}</td>
+                        <td>{{slot.edKwh}}</td><td>{{slot.ecKwh}}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+                @if (item.hours.length > 48) {
+                  <small>Exibidos os primeiros 48 pares. Os demais estão
+                    preservados no pacote auditável por API.</small>
+                }
+              </li>
+            }
+          </ul>
+        } @else if (!energyBusy()) {
+          <p>Nenhum pacote candidato foi preparado para este período.</p>
+        }
+        <button type="button" class="cf-workspace-outline"
+          (click)="energyPeriod.set(null);energyHistory.set([])">
+          Fechar consulta
+        </button>
       </section>
     }
 

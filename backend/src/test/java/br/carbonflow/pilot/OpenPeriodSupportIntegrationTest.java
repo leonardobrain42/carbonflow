@@ -193,6 +193,42 @@ class OpenPeriodSupportIntegrationTest {
         assertEquals(1,json(call("GET",methodUrl+"/versions/1",
             owner.cookie(),null,null)).size());
 
+        String energyUrl=dossierUrl+"/M1/e8-energy-candidates";
+        String energyPayload="{\"dossierVersion\":1,\"methodReviewVersion\":1}";
+        assertEquals(404,call("GET",energyUrl,op.cookie(),null,null).statusCode());
+        assertEquals(404,call("GET",energyUrl,outside.cookie(),null,null).statusCode());
+        assertEquals(404,postMethod(energyUrl,docsReviewer.cookie(),key(),"\"1\"",
+            energyPayload).statusCode());
+        assertEquals(412,postMethod(energyUrl,owner.cookie(),key(),"\"0\"",
+            energyPayload).statusCode());
+        String prepareKey=key();
+        var packageCreated=postMethod(energyUrl,owner.cookie(),prepareKey,"\"1\"",
+            energyPayload);
+        assertEquals(201,packageCreated.statusCode(),packageCreated.body());
+        JsonNode energy=json(packageCreated);
+        assertEquals("NOT_ADMITTED",energy.path("state").asText());
+        assertFalse(energy.path("usableForE8").asBoolean());
+        assertEquals(0,new java.math.BigDecimal(energy.path("edKwh").asText())
+            .compareTo(new java.math.BigDecimal("2700")));
+        assertEquals(0,new java.math.BigDecimal(energy.path("ecKwh").asText())
+            .compareTo(new java.math.BigDecimal("3000")));
+        assertEquals(1,energy.path("hourCount").asInt());
+        assertEquals(1,energy.path("slotCount").asInt());
+        assertEquals(1,energy.path("hours").size());
+        assertEquals("DCFC-1",energy.at("/hours/0/chargerCode").asText());
+        assertEquals(64,energy.path("sourceSha256").asText().length());
+        assertEquals(packageCreated.body(),postMethod(energyUrl,owner.cookie(),prepareKey,
+            "\"1\"",energyPayload).body());
+        // A mismatched If-Match is rejected as a stale precondition before
+        // the command's idempotency fingerprint can be reused.
+        assertEquals(412,postMethod(energyUrl,owner.cookie(),prepareKey,"\"1\"",
+            "{\"dossierVersion\":1,\"methodReviewVersion\":2}").statusCode());
+        assertEquals(1,json(call("GET",energyUrl,owner.cookie(),null,null)).size());
+        JsonNode calcWithEnergy=json(call("GET",technical+"/open-calculation-readiness",
+            owner.cookie(),null,null));
+        assertTrue(calcWithEnergy.path("gates").toString().contains("E8_ENERGY_INPUT_M1"));
+        assertFalse(calcWithEnergy.path("canRunE8").asBoolean());
+
         assertEquals("READY_FOR_NORMATIVE_REVIEW",
             json(call("GET",dossierUrl,owner.cookie(),null,null)).get(0).path("state").asText());
         JsonNode pdReady=json(call("GET",technical+"/pd-reviews",owner.cookie(),null,null));
@@ -206,6 +242,14 @@ class OpenPeriodSupportIntegrationTest {
             "{\"snapshotId\":\""+snapshot+"\",\"note\":\"Nova versão editorial do dossiê MR para M1, com histórico íntegro.\"}");
         assertEquals(200,mr2.statusCode(),mr2.body());
         assertEquals(2,json(mr2).at("/reference/version").asInt());
+        JsonNode staleEnergy=json(call("GET",energyUrl,owner.cookie(),null,null)).get(0);
+        assertEquals("STALE_NOT_ADMITTED",staleEnergy.path("state").asText());
+        assertTrue(staleEnergy.path("gates").toString().contains("MR_VERSION_CHANGED"));
+        assertFalse(staleEnergy.path("usableForE8").asBoolean());
+        // MR v2 invalidates the v1 candidate; stale source revision is a
+        // precondition failure (412), not an ordinary business conflict.
+        assertEquals(412,postMethod(energyUrl,owner.cookie(),key(),"\"1\"",
+            energyPayload).statusCode());
         // A new MR version never inherits its predecessor's method review.
         JsonNode newMethod=json(call("GET",methodUrl,owner.cookie(),null,null));
         assertEquals(2,newMethod.path("dossierVersion").asInt());
