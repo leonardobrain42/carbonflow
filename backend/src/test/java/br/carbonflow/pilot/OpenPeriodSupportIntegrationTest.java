@@ -60,6 +60,29 @@ class OpenPeriodSupportIntegrationTest {
         grant(project,org,owner.id(),op.id(),"OP");
         grant(project,org,owner.id(),qaReviewer.id(),"REV");
         grant(project,org,owner.id(),docsReviewer.id(),"REV");
+        // The dynamic OPEN MR/PD dependency is VM0038-specific. A source guide
+        // can be prepared before monitoring, but is pinned when the MR exists.
+        database.transaction(c->{
+            update(c,"""
+                INSERT INTO app_project_triage_revision
+                  (project_id,organization_id,environment,version,actor_id,current_step,answers)
+                VALUES (?,?,'SANDBOX',1,?,1,?::jsonb)
+                """,project,org,owner.id(),
+                "{\"1\":{\"methodologyCandidate\":\"VM0038\"}}");
+            update(c,"""
+                INSERT INTO app_technical_guide_revision
+                  (project_id,organization_id,environment,guide_id,version,actor_id,answers)
+                VALUES (?,?,'SANDBOX','monitoring',1,?,'{}'::jsonb)
+                """,project,org,owner.id());
+            update(c,"""
+                INSERT INTO app_project_collaborator_grant
+                  (id,project_id,organization_id,environment,identity_id,granted_by,
+                   role,activities,valid_until)
+                VALUES (?,?,?,'SANDBOX',?,?,'REV',ARRAY['DOCUMENTATION']::text[],
+                        statement_timestamp()+interval '3 days')
+                """,UUID.randomUUID(),project,org,docsReviewer.id(),owner.id());
+            return null;
+        });
         String root="/v1/projects/"+project+"/technical/open-monitoring";
         JsonNode batch=uploadCsv(root+"/batches",op,DATA);
         String id=batch.path("id").asText();
@@ -76,6 +99,30 @@ class OpenPeriodSupportIntegrationTest {
         var created=call("POST",snapshots,qaReviewer.cookie(),null,period);
         assertEquals(201,created.statusCode(),created.body());
         String snapshot=json(created).path("id").asText();
+        String dossierUrl=root+"/dossiers";
+        var bound=call("PUT",dossierUrl+"/M1",owner.cookie(),null,
+            "{\"snapshotId\":\""+snapshot+"\",\"note\":\"Vínculo de QA do primeiro período M1, apenas para preparação MR.\"}");
+        assertEquals(200,bound.statusCode(),bound.body());
+        assertEquals("M1",json(bound).at("/reference/code").asText());
+        assertEquals("PENDING_REQUIREMENTS",json(bound).path("state").asText());
+        assertFalse(json(bound).path("canUseForE8").asBoolean());
+        assertEquals(404,call("GET",dossierUrl,outside.cookie(),null,null).statusCode());
+        assertEquals(404,call("PUT",dossierUrl+"/M2",op.cookie(),null,
+            "{\"snapshotId\":\""+snapshot+"\",\"note\":\"Tentativa de reatribuição não autorizada por operador.\"}").statusCode());
+
+        String technical="/v1/projects/"+project+"/technical";
+        String sectionPath=technical+"/pd-sections/monitoring";
+        var drafted=call("PUT",sectionPath,owner.cookie(),null,
+            "{\"guideVersion\":1,\"narrative\":\"Plano de medição ED e EC com dados sob QA interno e dossiê de monitoramento M1.\"}");
+        assertEquals(200,drafted.statusCode(),drafted.body());
+        assertEquals(1,json(drafted).path("number").asInt());
+        JsonNode pdInitial=json(call("GET",technical+"/pd-reviews",owner.cookie(),null,null));
+        assertEquals(1,pdInitial.size());
+        assertEquals("BLOCKED_MONITORING_REQUIREMENTS",
+            pdInitial.get(0).at("/monitoringDependency/state").asText());
+        assertTrue(pdInitial.get(0).path("outdated").asBoolean());
+        assertFalse(pdInitial.get(0).path("actions").toString().contains("SUBMITTED"));
+
         String admission=snapshots+"/"+snapshot+"/admissibility";
         JsonNode initial=json(call("GET",admission,owner.cookie(),null,null));
         assertEquals("PENDING_DOCUMENTARY_REVIEW",initial.path("state").asText());
@@ -118,6 +165,21 @@ class OpenPeriodSupportIntegrationTest {
         assertFalse(valid.path("usableForE8").asBoolean());
         assertEquals(3,valid.path("documents").size());
         assertEquals(0,valid.path("gates").size());
+        assertEquals("READY_FOR_NORMATIVE_REVIEW",
+            json(call("GET",dossierUrl,owner.cookie(),null,null)).get(0).path("state").asText());
+        JsonNode pdReady=json(call("GET",technical+"/pd-reviews",owner.cookie(),null,null));
+        assertFalse(pdReady.get(0).path("outdated").asBoolean());
+        assertEquals("READY_FOR_INTERNAL_PD_REVIEW",
+            pdReady.get(0).at("/monitoringDependency/state").asText());
+        assertTrue(pdReady.get(0).path("actions").toString().contains("SUBMITTED"));
+        var submitted=call("POST",technical+"/pd-reviews/monitoring/versions/1",
+            owner.cookie(),"\"0\"",
+            "{\"state\":\"SUBMITTED\",\"reason\":\"Encaminho a seção revisada após conferência documental interna.\"}");
+        assertEquals(200,submitted.statusCode(),submitted.body());
+        var approved=call("POST",technical+"/pd-reviews/monitoring/versions/1",
+            docsReviewer.cookie(),"\"1\"",
+            "{\"state\":\"APPROVED_INTERNAL\",\"reason\":\"Parecer interno da seção, sem homologação normativa.\"}");
+        assertEquals(200,approved.statusCode(),approved.body());
 
         long[] evidence=database.read(c->new long[]{
             first(c,"SELECT count(*) FROM app_project_evidence_blob WHERE project_id=? AND mime_type='application/pdf'",
@@ -171,6 +233,17 @@ class OpenPeriodSupportIntegrationTest {
             owner.cookie(),null,null)).path("gates").toString().contains("OPERATIONAL_SOURCE_OUTAGE"));
         assertEquals("BLOCKED_STALE",json(call("GET",admission,owner.cookie(),null,null))
             .path("state").asText());
+        JsonNode staleMr=json(call("GET",dossierUrl,owner.cookie(),null,null));
+        assertEquals("STALE",staleMr.get(0).path("state").asText());
+        assertTrue(staleMr.get(0).path("stale").asBoolean());
+        JsonNode stalePd=json(call("GET",technical+"/pd-reviews",docsReviewer.cookie(),null,null));
+        assertTrue(stalePd.get(0).path("outdated").asBoolean());
+        assertEquals("BLOCKED_MONITORING_REQUIREMENTS",
+            stalePd.get(0).at("/monitoringDependency/state").asText());
+        assertFalse(stalePd.get(0).path("actions").toString().contains("FROZEN_INTERNAL"));
+        assertEquals(409,call("POST",technical+"/pd-reviews/monitoring/versions/1",
+            docsReviewer.cookie(),"\"2\"",
+            "{\"state\":\"FROZEN_INTERNAL\",\"reason\":\"Inadequado sem um MR atualizado.\"}").statusCode());
         String clearOccurrence="""
             {"outcome":"CLEARED_FOR_INTERNAL_QA",
              "reason":"A origem confirmou a janela e comprovou reprocessamento integral.",
