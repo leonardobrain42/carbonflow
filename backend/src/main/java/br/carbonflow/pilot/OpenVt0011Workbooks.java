@@ -116,15 +116,16 @@ class OpenVt0011Workbooks {
             update(c,"""
                 INSERT INTO app_open_vt0011_case2_workbook
                  (id,project_id,organization_id,environment,period_code,
-                  efel_candidate_id,efel_review_version,version,
+                  efel_candidate_id,efel_review_version,efel_source_sha256,version,
                   om_method,om_vintage_mode,om_data_year,om_factor_tco2_per_mwh,
                   om_source_reference,om_dataset_sha256_claimed,
                   om_method_justification,grid_boundary_evidence,
                   sample_selection_evidence,import_treatment_evidence,
                   vintage_evidence,methodology_note,content_sha256,authored_by)
-                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 """,id,project,ctx.organization(),ctx.environment(),code,source.id(),
-                source.reviewVersion(),expected+1,normalized.method(),
+                source.reviewVersion(),HexFormat.of().parseHex(source.sourceHash()),
+                expected+1,normalized.method(),
                 normalized.vintageMode(),normalized.year(),normalized.om(),
                 normalized.omSource(),HexFormat.of().parseHex(normalized.omDataset()),
                 normalized.reason(),normalized.boundary(),normalized.sample(),
