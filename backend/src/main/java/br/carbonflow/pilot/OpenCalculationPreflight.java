@@ -33,7 +33,8 @@ final class OpenCalculationPreflight {
     record Result(String projectId, String environment, String engine,
             String methodology, String scenario, String workflowState,
             String calculationState, boolean canContinuePreparation, boolean canRunE8,
-            boolean canIssueVcu, Emissions emissions, List<Gate> gates) {}
+            boolean canIssueVcu, Emissions emissions, List<Gate> gates,
+            List<OpenCalculationTransparency.Stage> equationPlan) {}
 
     private OpenCalculationPreflight() {}
 
@@ -150,7 +151,7 @@ final class OpenCalculationPreflight {
         return new Result(context.projectId(), context.environment(), ENGINE,
             context.methodology(), SCENARIO, "REQUEST_DATA", calculationState,
             true, false, false, new Emissions(null, null, null, null, null),
-            List.copyOf(gates));
+            List.copyOf(gates),OpenCalculationTransparency.plan(gates));
     }
 
     private static void add(List<Gate> result, String code, String state,
