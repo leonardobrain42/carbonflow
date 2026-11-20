@@ -14,10 +14,12 @@ import os
 from pathlib import Path
 import re
 import secrets
+import shutil
+import socket
 import subprocess
 import sys
 from urllib.error import HTTPError, URLError
-from urllib.request import HTTPCookieProcessor, Request, build_opener
+from urllib.request import HTTPCookieProcessor, Request, build_opener, urlopen
 
 ROOT = Path(__file__).resolve().parent.parent
 SECRET_DIR = ROOT / ".carbonflow-demo"
@@ -77,6 +79,129 @@ def compose(*args: str, capture: bool = False) -> str:
     )
     return result.stdout if capture else ""
 
+
+
+def runtime_check() -> None:
+    """Fast, non-destructive checks before attempting any Docker build."""
+    if not shutil.which("docker"):
+        raise RuntimeError(
+            "Docker não encontrado no PATH. Instale Docker Engine/Desktop e o plugin Compose."
+        )
+    try:
+        subprocess.run(["docker", "info", "--format", "{{.ServerVersion}}"],
+                       check=True, capture_output=True, text=True, timeout=20)
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
+        raise RuntimeError(
+            "O daemon Docker não está acessível. Inicie o Docker Desktop/Engine e "
+            "confira as permissões com 'docker info' (não execute com sudo para contornar "
+            "credenciais sem revisar a configuração)."
+        ) from exc
+    try:
+        subprocess.run(["docker", "compose", "version"],
+                       check=True, capture_output=True, text=True, timeout=15)
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
+        raise RuntimeError("O plugin 'docker compose' não está disponível.") from exc
+
+
+def service_rows() -> list[dict]:
+    """Compose 2 emits one JSON object per line; newer builds may emit a JSON list."""
+    raw = compose("ps", "--format", "json", capture=True).strip()
+    if not raw:
+        return []
+    try:
+        data = json.loads(raw)
+        if isinstance(data, list):
+            return [item for item in data if isinstance(item, dict)]
+        if isinstance(data, dict):
+            return [data]
+    except json.JSONDecodeError:
+        pass
+    result = []
+    for line in raw.splitlines():
+        try:
+            item = json.loads(line)
+            if isinstance(item, dict):
+                result.append(item)
+        except json.JSONDecodeError as exc:
+            raise RuntimeError("Não foi possível interpretar 'docker compose ps --format json'.") from exc
+    return result
+
+
+def local_port_busy() -> bool:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as connection:
+        connection.settimeout(1)
+        return connection.connect_ex(("127.0.0.1", int(PORT))) == 0
+
+
+def port_owned_by_demo(rows: list[dict]) -> bool:
+    for row in rows:
+        if row.get("Service") != "app" or row.get("State") != "running":
+            continue
+        for publisher in row.get("Publishers") or []:
+            if not isinstance(publisher, dict):
+                continue
+            try:
+                if int(publisher.get("PublishedPort", -1)) == int(PORT) and \
+                        publisher.get("URL", "").strip() in ("127.0.0.1", "::1", "localhost"):
+                    return True
+            except (TypeError, ValueError):
+                continue
+    return False
+
+
+def check_port(rows: list[dict]) -> None:
+    if local_port_busy() and not port_owned_by_demo(rows):
+        raise RuntimeError(
+            f"A porta 127.0.0.1:{PORT} já está ocupada por outro processo ou Compose. "
+            f"Use CARBONFLOW_PORT=18089 python3 scripts/demo_sandbox.py start "
+            "ou libere a porta; não pare contêineres de outros projetos automaticamente."
+        )
+
+
+def health_status() -> tuple[int | None, str]:
+    """Only loopback; do not inspect authenticated endpoints or credentials."""
+    try:
+        with urlopen(f"http://127.0.0.1:{PORT}/health/ready", timeout=4) as response:
+            return response.status, "OK" if response.status == 200 else "indisponível"
+    except HTTPError as exc:
+        return exc.code, "HTTP não saudável"
+    except (OSError, URLError):
+        return None, "sem resposta da API"
+
+
+def doctor() -> bool:
+    """Read-only local diagnostic. Never rebuilds, restarts or deletes anything."""
+    print(f"CarbonFlow sandbox · projeto {PROJECT} · 127.0.0.1:{PORT}")
+    runtime_check()
+    rows = service_rows()
+    if not rows:
+        print("Nenhum serviço deste projeto Compose está ativo.")
+    for service in ("db", "app"):
+        row = next((item for item in rows if item.get("Service") == service), None)
+        if row is None:
+            print(f"{service}: não iniciado")
+        else:
+            print(f"{service}: {row.get('State', 'desconhecido')} · "
+                  f"health={row.get('Health') or 'não informado'}")
+    ready, summary = health_status()
+    print(f"API /health/ready: {summary}" + (f" (HTTP {ready})" if ready else ""))
+    busy = local_port_busy()
+    if busy and not port_owned_by_demo(rows):
+        print(f"ALERTA: porta {PORT} ocupada sem pertencer ao app deste projeto Compose.")
+        print("Escolha uma porta livre com CARBONFLOW_PORT=18089.")
+    elif not busy and rows:
+        print("ALERTA: nenhum processo está aceitando conexões na porta configurada.")
+    if ready == 200 and port_owned_by_demo(rows):
+        print(f"Sandbox pronto: http://127.0.0.1:{PORT}/workspace")
+        return True
+    print("Se os serviços estiverem ativos mas sem saúde, consulte localmente:")
+    print(f"  docker compose -p {PROJECT} -f compose.yaml -f compose.demo.yaml ps")
+    print(f"  docker compose -p {PROJECT} -f compose.yaml -f compose.demo.yaml logs --tail 80 app db")
+    print("Não execute 'down -v' nem apague .carbonflow-demo: isso destruiria dados ou credenciais.")
+    print("Se o erro for na construção Maven/Docker, confira acesso a repositórios "
+          "de dependências; se a aplicação iniciar mas não conectar ao banco, "
+          "confira CARBONFLOW_DB_PASSWORD persistida no volume.")
+    return False
 
 def private_dir(path: Path) -> None:
     path.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -248,6 +373,8 @@ def cli() -> None:
     commands = parser.add_subparsers(dest="action", required=True)
     start = commands.add_parser("start", help="Inicia Compose isolado e cria conta sandbox.")
     start.add_argument("--quiet", action="store_true", help="Não mostrar a senha no terminal (para CI).")
+    start.add_argument("--reuse-image", action="store_true",
+        help="Usa imagem local existente sem rebuild (não incorpora mudanças recentes do código).")
     add = commands.add_parser("add-user", help="Cria outra conta local com senha própria.")
     add.add_argument("--email", required=True, help="E-mail fictício .test")
     add.add_argument("--name", default="Conta de demonstração", help="Nome de exibição")
@@ -255,9 +382,14 @@ def cli() -> None:
     show = commands.add_parser("show", help="Mostra credenciais locais salvas.")
     show.add_argument("--email", default=DEFAULT_EMAIL)
     commands.add_parser("smoke", help="Valida contas locais usando API e cookies reais.")
+    commands.add_parser("doctor", help="Diagnostica Docker, Compose, serviços e porta sem modificar dados.")
     commands.add_parser("stop", help="Para apenas o ambiente demo, conservando o volume.")
     args = parser.parse_args()
     validate()
+    if args.action == "doctor":
+        if not doctor():
+            raise RuntimeError("Sandbox indisponível neste endereço. Verifique os avisos do diagnóstico.")
+        return
     if args.action == "stop":
         compose("down", "--remove-orphans")
         print("Ambiente demo parado. Volume e credenciais locais preservados.")
@@ -266,8 +398,18 @@ def cli() -> None:
         output(credentials(args.email, DEFAULT_NAME, create=False), quiet=False)
         return
     if args.action == "start":
+        runtime_check()
+        check_port(service_rows())
         print("Subindo ambiente sandbox isolado (somente 127.0.0.1)...")
-        compose("up", "--build", "-d", "--wait")
+        if args.reuse_image:
+            print("Usando imagem local existente. Para incorporar novas mudanças, execute 'start' sem --reuse-image.")
+        compose("up", *(["--no-build"] if args.reuse_image else ["--build"]), "-d", "--wait")
+        # Never create passwords if the application is not reachable; the database
+        # and credentials must remain in sync across failures and upgrades.
+        status, _ = health_status()
+        if status != 200:
+            raise RuntimeError("O Compose iniciou, mas a API não passou em /health/ready. "
+                               "Execute 'python3 scripts/demo_sandbox.py doctor'.")
         saved = credentials(DEFAULT_EMAIL, DEFAULT_NAME, create=True)
         provision(saved)
         output(saved, quiet=args.quiet)
