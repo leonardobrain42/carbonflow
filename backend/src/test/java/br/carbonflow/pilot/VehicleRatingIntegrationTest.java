@@ -143,8 +143,8 @@ class VehicleRatingIntegrationTest {
                 manager,freezeKey,null,null),201).path("id").asText());
         assertFalse(frozen.path("usableForE8").asBoolean());
         assertEquals(2,db.read(c->first(c,
-            "SELECT count(*) FROM app_vehicle_rating_snapshot_line",
-            r->r.getInt(1))).intValue());
+            "SELECT count(*) FROM app_vehicle_rating_snapshot_line WHERE organization_id=?",
+            r->r.getInt(1),ORG)).intValue());
 
         db.transaction(c->{
             update(c, """
@@ -155,14 +155,14 @@ class VehicleRatingIntegrationTest {
             return null;
         });
         assertEquals(0,db.read(c->first(c,
-            "SELECT count(*) FROM app_vehicle_rating_snapshot_line",
-            r->r.getInt(1))).intValue());
+            "SELECT count(*) FROM app_vehicle_rating_snapshot_line WHERE organization_id=?",
+            r->r.getInt(1),ORG)).intValue());
         assertNull(db.read(c->first(c,
-            "SELECT afec_kwh_per_100mi FROM app_vehicle_rating_snapshot",
-            r->r.getBigDecimal(1))));
+            "SELECT afec_kwh_per_100mi FROM app_vehicle_rating_snapshot WHERE organization_id=?",
+            r->r.getBigDecimal(1),ORG)));
         assertNull(db.read(c->first(c,
-            "SELECT normalized_value FROM app_vehicle_rating LIMIT 1",
-            r->r.getBigDecimal(1))));
+            "SELECT normalized_value FROM app_vehicle_rating WHERE organization_id=? LIMIT 1",
+            r->r.getBigDecimal(1),ORG)));
         assertEquals(403,send("GET",ROOT+"/sources/"+PBEV_OBJECT+"/candidates",
             manager,null,null,null).statusCode());
         var after=ok(send("GET",ROOT+"/board",manager,null,null,null),200);

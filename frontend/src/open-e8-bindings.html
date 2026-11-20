@@ -64,4 +64,58 @@
         (click)="chosen.set(null)">Fechar memória</button>
     </div>
   }
+  <div class="cf-journey-context">
+    <h5>Frota EVR e ratings PBEV vinculados ao projeto</h5>
+    <p>Esta publicação é realizada por gestor de fontes autorizado.
+      A interface do projeto exibe <strong>somente referências,
+      hashes e decisões de estado</strong>, nunca o catálogo licenciado
+      bruto. A ponderação AFEC/MPG continua preparatória.</p>
+    <button type="button" class="cf-workspace-outline"
+      [disabled]="loading()" (click)="reload()">
+      Atualizar versões publicadas
+    </button>
+    @if (fleetSelections().length) {
+      <ul class="cf-tech-gates">
+        @for (item of fleetSelections(); track item.id) {
+          <li>
+            <strong>EVR/PBEV v{{item.version}} · {{item.state}}</strong>
+            <p>Frota nacional {{item.observationYear}} ·
+              ciclo {{item.cycle}} · uso E8: não admitido</p>
+            @if (item.stale) {
+              <p role="alert">Seleção histórica: alguma origem ou versão
+                tornou-se obsoleta.</p>
+            }
+            <button type="button" class="cf-workspace-outline"
+              (click)="selectedFleet.set(item)">
+              Ver referências e pendências
+            </button>
+          </li>
+        }
+      </ul>
+    } @else if (!loading()) {
+      <p>A equipe de fontes ainda não publicou uma composição EVR/PBEV
+        para este projeto e período. A criação do PD pode continuar,
+        mas o cálculo de linha de base permanece bloqueado.</p>
+    }
+    @if (selectedFleet(); as item) {
+      <section class="cf-journey-context">
+        <h5>Proveniência EVR/PBEV v{{item.version}}</h5>
+        <p>Pacote energético: {{item.energyBindingId}}</p>
+        <p>Snapshot EVR: {{item.fleetSnapshotId}} ·
+          SHA declarada: <code>{{item.fleetSourceSha256}}</code></p>
+        <p>Snapshot de ratings e comparáveis: {{item.ratingSnapshotId}} ·
+          linhagem SHA: <code>{{item.ratingLineageSha256}}</code></p>
+        <p>Assinatura da seleção: <code>{{item.selectionSha256}}</code></p>
+        <p>Bloqueios e ressalvas:</p>
+        <ul>
+          @for (gate of item.gates; track gate) { <li>{{gate}}</li> }
+        </ul>
+        <p>Os valores fonte são mantidos no catálogo com licença.
+          A assinatura não certifica a autenticidade de uma fonte externa
+          ou autorização normativa de uso.</p>
+        <button type="button" class="cf-workspace-outline"
+          (click)="selectedFleet.set(null)">Fechar detalhe</button>
+      </section>
+    }
+  </div>
 </section>

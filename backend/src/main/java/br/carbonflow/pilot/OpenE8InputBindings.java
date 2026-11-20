@@ -185,6 +185,17 @@ class OpenE8InputBindings {
         });
     }
 
+    /** Current status of a precisely scoped historical energy/factor input.
+     * Used for safe downstream handoffs: original metadata remains readable
+     * even after a source is withdrawn, but cannot be reused as current. */
+    static String state(Connection c,String project,String period,UUID id)
+        throws SQLException {
+        Stored stored=first(c,STORED+"""
+            WHERE project_id=? AND period_code=? AND id=?
+            """,OpenE8InputBindings::stored,project,period,id);
+        return stored==null?"BINDING_MISSING":view(c,project,stored).state();
+    }
+
     private static View view(Connection c,String project,Stored record)
         throws SQLException {
         var gates=new ArrayList<String>();

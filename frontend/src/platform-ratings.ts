@@ -27,6 +27,12 @@ type Composition={fleetSnapshotId:string;year:number;total:number|null;
   afecKwh100mi:string|number|null;mpgUs:string|number|null;cycle:string|null;
   lines:Line[];issues:string[];canSavePreparatory:boolean;usableForE8:boolean};
 
+type HandoffOption={projectId:string;period:string;organizationId:string;
+  energyBindingId:string;energyBindingVersion:number;year:number;
+  currentSelectionVersion:number};
+type HandoffResult={id:string;projectId:string;period:string;version:number;
+  ratingSnapshotId:string;state:string;usableForE8:boolean};
+
 @Component({
   selector:'carbonflow-platform-ratings',
   standalone:true,
@@ -42,6 +48,10 @@ export class PlatformRatingsComponent implements OnChanges {
   readonly board=signal<Board|null>(null);
   readonly candidates=signal<Candidate[]>([]);
   readonly composition=signal<Composition|null>(null);
+  readonly handoffOptions=signal<HandoffOption[]>([]);
+  selectedHandoff='';
+  selectedHandoffRating='';
+  readonly handoffBusy=signal(false);
   readonly busy=signal(false);
   readonly error=signal('');
   readonly message=signal('');
@@ -82,6 +92,7 @@ export class PlatformRatingsComponent implements OnChanges {
       const data=await firstValueFrom(this.http.get<Board>('/v1/platform/vehicle-ratings/board'));
       if(epoch!==this.epoch)return;
       this.board.set(data);
+      if(data.canManage)await this.reloadHandoffOptions();
       if(!data.fleets.some(f=>f.id===this.fleetId))this.fleetId=data.fleets[0]?.id??'';
       if(!data.sources.some(s=>s.id===this.sourceId)){
         this.sourceId='';this.candidates.set([]);
@@ -188,6 +199,47 @@ export class PlatformRatingsComponent implements OnChanges {
       await this.reload();
     }catch(problem){this.error.set(this.issue(problem));}
     finally{this.busy.set(false);}
+  }
+
+  async reloadHandoffOptions(){
+    if(!this.board()?.canManage)return;
+    try{
+      const options=await firstValueFrom(this.http.get<HandoffOption[]>(
+        '/v1/platform/e8-fleet-selections/options'));
+      this.handoffOptions.set(options);
+      if(!options.some(x=>x.energyBindingId===this.selectedHandoff))
+        this.selectedHandoff='';
+      this.selectedHandoffRating='';
+    }catch(problem){this.error.set(this.issue(problem));}
+  }
+  chosenHandoff(){
+    return this.handoffOptions().find(x=>x.energyBindingId===this.selectedHandoff);
+  }
+  matchingSnapshots(){
+    const h=this.chosenHandoff();
+    return (this.board()?.snapshots??[]).filter(s=>
+      !!h&&s.organizationId===h.organizationId&&s.year===h.year&&
+      s.status==='PREPARATORY');
+  }
+  async assignHandoff(event:Event){
+    event.preventDefault();
+    const h=this.chosenHandoff();
+    const rating=this.matchingSnapshots().find(s=>s.id===this.selectedHandoffRating);
+    if(!h||!rating||!this.board()?.canManage||this.handoffBusy())return;
+    this.handoffBusy.set(true);this.error.set('');this.message.set('');
+    try{
+      const result=await firstValueFrom(this.http.post<HandoffResult>(
+        '/v1/platform/e8-fleet-selections',{
+          projectId:h.projectId,period:h.period,energyBindingId:h.energyBindingId,
+          ratingSnapshotId:rating.id
+        },{headers:{'Idempotency-Key':crypto.randomUUID(),
+          'If-Match':'"'+h.currentSelectionVersion+'"'}}));
+      if(result.usableForE8)throw new Error('Unexpected E8 admission');
+      this.message.set('Referências EVR/PBEV publicadas no projeto como PREPARATÓRIAS. '+
+        'Nenhum fator ou resultado E8 foi admitido.');
+      await this.reloadHandoffOptions();
+    }catch(problem){this.error.set(this.issue(problem));}
+    finally{this.handoffBusy.set(false);}
   }
 
   modelTitle(modelId:string){

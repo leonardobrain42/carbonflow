@@ -23,7 +23,8 @@ final class ProjectCollaboration {
             "VIEW_OPEN_EFEL_CANDIDATE", "SUBMIT_OPEN_EFEL_CANDIDATE",
             "VIEW_OPEN_VT0011_WORKBOOK", "SUBMIT_OPEN_VT0011_WORKBOOK",
             "VIEW_OPEN_SIMPLE_OM_A1", "PREPARE_OPEN_SIMPLE_OM_A1",
-            "VIEW_OPEN_E8_BINDING_CANDIDATE", "PREPARE_OPEN_E8_BINDING_CANDIDATE");
+            "VIEW_OPEN_E8_BINDING_CANDIDATE", "PREPARE_OPEN_E8_BINDING_CANDIDATE",
+            "VIEW_OPEN_E8_FLEET_SELECTION");
 
     private ProjectCollaboration() {}
 
@@ -65,6 +66,7 @@ final class ProjectCollaboration {
                             actions.add("VIEW_OPEN_VT0011_WORKBOOK");
                             actions.add("VIEW_OPEN_SIMPLE_OM_A1");
                             actions.add("VIEW_OPEN_E8_BINDING_CANDIDATE");
+                            actions.add("VIEW_OPEN_E8_FLEET_SELECTION");
                         }
                         if (preparer) {
                             actions.add("PREPARE_OPEN_E8_ENERGY_CANDIDATE");

@@ -20,8 +20,13 @@ import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
-@QuarkusTestResource(value=AccountAccessTest.Inbox.class,restrictToAnnotatedClass=true)
+@QuarkusTestResource(value=OpenPeriodSupportIntegrationTest.Settings.class,restrictToAnnotatedClass=true)
 class OpenPeriodSupportIntegrationTest {
+    static final UUID E8_STAFF_MANAGER=UUID.fromString("e8000000-0000-4000-8000-000000000001");
+    static final UUID E8_STAFF_REVIEWER=UUID.fromString("e8000000-0000-4000-8000-000000000002");
+    static final UUID E8_STAFF_ORG=UUID.fromString("e8000000-0000-4000-8000-000000000003");
+    static final byte[] E8_STAFF_SECRET="12345123451234512345"
+        .getBytes(StandardCharsets.US_ASCII);
     @Inject PilotDatabase database;
     @Inject ObjectMapper mapper;
     @TestHTTPResource URL base;
@@ -54,7 +59,11 @@ class OpenPeriodSupportIntegrationTest {
     @Test
     void proofFilesAreEncryptedReviewedIndependentlyAndSnapshotTurnsStale() throws Exception {
         Actor owner=actor(),op=actor(),qaReviewer=actor(),docsReviewer=actor(),outside=actor();
-        UUID org=organization(owner.id());
+        Actor staffManager=actorWithId(E8_STAFF_MANAGER);
+        Actor staffReviewer=actorWithId(E8_STAFF_REVIEWER);
+        verifyStaff(staffManager);
+        verifyStaff(staffReviewer); // distinguish valid MFA from absent manager grant
+        UUID org=organization(owner.id(),E8_STAFF_ORG);
         String project=project(owner,org);
         configure(owner,project);
         grant(project,org,owner.id(),op.id(),"OP");
@@ -340,6 +349,86 @@ class OpenPeriodSupportIntegrationTest {
             owner.cookie(),null,null).statusCode());
         assertFalse(json(call("GET",technical+"/open-calculation-readiness",
             owner.cookie(),null,null)).path("canRunE8").asBoolean());
+        // Staff-catalogue EVR/PBEV remains PRIVATE. Only an explicit staff
+        // handoff can publish metadata to the project after a current V63
+        // energy/factor binding; a project owner is not platform staff.
+        String fleetRoute=dossierUrl+"/M1/e8-fleet-selections";
+        assertEquals(0,json(call("GET",fleetRoute,owner.cookie(),null,null)).size());
+        assertEquals(404,call("GET",fleetRoute,op.cookie(),null,null).statusCode());
+        assertEquals(404,call("GET",fleetRoute,outside.cookie(),null,null).statusCode());
+        assertEquals(404,call("GET",fleetRoute+
+            "/00000000-0000-0000-0000-000000000001",
+            owner.cookie(),null,null).statusCode());
+        String staffRoute="/v1/platform/e8-fleet-selections";
+        assertTrue(call("GET",staffRoute+"/options",owner.cookie(),null,null)
+            .statusCode()>=400);
+        assertTrue(call("POST",staffRoute,owner.cookie(),"\"0\"",
+            "{\"projectId\":\""+project+"\",\"period\":\"M1\","+
+            "\"energyBindingId\":\""+boundE8.path("id").asText()+
+            "\",\"ratingSnapshotId\":\"00000000-0000-0000-0000-000000000001\"}")
+            .statusCode()>=400);
+        assertEquals(0,json(call("GET",fleetRoute,owner.cookie(),null,null)).size());
+
+        // Positive staff-to-project transfer: sources are deliberately
+        // synthetic and live only inside this integration test database.
+        UUID[] preparedCatalog=seedScopedRatingCatalog(
+            org,staffManager.id(),staffReviewer.id());
+        String optionId=boundE8.path("id").asText();
+        JsonNode staffOptions=json(call("GET",staffRoute+"/options",
+            staffManager.cookie(),null,null));
+        assertTrue(staffOptions.toString().contains(optionId),
+            "Authorized MFA staff must see only eligible same-org bindings");
+        assertFalse(staffOptions.toString().contains("afecKwh100mi"));
+        assertFalse(staffOptions.toString().contains("observed_stock"));
+        assertEquals(404,call("GET",staffRoute+"/options",
+            outside.cookie(),null,null).statusCode());
+        String handoffBody="{\"projectId\":\""+project+"\",\"period\":\"M1\""+
+            ",\"energyBindingId\":\""+optionId+"\""+
+            ",\"ratingSnapshotId\":\""+preparedCatalog[0]+"\"}";
+        assertEquals(404,postMethod(staffRoute,staffReviewer.cookie(),key(),
+            "\"0\"",handoffBody).statusCode());
+        assertEquals(412,postMethod(staffRoute,staffManager.cookie(),key(),
+            "\"1\"",handoffBody).statusCode());
+        String handoffKey=key();
+        var handoffCreated=postMethod(staffRoute,staffManager.cookie(),
+            handoffKey,"\"0\"",handoffBody);
+        assertEquals(201,handoffCreated.statusCode(),handoffCreated.body());
+        JsonNode handoff=json(handoffCreated);
+        assertEquals("PREPARATORY_NOT_ADMITTED",handoff.path("state").asText());
+        assertFalse(handoff.path("usableForE8").asBoolean());
+        assertEquals(1,handoff.path("version").asInt());
+        assertEquals(preparedCatalog[0].toString(),
+            handoff.path("ratingSnapshotId").asText());
+        assertEquals(optionId,handoff.path("energyBindingId").asText());
+        assertEquals(64,handoff.path("selectionSha256").asText().length());
+        assertEquals(64,handoff.path("fleetSourceSha256").asText().length());
+        assertEquals(64,handoff.path("ratingLineageSha256").asText().length());
+        assertFalse(handoff.toString().contains("afecKwh100mi"));
+        assertFalse(handoff.toString().contains("denominator"));
+        assertFalse(handoff.toString().contains("fossilMpg"));
+        assertEquals(handoffCreated.body(),postMethod(staffRoute,
+            staffManager.cookie(),handoffKey,"\"0\"",handoffBody).body());
+        assertEquals(412,postMethod(staffRoute,staffManager.cookie(),key(),
+            "\"0\"",handoffBody).statusCode());
+        assertEquals(409,postMethod(staffRoute,staffManager.cookie(),key(),
+            "\"1\"",handoffBody).statusCode());
+        JsonNode visibleHandoff=json(call("GET",fleetRoute,
+            owner.cookie(),null,null));
+        assertEquals(1,visibleHandoff.size());
+        assertEquals(handoff.path("selectionSha256").asText(),
+            visibleHandoff.get(0).path("selectionSha256").asText());
+        assertFalse(visibleHandoff.toString().contains("afecKwh100mi"));
+        String fleetDetailUrl=fleetRoute+"/"+handoff.path("id").asText();
+        var fleetDetail=call("GET",fleetDetailUrl,owner.cookie(),null,null);
+        assertEquals(200,fleetDetail.statusCode(),fleetDetail.body());
+        assertTrue(fleetDetail.headers().firstValue("Cache-Control")
+            .orElse("").contains("no-store"));
+        assertEquals(404,call("GET",fleetDetailUrl,
+            op.cookie(),null,null).statusCode());
+        assertEquals(404,call("GET",fleetDetailUrl,
+            outside.cookie(),null,null).statusCode());
+        assertFalse(json(call("GET",technical+"/open-calculation-readiness",
+            owner.cookie(),null,null)).path("canRunE8").asBoolean());
 
         String vtUrl=efelUrl+"/"+efel.path("id").asText()+"/vt0011-workbooks";
         assertEquals(0,json(call("GET",vtUrl,owner.cookie(),null,null)).size());
@@ -485,6 +574,13 @@ class OpenPeriodSupportIntegrationTest {
         assertEquals("STALE_NOT_ADMITTED",staleEnergy.path("state").asText());
         JsonNode staleEfel=json(call("GET",efelUrl,owner.cookie(),null,null)).get(0);
         assertEquals("STALE_NOT_ADMITTED",staleEfel.path("state").asText());
+        JsonNode fleetStale=json(call("GET",fleetDetailUrl,
+            owner.cookie(),null,null));
+        assertEquals("STALE_NOT_ADMITTED",fleetStale.path("state").asText());
+        assertTrue(fleetStale.path("stale").asBoolean());
+        assertFalse(fleetStale.path("usableForE8").asBoolean());
+        assertEquals(handoff.path("selectionSha256").asText(),
+            fleetStale.path("selectionSha256").asText());
         JsonNode bindingStale=json(call("GET",bindingDetailUrl,owner.cookie(),null,null));
         assertEquals("STALE_NOT_ADMITTED",bindingStale.path("state").asText());
         assertTrue(bindingStale.path("stale").asBoolean());
@@ -860,13 +956,14 @@ class OpenPeriodSupportIntegrationTest {
     private JsonNode json(HttpResponse<String> response) throws Exception {
         return mapper.readTree(response.body());
     }
-    private Actor actor() {
-        UUID id=UUID.randomUUID();
+    private Actor actor(){return actorWithId(UUID.randomUUID());}
+    private Actor actorWithId(UUID id){
         String token=AccessSecrets.newToken();
         database.transaction(c->{
             update(c,"""
                 INSERT INTO app_identity(id,email_normalized,display_name,status,email_verified_at)
                 VALUES (?,?,'QA documentary','ACTIVE',statement_timestamp())
+                ON CONFLICT (id) DO NOTHING
                 """,id,id+"@example.invalid");
             update(c,"""
                 INSERT INTO app_account_session(token_hash,identity_id,expires_at)
@@ -876,10 +973,14 @@ class OpenPeriodSupportIntegrationTest {
         });
         return new Actor(id,AccountAccess.COOKIE+"="+token);
     }
-    private UUID organization(UUID owner) {
-        UUID org=UUID.randomUUID();
+    private UUID organization(UUID owner){return organization(owner,UUID.randomUUID());}
+    private UUID organization(UUID owner,UUID org){
         database.transaction(c->{
-            update(c,"INSERT INTO app_organization(id,environment,display_name) VALUES (?,'SANDBOX','Docs carbon')",org);
+            update(c,"""
+                INSERT INTO app_organization(id,environment,display_name)
+                VALUES (?,'SANDBOX','Docs carbon')
+                ON CONFLICT (id) DO NOTHING
+                """,org);
             update(c,"INSERT INTO app_organization_membership(organization_id,identity_id,role) VALUES (?,?,'DRAFT_OWNER')",org,owner);
             return null;
         });
@@ -894,6 +995,183 @@ class OpenPeriodSupportIntegrationTest {
         assertEquals(201,result.statusCode(),result.body());
         return json(result).path("projectId").asText();
     }
+    /** Entirely fabricated licensed PBEV/EVR fixture in the project's OWN org.
+     * Uses the same canonical V48/V49 tables and rights as the admin workbench.
+     * No example number may reach a live E8 run. */
+    private UUID[] seedScopedRatingCatalog(UUID org,UUID manager,UUID reviewer) {
+        UUID bevA=UUID.randomUUID(),bevB=UUID.randomUUID();
+        UUID iceA=UUID.randomUUID(),iceB=UUID.randomUUID();
+        UUID fleetSub=UUID.randomUUID(),ratingsSub=UUID.randomUUID();
+        UUID fleetLic=UUID.randomUUID(),ratingsLic=UUID.randomUUID();
+        UUID fleetObj=UUID.randomUUID(),ratingsObj=UUID.randomUUID();
+        UUID fleetImport=UUID.randomUUID(),fleetSnapshot=UUID.randomUUID();
+        UUID ratingSnapshot=UUID.randomUUID();
+        String edition="E8-2027-"+UUID.randomUUID().toString().substring(0,8);
+        database.transaction(c->{
+            UUID[] models={bevA,bevB,iceA,iceB};
+            for(int i=0;i<models.length;i++)update(c,"""
+                INSERT INTO app_fleet_model
+                (id,organization_id,manufacturer,model_name,variant,
+                 vehicle_class,propulsion,created_by)
+                VALUES (?,?,'Ficticia',?,'Base','LDV',?,?)
+                """,models[i],org,i<2?"Synthetic BEV "+i:"Synthetic ICE "+i,
+                i<2?"BEV":"OTHER",manager);
+            // Project-integration-only identifiers: do not mutate the global
+            // official-source catalogue used by PlatformSourceReadiness tests.
+            String[] sourceIds={"TEST-E8-EVR-"+edition,"TEST-E8-PBEV-"+edition};
+            String[] codes={"OPEN-EVR","OPEN-PBEV"};
+            UUID[] subs={fleetSub,ratingsSub};
+            UUID[] licenses={fleetLic,ratingsLic};
+            UUID[] objects={fleetObj,ratingsObj};
+            for(int i=0;i<2;i++){
+                update(c,"""
+                    INSERT INTO app_source_version
+                    (source_id,edition,category,title,rights_holder,official_uri,origin)
+                    VALUES (?,?,'EXTERNAL_SOURCE','Synthetic test fixture',
+                        'Only internal fictional source','https://example.org/fixture','EXTERNAL')
+                    """,sourceIds[i],edition);
+                update(c,"""
+                    INSERT INTO app_platform_source_submission
+                    (id,need_code,source_id,edition,category,title,rights_holder,
+                     publisher,official_uri,reference_year,locator,metadata_fingerprint,
+                     state,submitted_by,reviewed_by)
+                    VALUES (?,?,?,?,'EXTERNAL_SOURCE','Synthetic fixture',
+                        'Only internal fictional source','Test editor',
+                        'https://example.org/fixture',2027,'TEST:1',?,
+                        'METADATA_ACCEPTED',?,?)
+                    """,subs[i],codes[i],sourceIds[i],edition,
+                    AccessSecrets.digest("metadata "+subs[i]),manager,reviewer);
+                update(c,"""
+                    INSERT INTO app_content_license
+                    (id,source_id,edition,organization_id,submitted_by,environment,
+                     purpose,authorization_ref,proof_sha256,starts_at,ends_at)
+                    VALUES (?,?,?,?,?,'SANDBOX','AUTHORIZED_PROCESSING',
+                        'Fictional fixture approved exclusively in isolated tests',
+                        ?,'2020-01-01',statement_timestamp()+interval '1 hour')
+                    """,licenses[i],sourceIds[i],edition,org,manager,"a".repeat(64));
+                update(c,"""
+                    INSERT INTO app_content_license_decision
+                    (license_id,version,outcome,decided_by,reason)
+                    VALUES (?,1,'APPROVED',?,'Test-only independently checked licence')
+                    """,licenses[i],reviewer);
+                update(c,"""
+                    INSERT INTO app_content_license_capability
+                    (license_id,decision_version,operation)
+                    VALUES (?,1,'STORE_ORIGINAL'),(?,1,'EXTRACT_TEXT'),
+                           (?,1,'SHOW_EXCERPTS'),(?,1,'EXPORT_DERIVATIVES')
+                    """,licenses[i],licenses[i],licenses[i],licenses[i]);
+                update(c,"""
+                    INSERT INTO app_platform_source_object
+                    (id,submission_id,organization_id,uploaded_by,license_id,
+                     license_version,file_name,file_format,sha256,bytes_count,
+                     nonce,encrypted,state,parsed_rows,parser_version)
+                    VALUES (?,?,?,?,?,1,'fictional.csv','CSV',?,16,?,?,
+                        'APPROVED_FOR_SCOPE',4,'TEST-ONLY')
+                    """,objects[i],subs[i],org,manager,licenses[i],
+                    AccessSecrets.digest("fixture "+subs[i]),new byte[12],new byte[32]);
+            }
+            update(c,"""
+                INSERT INTO app_fleet_ingestion
+                (id,organization_id,source_object_id,source_license_id,source_sha256,
+                 data_kind,observation_year,geography,imported_by)
+                VALUES (?,?,?,?,?,'STOCK_IN_CIRCULATION',2027,'BR',?)
+                """,fleetImport,org,fleetObj,fleetLic,
+                AccessSecrets.digest("fleet-2027"),manager);
+            update(c,"""
+                INSERT INTO app_fleet_composition_snapshot
+                (id,ingestion_id,organization_id,observation_year,denominator,
+                 number_of_models,source_sha256)
+                VALUES (?,?,?,2027,20,2,?)
+                """,fleetSnapshot,fleetImport,org,AccessSecrets.digest("fleet-2027"));
+            update(c,"""
+                INSERT INTO app_fleet_composition_weight
+                (snapshot_id,organization_id,model_id,source_row,observed_stock,
+                 weight,source_locator)
+                VALUES (?,?,?,2,12,0.6,'TEST:2'),(?,?,?,3,8,0.4,'TEST:3')
+                """,fleetSnapshot,org,bevA,fleetSnapshot,org,bevB);
+            UUID[] ratings=new UUID[4];
+            String[] metric={"ev_energy","ev_energy","fuel_economy","fuel_economy"};
+            String[] unit={"kWh/100mi","kWh/100mi","mi/USgal","mi/USgal"};
+            int[] values={18,23,32,27};
+            for(int i=0;i<4;i++){
+                ratings[i]=UUID.randomUUID();
+                update(c,"""
+                    INSERT INTO app_vehicle_rating
+                    (id,organization_id,model_id,source_object_id,source_license_id,
+                     source_row,source_sha256,year,role,fuel,cycle,seats,cycle_evidence,
+                     original_value,original_unit,normalized_value,normalized_unit,
+                     metric,locator,created_by)
+                    VALUES (?,?,?,?,?,?,?,2027,?,?,'COMBINED',5,
+                        'Synthetic combined cycle evidence',?,?,?,?,?,?,?)
+                    """,ratings[i],org,models[i],ratingsObj,ratingsLic,i+2,
+                    AccessSecrets.digest("fixture "+ratingsSub),
+                    i<2?"BEV":"FOSSIL",i<2?"ELECTRICITY":"GASOLINE",
+                    values[i],unit[i],values[i],unit[i],metric[i],"TEST:"+(i+2),manager);
+            }
+            UUID[] pairs=new UUID[2];
+            for(int i=0;i<2;i++){
+                pairs[i]=UUID.randomUUID();
+                update(c,"""
+                    INSERT INTO app_vehicle_comparable_pair
+                    (id,organization_id,fleet_snapshot_id,bev_model_id,
+                     bev_rating_id,fossil_rating_id,reason,service_description,
+                     status,version,proposed_by,reviewed_by,review_reason,reviewed_at)
+                    VALUES (?,?,?,?,?,?,'Same LDV capacity and service in synthetic test',
+                        'Five-seat passenger service','ACCEPTED',2,?,?,
+                        'Independent synthetic test review',statement_timestamp())
+                    """,pairs[i],org,fleetSnapshot,models[i],ratings[i],
+                    ratings[i+2],manager,reviewer);
+                update(c,"""
+                    INSERT INTO app_vehicle_pair_review_event
+                    (pair_id,version,outcome,reviewed_by,reason)
+                    VALUES (?,2,'ACCEPTED',?,
+                        'Independent synthetic same-cycle and capacity acceptance')
+                    """,pairs[i],reviewer);
+            }
+            update(c,"""
+                INSERT INTO app_vehicle_rating_snapshot
+                (id,organization_id,fleet_snapshot_id,year,cycle,lineage_digest,
+                 afec_kwh_per_100mi,mpg_us,model_count,constructed_by)
+                VALUES (?,?,?,2027,'COMBINED',?,20,30,2,?)
+                """,ratingSnapshot,org,fleetSnapshot,
+                AccessSecrets.digest("rating-2027"),manager);
+            update(c,"""
+                INSERT INTO app_vehicle_rating_snapshot_line
+                (snapshot_id,organization_id,model_id,pair_id,evr,
+                 ev_kwh_per_100mi,fossil_mpg_us)
+                VALUES (?,?,?,?,12,18,32),(?,?,?,?,8,23,27)
+                """,ratingSnapshot,org,bevA,pairs[0],ratingSnapshot,org,bevB,pairs[1]);
+            return null;
+        });
+        return new UUID[]{ratingSnapshot,ratingsLic};
+    }
+
+    private void verifyStaff(Actor manager) throws Exception {
+        long counter=database.read(c->first(c,
+            "SELECT floor(extract(epoch from statement_timestamp())/30)::bigint",
+            r->r.getLong(1)));
+        String body="{\"code\":\""+ComplianceStaff.codeAt(
+            E8_STAFF_SECRET,counter)+"\"}";
+        var response=call("POST","/v1/compliance/session",
+            manager.cookie(),null,body);
+        assertEquals(200,response.statusCode(),response.body());
+    }
+    public static class Settings extends AccountAccessTest.Inbox {
+        @Override public java.util.Map<String,String> start(){
+            var properties=new java.util.HashMap<>(super.start());
+            String secret=java.util.Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(E8_STAFF_SECRET);
+            properties.put("carbonflow.compliance.staff",
+                E8_STAFF_MANAGER+":"+secret+":"+E8_STAFF_ORG+";"+
+                E8_STAFF_REVIEWER+":"+secret+":"+E8_STAFF_ORG);
+            properties.put("carbonflow.platform.source-readiness.viewers",
+                E8_STAFF_MANAGER+","+E8_STAFF_REVIEWER);
+            properties.put("carbonflow.platform.source-work.managers",
+                E8_STAFF_MANAGER.toString());
+            return properties;
+        }
+    }
+
     private void grant(String project,UUID org,UUID owner,UUID actor,String role) {
         database.transaction(c->{
             update(c,"""
