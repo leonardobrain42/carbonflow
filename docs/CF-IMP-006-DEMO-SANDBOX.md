@@ -87,6 +87,42 @@ Isso evita compilar novamente, mas **não inclui mudanças recentes do código**
 
 O `doctor` não apaga bancos, volumes, contas ou senhas. Não use `docker compose down -v` nem remova `.carbonflow-demo` como tentativa genérica de reparo. Se houver problemas de autenticação após restabelecer o banco, confira a senha do PostgreSQL configurada na criação do volume e os arquivos locais de credenciais. Ao compartilhar logs, retire segredos e tokens.
 
+### Flyway: checksum da migração V69 divergente
+
+Esse erro foi identificado pelos checksums históricos:
+
+| Versão da migração V69 | Checksum |
+|---|---:|
+| Original, aplicada em sandboxes existentes | -1778044537 |
+| Alterada indevidamente em um commit posterior | -639127919 |
+
+**Não execute `flyway repair`, não altere manualmente `flyway_schema_history` e não remova os volumes.**
+
+A correção restaura a V69 original sem modificar seu checksum. A nova **V71** adiciona o campo `submitted_file_name` aos vínculos de provas e preenche os registros existentes com o nome do arquivo já registrado no repositório de PDFs criptografados. Como a V69 bloqueia UPDATEs nos vínculos, a V71 suspende somente o gatilho de imutabilidade durante o backfill transacional e o reativa antes de concluir. A V70 permanece reservada ao ponto de retomada da UX-07.
+
+Após atualizar o código com o PR #143 (no próprio branch de teste ou depois do merge), use o fluxo normal do sandbox:
+
+```bash
+python3 scripts/demo_sandbox.py start
+```
+
+Se o ambiente for o Compose padrão, e não o sandbox de contas:
+
+```bash
+docker compose up -d --build --wait
+```
+
+Para confirmar o histórico Flyway mesmo que o aplicativo não suba, no Compose de demonstração padrão:
+
+```bash
+docker compose -p carbonflow-demo -f compose.yaml -f compose.demo.yaml up -d db
+docker compose -p carbonflow-demo -f compose.yaml -f compose.demo.yaml exec -T db psql -U carbonflow -d carbonflow -c "SELECT version, description, checksum, success FROM flyway_schema_history WHERE version IN ('69','70','71') ORDER BY installed_rank;"
+```
+
+O resultado esperado é a **V69 com checksum -1778044537**, a V70 quando a UX-07 estiver instalada, e a **V71 aplicada com sucesso**. Se você utiliza outro `CARBONFLOW_DEMO_PROJECT`, substitua `carbonflow-demo` pelo nome configurado. Para o Compose padrão, utilize `docker compose exec -T db ...` sem `-p/-f`.
+
+Se um banco apresentar um checksum V69 diferente de -1778044537, interrompa a tentativa e inspecione o esquema e um backup daquele banco; não execute reparação automática do histórico.
+
 ## O que não é simulado
 
 O cadastro usa **as rotas reais** `POST /v1/accounts`, `POST /v1/accounts/email-verification`, `POST /v1/accounts/email-confirmations` e `POST /v1/account-session`, com senhas PBKDF2 gerenciadas pelo backend. A conta nasce `ACTIVE` após confirmação do token, com sessão HttpOnly e limite de tentativas da CF-IMP-003. Não há usuário administrativo especial, grants PP/REV/VVB nem permissão para aprovar documentos.
