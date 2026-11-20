@@ -77,7 +77,7 @@ docker compose -p carbonflow-demo -f compose.yaml -f compose.demo.yaml ps
 docker compose -p carbonflow-demo -f compose.yaml -f compose.demo.yaml logs --tail 80 app db
 ```
 
-Se o download de dependências Maven falhar (ex.: HTTP 429), o Dockerfile tenta um mirror alternativo mantendo as mesmas versões. O inicializador também aguarda a disponibilidade da porta HTTP no host depois de o contêiner ficar saudável, evitando um falso erro de inicialização quando Docker publica a porta com atraso. Se **já existe uma imagem construída anteriormente** e é necessário somente voltar a trabalhar, você pode usar:
+Se o download de dependências Maven falhar (ex.: HTTP 429), o Dockerfile tenta um mirror alternativo mantendo as mesmas versões. O inicializador usa a saúde exigida pelo Compose e confirma o acesso pelas APIs reais de cadastro e sessão. A consulta auxiliar de `/health/ready` fica no comando `doctor`, sem bloquear o provisionamento. Se **já existe uma imagem construída anteriormente** e é necessário somente voltar a trabalhar, você pode usar:
 
 ```bash
 python3 scripts/demo_sandbox.py start --reuse-image
