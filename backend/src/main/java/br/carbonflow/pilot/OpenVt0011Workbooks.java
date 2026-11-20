@@ -151,7 +151,8 @@ class OpenVt0011Workbooks {
                 ctx.actor().id().equals(source.author()))
                 throw new PilotProblem(403,"VT0011_REVIEW_NOT_INDEPENDENT","reviewer",
                     RULE,"O revisor precisa ser independente dos autores do caderno e do EFel.");
-            if(submitted==null || !Set.of("CHECKED_INTERNAL","RETURNED").contains(submitted.outcome()))
+            if(submitted==null || submitted.outcome()==null ||
+                !Set.of("CHECKED_INTERNAL","RETURNED").contains(submitted.outcome()))
                 throw bad("outcome","Informe CHECKED_INTERNAL ou RETURNED.");
             String reason=clean(submitted.rationale(),30,2000,"rationale");
             String evidence=clean(submitted.evidenceReference(),15,600,"evidenceReference");
@@ -252,9 +253,10 @@ class OpenVt0011Workbooks {
     }
 
     private static Normal normalize(Input i,Source source,String project){
-        if(!OM_METHODS.contains(i.omMethod()))
+        if(i.omMethod()==null || !OM_METHODS.contains(i.omMethod()))
             throw bad("omMethod","Selecione um dos quatro métodos OM do TOOL07.");
-        if(!Set.of("EX_ANTE","EX_POST").contains(i.omVintageMode()))
+        if(i.omVintageMode()==null ||
+           !Set.of("EX_ANTE","EX_POST").contains(i.omVintageMode()))
             throw bad("omVintageMode","Defina explicitamente o tipo de vintage.");
         if(i.omDataYear()==null || i.omDataYear()<1990 || i.omDataYear()>Year.now().getValue())
             throw bad("omDataYear","Ano de origem de OM ausente ou posterior ao ano atual.");
