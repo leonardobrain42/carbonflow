@@ -363,6 +363,67 @@ class OpenPeriodSupportIntegrationTest {
             .statusCode()>=400);
         assertEquals(0,json(call("GET",fleetRoute,owner.cookie(),null,null)).size());
 
+        // Positive staff-to-project transfer: sources are deliberately
+        // synthetic and live only inside this integration test database.
+        UUID[] preparedCatalog=seedScopedRatingCatalog(
+            org,staffManager.id(),staffReviewer.id());
+        String optionId=boundE8.path("id").asText();
+        JsonNode staffOptions=json(call("GET",staffRoute+"/options",
+            staffManager.cookie(),null,null));
+        assertTrue(staffOptions.toString().contains(optionId),
+            "Authorized MFA staff must see only eligible same-org bindings");
+        assertFalse(staffOptions.toString().contains("afecKwh100mi"));
+        assertFalse(staffOptions.toString().contains("observed_stock"));
+        assertEquals(404,call("GET",staffRoute+"/options",
+            outside.cookie(),null,null).statusCode());
+        String handoffBody="{\"projectId\":\""+project+"\",\"period\":\"M1\""+
+            ",\"energyBindingId\":\""+optionId+"\""+
+            ",\"ratingSnapshotId\":\""+preparedCatalog[0]+"\"}";
+        assertEquals(404,postMethod(staffRoute,staffReviewer.cookie(),key(),
+            "\"0\"",handoffBody).statusCode());
+        assertEquals(412,postMethod(staffRoute,staffManager.cookie(),key(),
+            "\"1\"",handoffBody).statusCode());
+        String handoffKey=key();
+        var handoffCreated=postMethod(staffRoute,staffManager.cookie(),
+            handoffKey,"\"0\"",handoffBody);
+        assertEquals(201,handoffCreated.statusCode(),handoffCreated.body());
+        JsonNode handoff=json(handoffCreated);
+        assertEquals("PREPARATORY_NOT_ADMITTED",handoff.path("state").asText());
+        assertFalse(handoff.path("usableForE8").asBoolean());
+        assertEquals(1,handoff.path("version").asInt());
+        assertEquals(preparedCatalog[0].toString(),
+            handoff.path("ratingSnapshotId").asText());
+        assertEquals(optionId,handoff.path("energyBindingId").asText());
+        assertEquals(64,handoff.path("selectionSha256").asText().length());
+        assertEquals(64,handoff.path("fleetSourceSha256").asText().length());
+        assertEquals(64,handoff.path("ratingLineageSha256").asText().length());
+        assertFalse(handoff.toString().contains("afecKwh100mi"));
+        assertFalse(handoff.toString().contains("denominator"));
+        assertFalse(handoff.toString().contains("fossilMpg"));
+        assertEquals(handoffCreated.body(),postMethod(staffRoute,
+            staffManager.cookie(),handoffKey,"\"0\"",handoffBody).body());
+        assertEquals(412,postMethod(staffRoute,staffManager.cookie(),key(),
+            "\"0\"",handoffBody).statusCode());
+        assertEquals(409,postMethod(staffRoute,staffManager.cookie(),key(),
+            "\"1\"",handoffBody).statusCode());
+        JsonNode visibleHandoff=json(call("GET",fleetRoute,
+            owner.cookie(),null,null));
+        assertEquals(1,visibleHandoff.size());
+        assertEquals(handoff.path("selectionSha256").asText(),
+            visibleHandoff.get(0).path("selectionSha256").asText());
+        assertFalse(visibleHandoff.toString().contains("afecKwh100mi"));
+        String fleetDetailUrl=fleetRoute+"/"+handoff.path("id").asText();
+        var fleetDetail=call("GET",fleetDetailUrl,owner.cookie(),null,null);
+        assertEquals(200,fleetDetail.statusCode(),fleetDetail.body());
+        assertTrue(fleetDetail.headers().firstValue("Cache-Control")
+            .orElse("").contains("no-store"));
+        assertEquals(404,call("GET",fleetDetailUrl,
+            op.cookie(),null,null).statusCode());
+        assertEquals(404,call("GET",fleetDetailUrl,
+            outside.cookie(),null,null).statusCode());
+        assertFalse(json(call("GET",technical+"/open-calculation-readiness",
+            owner.cookie(),null,null)).path("canRunE8").asBoolean());
+
         String vtUrl=efelUrl+"/"+efel.path("id").asText()+"/vt0011-workbooks";
         assertEquals(0,json(call("GET",vtUrl,owner.cookie(),null,null)).size());
         assertEquals(404,call("GET",vtUrl,op.cookie(),null,null).statusCode());
@@ -507,6 +568,13 @@ class OpenPeriodSupportIntegrationTest {
         assertEquals("STALE_NOT_ADMITTED",staleEnergy.path("state").asText());
         JsonNode staleEfel=json(call("GET",efelUrl,owner.cookie(),null,null)).get(0);
         assertEquals("STALE_NOT_ADMITTED",staleEfel.path("state").asText());
+        JsonNode fleetStale=json(call("GET",fleetDetailUrl,
+            owner.cookie(),null,null));
+        assertEquals("STALE_NOT_ADMITTED",fleetStale.path("state").asText());
+        assertTrue(fleetStale.path("stale").asBoolean());
+        assertFalse(fleetStale.path("usableForE8").asBoolean());
+        assertEquals(handoff.path("selectionSha256").asText(),
+            fleetStale.path("selectionSha256").asText());
         JsonNode bindingStale=json(call("GET",bindingDetailUrl,owner.cookie(),null,null));
         assertEquals("STALE_NOT_ADMITTED",bindingStale.path("state").asText());
         assertTrue(bindingStale.path("stale").asBoolean());
