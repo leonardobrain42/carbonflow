@@ -111,14 +111,14 @@ class DemoSandboxTest(unittest.TestCase):
 
     def test_doctor_detects_applied_v69_mismatch_without_repairing_or_leaking_logs(self):
         row = {"Service": "app", "State": "exited", "Health": ""}
-        log = ("confidential token should never be echoed\\n"
-               "Migration checksum mismatch for migration version 69\\n"
-               "-> Applied to database : -1778044537\\n"
+        log = ("confidential token should never be echoed\n"
+               "Migration checksum mismatch for migration version 69\n"
+               "-> Applied to database : -1778044537\n"
                "-> Resolved locally    : -639127919")
-        with patch.object(demo, "runtime_check"), \\
-             patch.object(demo, "service_rows", return_value=[row]), \\
-             patch.object(demo, "health_status", return_value=(None, "sem resposta")), \\
-             patch.object(demo, "local_port_busy", return_value=False), \\
+        with patch.object(demo, "runtime_check"), \
+             patch.object(demo, "service_rows", return_value=[row]), \
+             patch.object(demo, "health_status", return_value=(None, "sem resposta")), \
+             patch.object(demo, "local_port_busy", return_value=False), \
              patch.object(demo, "compose", return_value=log) as compose:
             import contextlib
             import io
