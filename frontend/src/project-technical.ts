@@ -202,7 +202,7 @@ export class ProjectTechnicalComponent {
       const section=this.section().id;
       const guide=['guias','redigir','revisar'].includes(section)?this.selectedGuide():null;
       const step=['monitorar','linha-base','adicionalidade'].includes(section)
-        ?this.queryEtapa():null;
+        ?(this.queryEtapa()??null):null;
       this.checkpoints.remember(this.projectId,{
         area:'technical',screen:section,guide,step
       });
