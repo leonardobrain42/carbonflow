@@ -116,7 +116,7 @@
             @case ('linha-base') {
               @if (saved.journey.candidate === 'VM0038') {
                 <carbonflow-decision-workbench [projectId]="projectId" kind="baseline"
-                  [requestedStep]="queryEtapa()" [canViewApplicability]="can('VIEW_OPEN_APPLICABILITY')"
+                  [requestedStep]="queryEtapa() ?? null" [canViewApplicability]="can('VIEW_OPEN_APPLICABILITY')"
                   [canViewCalculation]="can('VIEW_OPEN_CALCULATION')"
                   [canViewMonitoring]="can('VIEW_OPEN_MONITORING')"
                   [canViewFleet]="can('VIEW_OPEN_E8_FLEET_SELECTION')"
@@ -134,7 +134,7 @@
             @case ('adicionalidade') {
               @if (saved.journey.candidate === 'VM0038') {
                 <carbonflow-decision-workbench [projectId]="projectId" kind="additionality"
-                  [requestedStep]="queryEtapa()" [canViewApplicability]="can('VIEW_OPEN_APPLICABILITY')"
+                  [requestedStep]="queryEtapa() ?? null" [canViewApplicability]="can('VIEW_OPEN_APPLICABILITY')"
                   [canViewCalculation]="can('VIEW_OPEN_CALCULATION')"
                   [canViewMonitoring]="can('VIEW_OPEN_MONITORING')"
                   [canViewFleet]="can('VIEW_OPEN_E8_FLEET_SELECTION')"

@@ -130,6 +130,11 @@ export class DecisionWorkbenchComponent implements OnChanges {
     const all=STEPS[this.kind];
     return all[Math.min(all.findIndex(item=>item.id===this.currentStep())+1,all.length-1)].id;
   }
+  failureEntries(){
+    return (Object.entries(this.failures()) as [SourceName,string][])
+      .filter(([,message])=>!!message)
+      .map(([name,message])=>({name,message}));
+  }
   statusOf(source:SourceName){return this.status()[source];}
   readable(source:SourceName){return this.statusOf(source)==='ready';}
   async load(){

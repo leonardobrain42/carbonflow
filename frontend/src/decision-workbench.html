@@ -12,10 +12,8 @@
   </nav>
   <h3>{{step().label}} — {{step().detail}}</h3>
   @if (loading()){<p role="status">Lendo os registros autorizados do projeto…</p>}
-  @for (entry of ['typed','applicability','calculation','monitoring','fleet','pd'];track entry){
-    @if (failures()[$any(entry)]){
-      <p class="cf-workspace-note" role="status">{{entry}}: {{failures()[$any(entry)]}}</p>
-    }
+  @for (entry of failureEntries();track entry.name){
+    <p class="cf-workspace-note" role="status">{{entry.name}}: {{entry.message}}</p>
   }
   @if (kind==='baseline'){
     @switch (step().id){
