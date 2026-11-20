@@ -15,7 +15,8 @@
           <h1>Preparação técnica</h1>
           <p>{{ saved.journey.title }}</p>
           <p class="cf-workspace-helper">
-            @if (saved.version) { Rascunho salvo · Revisão {{ saved.version }} }
+            @if (!can('VIEW_INTAKE')) { Dados iniciais restritos · somente etapas autorizadas }
+            @else if (saved.version) { Rascunho salvo · Revisão {{ saved.version }} }
             @else { Rascunho técnico ainda não iniciado }
             @if (dirty()) { · Alterações a salvar }
           </p>

@@ -30,7 +30,7 @@ class ProjectWork {
     record View(String projectId, String title, String environment, String projectState, String role,
                 int definitionVersion, String methodology, boolean methodologyConfigured,
                 String nextTask, List<Task> tasks, List<String> recommendedTasks,
-                Progress progress, Checkpoint resume) {}
+                Progress progress, Checkpoint resume, ProjectJourney.Profile journeyProfile) {}
     private record Definition(String id, Kind kind, String title, String guide) {}
     private record Dossier(int revision, int intake) {}
 
@@ -164,7 +164,7 @@ class ProjectWork {
         return new View(project, title, context.environment(), context.project().state(), context.role(),
                 definitionVersion, method == ProjectJourney.GENERAL ? candidate : method.title(),
                 method != ProjectJourney.GENERAL, recommended.isEmpty()?null:recommended.get(0),
-                List.copyOf(tasks),recommended,progress,readCheckpoint(connection,context));
+                List.copyOf(tasks),recommended,progress,readCheckpoint(connection,context),method);
     }
 
     private static int priority(Task task) {

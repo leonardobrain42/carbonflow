@@ -60,6 +60,12 @@ interface TechnicalIntake {
   applicability?: {revision:number; boundary:string | null; incidence:string | null; rights:string | null};
 }
 
+interface JourneyAccess {
+  projectId:string;
+  environment:string;
+  journeyProfile:JourneyProfile;
+}
+
 interface PreliminaryDossier {
   id: string;
   revision: number;
@@ -160,6 +166,8 @@ export class ProjectTechnicalComponent {
     if (item.id === 'inicio') return this.can('VIEW_INTAKE');
     if (item.id === 'guias' || item.id === 'linha-base' || item.id === 'adicionalidade')
       return this.can('VIEW_GUIDES');
+    if (item.id === 'analisar') return this.can('VIEW_OPEN_APPLICABILITY') || this.can('VIEW_INTAKE');
+    if (item.id === 'entender') return this.can('VIEW_JOURNEY');
     if (item.id === 'monitorar' || item.id === 'evidencias' || item.id === 'estacoes')
       return this.can('VIEW_OPEN_MONITORING');
     if (item.id === 'quantificar') return this.can('VIEW_OPEN_CALCULATION');
@@ -234,7 +242,22 @@ export class ProjectTechnicalComponent {
         this.can('VIEW_INTAKE') ? firstValueFrom(this.http.get<TechnicalIntake>(this.technical + '/intake')) : null,
         this.can('VIEW_DOSSIER') ? firstValueFrom(this.http.get<PreliminaryDossier | null>(this.technical + '/preliminary-dossier')) : null,
       ]);
-      if (intake) this.acceptIntake(intake);
+      if (intake) {
+        this.acceptIntake(intake);
+      } else {
+        // A collaborator can view monitoring or guides without VIEW_INTAKE.
+        // Reuse the authorized method profile, NEVER private intake answers.
+        const journey=await firstValueFrom(this.http.get<JourneyAccess>(this.root+'/journey'));
+        if (journey.projectId!==this.projectId || journey.environment!=='SANDBOX' ||
+            !journey.journeyProfile) throw new Error('Contexto de jornada incorreto');
+        this.acceptIntake({
+          projectId:this.projectId,organizationId:project.organizationId,
+          environment:'SANDBOX',version:0,state:'ACCESS_LIMITED',
+          reviewState:'NOT_VISIBLE',data:null,outstandingGates:[],
+          triageCandidate:journey.journeyProfile.candidate,
+          journey:journey.journeyProfile,methodologies:[]
+        });
+      }
       this.dossier.set(dossier);
     } catch (cause: unknown) {
       this.project.set(null);

@@ -79,6 +79,7 @@ class ProjectJourneyCompassIntegrationTest {
         String factors="{\"area\":\"technical\",\"screen\":\"linha-base\",\"guide\":null,\"step\":\"fatores\"}";
         assertEquals(200,call("PUT",endpoint+"/resume",owner.cookie(),factors).statusCode());
         var resumed=json(call("GET",endpoint,owner.cookie(),null));
+        assertEquals("VM0038_V1_1",resumed.at("/journeyProfile/id").asText());
         assertEquals("linha-base",resumed.path("resume").path("screen").asText());
         assertEquals("fatores",resumed.path("resume").path("step").asText());
         assertEquals(1,resumed.path("progress").path("recorded").asInt(),
@@ -113,6 +114,10 @@ class ProjectJourneyCompassIntegrationTest {
             return null;
         });
         String endpoint="/v1/projects/"+project+"/journey";
+        var collaborator=json(call("GET",endpoint,prep.cookie(),null));
+        assertEquals("VM0038_V1_1",collaborator.at("/journeyProfile/id").asText());
+        assertFalse(collaborator.has("intakeAnswers"),
+            "A shared methodology profile must never include private intake answers.");
         assertEquals(200,call("GET",endpoint,prep.cookie(),null).statusCode());
         assertEquals(422,call("PUT",endpoint+"/resume",prep.cookie(),
             "{\"area\":\"triage\",\"screen\":null,\"guide\":null,\"step\":null}").statusCode());
