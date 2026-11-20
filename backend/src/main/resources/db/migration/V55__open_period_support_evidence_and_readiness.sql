@@ -45,8 +45,10 @@ CREATE FUNCTION app_open_period_support_review_guard() RETURNS trigger AS $$
 BEGIN
  IF EXISTS (
   SELECT 1 FROM app_open_period_support_document d
+  JOIN app_open_period_qa_snapshot s
+    ON s.project_id=d.project_id AND s.id=d.snapshot_id
   WHERE d.project_id=NEW.project_id AND d.id=NEW.document_id
-    AND d.submitted_by=NEW.reviewed_by
+    AND (d.submitted_by=NEW.reviewed_by OR s.created_by=NEW.reviewed_by)
  ) THEN
   RAISE EXCEPTION 'A document submitter cannot review their own evidence';
  END IF;
