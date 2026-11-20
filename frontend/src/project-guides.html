@@ -13,7 +13,11 @@
     @if (current(); as guide) {
       <h3>{{ guide.title }}</h3>
       <p>{{ guide.guidance }}</p>
-      <p>{{ guide.version ? 'Revisão salva · ' + guide.version : 'Rascunho a iniciar' }} · Revisão técnica pendente</p>
+      <p>{{ guide.version ? 'Revisão salva · ' + guide.version : 'Rascunho a iniciar' }} · Revisão técnica pendente
+        @if (guide.definitionVersion) { · Formulário v{{guide.definitionVersion}} }
+      </p>
+      <p class="cf-workspace-note">Os dados deste formulário são declarações preparatórias.
+        Um texto preenchido não substitui cadastro de ativos, contrato, evidência anexada ou parecer independente.</p>
       @if (guide.id === 'quantification') {
         <p>Sem resultado admitido para o recorte. Reduções de emissões (ER) em tCO₂e pendentes de cálculo e revisão.</p>
         <a class="cf-workspace-link" href="/pilot#memory-heading">Consultar a memória da simulação no piloto</a>
@@ -30,6 +34,51 @@
       @if (guide.id === 'additionality' && answers()['commitment'] && answers()['considered'] && answers()['commitment'] < answers()['considered']) {
         <p class="cf-workspace-note">O compromisso informado antecede a consideração do carbono. Encaminhe a cronologia e as provas para revisão.</p>
       }
+      <h4>Informações desta etapa</h4>
+      <fieldset class="cf-journey-fieldset" [disabled]="!guide.editable || busy()">
+        @for (field of guide.fields; track field.key) {
+          @if (field.key !== 'justification' || answers()['incidence'] === 'Não aplicável' || answers()['justification']) {
+            <label [for]="'guide-' + field.key">{{ field.label }}</label>
+            @if (field.type === 'select' || field.type === 'enum') {
+              <select #choice [id]="'guide-' + field.key"
+                [attr.aria-describedby]="field.helpText ? 'guide-help-' + field.key : null"
+                (change)="change(field.key,choice.value)">
+                <option value="" [selected]="!answers()[field.key]">Não informado</option>
+                @for (option of field.options; track option) {
+                  <option [value]="option" [selected]="answers()[field.key] === option">{{ option }}</option>
+                }
+              </select>
+            } @else if (field.type === 'date') {
+              <input #day type="date" [id]="'guide-' + field.key"
+                [attr.aria-describedby]="field.helpText ? 'guide-help-' + field.key : null"
+                [value]="answers()[field.key] || ''" (input)="change(field.key,day.value)">
+            } @else if (field.type === 'year') {
+              <input #year type="text" inputmode="numeric" maxlength="4" [id]="'guide-' + field.key"
+                [attr.aria-describedby]="fieldError(field) ? 'guide-error-' + field.key : (field.helpText ? 'guide-help-' + field.key : null)"
+                [attr.aria-invalid]="fieldError(field) ? 'true' : null"
+                placeholder="Ex.: 2027" [value]="answers()[field.key] || ''"
+                (input)="change(field.key,year.value)">
+            } @else {
+              <textarea #content rows="2" maxlength="1600" [id]="'guide-' + field.key"
+                [attr.aria-describedby]="field.helpText ? 'guide-help-' + field.key : null"
+                [value]="answers()[field.key] || ''" (input)="change(field.key,content.value)"></textarea>
+            }
+            @if (field.helpText) {
+              <p class="cf-workspace-helper" [id]="'guide-help-' + field.key">{{field.helpText}}</p>
+            }
+            @if (fieldError(field)) {
+              <p class="cf-workspace-alert" role="alert" [id]="'guide-error-' + field.key">{{fieldError(field)}}</p>
+            }
+            @if (guide.legacyUnstructured?.includes(field.key)) {
+              <p class="cf-workspace-note">Resposta de revisão anterior preservada. Verifique e corrija este valor antes de reaproveitá-lo como dado estruturado.</p>
+            }
+          }
+        }
+      </fieldset>
+      @if (guide.editable) { <button class="cf-workspace-primary" [disabled]="busy() || !dirty()" (click)="save()">Salvar guia</button> }
+      @if (notice()) { <p role="status">{{ notice() }}</p> }
+      <h4>Fontes, evidências e pareceres</h4>
+      <p class="cf-workspace-helper">Consulte os requisitos, solicite dados ou vincule provas sem confundir texto declarado com fato revisado.</p>
       @for (section of [guide.id]; track section) {
         <carbonflow-guide-references [projectId]="projectId()" [section]="section" [revision]="guide.version"
           [canOpenIntake]="canOpenIntake()" (prepare)="prepare.emit()" />
@@ -39,28 +88,7 @@
           [fields]="guide.fields" [answers]="guide.answers" [request]="evidenceRequest()" [editable]="guide.editable"
           (clearRequest)="evidenceRequest.set(null)" (origin)="showRevision($event)" />
       }
-      <fieldset class="cf-journey-fieldset" [disabled]="!guide.editable || busy()">
-        @for (field of guide.fields; track field.key) {
-          @if (field.key !== 'justification' || answers()['incidence'] === 'Não aplicável' || answers()['justification']) {
-            <label [for]="'guide-' + field.key">{{ field.label }}</label>
-            @if (field.type === 'select') {
-              <select #choice [id]="'guide-' + field.key" (change)="change(field.key,choice.value)">
-                <option value="" [selected]="!answers()[field.key]">Não informado</option>
-                @for (option of field.options; track option) {
-                  <option [value]="option" [selected]="answers()[field.key] === option">{{ option }}</option>
-                }
-              </select>
-            } @else if (field.type === 'date') {
-              <input #day type="date" [id]="'guide-' + field.key" [value]="answers()[field.key] || ''" (input)="change(field.key,day.value)">
-            } @else {
-              <textarea #content rows="2" maxlength="1600" [id]="'guide-' + field.key"
-                [value]="answers()[field.key] || ''" (input)="change(field.key,content.value)"></textarea>
-            }
-          }
-        }
-      </fieldset>
-      @if (guide.editable) { <button class="cf-workspace-primary" [disabled]="busy() || !dirty()" (click)="save()">Salvar guia</button> }
-      @if (notice()) { <p role="status">{{ notice() }}</p> }
+
       @if (guide.version > 1) {
         <details class="cf-journey-context" [open]="historyOpen()">
           <summary>Histórico de revisões</summary>

@@ -6,10 +6,11 @@ import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {firstValueFrom} from 'rxjs';
 import {GuideReferencesComponent} from './guide-references';
 
-interface Field { key: string; label: string; type: string; options: string[] }
+interface Field { key: string; label: string; type: string; options: string[]; helpText?: string | null }
 interface Guide {
   id: string; title: string; guidance: string; fields: Field[]; version: number;
   answers: Record<string,string>; missing: string[]; editable: boolean;
+  definitionVersion?: number; legacyUnstructured?: string[];
 }
 
 @Component({
@@ -78,7 +79,21 @@ export class ProjectGuidesComponent implements OnInit {
   change(key: string, value: string) {
     this.answers.update(data => ({...data, [key]:value}));
     this.dirty.set(true);
+    this.error.set('');
     this.notice.set('');
+  }
+
+  fieldError(field: Field): string {
+    const value = this.answers()[field.key]?.trim();
+    if (!value) return '';
+    if (field.type === 'year' && !/^(19\d{2}|20\d{2}|2100)$/.test(value)) {
+      return 'Informe um ano com quatro dígitos, de 1900 a 2100.';
+    }
+    if (['select','enum'].includes(field.type) && !field.options.includes(value)) {
+      return 'Escolha uma opção válida.';
+    }
+    if (value.length > 1600) return 'O campo excedeu 1.600 caracteres.';
+    return '';
   }
 
   async showInputs(version: number) {
@@ -116,11 +131,16 @@ export class ProjectGuidesComponent implements OnInit {
   async save() {
     const guide = this.current();
     if (!guide?.editable || this.busy()) return;
+    if (guide.fields.some(field => !!this.fieldError(field))) {
+      this.error.set('Corrija os campos destacados antes de salvar. Respostas legadas ambíguas não são convertidas automaticamente.');
+      return;
+    }
     this.busy.set(true);
     this.error.set('');
     try {
-      const saved = await firstValueFrom(this.http.put<Guide>(this.url + '/' + guide.id, this.answers(),
-        {headers:{'If-Match':'"' + guide.version + '"'}}));
+      const headers: Record<string,string> = {'If-Match':'"' + guide.version + '"'};
+      if (guide.definitionVersion != null) headers['X-Guide-Definition-Version'] = String(guide.definitionVersion);
+      const saved = await firstValueFrom(this.http.put<Guide>(this.url + '/' + guide.id, this.answers(), {headers}));
       this.guides.update(items => items.map(item => item.id === saved.id ? saved : item));
       this.dirty.set(false);
       this.display(saved);
@@ -134,6 +154,8 @@ export class ProjectGuidesComponent implements OnInit {
       }
       this.error.set(cause instanceof HttpErrorResponse && cause.status === 412
         ? 'Outra pessoa alterou este guia. Copie suas alterações e recarregue a versão atual.'
+        : cause instanceof HttpErrorResponse && cause.status === 409
+          ? 'A definição do formulário mudou. Copie seu rascunho e recarregue antes de salvar.'
         : cause instanceof HttpErrorResponse && typeof cause.error?.message === 'string'
           ? cause.error.message : 'Não foi possível salvar o guia.');
     } finally { this.busy.set(false); }
