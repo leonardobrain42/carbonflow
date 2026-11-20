@@ -59,7 +59,7 @@ class OpenPeriodSupport {
     Document submit(String cookie,String project,UUID snapshot,String kind,
                     String subject,String reference,String filename,String key,byte[] bytes) {
         return scope.write(cookie,project,"SUBMIT_OPEN_PERIOD_EVIDENCE",(c,ctx)->{
-            Historical old=historical(c,project,snapshot);
+            historical(c,project,snapshot);
             String k=kind(kind),s=OpenMonitoringConfiguration.code(subject);
             if(reference==null || reference.strip().length()<8 ||
                reference.strip().length()>300 ||
@@ -116,7 +116,7 @@ class OpenPeriodSupport {
                historical.createdBy().equals(ctx.actor().id()))
                 throw new PilotProblem(403,"REVISAO_NAO_INDEPENDENTE","reviewer",RULE,
                     "Revisor não pode ser autor da prova nem do snapshot de QA.");
-            if(choice==null || choice.reason()==null || choice.reason().strip().length()<15
+            if(choice==null || choice.outcome()==null || choice.reason()==null || choice.reason().strip().length()<15
                 || choice.reason().strip().length()>2000 ||
                 !Set.of("DOCUMENT_CHECKED_INTERNAL","REJECTED").contains(choice.outcome()))
                 throw invalid("reason","Informe decisão e justificativa entre 15 e 2000 caracteres.");
@@ -128,6 +128,7 @@ class OpenPeriodSupport {
                old.outcome().equals(choice.outcome()) && old.reason().equals(reason))
                 return old;
             PilotCommands.requireVersion(expected,old==null?0:old.version());
+            if(expected>=100000000)throw invalid("version","Limite máximo de versões.");
             update(c,"""
                 INSERT INTO app_open_period_support_review
                 (project_id,document_id,version,outcome,reason,reviewed_by)
