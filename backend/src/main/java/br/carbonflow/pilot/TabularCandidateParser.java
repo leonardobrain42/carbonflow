@@ -36,7 +36,8 @@ final class TabularCandidateParser {
         "record_key","period_year","metric","value","unit","geography"
     };
     static final Set<String> UNITS = Set.of("vehicles","units","kWh","MWh","km","MJ/km",
-        "kWh/km","kWh/100km","kWh/100mi","km/L","mi/USgal","tCO2/MWh","tCO2/kWh","kgCO2e/km","tCO2e");
+        "kWh/km","kWh/100km","kWh/100mi","km/L","mi/USgal","tCO2/MWh","tCO2/kWh",
+        "kgCO2e/km","tCO2e","tCO2e/L","tCO2e/USgal","kgCO2e/L");
 
     record Candidate(int row, String recordKey, int year, String metric, BigDecimal value,
                      String unit, String geography, String locator) {}
