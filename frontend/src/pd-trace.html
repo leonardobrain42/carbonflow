@@ -1,0 +1,61 @@
+<section class="cf-journey-context" aria-label="Como esta etapa entrará no PD">
+  <h4>Como isso entrará no PD?</h4>
+  <p>Origem → seção correspondente da descrição de projeto (PD).
+    A exibição é uma <strong>prévia de proveniência</strong>, não uma exportação
+    por template normativo nem prova de conformidade.
+    O mapa automático de campos e alegações por edição é responsabilidade de #43.</p>
+  @if (!canViewPd){
+    <p role="status">Esta conta não possui permissão para consultar a seção do PD.
+      Dados privados de documento não foram solicitados.</p>
+  } @else if (section;as target){
+    <dl class="cf-tech-capabilities">
+      <div><dt>Seção vinculada</dt><dd>{{target.guide.title}} ({{target.guide.id}})</dd></div>
+      <div><dt>Guia textual de origem</dt><dd>Revisão {{target.guide.version||'não iniciada'}}</dd></div>
+      <div><dt>Documento existente</dt>
+        <dd>{{target.latest?'Versão '+target.latest.number+' (interna)':'Ainda não redigido'}}</dd></div>
+      @if (target.latest){
+        <div><dt>Guia fixado na versão do PD</dt><dd>v{{target.latest.guideVersion}}</dd></div>
+        <div><dt>Integridade da versão PD</dt><dd><code>{{target.latest.sha256}}</code></dd></div>
+      }
+      @if (guide){
+        <div><dt>Formulário tipado</dt>
+          <dd>Definição v{{guide.definitionVersion}} · respostas v{{guide.version}} · {{guide.edition}}</dd></div>
+      }
+    </dl>
+    @if (legacyOutdated()){
+      <p role="alert" class="cf-workspace-note">O guia textual teve nova revisão depois do PD.
+        O documento salvo mantém sua versão anterior; confira-o antes de editar.</p>
+    }
+    @if (target.monitoringDependency?.outdated){
+      <p role="alert" class="cf-workspace-note">O manifesto MR vinculado ao PD ficou obsoleto.
+        É necessário reconstruir a cadeia de suporte antes de qualquer aprovação.</p>
+    }
+  } @else {
+    <p>A seção ainda não está disponível para esta metodologia ou para esta conta.
+      Não foi criada uma seção artificial.</p>
+  }
+  @if (guide;as current){
+    <h5>Dados tipados que poderão subsidiar o documento</h5>
+    <p class="cf-workspace-helper">Os campos abaixo são declarações da edição {{current.edition}}.
+      As versões de PD atuais usam o guia textual legado. <strong>Estas respostas tipadas
+      ainda não estão inseridas automaticamente na versão do PD.</strong></p>
+    <dl class="cf-tech-capabilities">
+      @for (entry of entries();track entry.id){
+        <div><dt>{{entry.label}} @if (entry.unit){({{entry.unit}})}</dt>
+          <dd>{{entry.value}} · Declaração, aguardando rastreio ao bloco e prova</dd></div>
+      } @empty {
+        <div><dt>Sem dados tipados</dt><dd>Inicie o formulário da etapa correspondente.</dd></div>
+      }
+    </dl>
+    @for (missing of current.missing;track missing){
+      <p class="cf-workspace-note">Campo pendente: {{missing}}</p>
+    }
+  }
+  <p class="cf-workspace-note">Status separado:
+    preenchimento de formulário ≠ evidência admitida ≠ parecer interno ≠ documento pronto.
+    Nenhuma linha acima concede validação Verra/VVB.</p>
+  @if (canViewPd&&section){
+    <button class="cf-workspace-primary" type="button" (click)="openDocument.emit(kind)">
+      Abrir editor e histórico da seção correspondente</button>
+  }
+</section>
