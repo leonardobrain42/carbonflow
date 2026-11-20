@@ -43,3 +43,60 @@ O formulário fica **Monitoramento → MR → EFel → caderno VT0011 → Simple
 Oráculo **inteiramente sintético**: cada um de 2022–2026 tem 1.000 MWh de geração de rede e 300 MWh LCMR (30%). Duas usinas não LCMR com 400 + 300 MWh; combustíveis com 20 + 40 tCO₂ total; OM ilustrativa = 60/700 = 0,085714285714285714 tCO₂/MWh. Não é fator do SIN nem dado MCTI/ONS. Testes da lógica de LCMR comprovam divergência possível entre Eq1 e Eq2 e impedem o caso ≥50%; JUnit/Quarkus garantem série, idempotência, multi-tenant, FK de origem, revisão e STALE após MR v2, sem alterar o piloto `PIL-SYN`.
 
 **Pendente #96/#97/#98:** autenticar os dados de usinas e combustíveis, comprovar abrangência e classificação LCMR, regras de importação/interconexão e exceções da TOOL07/VT0011, inclusão de fontes em diferentes unidades e combustíveis, dados de 3 anos ex ante e seleção de métodos alternativos, CO₂ versus CO₂e horário, avaliação independente substantiva, admissão normativa por finalidade e operação real do motor E8. Sem esses passos não há fator admissível nem resultado de redução de emissões.
+
+
+## CF-TRUST-001 #128 — Memória auditável por ano, usina e combustível (fatia TR-01)
+
+O retorno da API `OpenTool07SimpleOmRuns.View.preview` acrescenta **sem alterar
+as equações existentes** duas projeções derivadas exclusivamente dos insumos
+imobilizados em V62:
+
+- `shareCalculations[]`: ano, geração total (MWh), geração LCMR (MWh) e
+  razão anual LCMR/total arredondada para até 24 casas decimais pelo algoritmo.
+  As cinco parcelas alimentam a Eq. 1; a Eq. 2 utiliza os totais quinquenais
+  já armazenados. Isso explica a diferença entre média anual e razão agregada.
+- `plantCalculations[].fuelCalculations[]`: código do combustível,
+  FC (toneladas), NCV (GJ/t), EF (tCO₂/GJ), contribuição `FC×NCV×EF`
+  (tCO₂), referência à Eq. 4 e SHA-256 **declarado** da fonte. Os
+  combustíveis são ordenados por código para replay determinístico;
+  emissões da unidade e fator unitário continuam na projeção preexistente.
+
+Valores representados por `NUMERIC(30,12)` no PostgreSQL são normalizados
+**somente na apresentação**, removendo zeros finais não significativos; nunca
+se altera um dígito material ou se preenche valores ausentes. A validação
+contra excesso de precisão significativa permanece. A tabela e a memória
+JSON exibem os mesmos resultados do motor Java; o Angular **não recalcula**.
+
+### Consulta individual e acesso
+
+`GET /v1/projects/{project}/technical/open-monitoring/dossiers/{period}/tool07-simple-om-a1/{workbook}/runs/{runId}`
+
+A rota recupera inclusive versões fora do limite de 20 resultados da listagem,
+sob o mesmo `DynamicProjectScope` e ação `VIEW_OPEN_SIMPLE_OM_A1`.
+Verifica **projeto, período, caderno e ID**; recursos inexistentes/de outro
+escopo retornam 404; resposta JSON usa `Cache-Control: private, no-store`.
+A tela oferece acesso à memória JSON da versão selecionada e alerta sobre
+`STALE_NOT_ADMITTED` preservando o conteúdo histórico.
+
+A origem de cada SHA, inventário e série quinquenal permanece uma
+**declaração**, não uma verificação criptográfica do arquivo original, nem
+decisão de admissão técnica. O resultado continua marcado `usableForE8=false`
+e não representa EFel horário, tCO₂e ou reduções de emissões/VCUs. O futuro
+explorador #128 deve ligar essas referências ao ledger #33/#92 e ao E8 #97
+**somente quando esses dados forem materialmente admitidos**, com permissão e
+licença de acesso. Não se criou catálogo ou segundo motor de cálculo.
+
+### Cobertura de QA
+
+- JUnit: cinco participações anuais, soma de duas linhas de combustível,
+  unidades e referência de equação, ordem determinística, SHA declarada,
+  equivalência antes/depois do roundtrip `NUMERIC(30,12)`.
+- Quarkus/PostgreSQL: GET individual por projeto/caderno/versão, negação
+  OP e usuário externo, resultado estável no armazenamento, imutabilidade
+  de valores históricos após revisão de MR, `STALE` com acesso autorizado.
+- Angular/CI: templates compilam e continuam a usar as mesmas rotas da
+  jornada de monitoramento. Nenhuma mudança de layout do menu principal.
+
+**Não conclui #128:** matriz completa de rastreabilidade ao PD, seleção
+de fontes admissíveis, motor E8 real, export documental e verificação normativa
+continuam nas issues #33/#43/#92/#97/#122.

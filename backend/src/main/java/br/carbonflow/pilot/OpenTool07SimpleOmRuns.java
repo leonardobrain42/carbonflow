@@ -77,6 +77,21 @@ class OpenTool07SimpleOmRuns {
         });
     }
 
+    /** Stable read-only route for a historical run beyond the recent-list limit. */
+    View detail(String cookie,String project,String period,UUID workbookId,UUID runId) {
+        return scope.read(cookie,project,"VIEW_OPEN_SIMPLE_OM_A1",(c,ctx)->{
+            String code=OpenMonitoringDossiers.code(period);
+            Workbook workbook=workbook(c,project,workbookId);
+            if(workbook==null||!code.equals(workbook.period()))throw unavailable();
+            Stored stored=first(c,STORED_SQL+"""
+                WHERE project_id=? AND period_code=? AND workbook_id=? AND id=?
+                """,OpenTool07SimpleOmRuns::stored,
+                project,code,workbookId,runId);
+            if(stored==null)throw unavailable();
+            return view(c,project,stored);
+        });
+    }
+
     View submit(String cookie,String project,String period,UUID workbookId,
                 String match,String key,Input submitted) {
         return scope.write(cookie,project,"PREPARE_OPEN_SIMPLE_OM_A1",(c,ctx)->{

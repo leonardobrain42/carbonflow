@@ -8,13 +8,18 @@ type Fuel = {fuelCode:string;consumptionTonnes:string;ncvGjPerTonne:string;
   efTco2PerGj:string;sourceSha256:string};
 type Plant = {plantCode:string;netGenerationMwh:string;fuels:Fuel[]};
 type Share = {year:number;totalGridMwh:string;lcmrMwh:string};
+type ShareCalculation = Share & {annualShare:string};
+type FuelCalculation = {fuelCode:string;consumptionTonnes:string;
+  ncvGjPerTonne:string;efTco2PerGj:string;emissionsTco2:string;
+  declaredSourceSha256:string;equationRef:string};
 type Preview = {reference:string;approach:string;dataYear:number;
   shareApproach1:string;shareApproach2:string;selectedShare:string;
   fiveYearLcmrScreenPassed:boolean;includedGenerationMwh:string;
   totalEmissionsTco2:string;illustrativeOmTco2PerMwh:string;
   illustrativeOmTco2PerKwh:string;plantCalculations:{
     plantCode:string;netGenerationMwh:string;emissionsTco2:string;
-    efTco2PerMwh:string}[];gates:string[];usableForE8:boolean};
+    efTco2PerMwh:string;fuelCalculations:FuelCalculation[]}[];
+  shareCalculations:ShareCalculation[];gates:string[];usableForE8:boolean};
 type Run = {id:string;period:string;workbookId:string;
   workbookReviewVersion:number;version:number;state:string;stale:boolean;
   usableForE8:boolean;contentSha256:string;createdAt:string;
@@ -70,6 +75,11 @@ export class OpenTool07SimpleOmComponent implements OnChanges {
       '/technical/open-monitoring/dossiers/'+encodeURIComponent(this.workbook.period)+
       '/tool07-simple-om-a1/'+encodeURIComponent(this.workbook.id)+'/runs';
   }
+  auditUrl(runId:string) {
+    // The server checks the same project/role scope as the run list.
+    return this.root()+'/'+encodeURIComponent(runId);
+  }
+
   async reload(){
     if(!this.canView||!this.workbook?.id)return;
     const project=this.projectId,source=this.workbook.id;

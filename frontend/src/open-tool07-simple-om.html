@@ -45,12 +45,16 @@
       <p>Share LCMR (média das participações): {{run.preview.shareApproach1}}.
         Share LCMR (razão das somas): {{run.preview.shareApproach2}}.
         Selecionada: {{run.preview.approach}}.</p>
+      <p><strong>Equações aplicadas:</strong> {{run.preview.reference}}.
+        O cálculo é preliminar e usa apenas as fontes declaradas.</p>
       <table>
-        <thead><tr><th>Ano</th><th>Total rede (MWh)</th><th>LCMR (MWh)</th></tr></thead>
+        <caption>TOOL07 Eq. 1/2 · participação LCMR anual, antes da agregação quinquenal.</caption>
+        <thead><tr><th scope="col">Ano</th><th scope="col">Total rede (MWh)</th>
+          <th scope="col">LCMR (MWh)</th><th scope="col">LCMR / total</th></tr></thead>
         <tbody>
-          @for(y of run.shares;track y.year) {
+          @for(y of run.preview.shareCalculations;track y.year) {
             <tr><td>{{y.year}}</td><td>{{y.totalGridMwh}}</td>
-              <td>{{y.lcmrMwh}}</td></tr>
+              <td>{{y.lcmrMwh}}</td><td>{{y.annualShare}}</td></tr>
           }
         </tbody>
       </table>
@@ -61,6 +65,35 @@
           @for(p of run.preview.plantCalculations;track p.plantCode) {
             <tr><td>{{p.plantCode}}</td><td>{{p.netGenerationMwh}}</td>
               <td>{{p.emissionsTco2}}</td><td>{{p.efTco2PerMwh}}</td></tr>
+          }
+        </tbody>
+      </table>
+      <h5>Memória por combustível e unidade geradora</h5>
+      <p>Cada linha reproduz a multiplicação TOOL07 Eq. 4:
+        <code>FC (t) × NCV (GJ/t) × EF (tCO₂/GJ) = CO₂ (t)</code>.
+        Os resultados das linhas somam as emissões da usina, divididas pela
+        geração líquida na tabela anterior. Os SHA-256 são <strong>declarados</strong>,
+        não uma autenticação da fonte.</p>
+      <table>
+        <caption>Insumos e operações por combustível; sem admissão normativa ou uso E8.</caption>
+        <thead><tr>
+          <th scope="col">Usina</th><th scope="col">Combustível</th>
+          <th scope="col">FC (t)</th><th scope="col">NCV (GJ/t)</th>
+          <th scope="col">EF (tCO₂/GJ)</th><th scope="col">CO₂ (t)</th>
+          <th scope="col">Proveniência</th>
+        </tr></thead>
+        <tbody>
+          @for(p of run.preview.plantCalculations;track p.plantCode) {
+            @for(f of p.fuelCalculations;track f.fuelCode) {
+              <tr>
+                <th scope="row">{{p.plantCode}}</th><td>{{f.fuelCode}}</td>
+                <td>{{f.consumptionTonnes}}</td><td>{{f.ncvGjPerTonne}}</td>
+                <td>{{f.efTco2PerGj}}</td><td>{{f.emissionsTco2}}</td>
+                <td><details><summary>SHA declarada</summary>
+                  <code>{{f.declaredSourceSha256}}</code>
+                </details></td>
+              </tr>
+            }
           }
         </tbody>
       </table>
@@ -75,6 +108,11 @@
       <p>Combustíveis e fatores: {{run.fuelSourceExplanation}}</p>
       <p>Fronteira: {{run.systemBoundaryNote}}</p>
       <p>Importações: {{run.importsExplanation}}</p>
+      <p><a [href]="auditUrl(run.id)" target="_blank" rel="noopener noreferrer">
+        Abrir memória completa em JSON (somente usuário autorizado)
+      </a>. A referência aponta para a versão {{run.version}}, não para a execução
+        mais recente.</p>
+      <h5>Limitações e pendências da apuração</h5>
       @for(gate of run.gates;track gate) { <p>{{gate}}</p> }
       <p>Este cálculo não demonstra origem verdadeira, inclusão das
         unidades requeridas, admissibilidade do método ou equivalência
