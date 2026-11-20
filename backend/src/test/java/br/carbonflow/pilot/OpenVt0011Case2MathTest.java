@@ -43,6 +43,6 @@ class OpenVt0011Case2MathTest {
         assertThrows(IllegalArgumentException.class,
             ()->OpenVt0011Case2Math.illustrate(new BigDecimal("0.1234567890123")));
         assertThrows(IllegalArgumentException.class,
-            ()->OpenVt0011Case2Math.illustrate(new BigDecimal("0.000000000001")));
+            ()->OpenVt0011Case2Math.illustrate(new BigDecimal("0.0000000000001")));
     }
 }
