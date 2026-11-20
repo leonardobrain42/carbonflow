@@ -45,14 +45,14 @@ class OpenE8FleetSelections {
     private record Target(UUID org,String state,String environment) {}
     private record Energy(UUID id,String period,int version,UUID organization,int year,
                           String sha) {}
-    private record Fleet(UUID fleetId,UUID ratingId,int year,int fleetYear,
+    record Fleet(UUID fleetId,UUID ratingId,int year,int fleetYear,
                          String cycle,String fleetSha,String ratingSha,
                          String fleetCoverage,String ratingState,String stockState,
                          String stockKind,String geography,Long denominator,
                          Integer fleetModels,Integer ratingModels,
                          OffsetDateTime fleetPurged,OffsetDateTime ratingPurged,
                          OffsetDateTime ingestionPurged) {}
-    private record Coverage(long stockRows,long ratingRows,long stockTotal,
+    record Coverage(long stockRows,long ratingRows,long stockTotal,
                             long ratingTotal,long mismatched,long acceptedPairs) {}
     private record Stored(UUID id,String project,String period,int version,
                           UUID organization,UUID energy,UUID fleet,UUID rating,
@@ -270,7 +270,7 @@ class OpenE8FleetSelections {
             saved.created(),List.copyOf(gates));
     }
 
-    private static void check(Fleet f,int year,Coverage coverage){
+    static void check(Fleet f,int year,Coverage coverage){
         if(!"STOCK_IN_CIRCULATION".equals(f.stockKind()) ||
             !"BR".equals(f.geography()) ||
             !"PREPARATORY".equals(f.stockState()) ||
