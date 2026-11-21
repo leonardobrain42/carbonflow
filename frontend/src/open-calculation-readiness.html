@@ -63,7 +63,7 @@
           <li>
             <strong>{{ preparatoryTitle(gate) }} · {{ stateLabel(gate.state) }}</strong>
             <p>{{gate.reason}}</p>
-            <small>Próxima ação: {{gate.nextAction}} · Responsável: {{gate.owner}}</small>
+            <small>Próxima ação: {{gate.nextAction}} · Papel previsto: {{gate.owner}}</small>
           </li>
         }
       </ul>
@@ -75,9 +75,10 @@
     <ul class="cf-tech-gates">
       @for (gate of otherGates(); track gate.code) {
         <li>
-          <strong>{{ gate.code }} · {{ stateLabel(gate.state) }}</strong>
+          <strong>{{ gateTitle(gate) }} · {{ stateLabel(gate.state) }}</strong>
           <p>{{ gate.reason }}</p>
-          <small>{{ gate.nextAction }} · Responsável: {{ gate.owner }}</small>
+          <small>{{ gate.nextAction }} · Papel previsto: {{ gate.owner }}</small>
+          <small>Referência: {{ gate.code }}</small>
         </li>
       }
     </ul>
@@ -110,9 +111,10 @@
       <ul class="cf-tech-gates">
         @for (gate of run.gates; track gate.code) {
           <li>
-            <strong>{{gate.code}} · {{stateLabel(gate.state)}}</strong>
+            <strong>{{gateTitle(gate)}} · {{stateLabel(gate.state)}}</strong>
             <p>{{gate.reason}}</p>
-            <small>{{gate.nextAction}} · Responsável: {{gate.owner}}</small>
+            <small>{{gate.nextAction}} · Papel previsto: {{gate.owner}}</small>
+            <small>Referência: {{gate.code}}</small>
           </li>
         }
       </ul>

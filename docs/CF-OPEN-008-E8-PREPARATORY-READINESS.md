@@ -33,7 +33,7 @@ Não existem transições automáticas para `ADMITTED`. A mudança de V64 para o
 
 ## UX
 
-Na seção **Pré-cálculo de emissões → Entradas já preparadas no projeto** a pessoa recebe duas linhas por período para energia/fator e frota/ratings. Cada linha mostra a situação, o motivo e a ação; demais requisitos normativos continuam no grupo **Outras dependências e próximas ações**. A fonte oficial da VM0038 permanece no painel de equações, e os dados licenciados ficam exclusivamente nos fluxos de origem com permissões próprias.
+Na seção **Prontidão para quantificação → Entradas já preparadas no projeto** a pessoa recebe duas linhas por período para energia/fator e frota/ratings. Cada linha mostra a situação, o motivo e a ação. As demais dependências usam o nome da pendência e o papel previsto; o código estável fica na referência. A fonte oficial da VM0038 permanece no painel de equações, e os dados licenciados ficam exclusivamente nos fluxos de origem com permissões próprias.
 
 ## Aceite de testes
 
