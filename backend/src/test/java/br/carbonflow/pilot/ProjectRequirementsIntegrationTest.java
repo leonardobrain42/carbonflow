@@ -138,6 +138,67 @@ class ProjectRequirementsIntegrationTest {
             """, r -> r.getLong(1), calculator.id(), AccessSecrets.digest(id))) >= 1L);
     }
 
+    @Test
+    void journeyShowsTheSameRequirementAndAcceptsItsDestination() throws Exception {
+        Actor owner = actor(), preparer = actor(), calculator = actor();
+        UUID org = organization(owner.id());
+        String id = project(owner, org);
+        assertEquals(200, call("PUT", "/v1/projects/" + id + "/technical/intake", owner.cookie(),
+            key(), "\"0\"", """
+                {"activity":"Recarga aberta","country":"BR","candidateMethodology":"VM0038"}
+                """).statusCode());
+        JsonNode requirements = json(call("GET", "/v1/projects/" + id + "/technical/requirements", owner.cookie()));
+        JsonNode journey = json(call("GET", "/v1/projects/" + id + "/journey", owner.cookie()));
+        JsonNode fromRequirements = finding(requirements, "NO_DECLARATION");
+        JsonNode fromJourney = finding(journey.path("diagnosis"), "NO_DECLARATION");
+        assertEquals(fromRequirements.path("state").asText(), fromJourney.path("state").asText());
+        assertEquals(fromRequirements.path("group").asText(), fromJourney.path("group").asText());
+        assertEquals("analisar", fromJourney.at("/destination/screen").asText());
+        assertEquals("MINE", fromJourney.path("group").asText());
+        assertTrue(journey.path("progress").path("visible").asInt() > 0);
+        assertFalse(journey.path("progress").toString().contains("NO_DECLARATION"));
+        String destination = """
+            {"area":"technical","screen":"analisar","guide":null,"step":null}
+            """;
+        assertEquals(200, call("PUT", "/v1/projects/" + id + "/journey/resume",
+            owner.cookie(), null, null, destination).statusCode());
+        assertEquals("analisar", json(call("GET", "/v1/projects/" + id + "/journey", owner.cookie()))
+            .at("/resume/screen").asText());
+        assertEquals(422, call("PUT", "/v1/projects/" + id + "/journey/resume", owner.cookie(), null, null, """
+            {"area":"technical","screen":"analisar","guide":null,"step":"parecer"}
+            """).statusCode());
+
+        database.transaction(c -> {
+            update(c, """
+                INSERT INTO app_project_collaborator_grant
+                  (id,project_id,organization_id,environment,identity_id,granted_by,
+                   role,activities,valid_until)
+                VALUES (?, ?, ?, 'SANDBOX', ?, ?, 'PREP', ARRAY['INTAKE']::text[],
+                   statement_timestamp()+interval '3 days')
+                """, UUID.randomUUID(), id, org, preparer.id(), owner.id());
+            update(c, """
+                INSERT INTO app_project_collaborator_grant
+                  (id,project_id,organization_id,environment,identity_id,granted_by,
+                   role,activities,valid_until)
+                VALUES (?, ?, ?, 'SANDBOX', ?, ?, 'PREP', ARRAY['CALCULATION']::text[],
+                   statement_timestamp()+interval '3 days')
+                """, UUID.randomUUID(), id, org, calculator.id(), owner.id());
+            return null;
+        });
+        assertEquals(200, call("PUT", "/v1/projects/" + id + "/journey/resume",
+            preparer.cookie(), null, null, destination).statusCode());
+        JsonNode preparerDiagnosis = json(call("GET", "/v1/projects/" + id + "/journey", preparer.cookie()))
+            .path("diagnosis");
+        assertFalse(preparerDiagnosis.findValuesAsText("requirementId").contains("NO_DECLARATION"));
+        assertEquals(422, call("PUT", "/v1/projects/" + id + "/journey/resume",
+            calculator.cookie(), null, null, destination).statusCode());
+        JsonNode calculatorDiagnosis = json(call("GET", "/v1/projects/" + id + "/journey", calculator.cookie()))
+            .path("diagnosis");
+        assertFalse(calculatorDiagnosis.findValuesAsText("requirementId").contains("NO_DECLARATION"));
+        assertFalse(calculatorDiagnosis.findValuesAsText("requirementId").contains("DRIVER_DISCLOSURE"));
+        assertEquals("NOT_INCIDENT", finding(calculatorDiagnosis, "ED_EC").path("state").asText());
+    }
+
     private static JsonNode finding(JsonNode view, String id) {
         for (var item : view.path("requirements")) {
             if (id.equals(item.path("requirementId").asText())) return item;

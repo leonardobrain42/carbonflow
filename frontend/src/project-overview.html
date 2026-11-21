@@ -101,6 +101,39 @@
           </section>
         </div>
 
+        @if (project.diagnosis; as diagnosis) {
+          <section class="cf-workspace-card" aria-labelledby="overview-diagnosis">
+            <p class="cf-overview-eyebrow">MESMA LISTA DE ANALISAR</p>
+            <h2 id="overview-diagnosis">Pendências do diagnóstico</h2>
+            <p>{{diagnosis.limits}}</p>
+            @if (diagnosisActions().length) {
+              <ul class="cf-overview-alerts">
+                @for (item of diagnosisActions(); track item.requirementId) {
+                  <li>
+                    <div>
+                      <strong>{{item.situation}}</strong>
+                      <p>{{item.reason}}</p>
+                      <p>Próximo passo: {{item.nextAction}}</p>
+                    </div>
+                    @if (item.destination && item.actionLabel) {
+                      <a class="cf-workspace-link" [routerLink]="['/workspace/projects', project.projectId, 'technical']"
+                        [queryParams]="{secao:item.destination.screen, etapa:item.destination.step}">{{item.actionLabel}}</a>
+                    }
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p>Nenhuma pendência desta conta está pronta para registro.
+                O que depende da equipe ou está fora do recorte continua na tela Analisar.</p>
+            }
+            <p class="cf-workspace-helper">{{diagnosis.summary.mine}} ação(ões) desta conta
+              · {{diagnosis.summary.awaitingSource}} aguardando fontes
+              · {{diagnosis.summary.awaitingReview}} aguardando revisão
+              · {{diagnosis.summary.outOfScope}} fora do recorte.
+              Estes números não entram no percentual de tarefas.</p>
+          </section>
+        }
+
         <section class="cf-workspace-card cf-overview-attention" aria-labelledby="overview-attention">
           <div class="cf-overview-section-heading">
             <div>

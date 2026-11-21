@@ -29,6 +29,23 @@ interface Progress {
   inReview:number;
   actionable:number;
 }
+interface DiagnosisItem {
+  requirementId:string;
+  situation:string;
+  reason:string;
+  nextAction:string;
+  actionLabel:string|null;
+  destination:{area:string;screen:string;step:string|null}|null;
+  clientAction:boolean;
+  admitsE8:boolean;
+}
+interface Diagnosis {
+  limits:string;
+  canRunE8:boolean;
+  canIssueVcu:boolean;
+  summary:{mine:number;awaitingSource:number;awaitingReview:number;outOfScope:number};
+  requirements:DiagnosisItem[];
+}
 interface Journey {
   projectId:string;
   title:string;
@@ -42,6 +59,7 @@ interface Journey {
   progress?:Progress;
   resume?:Checkpoint|null;
   tasks:Task[];
+  diagnosis?:Diagnosis|null;
 }
 type LoadState =
   | {kind:'loading'}
@@ -91,6 +109,11 @@ export class ProjectOverviewComponent {
   readonly next=computed(()=>{
     const journey=this.journey();
     return journey?.tasks.find(task=>task.id===journey.nextTask)??null;
+  });
+  readonly diagnosisActions=computed(()=>{
+    const diagnosis=this.journey()?.diagnosis;
+    if(!diagnosis||diagnosis.canRunE8||diagnosis.canIssueVcu)return [];
+    return diagnosis.requirements.filter(item=>item.clientAction&&item.destination&&!item.admitsE8).slice(0,3);
   });
   readonly recommended=computed(()=>{
     const j=this.journey();if(!j)return [];

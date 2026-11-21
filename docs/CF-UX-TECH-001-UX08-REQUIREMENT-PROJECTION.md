@@ -33,9 +33,12 @@ Metodologia diferente de VM0038 recebe um único limite explícito. Os requisito
 
 Em **Analisar**, o painel fica antes da declaração. O detalhe das equações saiu desta seção e permanece em **Quantificação**, com o título **Prontidão para quantificação**. Nenhuma fórmula é calculada no Angular. O painel recusa uma resposta que diga que o cálculo ou o crédito está liberado.
 
+## Visão geral
+
+`GET /journey` inclui o mesmo objeto `diagnosis` do endpoint de requisitos. O percentual de tarefas não soma esses itens. A primeira ação que a conta pode registrar aponta para a mesma tela, e `PUT /journey/resume` aceita esse destino. `analisar` fica disponível para quem tem a declaração ou as informações iniciais. Um passo inventado nesse destino continua recusado. Quem só vê o cálculo não recebe a pendência da declaração nem consegue gravar a retomada em Analisar.
+
 ## O que continua fora
 
-- UX-08C: a mesma tarefa na visão geral e a validação do checkpoint contra estes identificadores.
 - UX-08D: incidência vinda dos avaliadores #93/#99/#92/#98/#97, com `RECHECK_REQUIRED` por dependência real de prova.
 - UX-08E: homologação #101, ensaio moderado e auditoria de acessibilidade além deste roteiro automatizado.
 
