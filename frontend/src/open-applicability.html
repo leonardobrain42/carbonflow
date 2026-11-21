@@ -96,14 +96,38 @@
         </fieldset>
         <fieldset [disabled]="busy()">
           <legend>Quem possui os direitos sobre as reduções?</legend>
-          <p>Contrato com o proprietário não substitui a prova de divulgação aos motoristas.</p>
-          <label for="cf-open-owner">Proprietário do sistema de recarga</label>
-          <input id="cf-open-owner" maxlength="200" [value]="form().chargingOwner ?? ''"
-            (input)="update('chargingOwner',$any($event.target).value)"/>
-          <label for="cf-open-contract">Referência verificável do contrato de direitos</label>
-          <input id="cf-open-contract" maxlength="300" [value]="form().carbonRightsContractRef ?? ''"
-            (input)="update('carbonRightsContractRef',$any($event.target).value)"
-            placeholder="ID de evidência/documento ou contrato; não cole texto protegido"/>
+          <p>Contrato com o proprietário não substitui a prova de divulgação aos motoristas.
+            Registrar o titular não cria PP jurídico e não concede poder de representante.</p>
+          <label for="cf-rights-kind">Tipo do titular</label>
+          <select id="cf-rights-kind" [value]="partyDraft().kind"
+            (change)="partyDraft.update(current=>({...current,kind:$any($event.target).value}))">
+            <option value="ORGANIZATION">Organização</option>
+            <option value="PERSON">Pessoa</option>
+          </select>
+          <label for="cf-rights-name">Nome do titular neste projeto</label>
+          <input id="cf-rights-name" maxlength="200" [value]="partyDraft().displayName"
+            (input)="partyDraft.update(current=>({...current,displayName:$any($event.target).value}))"/>
+          <button type="button" (click)="registerParty()" [disabled]="busy()">Registrar titular</button>
+          <label for="cf-open-owner">Titular registrado</label>
+          <select id="cf-open-owner" [value]="form().rightsPartyCode ?? ''"
+            (change)="chooseParty($any($event.target).value)">
+            <option value="">Ainda não escolhido</option>
+            @for (party of parties(); track party.code){
+              <option [value]="party.code">{{party.displayName}}</option>
+            }
+          </select>
+          <label for="cf-rights-label">Rótulo do contrato</label>
+          <input id="cf-rights-label" maxlength="300" [value]="contractLabel()"
+            (input)="contractLabel.set($any($event.target).value)"/>
+          <button type="button" (click)="registerContract()" [disabled]="busy()">Registrar contrato</button>
+          <label for="cf-open-contract">Contrato registrado</label>
+          <select id="cf-open-contract" [value]="form().rightsContractCode ?? ''"
+            (change)="update('rightsContractCode',$any($event.target).value)">
+            <option value="">Ainda não escolhido</option>
+            @for (contract of contractsForParty(); track contract.code){
+              <option [value]="contract.code">{{contract.label}}</option>
+            }
+          </select>
           <label for="cf-open-channel">Como a informação chega aos motoristas?</label>
           <select id="cf-open-channel" [value]="form().driverDisclosureChannel ?? 'NOT_DECLARED'"
             (change)="update('driverDisclosureChannel',$any($event.target).value)">

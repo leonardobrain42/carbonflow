@@ -57,6 +57,7 @@ class OpenApplicabilityIntegrationTest {
         assertEquals(1,saved.path("version").asInt());
         assertEquals("OPEN_CANDIDATE",saved.at("/readiness/network").asText());
         assertEquals("EVIDENCE_PENDING",saved.at("/readiness/rights").asText());
+        assertTrue(saved.at("/readiness/findings").toString().contains("nome digitado"));
         assertEquals("PENDING_NORMATIVE_REVIEW",saved.at("/readiness/norm").asText());
         assertFalse(saved.at("/readiness/canUseForE8").asBoolean());
         assertTrue(saved.at("/readiness/findings").toString().contains("DRIVER_DISCLOSURE"));
@@ -70,11 +71,20 @@ class OpenApplicabilityIntegrationTest {
         assertEquals(428,call("PUT",path,owner.cookie(),UUID.randomUUID().toString(),
             null,draft).statusCode());
 
+        String rights="/v1/projects/"+id+"/technical/open-rights";
+        var party=call("PUT",rights+"/parties/HOLDER-1",owner.cookie(),UUID.randomUUID().toString(),"\"0\"",
+            "{\"kind\":\"ORGANIZATION\",\"displayName\":\"Titular do carregador\"}");
+        assertEquals(200,party.statusCode(),party.body());
+        assertFalse(json(party).path("createsLegalPower").asBoolean());
+        assertFalse(json(party).path("admitsRights").asBoolean());
+        assertEquals(200,call("PUT",rights+"/contracts/CONTRACT-001",owner.cookie(),
+            UUID.randomUUID().toString(),"\"0\"",
+            "{\"partyCode\":\"HOLDER-1\",\"label\":\"Contrato de direitos\"}").statusCode());
         String withDisclosure="""
                 {"unrestrictedBevAccess":true,"restrictedToIdentifiedVehicles":false,
                  "privateLand":true,"chargerType":"DCFC","propulsion":"BEV",
                  "electricitySource":"SIN","associatedInfrastructure":false,"v2g":false,
-                 "chargingOwner":"Titular do carregador","carbonRightsContractRef":"CONTRACT-001",
+                 "rightsPartyCode":"HOLDER-1","rightsContractCode":"CONTRACT-001",
                  "driverDisclosureChannel":"ON_CHARGER","driverDisclosureEvidenceRef":"PHOTO-2027-01",
                  "driverDisclosureEffectiveOn":"2027-01-15",
                  "doubleClaimingCheck":"NO_OVERLAP_DECLARED",
@@ -88,6 +98,12 @@ class OpenApplicabilityIntegrationTest {
         assertFalse(improved.at("/readiness/canUseForE8").asBoolean());
         assertTrue(improved.at("/readiness/findings").toString().contains("ATTACHED_NOT_ADMITTED"));
         assertTrue(improved.at("/readiness/findings").toString().contains("não cria PP jurídico"));
+        assertEquals(0,database.read(c->first(c,
+            "SELECT count(*) FROM app_project_authority_request_revision WHERE project_id=?",
+            r->r.getInt(1),id)).intValue());
+        assertEquals(0,database.read(c->first(c,
+            "SELECT count(*) FROM app_project_collaborator_grant WHERE project_id=?",
+            r->r.getInt(1),id)).intValue());
         assertFalse(improved.at("/readiness/findings").toString().contains("PHOTO-2027-01"));
 
         // Reclassify without VIN: private land alone does not make network CLOSED.

@@ -95,6 +95,21 @@ class ProjectRequirementProjectionTest {
         assertEquals("MINE", item(partial, "DRIVER_DISCLOSURE").group());
         assertEquals("ATTACHED_NOT_ADMITTED", item(partial, "OWNER_CONTRACT").state());
         assertNotEquals("MINE", item(partial, "OWNER_CONTRACT").group());
+
+        var named = OpenApplicability.evaluate(new OpenApplicability.Input(true, false, true,
+            "DCFC", "BEV", "SIN", false, false, "Titular digitado", "CONTRACT-LIVRE",
+            "ON_CHARGER", "PHOTO-2027", LocalDate.parse("2027-01-15"), "NO_OVERLAP_DECLARED",
+            LocalDate.parse("2027-02-01"), null), false);
+        assertEquals("NEEDS_EVIDENCE", named.findings().stream()
+            .filter(finding -> "OWNER_CONTRACT".equals(finding.code())).findFirst().orElseThrow().state());
+        assertTrue(named.findings().stream().anyMatch(finding -> "OWNER_CONTRACT".equals(finding.code())
+            && finding.text().contains("nome digitado")
+            && finding.text().contains("não cria PP jurídico")));
+        assertFalse(named.canUseForE8());
+        var namedView = project(true, true, named, preflight(false));
+        assertEquals("MINE", item(namedView, "OWNER_CONTRACT").group());
+        assertTrue(item(namedView, "OWNER_CONTRACT").clientAction());
+        assertFalse(namedView.canRunE8());
     }
 
     @Test
@@ -434,14 +449,15 @@ class ProjectRequirementProjectionTest {
     private static OpenApplicability.Readiness disclosureMissing(boolean stale) {
         return OpenApplicability.evaluate(new OpenApplicability.Input(true, false, true,
             "DCFC", "BEV", "SIN", false, false, "Titular secreto", "CONTRACT-001",
-            "NOT_DECLARED", null, null, "UNKNOWN", LocalDate.parse("2027-02-01"), null), stale);
+            "NOT_DECLARED", null, null, "UNKNOWN", LocalDate.parse("2027-02-01"), null,
+            "PARTY-1", "CONTRACT-1"), stale);
     }
 
     private static OpenApplicability.Readiness disclosurePresent() {
         return OpenApplicability.evaluate(new OpenApplicability.Input(true, false, true,
             "DCFC", "BEV", "SIN", false, false, "Titular", "CONTRACT-001", "ON_CHARGER",
             "PHOTO-2027", LocalDate.parse("2027-01-15"), "NO_OVERLAP_DECLARED",
-            LocalDate.parse("2027-02-01"), null), false);
+            LocalDate.parse("2027-02-01"), null, "PARTY-1", "CONTRACT-1"), false);
     }
 
     private static OpenCalculationPreflight.Result preflight(boolean stale) {

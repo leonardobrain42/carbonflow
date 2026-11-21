@@ -29,7 +29,19 @@ class OpenApplicability {
         Boolean associatedInfrastructure,Boolean v2g,String chargingOwner,
         String carbonRightsContractRef,String driverDisclosureChannel,String driverDisclosureEvidenceRef,
         LocalDate driverDisclosureEffectiveOn,String doubleClaimingCheck,LocalDate effectiveFrom,
-        String explanation) {}
+        String explanation,String rightsPartyCode,String rightsContractCode) {
+        /** A typed name without a project record is the same as an empty holder. */
+        Input(Boolean unrestrictedBevAccess,Boolean restrictedToIdentifiedVehicles,Boolean privateLand,
+            String chargerType,String propulsion,String electricitySource,Boolean associatedInfrastructure,
+            Boolean v2g,String chargingOwner,String carbonRightsContractRef,String driverDisclosureChannel,
+            String driverDisclosureEvidenceRef,LocalDate driverDisclosureEffectiveOn,String doubleClaimingCheck,
+            LocalDate effectiveFrom,String explanation) {
+            this(unrestrictedBevAccess,restrictedToIdentifiedVehicles,privateLand,chargerType,propulsion,
+                electricitySource,associatedInfrastructure,v2g,chargingOwner,carbonRightsContractRef,
+                driverDisclosureChannel,driverDisclosureEvidenceRef,driverDisclosureEffectiveOn,
+                doubleClaimingCheck,effectiveFrom,explanation,null,null);
+        }
+    }
     record Revision(int version,int triageVersion,UUID authorId,Input answers,OffsetDateTime recordedAt) {}
     record Finding(String code,String state,String text) {}
     record Readiness(String category,String network,String rights,String norm,
@@ -69,6 +81,14 @@ class OpenApplicability {
             if(expected!=old.version())
                 throw new PilotProblem(412,"VERSAO_DIVERGENTE","If-Match",RULE,
                     "O registro mudou. Confira a versão antes de salvar.");
+            String owner=input.chargingOwner(),contract=input.carbonRightsContractRef();
+            if(input.rightsPartyCode()!=null) {
+                if(!OpenProjectRights.linked(connection,context.id(),
+                        input.rightsPartyCode(),input.rightsContractCode()))
+                    throw invalid("rightsContractCode");
+                owner=OpenProjectRights.holderName(connection,context.id(),input.rightsPartyCode());
+                contract=input.rightsContractCode();
+            }
             int next=old.version()+1;
             update(connection, """
                 INSERT INTO app_project_open_applicability_revision
@@ -77,14 +97,16 @@ class OpenApplicability {
                    charger_type,propulsion,electricity_source,associated_infrastructure,v2g,
                    charging_owner,carbon_rights_contract_ref,driver_disclosure_channel,
                    driver_disclosure_evidence_ref,driver_disclosure_effective_on,
-                   double_claiming_check,effective_from,explanation)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                   double_claiming_check,effective_from,explanation,
+                   rights_party_code,rights_contract_code)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 """,context.id(),context.organization(),context.environment(),next,old.latestTriageVersion(),
                 context.actor().id(),input.unrestrictedBevAccess(),input.restrictedToIdentifiedVehicles(),
                 input.privateLand(),input.chargerType(),input.propulsion(),input.electricitySource(),
-                input.associatedInfrastructure(),input.v2g(),input.chargingOwner(),
-                input.carbonRightsContractRef(),input.driverDisclosureChannel(),input.driverDisclosureEvidenceRef(),
-                input.driverDisclosureEffectiveOn(),input.doubleClaimingCheck(),input.effectiveFrom(),input.explanation());
+                input.associatedInfrastructure(),input.v2g(),owner,
+                contract,input.driverDisclosureChannel(),input.driverDisclosureEvidenceRef(),
+                input.driverDisclosureEffectiveOn(),input.doubleClaimingCheck(),input.effectiveFrom(),
+                input.explanation(),input.rightsPartyCode(),input.rightsContractCode());
             update(connection, """
                 INSERT INTO app_project_open_applicability_command(actor_id,command_key,project_id,fingerprint,revision)
                 VALUES (?,?,?,?,?)
@@ -108,7 +130,8 @@ class OpenApplicability {
                    electricity_source,associated_infrastructure,v2g,charging_owner,
                    carbon_rights_contract_ref,driver_disclosure_channel,
                    driver_disclosure_evidence_ref,driver_disclosure_effective_on,
-                   double_claiming_check,effective_from,explanation,recorded_at
+                   double_claiming_check,effective_from,explanation,recorded_at,
+                   rights_party_code,rights_contract_code
             FROM app_project_open_applicability_revision WHERE project_id=?
             ORDER BY version DESC LIMIT 1
             """,r->new Revision(r.getInt(1),r.getInt(2),r.getObject(3,UUID.class),
@@ -117,7 +140,8 @@ class OpenApplicability {
                     (Boolean)r.getObject(10),(Boolean)r.getObject(11),r.getString(12),
                     r.getString(13),r.getString(14),r.getString(15),
                     r.getObject(16,LocalDate.class),r.getString(17),
-                    r.getObject(18,LocalDate.class),r.getString(19)),
+                    r.getObject(18,LocalDate.class),r.getString(19),
+                    r.getString(21),r.getString(22)),
                 r.getObject(20,OffsetDateTime.class)),project);
         Readiness ready=evaluate(revision==null?null:revision.answers(),
             revision!=null && revision.triageVersion()!=triage);
@@ -163,12 +187,13 @@ class OpenApplicability {
                 findings.add(new Finding("CONFIGURATION_PENDING","PENDING",
                     "Complete tecnologia, propulsão, rede elétrica e infraestrutura antes de classificar o recorte."));
             }
-            if(data.chargingOwner()==null || data.carbonRightsContractRef()==null) {
+            if(data.rightsPartyCode()==null || data.rightsContractCode()==null) {
                 findings.add(new Finding("OWNER_CONTRACT","NEEDS_EVIDENCE",
-                    "Registre titular do sistema e referência verificável do contrato de direitos."));
+                    "Registre o titular e o contrato neste projeto. "
+                        + "Um nome digitado não cria o registro, não cria PP jurídico e não concede poder de representante."));
             } else {
                 findings.add(new Finding("OWNER_CONTRACT","ATTACHED_NOT_ADMITTED",
-                    "Titular e referência de contrato foram registrados. "
+                    "Titular e contrato foram registrados neste projeto. "
                         + "Essa referência não é prova admitida, não cria PP jurídico e não concede poder de representante."));
             }
             if(data.driverDisclosureChannel()==null ||
@@ -237,12 +262,15 @@ class OpenApplicability {
             throw invalid("doubleClaimingCheck");
         String owner=clean(i.chargingOwner(),200),contract=clean(i.carbonRightsContractRef(),300),
             disclosure=clean(i.driverDisclosureEvidenceRef(),300),note=clean(i.explanation(),1500);
+        String party=i.rightsPartyCode()==null?null:OpenProjectRights.code(i.rightsPartyCode(),"rightsPartyCode");
+        String rightsContract=i.rightsContractCode()==null?null:OpenProjectRights.code(i.rightsContractCode(),"rightsContractCode");
+        if((party==null)!=(rightsContract==null)) throw invalid("rightsContractCode");
         if(i.driverDisclosureEffectiveOn()!=null && i.driverDisclosureEffectiveOn().isAfter(LocalDate.now().plusYears(20)))
             throw invalid("driverDisclosureEffectiveOn");
         return new Input(i.unrestrictedBevAccess(),i.restrictedToIdentifiedVehicles(),i.privateLand(),
             i.chargerType(),i.propulsion(),i.electricitySource(),i.associatedInfrastructure(),i.v2g(),
             owner,contract,i.driverDisclosureChannel(),disclosure,i.driverDisclosureEffectiveOn(),
-            i.doubleClaimingCheck(),i.effectiveFrom(),note==null?"":note);
+            i.doubleClaimingCheck(),i.effectiveFrom(),note==null?"":note,party,rightsContract);
     }
     private static String clean(String value,int max) {
         if(value==null||value.isBlank())return null;

@@ -76,6 +76,20 @@ class ProjectRequirementsIntegrationTest {
             """;
         assertEquals(200, call("PUT", "/v1/projects/" + id + "/technical/open-applicability",
             owner.cookie(), key(), "\"0\"", withoutProof).statusCode());
+        JsonNode named = json(call("GET", path, owner.cookie()));
+        assertEquals("NEEDS_EVIDENCE", finding(named, "OWNER_CONTRACT").path("state").asText());
+        assertEquals("MINE", finding(named, "OWNER_CONTRACT").path("group").asText());
+        assertFalse(named.toString().contains("Titular secreto"));
+        assertEquals(200, call("PUT", "/v1/projects/" + id + "/technical/open-rights/parties/HOLDER-1",
+            owner.cookie(), key(), "\"0\"",
+            "{\"kind\":\"PERSON\",\"displayName\":\"Titular registrado\"}").statusCode());
+        assertEquals(200, call("PUT", "/v1/projects/" + id + "/technical/open-rights/contracts/CONTRACT-001",
+            owner.cookie(), key(), "\"0\"",
+            "{\"partyCode\":\"HOLDER-1\",\"label\":\"Contrato de direitos\"}").statusCode());
+        String recorded = withoutProof.replace("\"effectiveFrom\"",
+            "\"rightsPartyCode\":\"HOLDER-1\",\"rightsContractCode\":\"CONTRACT-001\",\"effectiveFrom\"");
+        assertEquals(200, call("PUT", "/v1/projects/" + id + "/technical/open-applicability",
+            owner.cookie(), key(), "\"1\"", recorded).statusCode());
         JsonNode gaps = json(call("GET", path, owner.cookie()));
         assertEquals("NEEDS_EVIDENCE", finding(gaps, "DRIVER_DISCLOSURE").path("state").asText());
         assertEquals("ATTACHED_NOT_ADMITTED", finding(gaps, "OWNER_CONTRACT").path("state").asText());
@@ -86,12 +100,12 @@ class ProjectRequirementsIntegrationTest {
         assertTrue(finding(gaps, "MARKET_ROUTE").path("reason").asText().contains("Não é uma rota de adicionalidade"));
         assertFalse(gaps.findValuesAsText("requirementId").contains("NO_DECLARATION"));
 
-        String withProof = withoutProof.replace("\"NOT_DECLARED\"", "\"ON_CHARGER\"")
+        String withProof = recorded.replace("\"NOT_DECLARED\"", "\"ON_CHARGER\"")
             .replace("\"UNKNOWN\"", "\"NO_OVERLAP_DECLARED\"")
             .replace("\"effectiveFrom\"",
                 "\"driverDisclosureEvidenceRef\":\"PHOTO-2027\",\"driverDisclosureEffectiveOn\":\"2027-01-15\",\"effectiveFrom\"");
         assertEquals(200, call("PUT", "/v1/projects/" + id + "/technical/open-applicability",
-            owner.cookie(), key(), "\"1\"", withProof).statusCode());
+            owner.cookie(), key(), "\"2\"", withProof).statusCode());
         JsonNode declared = json(call("GET", path, owner.cookie()));
         assertEquals("ATTACHED_NOT_ADMITTED", finding(declared, "DRIVER_DISCLOSURE").path("state").asText());
         assertEquals("ATTACHED_NOT_ADMITTED", finding(declared, "OWNER_CONTRACT").path("state").asText());
@@ -114,11 +128,20 @@ class ProjectRequirementsIntegrationTest {
             key(), "\"0\"", """
                 {"activity":"Recarga aberta","country":"BR","candidateMethodology":"VM0038"}
                 """).statusCode());
+        assertEquals(200, call("PUT", "/v1/projects/" + id + "/technical/open-rights/parties/HOLDER-1",
+            owner.cookie(), key(), "\"0\"",
+            "{\"kind\":\"ORGANIZATION\",\"displayName\":\"Titular registrado\"}").statusCode());
+        assertEquals(200, call("PUT", "/v1/projects/" + id + "/technical/open-rights/contracts/CONTRACT-001",
+            owner.cookie(), key(), "\"0\"",
+            "{\"partyCode\":\"HOLDER-1\",\"label\":\"Contrato um\"}").statusCode());
+        assertEquals(200, call("PUT", "/v1/projects/" + id + "/technical/open-rights/contracts/CONTRACT-002",
+            owner.cookie(), key(), "\"0\"",
+            "{\"partyCode\":\"HOLDER-1\",\"label\":\"Contrato dois\"}").statusCode());
         String first = """
             {"unrestrictedBevAccess":true,"restrictedToIdentifiedVehicles":false,
              "chargerType":"DCFC","propulsion":"BEV","electricitySource":"SIN",
              "associatedInfrastructure":false,"v2g":false,
-             "chargingOwner":"Titular","carbonRightsContractRef":"CONTRACT-001",
+             "rightsPartyCode":"HOLDER-1","rightsContractCode":"CONTRACT-001",
              "driverDisclosureChannel":"ON_CHARGER","driverDisclosureEvidenceRef":"PHOTO-1",
              "driverDisclosureEffectiveOn":"2027-01-15","doubleClaimingCheck":"NO_OVERLAP_DECLARED",
              "effectiveFrom":"2027-02-01"}
