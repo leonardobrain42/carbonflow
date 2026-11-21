@@ -1,4 +1,4 @@
-import {Component, EventEmitter, Input, Output, inject, signal} from '@angular/core';
+import {afterNextRender, Component, ElementRef, EventEmitter, Input, Injector, Output, inject, signal, viewChild} from '@angular/core';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {RouterLink} from '@angular/router';
 import {firstValueFrom} from 'rxjs';
@@ -20,6 +20,8 @@ export class AccountEntryComponent {
   @Input() createIntent = false;
   @Output() authenticated = new EventEmitter<void>();
   private readonly http = inject(HttpClient);
+  private readonly injector = inject(Injector);
+  private readonly heading = viewChild<ElementRef<HTMLHeadingElement>>('modeHeading');
   readonly mode = signal<Mode>('login');
   readonly busy = signal(false);
   readonly error = signal('');
@@ -33,6 +35,11 @@ export class AccountEntryComponent {
     this.error.set('');
     this.notice.set('');
     this.mode.set(mode);
+    this.focusHeading();
+  }
+
+  private focusHeading() {
+    afterNextRender(() => this.heading()?.nativeElement.focus(), {injector: this.injector});
   }
 
   private key(action:string):string {
@@ -81,6 +88,7 @@ export class AccountEntryComponent {
     await this.execute('register',key=>firstValueFrom(this.http.post('/v1/accounts',
       {name,email},{headers:{'Idempotency-Key':key}})),()=>{
       this.mode.set('verify');
+      this.focusHeading();
       this.notice.set('Se o cadastro puder ser iniciado, o código estará na caixa de testes configurada pelo operador. Nenhuma mensagem foi enviada por e-mail real.');
     });
   }
@@ -102,6 +110,7 @@ export class AccountEntryComponent {
       '/v1/accounts/password-recovery',{email:this.email},
       {headers:{'Idempotency-Key':key}})),()=>{
       this.mode.set('reset');
+      this.focusHeading();
       this.notice.set('Se a conta estiver ativa, um código de recuperação estará na caixa local de testes. Não há envio real de e-mail.');
     });
   }
@@ -123,6 +132,7 @@ export class AccountEntryComponent {
       url,{token:token.trim(),password},{headers:{'Idempotency-Key':key}})),()=>{
       (event.target as HTMLFormElement).reset();
       this.mode.set('login');
+      this.focusHeading();
       this.notice.set(verify?'Conta confirmada. Entre para continuar seu projeto.':'Senha redefinida. Entre novamente para continuar.');
     });
   }

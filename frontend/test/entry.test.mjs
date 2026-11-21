@@ -24,6 +24,7 @@ test('ENTRY-T01: raiz distingue projeto privado de simulação e abre cadastro s
     assert.ok(page.url().endsWith('/workspace/projects/new'));
     await page.getByRole('button',{name:'Criar conta'}).click();
     await page.getByRole('heading',{name:'Criar conta de teste'}).waitFor();
+    await page.waitForFunction(() => document.activeElement?.textContent?.trim() === 'Criar conta de teste');
     assert.equal(await page.getByText('créditos emitidos',{exact:false}).count(),0);
     await page.setViewportSize({width:390,height:844});
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
