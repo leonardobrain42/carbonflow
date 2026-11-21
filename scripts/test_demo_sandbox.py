@@ -132,6 +132,28 @@ class DemoSandboxTest(unittest.TestCase):
             compose.assert_called_once_with("logs","--no-color","--tail","160","app",
                                             capture=True)
 
+    def test_doctor_identifies_v71_and_v69_1_without_printing_secrets(self):
+        row = {"Service": "app", "State": "exited", "Health": ""}
+        log = ("sensitive token MUST STAY PRIVATE\n"
+               "Migration checksum mismatch for migration version 71\n"
+               "-> Applied to database : 167374965\n"
+               "Detected resolved migration not applied to database: 69.1.")
+        with patch.object(demo, "runtime_check"), \
+             patch.object(demo, "service_rows", return_value=[row]), \
+             patch.object(demo, "health_status", return_value=(None, "sem resposta")), \
+             patch.object(demo, "local_port_busy", return_value=False), \
+             patch.object(demo, "compose", return_value=log):
+            import contextlib
+            import io
+            output=io.StringIO()
+            with contextlib.redirect_stdout(output):
+                self.assertFalse(demo.doctor())
+            message=output.getvalue()
+            self.assertIn("ERRO FLYWAY V71", message)
+            self.assertIn("demo_flyway_compat.py", message)
+            self.assertIn("V69.1 foi publicada", message)
+            self.assertNotIn("sensitive token", message)
+
     def test_compose_names_are_restricted(self):
         with patch.object(demo, "PROJECT", "prod/../../etc"), patch.object(demo, "PORT", "18088"):
             with self.assertRaises(ValueError):
