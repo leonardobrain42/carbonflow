@@ -127,6 +127,7 @@ test('CF-IMP-008: rascunho da conta cruza intake e prévia sem adquirir autorida
     const menuItems = await menu.getByRole('link').allTextContents();
     assert.deepEqual(menuItems, ['Meus projetos', 'Novo projeto', 'Convites recebidos', 'Visão geral', 'Triagem guiada',
       'Preparação técnica', 'Preferências e equipe', 'Planos de convite', 'Comprovação de poderes', 'Piloto sintético']);
+    await menu.getByText('Exemplo separado. Abrir não copia dados para este projeto.').waitFor();
     await page.getByRole('link', {name: 'Preparar informações técnicas'}).click();
     await page.waitForURL('**/workspace/projects/' + projectId + '/technical');
     await page.getByRole('heading', {name: 'Preparação técnica'}).waitFor();

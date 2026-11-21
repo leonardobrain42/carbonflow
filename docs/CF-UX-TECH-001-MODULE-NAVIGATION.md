@@ -45,7 +45,7 @@ Não há rotas ocultas: os valores são parâmetros da rota já existente, servi
 
 1. **Sem permissões ampliadas.** `sections()` apresenta apenas módulos cujo grant já consta no objeto de `capabilities`. Ação do cliente nunca substitui validação da API.
 2. **Metodologia.** Os guias de baseline e adicionalidade específicos são renderizados apenas para projeto com candidata VM0038. Para as demais metodologias, mensagens explícitas de indisponibilidade são mostradas.
-3. **Nada de admissão fictícia.** `PREPARATORY_NOT_ADMITTED` e dados sintéticos não geram BE, PE, LE, ER ou VCU. A interface informa isso nos pontos de decisão.
+3. **Nada de admissão fictícia.** `PREPARATORY_NOT_ADMITTED` e dados sintéticos não geram BE, PE, LE, ER ou VCU. A interface informa isso nos pontos de decisão. O menu chama o piloto de exemplo separado. Quantificação e monitoramento do projeto não apontam a memória nem os lotes sintéticos como se fossem o dado da etapa.
 4. **Dados persistidos.** A mudança da aba usa apenas query params; não altera respostas, banco, migrações ou regras de revisão. Documentos e snapshots continuam rastreáveis pela API original.
 5. **Modo responsivo.** Navegador de módulos com foco visível e `aria-current`; a barra de etapas de monitoramento também funciona por teclado e pode ser copiada como URL. Em celulares, a navegação é compacta e rolável.
 6. **Rascunhos não salvos.** A proteção `canLeaveGuides()` continua ativa quando o usuário navega entre módulos para evitar perda silenciosa de dados.
