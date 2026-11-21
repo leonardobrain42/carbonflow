@@ -3,6 +3,7 @@ import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {toSignal} from '@angular/core/rxjs-interop';
 import {ActivatedRoute, RouterLink} from '@angular/router';
 import {catchError, distinctUntilChanged, map, of, startWith, Subject, switchMap} from 'rxjs';
+import {plainTerm} from './calculation-language';
 import {WorkspaceNavigationComponent} from './workspace-navigation';
 
 type Role = 'DRAFT_OWNER' | 'PREP' | 'REV' | 'PP' | 'OP' | 'VVB';
@@ -31,6 +32,9 @@ interface Progress {
 }
 interface DiagnosisItem {
   requirementId:string;
+  methodologyId?:string|null;
+  edition?:string|null;
+  ruleRef?:string|null;
   situation:string;
   reason:string;
   nextAction:string;
@@ -83,6 +87,15 @@ export class ProjectOverviewComponent {
   private readonly refresh=new Subject<void>();
 
   readonly filter=signal<Filter>('all');
+  requirementName(code:string):string {
+    const label=plainTerm(code);
+    return label===code?'':label;
+  }
+  editionLabel(item:DiagnosisItem):string {
+    const id=item.methodologyId;
+    if(!id||id==='UNSET')return '';
+    return item.edition?id+' v'+item.edition:id;
+  }
   readonly term=signal('');
   readonly state=toSignal(this.route.paramMap.pipe(
     map(params=>params.get('projectId')??''),

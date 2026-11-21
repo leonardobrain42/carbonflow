@@ -51,7 +51,8 @@ test('analisar mostra ação, espera e recorte sem concluir as quatro pendência
       limits:'Nenhum BE, PE, LE ou ER foi calculado. Este diagnóstico não aprova adicionalidade, direitos, fonte ou crédito.',
       summary:{mine:1,awaitingSource:1,awaitingReview:1,outOfScope:1},
       requirements:[
-        {requirementId:'DRIVER_DISCLOSURE',state:'NEEDS_EVIDENCE',situation:'Falta comprovante',
+        {requirementId:'DRIVER_DISCLOSURE',methodologyId:'VM0038',edition:'1.1',ruleRef:'CF-OPEN-004',
+          state:'NEEDS_EVIDENCE',situation:'Falta comprovante',
           reason:'Falta a prova datada de divulgação aos motoristas.',ownerRole:'PREP',
           nextAction:'Indicar a referência do comprovante na declaração.',actionLabel:'Abrir a declaração',
           destination:{area:'technical',screen:'analisar',step:null},group:'MINE',clientAction:true,
@@ -80,6 +81,10 @@ test('analisar mostra ação, espera e recorte sem concluir as quatro pendência
     await page.getByRole('heading',{name:'Fora do recorte'}).waitFor();
     await page.getByText('Nenhum BE, PE, LE ou ER foi calculado.').waitFor();
     await page.getByText('Não bloqueia o documento ex ante.').waitFor();
+    await page.getByText('Divulgação aos motoristas',{exact:true}).waitFor();
+    await page.getByText('Metodologia aplicável: VM0038 v1.1',{exact:true}).waitFor();
+    await page.getByText('Regra: CF-OPEN-004',{exact:true}).waitFor();
+    await page.getByText('Referência: DRIVER_DISCLOSURE',{exact:true}).waitFor();
     await page.getByText('Papel previsto: preparação').waitFor();
     await page.getByText('Papel previsto: revisão').waitFor();
     await page.getByText('Papel previsto: operação').waitFor();

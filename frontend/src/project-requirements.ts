@@ -1,11 +1,12 @@
 import {Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject, signal} from '@angular/core';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {firstValueFrom} from 'rxjs';
-import {plannedRole} from './calculation-language';
+import {plainTerm, plannedRole} from './calculation-language';
 
 type Destination = {area:string;screen:string;step:string|null};
 type Requirement = {
-  requirementId:string;state:string;situation:string;reason:string;ownerRole:string;
+  requirementId:string;methodologyId?:string|null;edition?:string|null;ruleRef?:string|null;
+  state:string;situation:string;reason:string;ownerRole:string;
   nextAction:string;actionLabel:string|null;destination:Destination|null;group:string;
   clientAction:boolean;blocksExAntePd:boolean;admitsE8:boolean;affectedOutputs:string[];
 };
@@ -35,6 +36,17 @@ export class ProjectRequirementsComponent implements OnChanges {
   private readonly http = inject(HttpClient);
   readonly groups = GROUPS;
   readonly roleLabel = plannedRole;
+
+  requirementName(code:string):string {
+    const label = plainTerm(code);
+    return label === code ? '' : label;
+  }
+
+  editionLabel(item:Requirement):string {
+    const id = item.methodologyId;
+    if (!id || id === 'UNSET') return '';
+    return item.edition ? id + ' v' + item.edition : id;
+  }
   readonly loading = signal(true);
   readonly error = signal('');
   readonly view = signal<View|null>(null);
