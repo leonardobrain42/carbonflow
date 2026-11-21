@@ -109,17 +109,19 @@
         }
       }
       @if (notice()) { <p role="status">{{ notice() }}</p> }
-      <h4>Fontes, evidências e pareceres</h4>
-      <p class="cf-workspace-helper">Consulte os requisitos, solicite dados ou vincule provas sem confundir texto declarado com fato revisado.</p>
-      @for (section of [guide.id]; track section) {
-        <carbonflow-guide-references [projectId]="projectId()" [section]="section" [revision]="guide.version"
-          [canOpenIntake]="canOpenIntake()" (prepare)="prepare.emit()" />
-        <carbonflow-section-assessment [projectId]="projectId()" [section]="section" [revision]="guide.version" />
-        <carbonflow-acquisition-panel [projectId]="projectId()" [section]="section" (evidence)="evidenceRequest.set($event)" />
-        <carbonflow-guide-facts-panel [projectId]="projectId()" [section]="section" [version]="guide.version"
-          [fields]="guide.fields" [answers]="guide.answers" [request]="evidenceRequest()" [editable]="guide.editable"
-          (clearRequest)="evidenceRequest.set(null)" (origin)="showRevision($event)" />
-      }
+      <details class="cf-journey-context">
+        <summary>Fontes, evidências e pareceres</summary>
+        <p class="cf-workspace-helper">Consulte os requisitos, solicite dados ou vincule provas sem confundir texto declarado com fato revisado.</p>
+        @for (section of [guide.id]; track section) {
+          <carbonflow-guide-references [projectId]="projectId()" [section]="section" [revision]="guide.version"
+            [canOpenIntake]="canOpenIntake()" (prepare)="prepare.emit()" />
+          <carbonflow-section-assessment [projectId]="projectId()" [section]="section" [revision]="guide.version" />
+          <carbonflow-acquisition-panel [projectId]="projectId()" [section]="section" (evidence)="evidenceRequest.set($event)" />
+          <carbonflow-guide-facts-panel [projectId]="projectId()" [section]="section" [version]="guide.version"
+            [fields]="guide.fields" [answers]="guide.answers" [request]="evidenceRequest()" [editable]="guide.editable"
+            (clearRequest)="evidenceRequest.set(null)" (origin)="showRevision($event)" />
+        }
+      </details>
 
       @if (guide.version > 1) {
         <details class="cf-journey-context" [open]="historyOpen()">
