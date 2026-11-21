@@ -72,7 +72,7 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
       emissions:{beTco2e:null, peTco2e:null, leTco2e:null, erTco2e:null, erDisplay:null},
       gates:[{
         code:'EVR', state:'MISSING_BINDING',
-        reason:'Não há snapshot nacional EVR por modelo/ano admitido e vinculado ao projeto.',
+        reason:'Não há estoque nacional por modelo e ano admitido e vinculado ao projeto.',
         nextAction:'Selecionar fonte EVR e avaliar cobertura', owner:'PREP',
       },{
         code:'E8_FLEET_SELECTION_M1', state:'NOT_ADMITTED',
@@ -82,7 +82,7 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
         outputCode:'BE', ruleReference:'VM0038-1.1-EQ1', unit:'tCO2e',
         description:'Linha de base ainda sem execução.', requiredInputs:['ED'],
         blockedBy:['ED'], status:'NOT_CALCULATED',
-        whyNotCalculated:'Não calculado. Não há energia entregue ED admitida por carregador e período.',
+        whyNotCalculated:'Não calculado. Não há energia entregue admitida por carregador e período.',
       }],
     }}));
     await page.route('**/v1/projects/*/technical/open-monitoring/dossiers', route => route.fulfill({json:[]}));
@@ -110,7 +110,7 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
     await page.getByText('Referência: E8_FLEET_SELECTION_M1', {exact:true}).waitFor();
     await page.getByText('Linha de base', {exact:true}).click();
     await page.getByText('Referência: BE · VM0038-1.1-EQ1', {exact:true}).waitFor();
-    await page.getByText('Não há energia entregue ED admitida por carregador e período.').waitFor();
+    await page.getByText('Não há energia entregue admitida por carregador e período.').waitFor();
     await page.getByText('Energia entregue', {exact:true}).first().waitFor();
     await page.getByText('Referência: ED', {exact:true}).first().waitFor();
     await page.getByText('Nenhuma tentativa registrada neste período.').waitFor();
