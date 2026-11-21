@@ -7,8 +7,10 @@ import {OpenCalculationReadinessComponent} from './open-calculation-readiness';
 import {OpenMonitoringComponent} from './open-monitoring';
 import {ProjectStationsComponent} from './project-stations';
 import {DecisionWorkbenchComponent} from './decision-workbench';
+import {JourneyFocusComponent} from './journey-focus';
+import {JourneyCheckpointService} from './journey-checkpoint';
 import {WorkspaceNavigationComponent} from './workspace-navigation';
-import {afterNextRender, Component, computed, ElementRef, inject, Injector, signal, viewChild} from '@angular/core';
+import {afterNextRender, Component, computed, effect, ElementRef, inject, Injector, signal, viewChild} from '@angular/core';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {ActivatedRoute, ResolveFn, Router, RouterLink} from '@angular/router';
 import {toSignal} from '@angular/core/rxjs-interop';
@@ -56,6 +58,12 @@ interface TechnicalIntake {
   methodologies: JourneyOption[];
   experienceMode?: ExperienceMode;
   applicability?: {revision:number; boundary:string | null; incidence:string | null; rights:string | null};
+}
+
+interface JourneyAccess {
+  projectId:string;
+  environment:string;
+  journeyProfile:JourneyProfile;
 }
 
 interface PreliminaryDossier {
@@ -120,20 +128,25 @@ function formValues(data: IntakeData | null): IntakeForm {
 
 @Component({
   selector: 'carbonflow-project-technical',
-  imports: [RouterLink, WorkspaceNavigationComponent, ProjectGuidesComponent, OpenApplicabilityComponent, OpenCalculationReadinessComponent, OpenMonitoringComponent, ProjectStationsComponent, DecisionWorkbenchComponent, PdSectionsComponent, PdReviewsComponent, TechnicalGlossaryComponent],
+  imports: [RouterLink, WorkspaceNavigationComponent, ProjectGuidesComponent, OpenApplicabilityComponent, OpenCalculationReadinessComponent, OpenMonitoringComponent, ProjectStationsComponent, DecisionWorkbenchComponent, JourneyFocusComponent, PdSectionsComponent, PdReviewsComponent, TechnicalGlossaryComponent],
   templateUrl: './project-technical.html',
 })
 export class ProjectTechnicalComponent {
   private readonly http = inject(HttpClient);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly checkpoints = inject(JourneyCheckpointService);
   private readonly injector = inject(Injector);
   private readonly guideEditor = viewChild(ProjectGuidesComponent);
   private readonly stationsEditor = viewChild(ProjectStationsComponent);
   private readonly decisionEditor = viewChild(DecisionWorkbenchComponent);
   private readonly pdEditor = viewChild(PdSectionsComponent);
   private readonly pdReview = viewChild(PdReviewsComponent);
+  // Internal tab changes keep the intake form mounted and must never discard drafts.
   readonly canLeaveGuides = () => (this.guideEditor()?.canLeave() ?? true) && (this.stationsEditor()?.canLeave() ?? true) && (this.decisionEditor()?.canLeave() ?? true) && (this.pdEditor()?.canLeave() ?? true) && (this.pdReview()?.canLeave() ?? true);
+  readonly canLeaveWorkspace = () => (!this.dirty() ||
+    confirm('Sair da preparação e descartar as informações técnicas ainda não salvas?')) &&
+    this.canLeaveGuides();
   private readonly heading = viewChild<ElementRef<HTMLHeadingElement>>('sectionHeading');
   private readonly query = toSignal(this.route.queryParamMap);
   readonly selectedGuide = computed(() => this.query()?.get('guia') ?? null);
@@ -157,6 +170,8 @@ export class ProjectTechnicalComponent {
     if (item.id === 'inicio') return this.can('VIEW_INTAKE');
     if (item.id === 'guias' || item.id === 'linha-base' || item.id === 'adicionalidade')
       return this.can('VIEW_GUIDES');
+    if (item.id === 'analisar') return this.can('VIEW_OPEN_APPLICABILITY') || this.can('VIEW_INTAKE');
+    if (item.id === 'entender') return this.can('VIEW_JOURNEY');
     if (item.id === 'monitorar' || item.id === 'evidencias' || item.id === 'estacoes')
       return this.can('VIEW_OPEN_MONITORING');
     if (item.id === 'quantificar') return this.can('VIEW_OPEN_CALCULATION');
@@ -176,8 +191,16 @@ export class ProjectTechnicalComponent {
     {id:'qa',label:'3. QA e evidências'},
     {id:'dossies',label:'4. MR, EFel e VT0011'},
   ] as const;
-  readonly section = computed(() => this.sections().find(item => item.id === this.query()?.get('secao')) ?? this.sections()[0] ?? SECTIONS[0]);
-  readonly dirty = computed(() => JSON.stringify(formValues(this.intake()?.data ?? null)) !== JSON.stringify(this.form()));
+  readonly section = computed(() => {
+    const allowed=this.sections();
+    const target=allowed.find(item=>item.id===this.query()?.get('secao'));
+    // Stable, role-aware landing: the first permitted domain module should not
+    // silently replace the intended general guide landing after UX-BL/ADD.
+    return target ?? allowed.find(item=>item.id==='inicio') ??
+      allowed.find(item=>item.id==='guias') ?? allowed[0] ?? SECTIONS[0];
+  });
+  readonly dirty = computed(() => this.can('VIEW_INTAKE') &&
+    JSON.stringify(formValues(this.intake()?.data ?? null)) !== JSON.stringify(this.form()));
   readonly otherMethodology = signal(false);
   readonly otherOption = OTHER_METHODOLOGY;
   readonly methodologyChoice = computed(() => {
@@ -192,6 +215,18 @@ export class ProjectTechnicalComponent {
 
   constructor() {
     void this.load();
+    effect(() => {
+      const project=this.project();
+      const intake=this.intake();
+      if (!project || !intake || this.loading()) return;
+      const section=this.section().id;
+      const guide=['guias','redigir','revisar'].includes(section)?this.selectedGuide():null;
+      const step=['monitorar','linha-base','adicionalidade'].includes(section)
+        ?(this.queryEtapa()??null):null;
+      this.checkpoints.remember(this.projectId,{
+        area:'technical',screen:section,guide,step
+      });
+    });
   }
 
   can(action: string) {
@@ -219,7 +254,52 @@ export class ProjectTechnicalComponent {
         this.can('VIEW_INTAKE') ? firstValueFrom(this.http.get<TechnicalIntake>(this.technical + '/intake')) : null,
         this.can('VIEW_DOSSIER') ? firstValueFrom(this.http.get<PreliminaryDossier | null>(this.technical + '/preliminary-dossier')) : null,
       ]);
-      if (intake) this.acceptIntake(intake);
+      if (intake) {
+        this.acceptIntake(intake);
+      } else {
+        // A collaborator can view monitoring or guides without VIEW_INTAKE.
+        // Reuse the authorized method profile, NEVER private intake answers.
+        let method:JourneyProfile|null=null;
+        try {
+          const journey=await firstValueFrom(this.http.get<JourneyAccess>(this.root+'/journey'));
+          if (journey.projectId===this.projectId && journey.environment==='SANDBOX')
+            method=journey.journeyProfile??null;
+        }catch{
+          // Legacy guide-scoped clients can lack the newer journey projection.
+          // Fall back only to the methodology ID returned by the authorized
+          // guide catalog; never read intake or infer normative eligibility.
+          if(this.can('VIEW_GUIDES')){
+            try {
+              const catalog=await firstValueFrom(this.http.get<{methodology:string}>(
+                this.technical+'/guides'));
+              if(catalog.methodology==='VM0038_V1_1')
+                method={
+                  id:'VM0038_V1_1',candidate:'VM0038',edition:'1.1',
+                  title:'VM0038 v1.1 · Guia técnico de recarga',
+                  activitiesTitle:'Escopo da atividade',detailsTitle:'Dados técnicos',
+                  description:'Guia preparatório. O enquadramento ainda depende de provas e revisão.',
+                  sourceUrl:null,technicalTopics:[],questions:[]
+                };
+            }catch{
+              // A failed catalog read does not authorize any additional module.
+            }
+          }
+        }
+        if(!method){
+          method={
+            id:'GENERAL',candidate:null,edition:null,title:'Preparação autorizada',
+            activitiesTitle:'Escopo',detailsTitle:'Registros disponíveis',
+            description:'Consulte apenas os módulos concedidos para esta conta.',
+            sourceUrl:null,technicalTopics:[],questions:[]
+          };
+        }
+        this.acceptIntake({
+          projectId:this.projectId,organizationId:project.organizationId,
+          environment:'SANDBOX',version:0,state:'ACCESS_LIMITED',
+          reviewState:'NOT_VISIBLE',data:null,outstandingGates:[],
+          triageCandidate:method.candidate,journey:method,methodologies:[]
+        });
+      }
       this.dossier.set(dossier);
     } catch (cause: unknown) {
       this.project.set(null);
@@ -262,7 +342,8 @@ export class ProjectTechnicalComponent {
   }
 
   async open(section: Section, guide: string | null = null) {
-    if (this.section().id === section || this.saving() || !this.canLeaveGuides()) return;
+    if ((this.section().id===section && this.selectedGuide()===guide && !this.queryEtapa()) ||
+        this.saving() || !this.canLeaveGuides()) return;
     this.notice.set('');
     if (await this.router.navigate([], {relativeTo: this.route, queryParams: {secao: section, guia: guide, etapa:null}, queryParamsHandling: 'merge'})) {
       afterNextRender(() => this.heading()?.nativeElement.focus(), {injector: this.injector});

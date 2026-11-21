@@ -50,6 +50,88 @@ class DemoSandboxTest(unittest.TestCase):
             self.assertEqual(call.kwargs["env"]["CARBONFLOW_PORT"], "18088")
             self.assertEqual(call.args[0][-1], "config")
 
+
+    def test_port_check_fails_closed_without_stopping_other_processes(self):
+        rows = [{"Service": "db", "State": "running", "Health": "healthy"}]
+        with patch.object(demo, "PORT", "18088"), \
+             patch.object(demo, "local_port_busy", return_value=True):
+            with self.assertRaisesRegex(RuntimeError, "porta 127.0.0.1:18088"):
+                demo.check_port(rows)
+
+    def test_owned_port_and_compose_json_formats(self):
+        row = {"Service": "app", "State": "running", "Health": "healthy",
+               "Publishers": [{"URL": "127.0.0.1", "TargetPort": 8080,
+                               "PublishedPort": 18088, "Protocol": "tcp"}]}
+        with patch.object(demo, "PORT", "18088"), \
+             patch.object(demo, "local_port_busy", return_value=True), \
+             patch.object(demo, "compose", return_value=__import__("json").dumps(row)):
+            self.assertEqual(demo.service_rows(), [row])
+            demo.check_port([row])
+        with patch.object(demo, "compose", return_value=__import__("json").dumps([row])):
+            self.assertEqual(demo.service_rows(), [row])
+
+    def test_health_check_is_read_only_and_can_report_missing_backend(self):
+        with patch.object(demo, "PORT", "18088"), \
+             patch.object(demo, "runtime_check"), \
+             patch.object(demo, "service_rows", return_value=[]), \
+             patch.object(demo, "health_status", return_value=(None, "sem resposta")), \
+             patch.object(demo, "local_port_busy", return_value=False), \
+             patch.object(demo, "compose") as compose:
+            self.assertFalse(demo.doctor())
+            compose.assert_not_called()
+
+    def test_doctor_requires_matching_demo_port_not_other_app(self):
+        rows = [{"Service": "app", "State": "running", "Health": "healthy",
+                 "Publishers": [{"URL": "127.0.0.1", "PublishedPort": 18088}]}]
+        with patch.object(demo, "PORT", "18088"), \
+             patch.object(demo, "runtime_check"), \
+             patch.object(demo, "service_rows", return_value=rows), \
+             patch.object(demo, "health_status", return_value=(200, "OK")), \
+             patch.object(demo, "local_port_busy", return_value=True):
+            self.assertTrue(demo.doctor())
+            with patch.object(demo, "PORT", "18089"):
+                self.assertFalse(demo.doctor())
+
+
+    def test_host_readiness_retries_after_compose_health_without_changing_files(self):
+        with patch.object(demo, "health_status",
+                          side_effect=[(None, "sem resposta"), (503, "não pronto"), (200, "OK")]) as health, \
+             patch.object(demo.time, "sleep") as sleep:
+            demo.wait_for_health(attempts=3)
+            self.assertEqual(health.call_count, 3)
+            self.assertEqual(sleep.call_count, 2)
+
+    def test_host_readiness_exhaustion_reports_port_and_diagnostic(self):
+        with patch.object(demo, "PORT", "18088"), \
+             patch.object(demo, "health_status", return_value=(None, "sem resposta")), \
+             patch.object(demo.time, "sleep") as sleep:
+            with self.assertRaisesRegex(RuntimeError, "porta 18088"):
+                demo.wait_for_health(attempts=3)
+            self.assertEqual(sleep.call_count, 2)
+
+    def test_doctor_detects_applied_v69_mismatch_without_repairing_or_leaking_logs(self):
+        row = {"Service": "app", "State": "exited", "Health": ""}
+        log = ("confidential token should never be echoed\n"
+               "Migration checksum mismatch for migration version 69\n"
+               "-> Applied to database : -1778044537\n"
+               "-> Resolved locally    : -639127919")
+        with patch.object(demo, "runtime_check"), \
+             patch.object(demo, "service_rows", return_value=[row]), \
+             patch.object(demo, "health_status", return_value=(None, "sem resposta")), \
+             patch.object(demo, "local_port_busy", return_value=False), \
+             patch.object(demo, "compose", return_value=log) as compose:
+            import contextlib
+            import io
+            capture=io.StringIO()
+            with contextlib.redirect_stdout(capture):
+                self.assertFalse(demo.doctor())
+            msg=capture.getvalue()
+            self.assertIn("ERRO FLYWAY V69",msg)
+            self.assertIn("V69/V69.1",msg)
+            self.assertNotIn("confidential token",msg)
+            compose.assert_called_once_with("logs","--no-color","--tail","160","app",
+                                            capture=True)
+
     def test_compose_names_are_restricted(self):
         with patch.object(demo, "PROJECT", "prod/../../etc"), patch.object(demo, "PORT", "18088"):
             with self.assertRaises(ValueError):

@@ -286,9 +286,10 @@ const routes: Routes = [
   {path: 'workspace/projects/:projectId/invitation-plans', component: ProjectInvitationPlansComponent},
   {path: 'workspace/projects/:projectId/experience', component: ProjectExperienceComponent},
   {path: 'workspace/projects/:projectId/technical', component: ProjectTechnicalComponent,
-    canDeactivate: [(page: ProjectTechnicalComponent) => page.canLeaveGuides()],
+    canDeactivate: [(page: ProjectTechnicalComponent) => page.canLeaveWorkspace()],
     resolve: {technicalAccess: resolveTechnicalAccess}},
-  {path: 'workspace/projects/:projectId/triage', component: ProjectTriageComponent},
+  {path: 'workspace/projects/:projectId/triage', component: ProjectTriageComponent,
+    canDeactivate: [(page: ProjectTriageComponent) => page.canLeave()]},
   {path: '**', redirectTo: 'pilot'},
 ];
 

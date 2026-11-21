@@ -15,7 +15,8 @@
           <h1>Preparação técnica</h1>
           <p>{{ saved.journey.title }}</p>
           <p class="cf-workspace-helper">
-            @if (saved.version) { Rascunho salvo · Revisão {{ saved.version }} }
+            @if (!can('VIEW_INTAKE')) { Dados iniciais restritos · somente etapas autorizadas }
+            @else if (saved.version) { Rascunho salvo · Revisão {{ saved.version }} }
             @else { Rascunho técnico ainda não iniciado }
             @if (dirty()) { · Alterações a salvar }
           </p>
@@ -45,12 +46,10 @@
               <p>Escolha uma frente. Todas as etapas compartilham o mesmo projeto e
                 preservam o histórico de revisões. Preparação interna não equivale
                 a aprovação da metodologia, da Verra ou da VVB.</p>
-              <dl class="cf-tech-capabilities">
-                <div><dt>Metodologia candidata</dt><dd>{{saved.journey.title}}</dd></div>
-                <div><dt>Dados iniciais</dt><dd>{{saved.version ? 'Revisão '+saved.version+' salva' : 'A iniciar'}}</dd></div>
-                <div><dt>Requisitos a comprovar</dt><dd>{{saved.outstandingGates.length}}</dd></div>
-                <div><dt>Motor E8</dt><dd>Não admitido para projetos novos</dd></div>
-              </dl>
+              <carbonflow-journey-focus [projectId]="projectId" />
+              <p class="cf-workspace-helper">A fila de tarefas mostra o que ainda falta
+                e o papel responsável. Você pode executar etapas independentes em paralelo;
+                não é necessário concluir o menu na ordem exibida.</p>
               <div class="cf-tech-portal-grid" aria-label="Entrar em um módulo">
                 <button type="button" (click)="open('preparar')">
                   <strong>Dados iniciais</strong><span>Atividade, localização e marco de referência.</span>
@@ -213,9 +212,15 @@
               <ul class="cf-tech-gates">
                 @for (topic of saved.journey.technicalTopics; track topic) { <li>{{ topic }}</li> }
               </ul>
-              <div class="cf-triage-actions">
-                <button type="button" class="cf-workspace-primary" (click)="open('preparar')">Preparar informações</button>
-              </div>
+              @if (can('VIEW_INTAKE')) {
+                <div class="cf-triage-actions">
+                  <button type="button" class="cf-workspace-primary"
+                    (click)="open('preparar')">Preparar informações</button>
+                </div>
+              } @else {
+                <p class="cf-workspace-helper">As informações iniciais não estão disponíveis
+                  para esta conta. Use as seções autorizadas no menu lateral.</p>
+              }
             }
 
             @case ('preparar') {

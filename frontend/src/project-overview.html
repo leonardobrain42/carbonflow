@@ -7,66 +7,182 @@
       @if (journey(); as project) {
         <header class="cf-workspace-heading cf-overview-heading">
           <div>
-            <p>Visão geral do projeto</p>
-            <h1>{{ project.title }}</h1>
-            <p>{{ project.environment === 'SANDBOX' ? 'Ambiente de teste' : project.environment }}
-              · {{ project.projectState === 'DRAFT' ? 'Rascunho' : project.projectState }}
-              · {{ roleNames[project.role] }}</p>
-            <p>{{ project.methodology || 'Metodologia a definir' }}
-              @if (project.methodology && !project.methodologyConfigured) { · Jornada técnica indisponível }</p>
+            <p class="cf-overview-eyebrow">MEU PROJETO · PLANO DE TRABALHO</p>
+            <h1>{{project.title}}</h1>
+            <p>{{project.environment==='SANDBOX'?'Ambiente de teste':project.environment}}
+              · {{project.projectState==='DRAFT'?'Rascunho':project.projectState}}
+              · {{roleNames[project.role]}}</p>
+            <p>{{project.methodology||'Metodologia a definir'}}
+              @if (project.methodology&&!project.methodologyConfigured){
+                · Roteiro específico ainda não disponível
+              }
+            </p>
           </div>
           <button type="button" class="cf-workspace-outline" (click)="reload()">Atualizar visão geral</button>
         </header>
 
+        <section class="cf-overview-progress cf-workspace-card" aria-labelledby="cf-overview-progress-title">
+          <div class="cf-overview-progress-top">
+            <div>
+              <p class="cf-overview-eyebrow">PANORAMA DO TRABALHO VISÍVEL</p>
+              <h2 id="cf-overview-progress-title">{{summary().recorded}} de {{summary().visible}} tarefas com registro concluído</h2>
+              <p>Reflete exclusivamente as tarefas disponíveis para esta conta.
+                <strong>Não representa elegibilidade, validação metodológica nem PD pronto.</strong></p>
+            </div>
+            <div class="cf-overview-progress-count" aria-label="Percentual de registros concluídos">
+              {{percent()}}<span>%</span>
+            </div>
+          </div>
+          <div role="progressbar" class="cf-overview-progress-track" aria-label="Registros de tarefas visíveis"
+            aria-valuemin="0" aria-valuemax="100" [attr.aria-valuenow]="percent()">
+            <span [style.width.%]="percent()"></span>
+          </div>
+          <div class="cf-overview-stats">
+            <div><strong>{{summary().actionable}}</strong><span>Ações disponíveis para mim</span></div>
+            <div><strong>{{summary().needsAttention}}</strong><span>Precisam de informação ou rechecagem</span></div>
+            <div><strong>{{summary().inReview}}</strong><span>Aguardando revisão interna</span></div>
+          </div>
+        </section>
+
         <div class="cf-overview-summary">
-          <section class="cf-workspace-card" aria-labelledby="overview-next">
+          <section class="cf-workspace-card cf-overview-primary" aria-labelledby="overview-next">
+            <p class="cf-overview-eyebrow">POR ONDE CONTINUAR</p>
             <h2 id="overview-next">Próxima ação</h2>
             @if (next(); as task) {
-              <h3>{{ task.title }}</h3>
-              <p>{{ task.reason }}</p>
-              @if (task.destination; as destination) {
-                <a class="cf-workspace-primary" [routerLink]="routeFor(project.projectId, destination)"
+              <p class="cf-overview-state" [attr.data-tone]="stateTone(task.state)">
+                {{stateNames[task.state]}}</p>
+              <h3>{{task.title}}</h3>
+              <p>{{task.reason}}</p>
+              @if (task.destination; as destination){
+                <a class="cf-workspace-primary cf-overview-action"
+                  [routerLink]="routeFor(project.projectId,destination)"
                   [queryParams]="queryFor(destination)">Continuar tarefa</a>
               }
+              @if (recommended().length>1){
+                <div class="cf-overview-up-next">
+                  <p class="cf-overview-eyebrow">OUTRAS AÇÕES DISPONÍVEIS</p>
+                  <ul>
+                    @for (item of recommended().slice(1);track item.id){
+                      @if (item.destination;as destination){
+                        <li>
+                          <span>{{item.title}}</span>
+                          <a class="cf-workspace-link" [routerLink]="routeFor(project.projectId,destination)"
+                            [queryParams]="queryFor(destination)"
+                            [attr.aria-label]="'Continuar '+item.title">Abrir</a>
+                        </li>
+                      }
+                    }
+                  </ul>
+                </div>
+              }
             } @else {
-              <p>Nenhuma ação disponível para seu acesso neste momento.</p>
+              <h3>Nenhuma ação disponível no momento</h3>
+              <p>Consulte as tarefas abaixo. Pode haver atividades de outros responsáveis,
+                revisões aguardando resposta ou funcionalidades ainda não habilitadas.</p>
             }
           </section>
 
-          <section class="cf-workspace-card" aria-labelledby="overview-attention">
-            <h2 id="overview-attention">Atenção na jornada</h2>
-            @if (attention().length) {
-              <ul class="cf-tech-gates">
-                @for (task of attention().slice(0, 3); track task.id) {
-                  <li><strong>{{ task.title }}</strong><small>{{ stateNames[task.state] }}</small></li>
-                }
-              </ul>
-              <a class="cf-workspace-link" href="#overview-work">Ver tarefas e motivos</a>
+          <section class="cf-workspace-card cf-overview-resume" aria-labelledby="cf-overview-resume-title">
+            <p class="cf-overview-eyebrow">CONTINUIDADE</p>
+            <h2 id="cf-overview-resume-title">Voltar de onde parei</h2>
+            @if (resumed(); as position){
+              <h3>{{resumeTitle()}}</h3>
+              <p>Última etapa acessada nesta conta, validada contra suas permissões atuais.
+                Você retoma na mesma seção, mesmo após fechar o navegador.</p>
+              <a class="cf-workspace-outline cf-overview-action"
+                [routerLink]="routeFor(project.projectId,position)"
+                [queryParams]="queryFor(position)">Retomar minha etapa</a>
             } @else {
-              <p>Nenhuma tarefa visível aguarda dados ou rechecagem.</p>
+              <p>Você ainda não tem uma etapa de retomada disponível.
+                Ao navegar pela preparação técnica ou triagem, seu ponto de retorno será registrado.</p>
             }
+            <p class="cf-workspace-helper">Retomar não salva alterações de formulários.
+              Salve seus rascunhos antes de sair da etapa.</p>
           </section>
         </div>
 
-        <section aria-labelledby="overview-work">
-          <h2 id="overview-work" tabindex="-1">Minha jornada</h2>
-          @for (group of groups(); track group.title) {
-            <details class="cf-workspace-card cf-overview-group" [open]="group.hasNext || groups().length === 1">
-              <summary>{{ group.title }}</summary>
+        <section class="cf-workspace-card cf-overview-attention" aria-labelledby="overview-attention">
+          <div class="cf-overview-section-heading">
+            <div>
+              <p class="cf-overview-eyebrow">ATENÇÃO ÀS DEPENDÊNCIAS</p>
+              <h2 id="overview-attention">O que está impedindo o avanço?</h2>
+            </div>
+            @if (attention().length){
+              <a class="cf-workspace-link" href="#overview-work" (click)="filter.set('attention')">Ver pendências</a>
+            }
+          </div>
+          @if (attention().length){
+            <ul class="cf-overview-alerts">
+              @for (task of attention().slice(0,3);track task.id){
+                <li>
+                  <div><strong>{{task.title}}</strong>
+                    <p>{{task.reason}}</p></div>
+                  <span class="cf-overview-state" [attr.data-tone]="stateTone(task.state)">
+                    {{stateNames[task.state]}}</span>
+                </li>
+              }
+            </ul>
+            @if (attention().length>3){
+              <p class="cf-workspace-helper">Mais {{attention().length-3}} pendência(s) na lista abaixo.</p>
+            }
+          } @else {
+            <p>Nenhuma tarefa visível está marcada como devolvida, aguardando dados
+              ou rechecagem. Isso não significa que todas as provas foram aceitas.</p>
+          }
+        </section>
+
+        <section id="overview-work" class="cf-overview-work" aria-labelledby="overview-work-title">
+          <div class="cf-overview-section-heading">
+            <div>
+              <p class="cf-overview-eyebrow">JORNADA DO PROJETO</p>
+              <h2 id="overview-work-title">Etapas e responsáveis</h2>
+              <p>Veja motivos, situações e destinos reais. O papel indicado é o responsável
+                previsto pela tarefa, não uma atribuição automática de poderes.</p>
+            </div>
+          </div>
+          <div class="cf-overview-tools">
+            <div class="cf-overview-filters" role="group" aria-label="Filtrar tarefas">
+              @for (choice of filters;track choice.id){
+                <button type="button" class="cf-workspace-outline"
+                  [class.cf-overview-filter-active]="filter()===choice.id"
+                  [attr.aria-pressed]="filter()===choice.id"
+                  (click)="filter.set(choice.id)">{{choice.label}}</button>
+              }
+            </div>
+            <div class="cf-overview-search">
+              <label for="overview-search">Buscar tarefa</label>
+              <input id="overview-search" type="search" autocomplete="off" placeholder="Nome, responsável ou motivo"
+                [value]="term()" (input)="term.set($any($event.target).value)"/>
+            </div>
+          </div>
+          <p role="status" class="cf-workspace-helper">
+            Exibindo {{visibleTasks().length}} de {{summary().visible}} tarefas visíveis para esta conta.
+          </p>
+          @for (group of groups();track group.title){
+            <details class="cf-workspace-card cf-overview-group" [open]="group.hasNext||groups().length===1">
+              <summary>{{group.title}} <span>({{group.items.length}})</span></summary>
+              <p class="cf-workspace-helper">{{group.description}}</p>
               <ul class="cf-overview-tasks">
-                @for (task of group.items; track task.id) {
-                  <li>
-                    <div>
-                      <h3>{{ task.title }}</h3>
-                      <p>{{ task.reason }}</p>
-                      <small>{{ roleNames[task.responsible] }}
-                        @if (task.sourceVersion) { · Versão {{ task.sourceVersion }} }</small>
+                @for (task of group.items;track task.id){
+                  <li [class.cf-overview-is-next]="task.id===next()?.id">
+                    <div class="cf-overview-task-main">
+                      @if (task.id===next()?.id){
+                        <span class="cf-overview-eyebrow">PRÓXIMA AÇÃO</span>
+                      }
+                      <h3>{{task.title}}</h3>
+                      <p>{{task.reason}}</p>
+                      <small>{{roleNames[task.responsible]}}
+                        @if (task.sourceVersion){ · Revisão {{task.sourceVersion}} }</small>
                     </div>
                     <div class="cf-overview-task-actions">
-                      <span class="cf-workspace-chip">{{ stateNames[task.state] }}</span>
-                      @if (task.destination; as destination) {
-                        <a class="cf-workspace-link" [routerLink]="routeFor(project.projectId, destination)"
-                          [queryParams]="queryFor(destination)" [attr.aria-label]="'Abrir ' + task.title">Abrir tarefa</a>
+                      <span class="cf-overview-state" [attr.data-tone]="stateTone(task.state)">
+                        {{stateNames[task.state]}}</span>
+                      @if (task.destination;as destination){
+                        <a class="cf-workspace-link" [routerLink]="routeFor(project.projectId,destination)"
+                          [queryParams]="queryFor(destination)"
+                          [attr.aria-label]="'Abrir '+task.title">{{task.actionable?'Executar tarefa':'Consultar'}}</a>
+                      } @else {
+                        <span class="cf-workspace-helper">Depende de outra etapa</span>
                       }
                     </div>
                   </li>
@@ -74,18 +190,25 @@
               </ul>
             </details>
           } @empty {
-            <p>Nenhuma tarefa compartilhada com esta conta.</p>
+            <div class="cf-workspace-card">
+              <p>Nenhuma tarefa corresponde aos filtros escolhidos.</p>
+              <button type="button" class="cf-workspace-outline" (click)="clearFilters()">Limpar filtros</button>
+            </div>
           }
         </section>
+        <p class="cf-workspace-helper cf-overview-final-note">
+          Estado do CarbonFlow: rascunho interno. A conclusão de uma tarefa não
+          significa evidência admitida, conformidade VCS, aprovação Verra/VVB nem emissão de créditos.
+        </p>
       } @else {
         <header class="cf-workspace-heading"><h1>Visão geral do projeto</h1></header>
-        @switch (state().kind) {
-          @case ('loading') { <p role="status">Carregando a visão geral…</p> }
-          @case ('error') {
+        @switch(state().kind){
+          @case ('loading'){<p role="status">Carregando a visão geral…</p>}
+          @case ('error'){
             <p role="alert" class="cf-workspace-alert">Não foi possível consultar a visão geral agora.</p>
             <button type="button" class="cf-workspace-outline" (click)="reload()">Tentar novamente</button>
           }
-          @case ('unavailable') {
+          @case ('unavailable'){
             <p role="alert" class="cf-workspace-alert">Projeto indisponível para esta conta.</p>
             <a routerLink="/workspace" class="cf-workspace-link">Voltar a Meus projetos</a>
           }

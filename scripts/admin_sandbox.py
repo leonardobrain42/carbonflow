@@ -68,7 +68,9 @@ def identity_and_organization(browser) -> tuple[str, str]:
 def setup() -> None:
     demo.validate()
     print("Iniciando sandbox isolado em 127.0.0.1 ...")
-    demo.compose("up", "--build", "-d", "--wait")
+    # Reuse the image built by demo_sandbox.start; Compose builds it on first use.
+    # Avoid a second network-sensitive Maven/Node build on every admin setup.
+    demo.compose("up", "-d", "--wait")
     account = demo.credentials(ADMIN_EMAIL, "Administrador CarbonFlow · Sandbox", create=True)
     demo.provision(account)
     browser = login(account)

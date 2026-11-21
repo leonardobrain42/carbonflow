@@ -1,0 +1,31 @@
+<section class="cf-journey-context" aria-labelledby="cf-journey-focus-title">
+  <div class="cf-triage-actions">
+    <h3 id="cf-journey-focus-title">Seu próximo passo</h3>
+    <button type="button" class="cf-workspace-outline" [disabled]="busy()"
+      (click)="refresh()">Atualizar</button>
+  </div>
+  @if (busy()){<p role="status">Conferindo tarefas deste projeto…</p>}
+  @else if (journey();as current){
+    @if (next();as task){
+      <p><strong>{{task.title}}</strong></p>
+      <p>{{task.reason}}</p>
+      @if (task.destination){
+        <a class="cf-workspace-primary cf-overview-action" [routerLink]="link(task)"
+          [queryParams]="params(task)">Abrir próxima tarefa</a>
+      }
+    } @else {
+      <p>Não há ação disponível para seu acesso neste momento.
+        Consulte a fila para identificar revisões ou dependências de outra pessoa.</p>
+    }
+    <p class="cf-workspace-helper">
+      {{current.progress?.recorded??0}} registros em
+      {{current.progress?.visible??current.tasks.length}} tarefas visíveis.
+      Registro não equivale a aprovação técnica.
+    </p>
+    <a class="cf-workspace-link" [routerLink]="['/workspace/projects',projectId,'overview']">
+      Ver jornada completa, pendências e ponto de retomada</a>
+  } @else if (error()){
+    <p class="cf-workspace-note">A fila de tarefas não pôde ser consultada.
+      Continue usando o menu ou abra a visão geral para tentar novamente.</p>
+  }
+</section>
