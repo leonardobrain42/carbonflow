@@ -29,8 +29,9 @@
       @for(step of state.equationPlan; track step.outputCode) {
         <li>
           <details>
-            <summary><strong>{{step.outputCode}} · {{step.ruleReference}}</strong>
+            <summary><strong>{{inputName(step.outputCode)}}</strong>
               — {{stateLabel(step.status)}}
+              <small>Referência: {{step.outputCode}} · {{step.ruleReference}}</small>
             </summary>
             <p>{{step.description}} · Unidade: {{step.unit}}.</p>
             @if (step.whyNotCalculated) {
@@ -105,10 +106,10 @@
         <p>Ensaio interno da memória recebida do servidor.
           Não é admissão normativa nem emissão de crédito.</p>
         <dl class="cf-tech-capabilities">
-          <div><dt>BE</dt><dd>{{run.memory.beTco2e}} tCO2e</dd></div>
-          <div><dt>PE</dt><dd>{{run.memory.peTco2e}} tCO2e</dd></div>
-          <div><dt>LE</dt><dd>{{run.memory.leTco2e}} tCO2e</dd></div>
-          <div><dt>ER</dt><dd>{{run.memory.erDisplay}} tCO2e</dd></div>
+          <div><dt>{{inputName('BE')}}</dt><dd>{{run.memory.beTco2e}} tCO2e <small>Referência: BE</small></dd></div>
+          <div><dt>{{inputName('PE')}}</dt><dd>{{run.memory.peTco2e}} tCO2e <small>Referência: PE</small></dd></div>
+          <div><dt>{{inputName('LE')}}</dt><dd>{{run.memory.leTco2e}} tCO2e <small>Referência: LE</small></dd></div>
+          <div><dt>{{inputName('ER')}}</dt><dd>{{run.memory.erDisplay}} tCO2e <small>Referência: ER</small></dd></div>
         </dl>
       }
       <ul class="cf-tech-gates">
