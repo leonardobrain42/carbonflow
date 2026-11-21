@@ -86,6 +86,9 @@ class OpenApplicabilityIntegrationTest {
         assertEquals(2,improved.path("version").asInt());
         assertEquals("DECLARED_REVIEW_PENDING",improved.at("/readiness/rights").asText());
         assertFalse(improved.at("/readiness/canUseForE8").asBoolean());
+        assertTrue(improved.at("/readiness/findings").toString().contains("ATTACHED_NOT_ADMITTED"));
+        assertTrue(improved.at("/readiness/findings").toString().contains("não cria PP jurídico"));
+        assertFalse(improved.at("/readiness/findings").toString().contains("PHOTO-2027-01"));
 
         // Reclassify without VIN: private land alone does not make network CLOSED.
         assertEquals("OPEN_CANDIDATE",improved.at("/readiness/network").asText());

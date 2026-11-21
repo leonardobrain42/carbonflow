@@ -249,6 +249,7 @@ const TERMS: Record<string, string> = {
   PENDING_OFFICIAL_DATA: 'Dados oficiais pendentes',
   PENDING_LEGAL_REVIEW: 'Revisão jurídica pendente',
   NEEDS_EVIDENCE: 'Prova necessária',
+  ATTACHED_NOT_ADMITTED: 'Referência registrada, não admitida',
   NEEDS_REVIEW: 'Revisão necessária',
   OUTSIDE_FIRST_SCOPE: 'Fora do recorte inicial',
   PENDING: 'Pendente',
