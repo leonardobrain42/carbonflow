@@ -25,7 +25,7 @@ Outputs: AFEC, MPG, BE, PE, LE, Dy, ER e ER em duas casas; trace ordenado por mo
 
 ### Plano de equações OpenCalculationTransparency (projeto real)
 
-GET /v1/projects/{project}/technical/open-calculation-readiness acrescenta equationPlan[] com AFEC, MPG, BE, PE, LE, DY, ER: regra/edição, unidade, dependências, códigos bloqueantes e status NOT_CALCULATED/OUT_OF_SCOPE. Não são enviados valores numéricos nem insumos de fonte para um cliente sem admissão. A Angular UI apresenta as explicações como detalhes acessíveis e link à fonte oficial, sem executar fórmula TypeScript.
+GET /v1/projects/{project}/technical/open-calculation-readiness acrescenta equationPlan[] com AFEC, MPG, BE, PE, LE, DY, ER: regra/edição, unidade, dependências, códigos bloqueantes, status NOT_CALCULATED/OUT_OF_SCOPE e `whyNotCalculated`. O texto reúne os motivos que os gates do mesmo diagnóstico já publicam. Fora do recorte, o texto diz que nenhum número foi produzido. Não são enviados valores numéricos nem insumos de fonte para um cliente sem admissão. A Angular UI apresenta as explicações como detalhes acessíveis e link à fonte oficial, sem executar fórmula TypeScript.
 
 A autorização continua via VIEW_OPEN_CALCULATION de DynamicProjectScope, auditada, com no-store, incluindo requisitos de MR quando pertinentes. A referência do método não é uma autorização de usar seu texto integral.
 

@@ -55,7 +55,12 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
       workflowState:'PREPARATION', calculationState:'BLOCKED_MISSING_DATA',
       canContinuePreparation:true, canRunE8:false, canIssueVcu:false,
       emissions:{beTco2e:null, peTco2e:null, leTco2e:null, erTco2e:null, erDisplay:null},
-      gates:[], equationPlan:[],
+      gates:[], equationPlan:[{
+        outputCode:'BE', ruleReference:'VM0038-1.1-EQ1', unit:'tCO2e',
+        description:'Linha de base ainda sem execução.', requiredInputs:['ED'],
+        blockedBy:['ED'], status:'NOT_CALCULATED',
+        whyNotCalculated:'Não calculado. Não há energia entregue ED admitida por carregador e período.',
+      }],
     }}));
     await page.route('**/v1/projects/*/technical/open-monitoring/dossiers', route => route.fulfill({json:[]}));
     await page.route('**/v1/projects/*/technical/open-monitoring/dossiers/M1/e8-runs', async route => {
@@ -72,6 +77,8 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
     });
     await page.goto(base + '/workspace/projects/' + project + '/technical?secao=quantificar');
     await page.getByRole('heading', {name:'Última tentativa de cálculo · M1'}).waitFor();
+    await page.getByText('BE · VM0038-1.1-EQ1').click();
+    await page.getByText('Não há energia entregue ED admitida por carregador e período.').waitFor();
     await page.getByText('Nenhuma tentativa registrada neste período.').waitFor();
     await page.getByRole('button', {name:'Registrar tentativa de cálculo'}).click();
     await page.getByText('Bloqueado · v1').waitFor();
