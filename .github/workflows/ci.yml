@@ -156,6 +156,7 @@ jobs:
           python3 -m unittest discover -s scripts -p 'test_demo_sandbox.py' -v
           python3 -m unittest discover -s scripts -p 'test_admin_sandbox.py' -v
           python3 -m unittest discover -s scripts -p 'test_flyway_v69_compat.py' -v
+          python3 -m unittest discover -s scripts -p 'test_demo_flyway_compat.py' -v
       - name: Start isolated sandbox and provision account
         run: python3 scripts/demo_sandbox.py start --quiet
       - name: Add a second account using the real confirmation API
@@ -168,6 +169,107 @@ jobs:
         run: |
           python3 scripts/demo_sandbox.py start --quiet
           python3 scripts/demo_sandbox.py smoke
+      - name: Reproduce legacy V71 checksum and late V69.1 on a persisted demo DB
+        # Direct Compose calls must publish the same port as demo_sandbox.py.
+        # Keep the default-port test for the earlier provisioning steps.
+        env:
+          CARBONFLOW_PORT: '18088'
+        run: |
+          set -euo pipefail
+          # This is a disposable CI DB. Real user volumes are NEVER modified.
+          docker compose -p "$CARBONFLOW_DEMO_PROJECT" -f compose.yaml -f compose.demo.yaml stop app
+          docker compose -p "$CARBONFLOW_DEMO_PROJECT" -f compose.yaml -f compose.demo.yaml exec -T db \
+            psql -U carbonflow -d carbonflow -v ON_ERROR_STOP=1 -c "
+              ALTER TABLE app_open_asset_evidence DROP COLUMN submitted_file_name;
+              DELETE FROM flyway_schema_history WHERE version='69.1';
+              UPDATE flyway_schema_history SET checksum=167374965 WHERE version='71';"
+          python3 scripts/demo_flyway_compat.py
+          python3 scripts/demo_flyway_compat.py --apply
+          # Reuse demo.compose's admin roster and port, avoiding a Compose
+          # configuration drift/recreation when the app starts again.
+          python3 -c 'import sys; sys.path.insert(0, "scripts"); import demo_sandbox as d; d.compose("up", "-d", "--wait", "app")'
+          docker compose -p "$CARBONFLOW_DEMO_PROJECT" -f compose.yaml -f compose.demo.yaml exec -T db \
+            psql -U carbonflow -d carbonflow -v ON_ERROR_STOP=1 -c "
+              SELECT CASE WHEN
+                EXISTS (SELECT 1 FROM flyway_schema_history
+                        WHERE version='69.1' AND success)
+                AND EXISTS (SELECT 1 FROM flyway_schema_history
+                            WHERE version='71' AND checksum=-1979807539 AND success)
+                AND EXISTS (SELECT 1 FROM information_schema.columns
+                            WHERE table_name='app_open_asset_evidence'
+                              AND column_name='submitted_file_name')
+                THEN 'UPGRADE_OK' ELSE 'UPGRADE_FAILED' END;" | grep UPGRADE_OK
+          # Docker's host forwarding may not rebind after stop/up on the CI runner.
+          # The normal first-boot steps already validated real HTTP account logins.
+          # Verify the restarted app internally and the ORIGINAL identities/credentials
+          # in the SAME PostgreSQL volume, independently of host NAT re-publication.
+          python3 -c 'import sys; sys.path.insert(0, "scripts"); import demo_sandbox as d; d.compose("exec", "-T", "app", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:8080/health/ready")'
+          docker compose -p "$CARBONFLOW_DEMO_PROJECT" -f compose.yaml -f compose.demo.yaml exec -T db \
+            psql -U carbonflow -d carbonflow -v ON_ERROR_STOP=1 -c "
+              SELECT CASE WHEN count(*)=3 THEN 'ACCOUNTS_PRESERVED'
+              ELSE 'ACCOUNTS_MISSING' END
+              FROM app_identity i JOIN app_account_credential c ON c.identity_id=i.id
+              WHERE i.email_normalized IN
+                ('demo@carbonflow.test','segunda@carbonflow.test','admin@carbonflow.test')
+                AND i.status='ACTIVE' AND i.email_verified_at IS NOT NULL;" | grep ACCOUNTS_PRESERVED
+          # Exercise the REAL post-upgrade login endpoint through the container's
+          # loopback, bypassing only CI's host NAT after stop/up. Credentials
+          # arrive on curl stdin, never in commands, logs or HTTP URL.
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          import subprocess
+          import sys
+          sys.path.insert(0, "scripts")
+          import demo_sandbox as demo
+          files = sorted(demo.ACCOUNT_DIR.glob("*.json"))
+          if len(files) != 3:
+              raise RuntimeError("Unexpected demo account count")
+          # The application allows only TWO simultaneous account sessions.
+          # Log out each account before checking the next one; a third
+          # unclosed login would correctly return HTTP 409.
+          # The cookie is stored only inside the demo's private tmpfs and
+          # removed even if a request fails. Passwords go through stdin.
+          session_check = """
+          jar="$(mktemp /run/carbonflow-demo-inbox/.ci-login.XXXXXX)"
+          chmod 600 "$jar"
+          trap 'rm -f "$jar"' EXIT
+          login="$(curl -sS -o /dev/null -w '%{http_code}' -c "$jar" \\
+                  -H 'Content-Type: application/json' --data-binary @- \\
+                  http://127.0.0.1:8080/v1/account-session)"
+          if [ "$login" != 204 ]; then
+              printf 'LOGIN_HTTP_%s\\n' "$login"
+              exit 1
+          fi
+          logout="$(curl -sS -o /dev/null -w '%{http_code}' -b "$jar" \\
+                   -X DELETE http://127.0.0.1:8080/v1/account-session)"
+          if [ "$logout" != 204 ]; then
+              printf 'LOGOUT_HTTP_%s\\n' "$logout"
+              exit 1
+          fi
+          printf 'SESSION_CLOSED\\n'
+          """
+          command = [
+              "docker", "compose", "-p", demo.PROJECT,
+              "-f", str(demo.ROOT/"compose.yaml"),
+              "-f", str(demo.ROOT/"compose.demo.yaml"),
+              "exec", "-T", "app", "sh", "-ec", session_check
+          ]
+          for path in files:
+              saved=json.loads(path.read_text(encoding="utf-8"))
+              result=subprocess.run(
+                  command, input=json.dumps({"email":saved["email"],
+                                            "password":saved["password"]}),
+                  capture_output=True, text=True,
+                  env={**os.environ, "CARBONFLOW_PORT":demo.PORT}
+              )
+              if result.returncode != 0 or result.stdout.strip() != "SESSION_CLOSED":
+                  # HTTP status only: never print headers, cookies or passwords.
+                  code = result.stdout.strip() or "TRANSPORT_ERROR"
+                  raise RuntimeError("Post-upgrade login/logout failed: " + code)
+          print("LOGIN_UPGRADE_OK: three original accounts authenticated via container API")
+          PY
       - name: Destroy only the disposable demo environment
         if: always()
         run: |

@@ -17,6 +17,15 @@ class FlywayV69CompatibilityTest(unittest.TestCase):
         self.assertEqual(flyway_crc(MIGRATIONS / "V69__open_asset_evidence_links.sql"),
                          -1778044537)
 
+    def test_published_v71_is_not_mutated(self):
+        # The currently published V71 was applied to some long-lived databases.
+        # Schema changes belong in a new migration, not a silent rewrite.
+        self.assertEqual(
+            flyway_crc(MIGRATIONS / "V71__open_e8_project_run.sql"),
+            -1979807539,
+            "Do not change published V71; add a new versioned migration."
+        )
+
     def test_filename_is_added_by_additive_69_1(self):
         old = (MIGRATIONS / "V69__open_asset_evidence_links.sql").read_text(encoding="utf-8")
         new = (MIGRATIONS / "V69_1__open_asset_evidence_submitted_filename.sql").read_text(encoding="utf-8")
