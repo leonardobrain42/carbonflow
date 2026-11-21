@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 from datetime import datetime, timezone
 import json
+import os
 from pathlib import Path
 import sys
 import zlib
@@ -124,6 +125,7 @@ def main() -> None:
         print("Estrutura compatível com os testes de catálogo. Faça backup antes de --apply.")
         return
     demo.private_dir(demo.SECRET_DIR)
+    os.umask(0o077)  # Audit receipt stays 0600; never publish user DB metadata.
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
     path = demo.SECRET_DIR / ("flyway-v71-inspection-"+stamp+".json")
     with path.open("x",encoding="utf-8") as file:
