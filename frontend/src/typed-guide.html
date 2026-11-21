@@ -8,6 +8,7 @@
       definição v{{current.definitionVersion}} · revisão {{current.version}}.
       Respostas tipadas são rascunhos. Valores declarados não comprovam energia, direitos,
       documentos nem aprovação Verra/VVB.</p>
+    <p class="cf-workspace-helper">Declaração desta revisão. Não é medição, contrato nem parecer.</p>
     <p class="cf-workspace-note" role="status">{{stateName(current.state)}}
       @if (current.missing.length){ · {{current.missing.length}} campo(s) necessário(s) pendente(s) }
     </p>
@@ -94,9 +95,9 @@
                 (input)="change(field,$any($event.target).value)"></textarea>
             }
             <p class="cf-workspace-helper" [id]="'typed-help-'+field.key">{{field.helpText}}</p>
-            <p class="cf-workspace-helper">{{declared(field)
-              ? 'Declaração desta revisão. Não é medição, contrato nem parecer.'
-              : 'Ainda não há valor nesta revisão.'}}</p>
+            @if (!declared(field)) {
+              <p class="cf-workspace-helper">Ainda não há valor nesta revisão.</p>
+            }
             @if (fieldError(field)){
               <p role="alert" class="cf-workspace-alert">{{fieldError(field)}}</p>
             }

@@ -88,7 +88,9 @@ test('UX-02B: guia tipado condicional, refs versionadas, boolean real, rascunho 
     await page.getByText('VM0038_V1_1 · 1.1 · definição v1').first().waitFor();
     await page.getByText('não designa uma pessoa nem cria permissão.').first().waitFor();
     await page.getByText('não é copiada para a versão do documento.').first().waitFor();
-    await page.getByText('Declaração desta revisão. Não é medição, contrato nem parecer.').first().waitFor();
+    const limit=page.getByText('Declaração desta revisão. Não é medição, contrato nem parecer.',{exact:true});
+    assert.equal(await limit.count(),1);
+    await limit.waitFor();
     assert.equal(await page.getByLabel('Incidência candidata do critério').inputValue(),'Não aplicável');
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
     await page.getByLabel('Estação já cadastrada').selectOption('ST-01');
