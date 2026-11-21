@@ -75,6 +75,7 @@ test('UX-03B: duas estações ligam PDFs privados distintos, status não admitid
   await page.getByText('Estação ST-01 · ST-01',{exact:false}).waitFor();
   await page.getByRole('button',{name:'Anexar ou consultar provas'}).first().click();
   await page.getByRole('heading',{name:'Comprovações de estação · ST-01'}).waitFor();
+  await page.getByText('Nenhum PDF anexado a este ativo.',{exact:false}).waitFor({state:'visible'});
   assert.equal(await page.getByText('Nenhum PDF anexado a este ativo.',{exact:false}).count(),1);
   await page.getByLabel('Tipo de comprovação').selectOption('LOCATION');
   await page.getByLabel('Origem e identificação do documento').fill('Planta de referência da estação ST-01');
@@ -89,6 +90,7 @@ test('UX-03B: duas estações ligam PDFs privados distintos, status não admitid
   assert.equal(await page.getByText('PDF recebido · aguardando revisão',{exact:false}).count(),1);
   await page.getByRole('button',{name:'Anexar ou consultar provas'}).last().click();
   await page.getByRole('heading',{name:'Comprovações de estação · ST-02'}).waitFor();
+  await page.getByText('Nenhum PDF anexado a este ativo.',{exact:false}).waitFor({state:'visible'});
   assert.equal(await page.getByText('Nenhum PDF anexado a este ativo.',{exact:false}).count(),1);
   await page.getByLabel('Tipo de comprovação').selectOption('LOCATION');
   await page.getByLabel('Origem e identificação do documento').fill('Planta de referência da estação ST-02');
