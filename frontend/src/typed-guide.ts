@@ -79,6 +79,10 @@ export class TypedGuideComponent implements OnChanges {
     return String(value)===expected;
   }
   active(field:Field){return this.condition(field.showWhenField,field.showWhenValue,this.answers());}
+  declared(field:Field){
+    const value=this.answers()[field.key];
+    return value!==undefined&&value!==null&&value!==''&&!(Array.isArray(value)&&value.length===0);
+  }
   mustHave(field:Field){
     return field.required||!!field.requiredWhenField&&
       this.condition(field.requiredWhenField,field.requiredWhenValue,this.answers());

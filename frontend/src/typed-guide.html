@@ -79,6 +79,25 @@
                 (input)="change(field,$any($event.target).value)"></textarea>
             }
             <p class="cf-workspace-helper" [id]="'typed-help-'+field.key">{{field.helpText}}</p>
+            <details class="cf-journey-context">
+              <summary>Contexto desta resposta</summary>
+              <dl>
+                <dt>Regra e edição</dt>
+                <dd>{{current.methodology}} · {{current.edition}} · definição v{{current.definitionVersion}}</dd>
+                <dt>Origem</dt>
+                <dd>{{declared(field)
+                  ? 'Declaração desta revisão. Não é medição, contrato nem parecer.'
+                  : 'Ainda não há valor nesta revisão.'}}</dd>
+                <dt>Quem informa</dt>
+                <dd>A conta autorizada a salvar este guia.</dd>
+                <dt>Quem revisa</dt>
+                <dd>Papel previsto de revisão interna. Este campo não designa uma pessoa nem cria permissão.</dd>
+                <dt>Uso no PD</dt>
+                <dd>A resposta não é copiada para a versão do documento.</dd>
+                <dt>Limite</dt>
+                <dd>Preencher não admite fonte, direito, energia nem crédito.</dd>
+              </dl>
+            </details>
             @if (fieldError(field)){
               <p role="alert" class="cf-workspace-alert">{{fieldError(field)}}</p>
             }

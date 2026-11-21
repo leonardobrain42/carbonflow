@@ -82,6 +82,13 @@ test('UX-02B: guia tipado condicional, refs versionadas, boolean real, rascunho 
     assert.equal(await justification.count(),0);
     await page.getByLabel('Incidência candidata do critério').selectOption('Não aplicável');
     assert.equal(await justification.count(),1);
+    await page.getByText('Contexto desta resposta').first().click();
+    await page.getByText('VM0038_V1_1 · 1.1 · definição v1').first().waitFor();
+    await page.getByText('não designa uma pessoa nem cria permissão.').first().waitFor();
+    await page.getByText('não é copiada para a versão do documento.').first().waitFor();
+    await page.getByText('Declaração desta revisão. Não é medição, contrato nem parecer.').first().waitFor();
+    assert.equal(await page.getByLabel('Incidência candidata do critério').inputValue(),'Não aplicável');
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
     await page.getByLabel('Estação já cadastrada').selectOption('ST-01');
     await page.getByLabel('Equipamento da estação').selectOption('CH-01');
     await page.getByLabel('Recarga aberta a qualquer BEV compatível?').selectOption('true');

@@ -11,7 +11,7 @@
 - **Condições tipadas:** `showWhenField + showWhenValue`, `requiredWhenField + requiredWhenValue` com `SET`/igualdade (sem `eval`, scripts dinâmicos ou regra normativa implementada no Angular). Aplicabilidade "Não aplicável" pede justificativa; alteração remove campo oculto no cliente e recusa submissão malformada no servidor.
 - **Definições por pacote:** seis guias `VM0038_V1_1`, edition `1.1`, branch `OPEN_BR_BEV_LDV_DCFC_SIN`. Outro método retorna apenas os próprios schemas disponíveis, sem herdar VM0038. Extensível por novas revisões de definição sem sobrescrever o schema antigo.
 - **Preservação do legado:** `legacyAnswers` mostra o original, `legacyNeedsReview` impede coerção automática de texto em tipo/referência. Cada stream tem seu número de revisão. Read de revisão tipada usa `definition_snapshot` congelado.
-- **UX:** novo editor de dados estruturados na tela de cada guia; renderer por tipo e ajuda contextual, visibilidade dinâmica, estado declarativo, validação de faltantes, navegação sem descarte involuntário, histórico, mobile. A tela antiga segue disponível como anotações textuais e não é promovida a fato canônico.
+- **UX:** novo editor de dados estruturados na tela de cada guia; renderer por tipo e ajuda contextual, visibilidade dinâmica, estado declarativo, validação de faltantes, navegação sem descarte involuntário, histórico, mobile. A tela antiga segue disponível como anotações textuais e não é promovida a fato canônico. Cada campo visível tem um contexto fechado com a edição do formulário, a origem da resposta, o papel previsto de revisão e o limite de uso no PD. Esse contexto não designa uma pessoa, não cria permissão e não copia o valor para o documento.
 
 ## Estados e limites
 
