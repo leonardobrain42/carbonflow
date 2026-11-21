@@ -1,0 +1,63 @@
+<section class="cf-workspace-card cf-workspace-login cf-account-entry" aria-labelledby="cf-account-login-heading">
+  <span class="cf-workspace-chip">ACESSO A PROJETOS · SANDBOX</span>
+  @if (mode()==='login'){
+    <h1 id="cf-account-login-heading">Entre na sua conta</h1>
+    <p>{{createIntent ? 'Entre ou crie sua conta para começar um rascunho privado.' : 'Acesse seus rascunhos e retome a preparação técnica.'}}</p>
+    <form (submit)="login($event, accountEmail.value, accountPassword.value)">
+      <label for="cf-account-email">E-mail da conta</label>
+      <input #accountEmail id="cf-account-email" name="email" type="email" required maxlength="254" autocomplete="email" [value]="email" />
+      <label for="cf-account-password">Senha</label>
+      <input #accountPassword id="cf-account-password" name="password" type="password" required autocomplete="current-password" />
+      <button type="submit" class="cf-workspace-primary" [disabled]="busy()">Entrar na conta</button>
+    </form>
+    <div class="cf-account-options">
+      <button type="button" class="cf-workspace-outline" [disabled]="busy()" (click)="change('register')">Criar conta</button>
+      <button type="button" class="cf-entry-text-action" [disabled]="busy()" (click)="change('recover')">Esqueci minha senha</button>
+      <button type="button" class="cf-entry-text-action" [disabled]="busy()" (click)="change('verify')">Já tenho código de confirmação</button>
+    </div>
+  } @else if(mode()==='register'){
+    <h1 id="cf-account-login-heading">Criar conta de teste</h1>
+    <p>O cadastro utiliza a infraestrutura de contas real do sandbox, mas o código é entregue exclusivamente na caixa privada de testes configurada pelo operador.</p>
+    <form (submit)="register($event, signupName.value, signupEmail.value)">
+      <label for="cf-signup-name">Seu nome</label>
+      <input #signupName id="cf-signup-name" name="name" required maxlength="120" autocomplete="name" />
+      <label for="cf-signup-email">E-mail da conta</label>
+      <input #signupEmail id="cf-signup-email" name="email" type="email" required maxlength="254" autocomplete="email" [value]="email" />
+      <button type="submit" class="cf-workspace-primary" [disabled]="busy()">Solicitar cadastro</button>
+    </form>
+  } @else if(mode()==='recover'){
+    <h1 id="cf-account-login-heading">Recuperar acesso</h1>
+    <p>Se a conta estiver ativa, o operador poderá consultar o código na caixa privada do sandbox. A resposta não confirma se o endereço está cadastrado.</p>
+    <form (submit)="requestRecovery($event, recoveryEmail.value)">
+      <label for="cf-recovery-email">E-mail da conta</label>
+      <input #recoveryEmail id="cf-recovery-email" name="email" type="email" required maxlength="254" autocomplete="email" [value]="email" />
+      <button type="submit" class="cf-workspace-primary" [disabled]="busy()">Solicitar recuperação</button>
+    </form>
+  } @else {
+    <h1 id="cf-account-login-heading">{{mode()==='verify'?'Confirmar cadastro':'Definir nova senha'}}</h1>
+    <p>Informe o código obtido na caixa privada de testes. Códigos expiram em 20 minutos, e solicitar outro invalida o anterior.</p>
+    <form (submit)="complete($event, confirmationCode.value, newPassword.value, confirmPassword.value)">
+      <label for="cf-account-token">Código de uso único</label>
+      <input #confirmationCode id="cf-account-token" name="token" type="text" required autocomplete="off" spellcheck="false" />
+      <label for="cf-new-password">Nova senha (12 a 128 caracteres)</label>
+      <input #newPassword id="cf-new-password" name="new-password" type="password" required minlength="12" maxlength="128" autocomplete="new-password" />
+      <label for="cf-confirm-password">Repita a nova senha</label>
+      <input #confirmPassword id="cf-confirm-password" name="confirm-password" type="password" required minlength="12" maxlength="128" autocomplete="new-password" />
+      <button type="submit" class="cf-workspace-primary" [disabled]="busy()">{{mode()==='verify'?'Confirmar conta':'Redefinir senha'}}</button>
+    </form>
+    @if(mode()==='verify'){
+      <p class="cf-workspace-helper">Cadastro iniciado para {{email || 'o e-mail informado anteriormente'}}. Não exibimos o código na aplicação.</p>
+      <button type="button" class="cf-workspace-outline" [disabled]="busy()||!email" (click)="resendVerification()">Solicitar novo código</button>
+    } @else {
+      <button type="button" class="cf-entry-text-action" [disabled]="busy()" (click)="change('recover')">Solicitar novo código de recuperação</button>
+    }
+  }
+  @if(error()){<p role="alert" class="cf-workspace-alert">{{error()}}</p>}
+  @if(notice()){<p role="status" class="cf-workspace-note">{{notice()}}</p>}
+  @if(busy()){<p role="status" class="cf-workspace-helper">Processando solicitação…</p>}
+  @if(mode()!=='login'){
+    <button type="button" class="cf-entry-text-action cf-entry-back" [disabled]="busy()" (click)="change('login')">Voltar para entrar</button>
+  }
+  <p class="cf-workspace-helper">Este ambiente ainda não oferece entrega de e-mail real. Se a caixa local não estiver configurada, o cadastro e a recuperação ficam indisponíveis. As contas SIM-* pertencem apenas ao <a routerLink="/pilot">piloto sintético</a>.</p>
+  <a routerLink="/" class="cf-workspace-link">Voltar à apresentação do CarbonFlow</a>
+</section>

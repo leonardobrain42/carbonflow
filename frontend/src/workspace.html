@@ -18,19 +18,7 @@
       @if (loading()) {
         <p role="status">Carregando seu espaço…</p>
       } @else if (!session()) {
-        <section class="cf-workspace-card cf-workspace-login" aria-labelledby="cf-account-login-heading">
-          <span class="cf-workspace-chip">CONTA SANDBOX</span>
-          <h1 id="cf-account-login-heading">Entre na sua conta</h1>
-          <p>Utilize o e-mail confirmado no cadastro de conta. As credenciais SIM-* pertencem a uma demonstração separada.</p>
-          <form (submit)="login($event, email.value, password.value)">
-            <label for="cf-account-email">E-mail da conta</label>
-            <input #email id="cf-account-email" name="email" type="email" required autocomplete="email" />
-            <label for="cf-account-password">Senha</label>
-            <input #password id="cf-account-password" name="password" type="password" required autocomplete="current-password" />
-            <button type="submit" class="cf-workspace-primary" [disabled]="busy()">Entrar na conta</button>
-          </form>
-          <p class="cf-workspace-helper">O cadastro de contas está disponível por API no sandbox configurado. Se deseja usar contas SIM-*, abra o <a href="/pilot">piloto sintético</a>.</p>
-        </section>
+        <carbonflow-account-entry [createIntent]="creationFlow" (authenticated)="refreshSession()" />
       } @else {
         <header class="cf-workspace-heading">
           <span class="cf-workspace-chip">SANDBOX · CONTA VERIFICADA</span>
@@ -55,6 +43,7 @@
             <section class="cf-workspace-card" aria-labelledby="cf-org-create-heading">
               <span class="cf-workspace-step">ETAPA 1 · ORGANIZAÇÃO</span>
               <h2 id="cf-org-create-heading">Crie o espaço da organização</h2>
+              <p>Este espaço é um ambiente privado de trabalho. O nome pode ser provisório e não equivale à empresa verificada, ao proponente (PP) ou ao representante legal autorizado.</p>
               <p>O vínculo inicial será <strong>DRAFT_OWNER</strong>, restrito a rascunhos. Ele não comprova representação legal ou poderes PP.</p>
               <form (submit)="createOrganization($event, orgName.value)">
                 <label for="cf-org-name">Nome de trabalho da organização</label>
@@ -91,7 +80,7 @@
               <section class="cf-workspace-card" aria-labelledby="cf-project-create-heading">
                 <span class="cf-workspace-step">ETAPA 2 · NOVO RASCUNHO</span>
                 <h2 id="cf-project-create-heading">Descreva seu projeto</h2>
-                <p>Estas informações são iniciais. Nenhuma emissão ou redução é calculada nesta etapa.</p>
+                <p>Estas informações são iniciais. Nenhuma emissão ou redução é calculada nesta etapa. A metodologia será avaliada na triagem; mesmo que não seja suportada, o rascunho poderá ser retomado.</p>
                 <form (submit)="createProject($event, projectOrg.value, projectTitle.value, projectDescription.value)">
                   <label for="cf-draft-organization">Organização responsável</label>
                   <select #projectOrg id="cf-draft-organization" name="organization" required>

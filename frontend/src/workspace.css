@@ -189,3 +189,27 @@
   .cf-tech-module-nav.cf-technical-steps { max-height: 19rem; overflow-y: auto; }
   .cf-tech-module-panel .cf-workspace-card { padding: 1rem; }
 }
+
+
+/* CF-UX-ENTRY-001 #145: public entry and accessible account onboarding. */
+.cf-entry-page { min-height:100vh; color:#ecf7f1; background:linear-gradient(140deg,#10221d,#0b1114 65%); }
+.cf-entry-header { display:flex; align-items:center; justify-content:space-between; gap:1rem; width:min(1180px,calc(100% - 2rem)); margin:auto; padding:1.15rem 0; border-bottom:1px solid #365144; }
+.cf-entry-header nav { display:flex; flex-wrap:wrap; gap:.6rem 1.2rem; }
+.cf-entry-header nav a,.cf-entry-quiet { color:#b8e7cc; text-decoration:underline; text-underline-offset:.2rem; }
+.cf-entry-main { width:min(1140px,calc(100% - 2rem)); margin:0 auto; padding:clamp(2rem,6vw,5.5rem) 0 4rem; }
+.cf-entry-hero { max-width:850px; margin:0 0 2rem; }
+.cf-entry-hero h1 { max-width:780px; font-size:clamp(2.2rem,5vw,4.2rem); line-height:1.1; margin:1.1rem 0; letter-spacing:-.035em; color:#f3fff7; }
+.cf-entry-hero > p:not(.cf-workspace-chip) { max-width:740px; font-size:1.08rem; line-height:1.65; color:#c2d5ca; }
+.cf-entry-actions { display:flex; align-items:center; flex-wrap:wrap; gap:.8rem; margin-top:1.75rem; }
+.cf-entry-link { display:inline-flex; align-items:center; justify-content:center; text-decoration:none; min-height:44px; }
+.cf-entry-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1rem; }
+.cf-entry-grid .cf-workspace-card { margin:0; }
+.cf-entry-grid .cf-workspace-card p { overflow-wrap:anywhere; }
+.cf-entry-disclaimer { max-width:920px; padding:1.2rem 0; color:#b9cbbd; font-size:.9rem; line-height:1.6; }
+.cf-account-entry .cf-account-options { display:flex; flex-wrap:wrap; align-items:center; gap:.9rem; margin:1.2rem 0 0; }
+.cf-entry-text-action { border:0; background:transparent; padding:.55rem .2rem; color:#9ce7bc; font:inherit; text-decoration:underline; text-underline-offset:.2rem; cursor:pointer; }
+.cf-entry-text-action:disabled { opacity:.6; cursor:wait; }
+.cf-entry-back { display:block; margin:.8rem 0; }
+.cf-account-entry [role=alert],.cf-account-entry [role=status] { overflow-wrap:anywhere; }
+@media(max-width:780px){.cf-entry-grid {grid-template-columns:1fr;} .cf-entry-header {align-items:flex-start;flex-wrap:wrap;} .cf-entry-main {padding-top:2rem;} }
+@media(max-width:420px){.cf-entry-actions > a {width:100%;text-align:center;justify-content:center;} .cf-workspace-login {margin:1rem auto;} }

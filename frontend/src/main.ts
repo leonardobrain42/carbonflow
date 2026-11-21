@@ -1,4 +1,5 @@
 import {ProjectOverviewComponent} from './project-overview';
+import {LandingComponent} from './landing';
 import {toSignal} from '@angular/core/rxjs-interop';
 import {afterNextRender, Component, computed, ElementRef, inject, Injector, signal, viewChild} from '@angular/core';
 import {HttpClient, HttpErrorResponse, provideHttpClient} from '@angular/common/http';
@@ -274,7 +275,7 @@ class PilotComponent {
 class CarbonFlowRoot {}
 
 const routes: Routes = [
-  {path: '', pathMatch: 'full', redirectTo: 'pilot'},
+  {path: '', pathMatch: 'full', component: LandingComponent},
   {path: 'pilot', component: PilotComponent},
   {path: 'workspace', component: WorkspaceComponent},
   {path: 'workspace/compliance', component: ComplianceQueueComponent},
@@ -290,7 +291,7 @@ const routes: Routes = [
     resolve: {technicalAccess: resolveTechnicalAccess}},
   {path: 'workspace/projects/:projectId/triage', component: ProjectTriageComponent,
     canDeactivate: [(page: ProjectTriageComponent) => page.canLeave()]},
-  {path: '**', redirectTo: 'pilot'},
+  {path: '**', redirectTo: ''},
 ];
 
 bootstrapApplication(CarbonFlowRoot, {
