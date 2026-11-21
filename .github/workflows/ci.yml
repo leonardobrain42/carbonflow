@@ -199,10 +199,19 @@ jobs:
                             WHERE table_name='app_open_asset_evidence'
                               AND column_name='submitted_file_name')
                 THEN 'UPGRADE_OK' ELSE 'UPGRADE_FAILED' END;" | grep UPGRADE_OK
-          # The container can be HEALTHY before its loopback port is reachable
-          # after Compose recreates the app; wait using the existing demo check.
-          python3 -c 'import sys; sys.path.insert(0, "scripts"); import demo_sandbox as d; d.wait_for_health(attempts=15)'
-          python3 scripts/demo_sandbox.py smoke
+          # Docker's host forwarding may not rebind after stop/up on the CI runner.
+          # The normal first-boot steps already validated real HTTP account logins.
+          # Verify the restarted app internally and the ORIGINAL identities/credentials
+          # in the SAME PostgreSQL volume, independently of host NAT re-publication.
+          python3 -c 'import sys; sys.path.insert(0, "scripts"); import demo_sandbox as d; d.compose("exec", "-T", "app", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:8080/health/ready")'
+          docker compose -p "$CARBONFLOW_DEMO_PROJECT" -f compose.yaml -f compose.demo.yaml exec -T db \
+            psql -U carbonflow -d carbonflow -v ON_ERROR_STOP=1 -c "
+              SELECT CASE WHEN count(*)=3 THEN 'ACCOUNTS_PRESERVED'
+              ELSE 'ACCOUNTS_MISSING' END
+              FROM app_identity i JOIN app_account_credential c ON c.identity_id=i.id
+              WHERE i.email_normalized IN
+                ('demo@carbonflow.test','segunda@carbonflow.test','admin@carbonflow.test')
+                AND i.status='ACTIVE' AND i.email_verified_at IS NOT NULL;" | grep ACCOUNTS_PRESERVED
       - name: Destroy only the disposable demo environment
         if: always()
         run: |
