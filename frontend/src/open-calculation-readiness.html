@@ -65,10 +65,7 @@
       <ul class="cf-tech-gates">
         @for (gate of preparatoryGates(); track gate.code) {
           <li>
-            <strong>{{ preparatoryTitle(gate) }} · {{ stateLabel(gate.state) }}</strong>
-            <p>{{gate.reason}}</p>
-            <small>Próxima ação: {{gate.nextAction}} · Papel previsto: {{roleLabel(gate.owner)}}</small>
-            <small>Referência: {{gate.code}}</small>
+            <ng-container *ngTemplateOutlet="gateDetail; context:{gate:gate, title:preparatoryTitle(gate)}" />
           </li>
         }
       </ul>
@@ -80,10 +77,7 @@
     <ul class="cf-tech-gates">
       @for (gate of otherGates(); track gate.code) {
         <li>
-          <strong>{{ gateTitle(gate) }} · {{ stateLabel(gate.state) }}</strong>
-          <p>{{ gate.reason }}</p>
-          <small>{{ gate.nextAction }} · Papel previsto: {{ roleLabel(gate.owner) }}</small>
-          <small>Referência: {{ gate.code }}</small>
+          <ng-container *ngTemplateOutlet="gateDetail; context:{gate:gate, title:gateTitle(gate)}" />
         </li>
       }
     </ul>
@@ -116,10 +110,7 @@
       <ul class="cf-tech-gates">
         @for (gate of run.gates; track gate.code) {
           <li>
-            <strong>{{gateTitle(gate)}} · {{stateLabel(gate.state)}}</strong>
-            <p>{{gate.reason}}</p>
-            <small>{{gate.nextAction}} · Papel previsto: {{roleLabel(gate.owner)}}</small>
-            <small>Referência: {{gate.code}}</small>
+            <ng-container *ngTemplateOutlet="gateDetail; context:{gate:gate, title:gateTitle(gate)}" />
           </li>
         }
       </ul>
@@ -132,4 +123,15 @@
     }
     <button type="button" class="cf-workspace-outline" (click)="load()">Atualizar diagnóstico</button>
   }
+  <ng-template #gateDetail let-gate="gate" let-title="title">
+    <strong>{{title}} · {{stateLabel(gate.state)}}</strong>
+    <p>{{gate.reason}}</p>
+    <p>Próxima ação: {{gate.nextAction}}</p>
+    <details class="cf-journey-context">
+      <summary>Papel e referência</summary>
+      <p>Papel previsto: {{roleLabel(gate.owner)}}</p>
+      <p>Nenhuma pessoa foi designada por este diagnóstico.</p>
+      <small>Referência: {{gate.code}}</small>
+    </details>
+  </ng-template>
 </section>
