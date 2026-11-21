@@ -17,6 +17,7 @@ interface EquationStep {
   requiredInputs:string[];
   blockedBy:string[];
   status:string;
+  whyNotCalculated?:string;
 }
 interface RunGate {
   code:string;

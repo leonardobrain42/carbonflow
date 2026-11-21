@@ -33,6 +33,9 @@
               — {{stateLabel(step.status)}}
             </summary>
             <p>{{step.description}} · Unidade: {{step.unit}}.</p>
+            @if (step.whyNotCalculated) {
+              <p>{{step.whyNotCalculated}}</p>
+            }
             <p>Entradas necessárias:
               @for(input of step.requiredInputs; track input) {
                 <code>{{input}}</code>

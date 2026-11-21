@@ -17,7 +17,7 @@ final class OpenCalculationTransparency {
 
     record Stage(String outputCode, String ruleReference, String unit,
                  String description, List<String> requiredInputs,
-                 List<String> blockedBy, String status) {}
+                 List<String> blockedBy, String status, String whyNotCalculated) {}
 
     private OpenCalculationTransparency() {}
 
@@ -76,7 +76,27 @@ final class OpenCalculationTransparency {
                 failures.add(expected);
             }
         }
+        var blocked = List.copyOf(failures);
         return new Stage(code,reference,unit,description,inputs,
-            List.copyOf(failures),state);
+            blocked,state,why(state,blocked,gates));
+    }
+
+    /** Reasons already decided by the preflight. This does not invent a number. */
+    private static String why(String state, List<String> blocked,
+            List<OpenCalculationPreflight.Gate> gates) {
+        if ("OUT_OF_SCOPE".equals(state)) {
+            return "Fora do recorte confirmado para este projeto. Nenhum número foi produzido.";
+        }
+        if (blocked.isEmpty()) {
+            return "Não calculado. A execução deste projeto ainda não está admitida, "
+                + "então nenhum número foi produzido.";
+        }
+        var reasons = new ArrayList<String>();
+        for (String code : blocked) {
+            var gate = gates.stream().filter(item -> code.equals(item.code())).findFirst();
+            reasons.add(gate.map(OpenCalculationPreflight.Gate::reason)
+                .orElse(code + " ainda não tem avaliação neste projeto."));
+        }
+        return "Não calculado. " + String.join(" ", reasons);
     }
 }

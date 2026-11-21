@@ -44,6 +44,11 @@ class OpenCalculationPreflightTest {
         assertTrue(be.requiredInputs().containsAll(List.of("ED","EF_FUEL","IR","AFEC","MPG")));
         assertTrue(be.blockedBy().containsAll(
             List.of("NORMATIVE_PACK","EVR","EF_FUEL","IR","ED")));
+        assertTrue(be.whyNotCalculated().startsWith("Não calculado."));
+        assertTrue(be.whyNotCalculated().contains(
+            "Não há energia entregue ED admitida por carregador e período."));
+        assertFalse(be.whyNotCalculated().contains("tCO2e"));
+        assertFalse(be.whyNotCalculated().contains("EF-SYN"));
         assertFalse(result.equationPlan().toString().contains("EF-SYN"));
         Set<String> codes=result.gates().stream().map(OpenCalculationPreflight.Gate::code)
             .collect(Collectors.toSet());
@@ -87,7 +92,8 @@ class OpenCalculationPreflightTest {
 
         assertEquals("BLOCKED_NOT_ADMISSIBLE",eval("VM0042",0,open(0)).calculationState());
         assertTrue(eval("VM0042",0,open(0)).equationPlan().stream()
-            .allMatch(stage->stage.status().equals("OUT_OF_SCOPE")));
+            .allMatch(stage->stage.status().equals("OUT_OF_SCOPE")
+                && stage.whyNotCalculated().startsWith("Fora do recorte")));
     }
 
     @Test
