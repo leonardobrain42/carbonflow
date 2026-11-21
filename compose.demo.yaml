@@ -4,5 +4,8 @@ services:
   app:
     environment:
       CARBONFLOW_ACCOUNTS_SANDBOX_INBOX: /run/carbonflow-demo-inbox
+      # Demo-only compatibility for V69.1 introduced after some V70/V71 installs.
+      # Validation stays enabled. Never run Flyway repair on application startup.
+      QUARKUS_FLYWAY_OUT_OF_ORDER: "true"
     tmpfs:
       - /run/carbonflow-demo-inbox:uid=10001,gid=10001,mode=0700

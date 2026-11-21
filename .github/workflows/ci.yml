@@ -156,6 +156,7 @@ jobs:
           python3 -m unittest discover -s scripts -p 'test_demo_sandbox.py' -v
           python3 -m unittest discover -s scripts -p 'test_admin_sandbox.py' -v
           python3 -m unittest discover -s scripts -p 'test_flyway_v69_compat.py' -v
+          python3 -m unittest discover -s scripts -p 'test_demo_flyway_compat.py' -v
       - name: Start isolated sandbox and provision account
         run: python3 scripts/demo_sandbox.py start --quiet
       - name: Add a second account using the real confirmation API
@@ -167,6 +168,31 @@ jobs:
       - name: Rerun provisioning to prove repeatability without resetting passwords
         run: |
           python3 scripts/demo_sandbox.py start --quiet
+          python3 scripts/demo_sandbox.py smoke
+      - name: Reproduce legacy V71 checksum and late V69.1 on a persisted demo DB
+        run: |
+          set -euo pipefail
+          # This is a disposable CI DB. Real user volumes are NEVER modified.
+          docker compose -p "$CARBONFLOW_DEMO_PROJECT" -f compose.yaml -f compose.demo.yaml stop app
+          docker compose -p "$CARBONFLOW_DEMO_PROJECT" -f compose.yaml -f compose.demo.yaml exec -T db \
+            psql -U carbonflow -d carbonflow -v ON_ERROR_STOP=1 -c "
+              ALTER TABLE app_open_asset_evidence DROP COLUMN submitted_file_name;
+              DELETE FROM flyway_schema_history WHERE version='69.1';
+              UPDATE flyway_schema_history SET checksum=167374965 WHERE version='71';"
+          python3 scripts/demo_flyway_compat.py
+          python3 scripts/demo_flyway_compat.py --apply
+          docker compose -p "$CARBONFLOW_DEMO_PROJECT" -f compose.yaml -f compose.demo.yaml up -d --wait app
+          docker compose -p "$CARBONFLOW_DEMO_PROJECT" -f compose.yaml -f compose.demo.yaml exec -T db \
+            psql -U carbonflow -d carbonflow -v ON_ERROR_STOP=1 -c "
+              SELECT CASE WHEN
+                EXISTS (SELECT 1 FROM flyway_schema_history
+                        WHERE version='69.1' AND success)
+                AND EXISTS (SELECT 1 FROM flyway_schema_history
+                            WHERE version='71' AND checksum=-1979807539 AND success)
+                AND EXISTS (SELECT 1 FROM information_schema.columns
+                            WHERE table_name='app_open_asset_evidence'
+                              AND column_name='submitted_file_name')
+                THEN 'UPGRADE_OK' ELSE 'UPGRADE_FAILED' END;" | grep UPGRADE_OK
           python3 scripts/demo_sandbox.py smoke
       - name: Destroy only the disposable demo environment
         if: always()
