@@ -56,7 +56,7 @@ test(project ? 'PP registra posição e depósito, PREP compara e REV concilia p
       await success();
     }
 
-    await page.goto(url);
+    await page.goto(url + '/pilot');
     await enter('PP');
     if (!project) {
       await panel.getByText(/Comprove a aprovação de V1 ou V2 em/).waitFor();

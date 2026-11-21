@@ -1,4 +1,5 @@
 import {WorkspaceNavigationComponent} from './workspace-navigation';
+import {AccountEntryComponent} from './account-entry';
 import {Component, computed, inject, signal} from '@angular/core';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {ActivatedRoute, RouterLink} from '@angular/router';
@@ -39,7 +40,7 @@ interface WorkspaceOrganization {
 
 @Component({
   selector: 'carbonflow-workspace',
-  imports: [RouterLink, WorkspaceNavigationComponent],
+  imports: [RouterLink, WorkspaceNavigationComponent, AccountEntryComponent],
   templateUrl: './workspace.html',
 })
 export class WorkspaceComponent {
@@ -98,23 +99,6 @@ export class WorkspaceComponent {
     } finally {
       this.loading.set(false);
     }
-  }
-
-  async login(event: Event, email: string, password: string) {
-    event.preventDefault();
-    if (this.busy()) return;
-    this.busy.set(true);
-    this.error.set('');
-    this.notice.set('');
-    try {
-      await firstValueFrom(this.http.post('/v1/account-session', {email: email.trim(), password}));
-    } catch (reason: unknown) {
-      this.error.set(this.errorMessage(reason, 'Não foi possível entrar. Confira o e-mail e a senha.'));
-      this.busy.set(false);
-      return;
-    }
-    this.busy.set(false);
-    await this.refreshSession();
   }
 
   async logout() {
