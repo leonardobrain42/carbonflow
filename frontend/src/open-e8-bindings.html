@@ -34,7 +34,8 @@
       <p>Energia: {{item.energyCandidateId}} · SHA: {{item.energySha256}}</p>
       <p>EFel: {{item.efelCandidateId}} · SHA: {{item.efelSha256}}
         · parecer interno v{{item.efelReviewVersion}}</p>
-      <p>Assinatura do conjunto: <code>{{item.inputSha256}}</code></p>
+      <p>SHA-256 declarado do conjunto: <code>{{item.inputSha256}}</code></p>
+      <p>Não autentica as fontes nem libera o cálculo.</p>
       @if (item.stale) {
         <p role="alert">O vínculo está desatualizado; os dados originais
           permanecem disponíveis somente para consulta histórica.</p>
@@ -107,7 +108,7 @@
           SHA declarada: <code>{{item.fleetSourceSha256}}</code></p>
         <p>Snapshot de ratings e comparáveis: {{item.ratingSnapshotId}} ·
           linhagem SHA: <code>{{item.ratingLineageSha256}}</code></p>
-        <p>Assinatura da seleção: <code>{{item.selectionSha256}}</code></p>
+        <p>SHA-256 declarado da seleção: <code>{{item.selectionSha256}}</code></p>
         <p>Bloqueios e ressalvas:</p>
         <ul>
           @for (gate of item.gates; track gate) {
@@ -115,8 +116,8 @@
           }
         </ul>
         <p>Os valores fonte são mantidos no catálogo com licença.
-          A assinatura não certifica a autenticidade de uma fonte externa
-          ou autorização normativa de uso.</p>
+          Estes SHA-256 são declarados. Não autenticam a fonte externa
+          nem autorizam o uso normativo.</p>
         <button type="button" class="cf-workspace-outline"
           (click)="selectedFleet.set(null)">Fechar detalhe</button>
       </section>

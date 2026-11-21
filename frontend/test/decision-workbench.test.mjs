@@ -115,6 +115,7 @@ test('UX-BL-01: baseline presents actual period selection, factor blockers and P
   await page.goto(base+'/workspace/projects/'+project+'/technical?secao=linha-base&etapa=frota');
   await page.getByRole('heading',{name:/2\. EVR e comparáveis/}).waitFor();
   await page.getByText('Seleção v2 · ano 2027').waitFor();
+  await page.getByText('Não autentica a fonte nem admite o cálculo.').waitFor();
   await page.getByText('Snapshot preparatório — não admitido').waitFor();
   await page.getByText('Estoque EVR e ratings continuam sem admissão normativa.').waitFor();
   await page.getByText('Referência: EVR_AND_RATINGS_NOT_NORMATIVELY_ADMITTED').waitFor();
@@ -132,6 +133,7 @@ test('UX-BL-01: baseline presents actual period selection, factor blockers and P
   assert.ok(page.url().includes('etapa=fatores'));
   await page.getByRole('button',{name:'6. Vínculo ao PD'}).click();
   await page.getByRole('heading',{name:'Como isso entrará no PD?'}).waitFor();
+  await page.getByText('Não é assinatura certificada nem aprovação do documento.').waitFor();
   await page.getByText('Guia textual teve nova revisão',{exact:false}).waitFor();
   await page.getByText('Rede de postos públicos contrafactual',{exact:false}).waitFor();
   await page.getByText('ainda não estão inseridas automaticamente',{exact:false}).waitFor();
