@@ -27,5 +27,5 @@ Playwright 390×844: transição condicional da justificativa, estação e carre
 
 - Criar `EVIDENCE_REF` e `DOCUMENT_REF` somente ao conectar owner documental #33/#92, com ACL, hash e review.
 - Formalizar AST tipada de condições mais expressivas (`AND/OR`, dependências de atos), com validação de schema e suite de edição/ramo alternativo; este PR **não** afirma suporte genérico a qualquer regra metodológica.
-- Resolver experiência duplicada entre guia legado e editor novo por migração gradual, com decisão explícita do usuário, sem converter automaticamente valores narrativos.
+- A tela de guias, quando o formulário tipado carrega, mostra o texto antigo só como histórico. Esse texto não salva de novo e não aprova a etapa. Sem formulário tipado, o editor textual continua sendo o único caminho.
 - Ligar `outputToDocumentBlockMapping` do #43, direito/cronologia #24/#38/#99 e status específicos do PD. Não antecipar dados normativos ou VVB.

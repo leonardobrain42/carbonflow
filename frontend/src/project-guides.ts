@@ -57,6 +57,12 @@ export class ProjectGuidesComponent implements OnInit {
     } finally { this.loading.set(false); }
   }
 
+  typedMode(): 'loading' | 'structured' | 'textual' {
+    const editor = this.typedEditor();
+    if (!editor || editor.loading()) return 'loading';
+    return editor.guide() ? 'structured' : 'textual';
+  }
+
   canLeave() {
     return !this.busy() && (this.typedEditor()?.canLeave() ?? true) &&
       (!this.dirty() || confirm('Descartar as alterações deste guia?'));

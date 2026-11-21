@@ -92,7 +92,11 @@ test('UX-02B: guia tipado condicional, refs versionadas, boolean real, rascunho 
     await page.getByRole('button',{name:'Salvar revisão estruturada'}).click();
     await page.getByText('Revisão estruturada 1 salva',{exact:false}).waitFor();
     assert.equal(puts,1);
-    assert.equal(await page.getByLabel('Texto legado da fronteira').inputValue(),'texto antigo');
+    assert.equal(await page.getByRole('button',{name:'Salvar guia'}).count(),0);
+    assert.equal(await page.getByLabel('Texto legado da fronteira').count(),0);
+    await page.getByText('Histórico textual anterior (não conclui esta informação)').click();
+    await page.getByText('não são a resposta tipada').waitFor();
+    await page.getByText('texto antigo').waitFor();
     await page.getByLabel('Incidência candidata do critério').selectOption('Aplicável');
     assert.equal(await justification.count(),0);
     await page.getByRole('button',{name:'Salvar revisão estruturada'}).click();
@@ -104,5 +108,10 @@ test('UX-02B: guia tipado condicional, refs versionadas, boolean real, rascunho 
     assert.equal(await page.getByLabel('Recarga aberta a qualquer BEV compatível?').inputValue(),'true');
     assert.equal(await justification.count(),0);
     assert.equal(await page.getByText('Campos estruturados informados — sem aprovação').count(),1);
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
+    await page.setViewportSize({width:1440,height:900});
+    await page.getByRole('heading',{name:'Formulário estruturado · 1.1'}).waitFor();
+    assert.equal(await page.getByRole('button',{name:'Salvar guia'}).count(),0);
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
   }finally{await browser.close();}
 });

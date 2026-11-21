@@ -36,51 +36,64 @@
       }
       <carbonflow-typed-guide [projectId]="projectId()" [guideId]="guide.id"
         [editable]="guide.editable" />
-      <h4>Informações desta etapa</h4>
-      <p class="cf-workspace-helper">Anotações textuais históricas permanecem editáveis pelo contrato anterior.
-        Não são respostas tipadas nem cadastro de entidades. Prefira o formulário estruturado acima
-        quando houver campos compatíveis, sem presumir migração ou aprovação.</p>
-      <fieldset class="cf-journey-fieldset" [disabled]="!guide.editable || busy()">
-        @for (field of guide.fields; track field.key) {
-          @if (field.key !== 'justification' || answers()['incidence'] === 'Não aplicável' || answers()['justification']) {
-            <label [for]="'guide-' + field.key">{{ field.label }}</label>
-            @if (field.type === 'select' || field.type === 'enum') {
-              <select #choice [id]="'guide-' + field.key"
-                [attr.aria-describedby]="field.helpText ? 'guide-help-' + field.key : null"
-                (change)="change(field.key,choice.value)">
-                <option value="" [selected]="!answers()[field.key]">Não informado</option>
-                @for (option of field.options; track option) {
-                  <option [value]="option" [selected]="answers()[field.key] === option">{{ option }}</option>
-                }
-              </select>
-            } @else if (field.type === 'date') {
-              <input #day type="date" [id]="'guide-' + field.key"
-                [attr.aria-describedby]="field.helpText ? 'guide-help-' + field.key : null"
-                [value]="answers()[field.key] || ''" (input)="change(field.key,day.value)">
-            } @else if (field.type === 'year') {
-              <input #year type="text" inputmode="numeric" maxlength="4" [id]="'guide-' + field.key"
-                [attr.aria-describedby]="fieldError(field) ? 'guide-error-' + field.key : (field.helpText ? 'guide-help-' + field.key : null)"
-                [attr.aria-invalid]="fieldError(field) ? 'true' : null"
-                placeholder="Ex.: 2027" [value]="answers()[field.key] || ''"
-                (input)="change(field.key,year.value)">
-            } @else {
-              <textarea #content rows="2" maxlength="1600" [id]="'guide-' + field.key"
-                [attr.aria-describedby]="field.helpText ? 'guide-help-' + field.key : null"
-                [value]="answers()[field.key] || ''" (input)="change(field.key,content.value)"></textarea>
+      @if (typedMode() === 'structured') {
+        <details class="cf-journey-context">
+          <summary>Histórico textual anterior (não conclui esta informação)</summary>
+          <p>Estas anotações permanecem no registro original. Não são a resposta tipada,
+            não são prova e não aprovam a etapa.</p>
+          <dl>
+            @for (field of guide.fields; track field.key) {
+              <dt id="guide-{{field.key}}">{{field.label}}</dt>
+              <dd>{{answers()[field.key] || 'Não informado'}}</dd>
             }
-            @if (field.helpText) {
-              <p class="cf-workspace-helper" [id]="'guide-help-' + field.key">{{field.helpText}}</p>
-            }
-            @if (fieldError(field)) {
-              <p class="cf-workspace-alert" role="alert" [id]="'guide-error-' + field.key">{{fieldError(field)}}</p>
-            }
-            @if (guide.legacyUnstructured?.includes(field.key)) {
-              <p class="cf-workspace-note">Resposta de revisão anterior preservada. Verifique e corrija este valor antes de reaproveitá-lo como dado estruturado.</p>
+          </dl>
+        </details>
+      } @else if (typedMode() === 'textual') {
+        <h4>Informações desta etapa</h4>
+        <p class="cf-workspace-helper">Este guia ainda não tem formulário tipado.
+          O texto salvo aqui é declaração preparatória, não prova nem aprovação.</p>
+        <fieldset class="cf-journey-fieldset" [disabled]="!guide.editable || busy()">
+          @for (field of guide.fields; track field.key) {
+            @if (field.key !== 'justification' || answers()['incidence'] === 'Não aplicável' || answers()['justification']) {
+              <label [for]="'guide-' + field.key">{{ field.label }}</label>
+              @if (field.type === 'select' || field.type === 'enum') {
+                <select #choice [id]="'guide-' + field.key"
+                  [attr.aria-describedby]="field.helpText ? 'guide-help-' + field.key : null"
+                  (change)="change(field.key,choice.value)">
+                  <option value="" [selected]="!answers()[field.key]">Não informado</option>
+                  @for (option of field.options; track option) {
+                    <option [value]="option" [selected]="answers()[field.key] === option">{{ option }}</option>
+                  }
+                </select>
+              } @else if (field.type === 'date') {
+                <input #day type="date" [id]="'guide-' + field.key"
+                  [attr.aria-describedby]="field.helpText ? 'guide-help-' + field.key : null"
+                  [value]="answers()[field.key] || ''" (input)="change(field.key,day.value)">
+              } @else if (field.type === 'year') {
+                <input #year type="text" inputmode="numeric" maxlength="4" [id]="'guide-' + field.key"
+                  [attr.aria-describedby]="fieldError(field) ? 'guide-error-' + field.key : (field.helpText ? 'guide-help-' + field.key : null)"
+                  [attr.aria-invalid]="fieldError(field) ? 'true' : null"
+                  placeholder="Ex.: 2027" [value]="answers()[field.key] || ''"
+                  (input)="change(field.key,year.value)">
+              } @else {
+                <textarea #content rows="2" maxlength="1600" [id]="'guide-' + field.key"
+                  [attr.aria-describedby]="field.helpText ? 'guide-help-' + field.key : null"
+                  [value]="answers()[field.key] || ''" (input)="change(field.key,content.value)"></textarea>
+              }
+              @if (field.helpText) {
+                <p class="cf-workspace-helper" [id]="'guide-help-' + field.key">{{field.helpText}}</p>
+              }
+              @if (fieldError(field)) {
+                <p class="cf-workspace-alert" role="alert" [id]="'guide-error-' + field.key">{{fieldError(field)}}</p>
+              }
+              @if (guide.legacyUnstructured?.includes(field.key)) {
+                <p class="cf-workspace-note">Resposta de revisão anterior preservada. Verifique e corrija este valor antes de reaproveitá-lo como dado estruturado.</p>
+              }
             }
           }
-        }
-      </fieldset>
-      @if (guide.editable) { <button class="cf-workspace-primary" [disabled]="busy() || !dirty()" (click)="save()">Salvar guia</button> }
+        </fieldset>
+        @if (guide.editable) { <button class="cf-workspace-primary" [disabled]="busy() || !dirty()" (click)="save()">Salvar guia</button> }
+      }
       @if (notice()) { <p role="status">{{ notice() }}</p> }
       <h4>Fontes, evidências e pareceres</h4>
       <p class="cf-workspace-helper">Consulte os requisitos, solicite dados ou vincule provas sem confundir texto declarado com fato revisado.</p>
