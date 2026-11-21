@@ -286,7 +286,8 @@ class ProjectRequirementProjectionTest {
         assertEquals("NEEDS_EVIDENCE", item(gap, "DRIVER_DISCLOSURE").state());
         assertTrue(gap.requirements().stream().noneMatch(i -> "RIGHTS_DEPENDENCY".equals(i.requirementId())));
         assertEquals("SOURCE_CANDIDATE", item(gap, "EVR").state());
-        assertEquals("SOURCE_CANDIDATE", item(gap, "EF_FUEL").state());
+        assertEquals("SOURCE_CANDIDATE", item(gap, "EF_GRID").state());
+        assertEquals("NOT_ADMITTED", item(gap, "EF_FUEL").state());
         assertFalse(item(gap, "EVR").admitsE8());
         assertEquals("NOT_ADMITTED", item(gap, "IR").state());
         assertEquals("NOT_INCIDENT", item(gap, "ED_EC").state());
@@ -298,8 +299,76 @@ class ProjectRequirementProjectionTest {
         assertEquals("STALE", item(staleFleet, "EVR").state());
         assertEquals("STALE", item(staleFleet, "AFEC_MPG").state());
         assertEquals("NOT_ADMITTED", item(staleFleet, "EF_FUEL").state());
+        assertEquals("NOT_ADMITTED", item(staleFleet, "EF_GRID").state());
         assertEquals("NOT_ADMITTED", item(staleFleet, "IR").state());
         assertFalse(staleFleet.canRunE8());
+    }
+
+    @Test
+    void recheckStaysOnTheDependencyThatChanged() {
+        var rights = ProjectRequirementProjection.project(new ProjectRequirementProjection.Input(
+            "p", "VM0038", true, true, true, true, true, true,
+            disclosurePresent(), preflight(false),
+            new ProjectRequirementProjection.Owners(true, "PREPARATORY_NOT_ADMITTED", "CANDIDATE_NOT_ADMITTED",
+                OpenProjectStations.EnergyPosture.NONE)));
+        assertEquals("RECHECK_REQUIRED", item(rights, "RIGHTS_DEPENDENCY").state());
+        assertTrue(item(rights, "RIGHTS_DEPENDENCY").reason().contains("permanecem no estado"));
+        assertEquals("AWAITING_NORMATIVE_EVALUATION", item(rights, "MARKET_ROUTE").state());
+        assertEquals("SOURCE_CANDIDATE", item(rights, "EVR").state());
+        assertEquals("SOURCE_CANDIDATE", item(rights, "EF_GRID").state());
+        assertEquals("NOT_ADMITTED", item(rights, "EF_FUEL").state());
+        assertFalse(rights.canRunE8());
+
+        var base = preflight(false);
+        var gates = new java.util.ArrayList<>(base.gates());
+        gates.add(new OpenCalculationPreflight.Gate("E8_FLEET_SELECTION_M1", "NOT_ADMITTED",
+            "Frota vinculada ao período M1.", "Conferir a seleção", "PREP/REV"));
+        gates.add(new OpenCalculationPreflight.Gate("E8_INPUT_BINDING_M1", "NOT_ADMITTED",
+            "Energia vinculada ao período M1.", "Conferir o vínculo", "PREP/REV"));
+        gates.add(new OpenCalculationPreflight.Gate("E8_INPUT_BINDING_M2", "MISSING",
+            "Nenhum vínculo de energia no período M2.", "Preparar o vínculo", "PREP"));
+        var linked = new OpenCalculationPreflight.Result(
+            base.projectId(), base.environment(), base.engine(), base.methodology(),
+            base.scenario(), base.workflowState(), base.calculationState(),
+            base.canContinuePreparation(), true, true,
+            new OpenCalculationPreflight.Emissions("6.00", "0", "0", "5.30", "5.30"),
+            List.copyOf(gates), base.equationPlan());
+        var energy = ProjectRequirementProjection.project(new ProjectRequirementProjection.Input(
+            "p", "VM0038", true, true, true, true, true, true,
+            disclosurePresent(), linked,
+            new ProjectRequirementProjection.Owners(false, "PREPARATORY_NOT_ADMITTED", "STALE_NOT_ADMITTED",
+                OpenProjectStations.EnergyPosture.NONE)));
+        assertEquals("STALE", item(energy, "EF_GRID").state());
+        assertEquals("STALE", item(energy, "E8_INPUT_BINDING_M1").state());
+        assertTrue(item(energy, "E8_INPUT_BINDING_M1").reason().contains("A frota, o fator fóssil"));
+        assertEquals("SOURCE_CANDIDATE", item(energy, "EVR").state());
+        assertEquals("SOURCE_CANDIDATE", item(energy, "E8_FLEET_SELECTION_M1").state());
+        assertEquals("NOT_ADMITTED", item(energy, "EF_FUEL").state());
+        assertEquals("NOT_ADMITTED", item(energy, "IR").state());
+        assertEquals("NOT_ADMITTED", item(energy, "DY").state());
+        assertEquals("Ainda não vinculado", item(energy, "E8_INPUT_BINDING_M2").situation());
+        assertNotEquals("STALE", item(energy, "E8_INPUT_BINDING_M2").state());
+        assertFalse(energy.toString().contains("6.00"));
+
+        var station = ProjectRequirementProjection.project(new ProjectRequirementProjection.Input(
+            "p", "VM0038", true, true, true, true, true, true,
+            disclosurePresent(), linked,
+            new ProjectRequirementProjection.Owners(false, "PREPARATORY_NOT_ADMITTED", "CANDIDATE_NOT_ADMITTED",
+                new OpenProjectStations.EnergyPosture("STALE", false, true, true))));
+        assertEquals("STALE", item(station, "BOUNDARY").state());
+        assertEquals("STALE", item(station, "EF_GRID").state());
+        assertTrue(item(station, "EF_GRID").reason().contains("Só o vínculo de energia"));
+        assertEquals("STALE", item(station, "E8_INPUT_BINDING_M1").state());
+        assertEquals("SOURCE_CANDIDATE", item(station, "EVR").state());
+        assertEquals("SOURCE_CANDIDATE", item(station, "AFEC_MPG").state());
+        assertEquals("SOURCE_CANDIDATE", item(station, "E8_FLEET_SELECTION_M1").state());
+        assertEquals("NOT_ADMITTED", item(station, "EF_FUEL").state());
+        assertEquals("AWAITING_NORMATIVE_EVALUATION", item(station, "MARKET_ROUTE").state());
+        assertEquals("NOT_INCIDENT", item(station, "ED_EC").state());
+        assertTrue(station.requirements().stream().noneMatch(item ->
+            "ENERGY_SERIES".equals(item.requirementId()) || item.admitsE8()));
+        assertFalse(station.canRunE8());
+        assertFalse(station.canIssueVcu());
     }
 
     @Test
