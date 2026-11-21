@@ -158,78 +158,7 @@ SELECT count(*) FROM app_open_asset_evidence link
 LEFT JOIN app_project_evidence_blob blob
   ON blob.project_id=link.project_id AND blob.id=link.evidence_blob_id
 WHERE link.submitted_file_name IS NULL
-   OR link.submitted_file_name !~ '^[A-Za-z0-9][A-Za-z0-9._-]{4,115}[.]pdf
-    parser = argparse.ArgumentParser(description="Verificar V71 no sandbox; --apply reconcilia só metadados.")
-    parser.add_argument("--apply",action="store_true",help="Requer backup prévio e esquema compatível.")
-    args = parser.parse_args()
-    demo.validate()
-    demo.runtime_check()
-    if (checksum(SQL_DIR/"V69__open_asset_evidence_links.sql") != V69 or
-        checksum(SQL_DIR/"V69_1__open_asset_evidence_submitted_filename.sql") != V69_1 or
-        checksum(SQL_DIR/"V71__open_e8_project_run.sql") != NEW):
-        raise RuntimeError("Arquivos de migração locais não correspondem às versões publicadas.")
-    state = inspect()
-    hist = {r["version"]:r for r in state["history"]}
-    applied = hist.get("71",{}).get("checksum")
-    print("Sandbox: V71="+str(applied)+", V69.1="+("aplicada" if
-          hist.get("69.1",{}).get("success") else "pendente"))
-    if applied == NEW:
-        print("V71 E8 já aplicada com checksum atual; nenhuma alteração.")
-        return
-    legacy_filename = hist.get("71",{}).get("script") == LEGACY_FILENAME_SCRIPT
-    violations = legacy_filename_problems(state) if legacy_filename else problems(state)
-    if legacy_filename and not violations:
-        violations += legacy_filename_data_problems()
-    if violations:
-        raise RuntimeError("Reparo recusado: "+"; ".join(violations))
-    if not args.apply:
-        print("Estrutura compatível com os testes de catálogo. Faça backup antes de --apply.")
-        return
-    demo.private_dir(demo.SECRET_DIR)
-    os.umask(0o077)  # Audit receipt stays 0600; never publish user DB metadata.
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
-    path = demo.SECRET_DIR / ("flyway-v71-inspection-"+stamp+".json")
-    with path.open("x",encoding="utf-8") as file:
-        json.dump({"at":stamp,"project":demo.PROJECT,"state":state},file,indent=2)
-        file.write("\n")
-    if legacy_filename:
-        reconcile_legacy_filename()
-        after = inspect()
-        history = {row["version"]:row for row in after["history"]}
-        if ("71" in history or history.get("69.1",{}).get("checksum") != V69_1 or
-            after.get("run") or after.get("command")):
-            raise RuntimeError("Histórico V71 legada não foi reconciliado; inspecione antes do boot.")
-        print("V71 legada de evidências reclassificada para V69.1 após verificação.")
-        print("V71 E8 agora está PENDENTE e será executada no próximo boot; dados intactos.")
-        print("Registro privado do histórico anterior: "+str(path))
-        return
-    sql(f"""
-BEGIN;
-LOCK TABLE flyway_schema_history IN SHARE ROW EXCLUSIVE MODE;
-DO $$
-BEGIN
- IF (SELECT count(*) FROM flyway_schema_history
-     WHERE version='71' AND success AND checksum={OLD}) != 1 THEN
-   RAISE EXCEPTION 'Migration V71 changed concurrently';
- END IF;
-END $$;
-UPDATE flyway_schema_history SET checksum={NEW}
- WHERE version='71' AND success AND checksum={OLD};
-COMMIT;
-""")
-    after = inspect()
-    if next((r["checksum"] for r in after["history"] if r["version"]=="71"),None) != NEW:
-        raise RuntimeError("V71 não foi reconciliada; investigar sem executar repair genérico.")
-    print("V71 E8 reconciliada; dados preservados. Auditoria local privada: "+str(path))
-    print("Inicie agora com python3 scripts/demo_sandbox.py start para aplicar V69.1.")
-
-if __name__=="__main__":
-    try:
-        main()
-    except Exception as error:
-        print("Compatibilidade V71: "+str(error),file=sys.stderr)
-        sys.exit(1)
-
+   OR link.submitted_file_name !~ '^[A-Za-z0-9][A-Za-z0-9._-]{4,115}[.]pdf$'
    OR link.submitted_file_name LIKE '%..%'
    OR blob.id IS NULL OR blob.mime_type<>'application/pdf';
 """)
@@ -246,7 +175,7 @@ def reconcile_legacy_filename() -> None:
     sql(f"""
 BEGIN;
 LOCK TABLE flyway_schema_history IN SHARE ROW EXCLUSIVE MODE;
-DO $
+DO $$
 BEGIN
  IF (SELECT count(*) FROM flyway_schema_history
      WHERE version='71' AND description='{LEGACY_FILENAME_DESCRIPTION}'
@@ -257,7 +186,7 @@ BEGIN
    OR to_regclass('public.app_open_e8_run_command') IS NOT NULL
  THEN RAISE EXCEPTION 'Flyway history or E8 schema changed concurrently';
  END IF;
-END $;
+END $$;
 UPDATE flyway_schema_history
  SET version='69.1',description='{CURRENT_FILENAME_DESCRIPTION}',
      script='{CURRENT_FILENAME_SCRIPT}', checksum={V69_1}
