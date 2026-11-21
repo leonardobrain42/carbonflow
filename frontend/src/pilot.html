@@ -1,22 +1,22 @@
-<a class="cf-skip-link" href="#cf-main">Pular para o conteúdo</a>
+<a class="cf-skip-link" href="/pilot#cf-main">Pular para o conteúdo</a>
 <div class="cf-app" [class.cf-app--authenticated]="!!session()">
   @if (session()) {
     <aside class="cf-sidebar" aria-label="Navegação lateral da demonstração">
       <a class="cf-sidebar-brand" href="/pilot" aria-label="CarbonFlow — início da demonstração">Carbon<span>Flow</span></a>
       <span class="cf-sidebar-kicker">ESPAÇO DE TRABALHO</span>
       <nav class="cf-sidebar-nav" aria-label="Áreas do piloto">
-        <a href="#cf-overview">Visão geral</a>
+        <a href="/pilot#cf-overview">Visão geral</a>
         @if (project()) {
-          <a href="#cf-intake">Enquadramento e inventário</a>
-          <a href="#cf-imports">Medições ED/EC</a>
-          <a href="#cf-calculations">Cálculos de emissões</a>
-          <a href="#cf-monitoring">Monitoramento</a>
-          <a href="#cf-dossiers">Dossiês PD/MR</a>
-          <a href="#cf-listings">Listagens</a>
-          <a href="#cf-audits">Auditorias</a>
-          <a href="#cf-issuance">Emissão</a>
-          <a href="#cf-operations">Trabalhos e retenção</a>
-          <a href="#cf-access">Acesso a artefatos</a>
+          <a href="/pilot#cf-intake">Enquadramento e inventário</a>
+          <a href="/pilot#cf-imports">Medições ED/EC</a>
+          <a href="/pilot#cf-calculations">Cálculos de emissões</a>
+          <a href="/pilot#cf-monitoring">Monitoramento</a>
+          <a href="/pilot#cf-dossiers">Dossiês PD/MR</a>
+          <a href="/pilot#cf-listings">Listagens</a>
+          <a href="/pilot#cf-audits">Auditorias</a>
+          <a href="/pilot#cf-issuance">Emissão</a>
+          <a href="/pilot#cf-operations">Trabalhos e retenção</a>
+          <a href="/pilot#cf-access">Acesso a artefatos</a>
         }
       </nav>
       <p class="cf-sidebar-notice">AMBIENTE DE SIMULAÇÃO<br><small>Os dados sintéticos não representam créditos emitidos.</small></p>
@@ -58,11 +58,11 @@
     <h1 #mainHeading tabindex="-1">{{ canReadRun() ? "Monitoramento de emissões" : "Acesso ao piloto" }}</h1>
     @if (project()) {
       <nav class="cf-workflow-steps" aria-label="Navegação pelas etapas do piloto">
-        <a href="#cf-intake"><span>01</span>Enquadramento</a>
-        <a href="#cf-imports"><span>02</span>Dados de operação</a>
-        <a href="#cf-calculations"><span>03</span>Quantificação</a>
-        <a href="#cf-monitoring"><span>04</span>Monitoramento</a>
-        <a href="#cf-dossiers"><span>05</span>Documentos</a>
+        <a href="/pilot#cf-intake"><span>01</span>Enquadramento</a>
+        <a href="/pilot#cf-imports"><span>02</span>Dados de operação</a>
+        <a href="/pilot#cf-calculations"><span>03</span>Quantificação</a>
+        <a href="/pilot#cf-monitoring"><span>04</span>Monitoramento</a>
+        <a href="/pilot#cf-dossiers"><span>05</span>Documentos</a>
       </nav>
     }
     @if (canCalculate()) {
