@@ -24,15 +24,18 @@ class OpenCalculationReadiness {
 
     OpenCalculationPreflight.Result get(String cookie, String projectId) {
         return scope.read(cookie, projectId, "VIEW_OPEN_CALCULATION",
-            (connection, context) -> {
-                var preflight=OpenCalculationPreflight.evaluate(
-                    new OpenCalculationPreflight.Context(context.id(),
-                        context.environment(), methodology(connection, context.id()),
-                        country(connection, context.id()), vehicleClass(connection, context.id()),
-                        triageRevision(connection, context.id()),
-                        applicability(connection, context.id())));
-                return withMrDependencies(connection,context.id(),preflight);
-            });
+            (connection, context) -> diagnose(connection, context.id(), context.environment()));
+    }
+
+    /** Same fail-closed diagnosis the calculation screen already reads. */
+    static OpenCalculationPreflight.Result diagnose(Connection connection, String projectId,
+            String environment) throws SQLException {
+        var preflight=OpenCalculationPreflight.evaluate(
+            new OpenCalculationPreflight.Context(projectId, environment,
+                methodology(connection, projectId), country(connection, projectId),
+                vehicleClass(connection, projectId), triageRevision(connection, projectId),
+                applicability(connection, projectId)));
+        return withMrDependencies(connection, projectId, preflight);
     }
 
     /**
@@ -139,7 +142,7 @@ class OpenCalculationReadiness {
             OpenCalculationTransparency.plan(gates));
     }
 
-    private static String methodology(Connection connection, String project) throws SQLException {
+    static String methodology(Connection connection, String project) throws SQLException {
         String selected = ProjectTriageWizard.savedCandidate(connection, project);
         if (selected == null || selected.isBlank()) {
             selected = first(connection, """
