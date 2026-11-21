@@ -55,7 +55,10 @@
                     <div><dt>Estado</dt><dd>{{labelState(selection.state)}}</dd></div>
                     <div><dt>Hash de seleção</dt><dd><code>{{selection.selectionSha256}}</code></dd></div>
                   </dl>
-                  @for (gate of selection.gates;track gate){<p class="cf-workspace-note">{{gate}}</p>}
+                  @for (gate of selection.gates;track gate){
+                    <p class="cf-workspace-note">{{fleetNote(gate)}}</p>
+                    <p>Referência: {{gate}}</p>
+                  }
                 }
               }
               @if (!hasFleetFor(period.reference.code)){

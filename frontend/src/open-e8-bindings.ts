@@ -1,6 +1,7 @@
 import {Component, Input, OnChanges, SimpleChanges, inject, signal} from '@angular/core';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {firstValueFrom} from 'rxjs';
+import {preparatoryNote} from './calculation-language';
 
 type BindingHour = {hour:string;edKwh:string;ecKwh:string;
   gridFactorTco2ePerKwh:string;chargerCount:number};
@@ -34,6 +35,7 @@ export class OpenE8BindingsComponent implements OnChanges {
   readonly fleetSelections=signal<FleetSelection[]>([]);
   readonly selectedFleet=signal<FleetSelection|null>(null);
   readonly chosen=signal<Binding|null>(null);
+  readonly note=preparatoryNote;
   readonly error=signal('');
   readonly notice=signal('');
   private seq=0;

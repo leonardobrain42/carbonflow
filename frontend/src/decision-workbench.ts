@@ -3,7 +3,7 @@ import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {firstValueFrom} from 'rxjs';
 import {TypedGuideComponent} from './typed-guide';
 import {PdTraceComponent} from './pd-trace';
-import {calculationGateTitle, plannedRole} from './calculation-language';
+import {calculationGateTitle, plannedRole, preparatoryNote} from './calculation-language';
 
 export type WorkbenchKind='baseline'|'additionality';
 type Field={key:string;label:string;type:string;unit:string|null;helpText:string|null};
@@ -224,6 +224,7 @@ export class DecisionWorkbenchComponent implements OnChanges {
   }
   gateName(code:string){return calculationGateTitle(code);}
   roleLabel(owner:string){return plannedRole(owner);}
+  fleetNote(code:string){return preparatoryNote(code);}
   labelState(value:string){
     const map:Record<string,string>={
       FORM_COMPLETED_DECLARED:'Campos declarados, sem comprovação',

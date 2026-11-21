@@ -116,6 +116,9 @@ test('UX-BL-01: baseline presents actual period selection, factor blockers and P
   await page.getByRole('heading',{name:/2\. EVR e comparáveis/}).waitFor();
   await page.getByText('Seleção v2 · ano 2027').waitFor();
   await page.getByText('Snapshot preparatório — não admitido').waitFor();
+  await page.getByText('Estoque EVR e ratings continuam sem admissão normativa.').waitFor();
+  await page.getByText('Referência: EVR_AND_RATINGS_NOT_NORMATIVELY_ADMITTED').waitFor();
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
   assert.equal(await page.getByText('E8 não liberado para este projeto.').count(),0);
   assert.ok(observed.includes('/open-monitoring/dossiers/P-2027/e8-fleet-selections'));
   await page.getByRole('button',{name:'3. Fatores e E8'}).click();
