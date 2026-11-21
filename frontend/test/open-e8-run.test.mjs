@@ -82,7 +82,7 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
     await page.goto(base + '/workspace/projects/' + project + '/technical?secao=quantificar');
     await page.getByRole('heading', {name:'Última tentativa de cálculo · M1'}).waitFor();
     await page.getByText('Estoque nacional EVR · Fonte ainda não vinculada').waitFor();
-    await page.getByText('Papel previsto: PREP').waitFor();
+    await page.getByText('Papel previsto: preparação').waitFor();
     await page.getByText('Referência: EVR').waitFor();
     await page.getByText('BE · VM0038-1.1-EQ1').click();
     await page.getByText('Não há energia entregue ED admitida por carregador e período.').waitFor();
@@ -92,7 +92,7 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
     await page.getByText('Não calculados').waitFor();
     await page.getByText('Melhoria tecnológica · Não informado').waitFor();
     await page.getByText('IR não tem valor normalizado armazenado.').waitFor();
-    await page.getByText('Papel previsto: PREP/REV').waitFor();
+    await page.getByText('Papel previsto: preparação e revisão').waitFor();
     assert.equal(posted.body, '{}');
     assert.equal(posted.match, '"0"');
     assert.match(posted.key, /^[0-9a-f-]{36}$/);

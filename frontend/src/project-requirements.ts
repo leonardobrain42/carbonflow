@@ -1,6 +1,7 @@
 import {Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject, signal} from '@angular/core';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {firstValueFrom} from 'rxjs';
+import {plannedRole} from './calculation-language';
 
 type Destination = {area:string;screen:string;step:string|null};
 type Requirement = {
@@ -33,6 +34,7 @@ export class ProjectRequirementsComponent implements OnChanges {
   @Output() readonly openSection = new EventEmitter<string>();
   private readonly http = inject(HttpClient);
   readonly groups = GROUPS;
+  readonly roleLabel = plannedRole;
   readonly loading = signal(true);
   readonly error = signal('');
   readonly view = signal<View|null>(null);

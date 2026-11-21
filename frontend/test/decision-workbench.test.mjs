@@ -119,6 +119,12 @@ test('UX-BL-01: baseline presents actual period selection, factor blockers and P
   assert.equal(await page.getByText('E8 não liberado para este projeto.').count(),0);
   assert.ok(observed.includes('/open-monitoring/dossiers/P-2027/e8-fleet-selections'));
   await page.getByRole('button',{name:'3. Fatores e E8'}).click();
+  await page.getByText('Fator elétrico do período P-2027 · Dado faltante').waitFor();
+  await page.getByText('Vínculo de frota do período P-2027 · Ainda não admitido').waitFor();
+  await page.getByText('Papel previsto: operação').waitFor();
+  await page.getByText('Papel previsto: preparação e revisão').waitFor();
+  await page.getByText('Referência: E8_EFEL_P-2027').waitFor();
+  await page.getByText('Cálculo: Aguardando dados e vínculos.').waitFor();
   await page.getByText('Fator elétrico horário pendente.').waitFor();
   assert.ok(page.url().includes('etapa=fatores'));
   await page.getByRole('button',{name:'6. Vínculo ao PD'}).click();
@@ -208,7 +214,7 @@ test('UX-RES-01: a premissa tipada permanece na etapa e a recusa conserva o rasc
   });
   await page.goto(base+'/workspace/projects/'+project+'/technical?secao=linha-base&etapa=premissas');
   await page.getByRole('heading',{name:/4\. Premissas/}).waitFor();
-  await page.getByText('Responsável previsto: PREP').waitFor();
+  await page.getByText('Papel previsto: preparação').waitFor();
   await page.getByText('a premissa tipada está declarada e não aprova a linha de base.').waitFor();
   assert.equal(await page.getByRole('button',{name:'Consultar notas textuais legadas e fontes do guia'}).count(),0);
   assert.ok(page.url().includes('etapa=premissas'));

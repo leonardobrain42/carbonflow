@@ -80,6 +80,10 @@ test('analisar mostra ação, espera e recorte sem concluir as quatro pendência
     await page.getByRole('heading',{name:'Fora do recorte'}).waitFor();
     await page.getByText('Nenhum BE, PE, LE ou ER foi calculado.').waitFor();
     await page.getByText('Não bloqueia o documento ex ante.').waitFor();
+    await page.getByText('Papel previsto: preparação').waitFor();
+    await page.getByText('Papel previsto: revisão').waitFor();
+    await page.getByText('Papel previsto: operação').waitFor();
+    await page.getByText('Papel previsto: equipe CarbonFlow').waitFor();
     await page.getByText('Nenhuma pessoa foi designada por este diagnóstico.').first().waitFor();
     assert.equal(await page.getByText('PENDING_OFFICIAL_DATA').count(),0);
     assert.equal(await page.getByText('Pré-cálculo de emissões',{exact:false}).count(),0);
