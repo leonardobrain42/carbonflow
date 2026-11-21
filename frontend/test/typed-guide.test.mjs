@@ -82,7 +82,9 @@ test('UX-02B: guia tipado condicional, refs versionadas, boolean real, rascunho 
     assert.equal(await justification.count(),0);
     await page.getByLabel('Incidência candidata do critério').selectOption('Não aplicável');
     assert.equal(await justification.count(),1);
-    await page.getByText('Contexto desta resposta').first().click();
+    assert.equal(await page.getByText('Contexto desta resposta',{exact:true}).count(),1);
+    assert.equal(await page.getByText('VM0038_V1_1 · 1.1 · definição v1').isVisible(),false);
+    await page.getByText('Contexto desta resposta',{exact:true}).click();
     await page.getByText('VM0038_V1_1 · 1.1 · definição v1').first().waitFor();
     await page.getByText('não designa uma pessoa nem cria permissão.').first().waitFor();
     await page.getByText('não é copiada para a versão do documento.').first().waitFor();
