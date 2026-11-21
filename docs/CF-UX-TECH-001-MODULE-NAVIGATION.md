@@ -20,7 +20,7 @@ No navegador, substitua `PROJECT_ID` pelo identificador do seu projeto:
 | Inventário de carregadores/medidores | `?secao=monitorar&etapa=inventario` |
 | Lotes, leituras e ocorrências | `?secao=monitorar&etapa=leituras` |
 | Reconciliação, QA e evidências | `?secao=monitorar&etapa=qa` |
-| MR, revisão metodológica, ED/EC, EFel, VT0011, TOOL07 | `?secao=monitorar&etapa=dossies` |
+| Relatório de monitoramento, fator elétrico, VT0011 e TOOL07 | `?secao=monitorar&etapa=dossies` |
 | Evidências de snapshots, com acesso rápido ao PD | `?secao=evidencias` |
 | Equações, requisitos e gates para BE/PE/LE/ER | `?secao=quantificar` |
 | Fontes ambientais e fatores com orientação sobre perfis staff | `?secao=fontes` |

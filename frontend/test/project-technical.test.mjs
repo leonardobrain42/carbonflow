@@ -276,10 +276,10 @@ test('CF-IMP-008: rascunho da conta cruza intake e prévia sem adquirir autorida
     assert.equal(await page.getByRole('heading',{name:'Inventário de carregadores'}).count(),0);
     await monitorSteps.getByRole('button',{name:'3. QA e evidências'}).click();
     await page.waitForURL('**/technical?secao=monitorar&etapa=qa**');
-    await page.getByRole('heading',{name:'Reconciliação ED/EC por período'}).waitFor();
+    await page.getByRole('heading',{name:'Reconciliação da energia por período'}).waitFor();
     assert.equal(await page.getByRole('heading',{name:'Lotes de leituras recebidas (candidatos)'}).count(),0);
     await page.reload();
-    await page.getByRole('heading',{name:'Reconciliação ED/EC por período'}).waitFor();
+    await page.getByRole('heading',{name:'Reconciliação da energia por período'}).waitFor();
     assert.equal(await monitorSteps.getByRole('button',
       {name:'3. QA e evidências'}).getAttribute('aria-current'),'step');
     await sections.getByRole('button',{name:'Painel de trabalho'}).click();

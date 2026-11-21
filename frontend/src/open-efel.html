@@ -19,7 +19,8 @@
           <p>Procedimento declarado: {{item.claimedProcedure}}</p>
           <p>{{item.hourCount}} horas · {{item.originalUnit}}
             → {{item.normalizedUnit}}</p>
-          <p>SHA-256 do conjunto: {{item.contentSha256}}</p>
+          <p>SHA-256 declarado do conjunto: <code>{{item.contentSha256}}</code></p>
+          <small>Detecta alteração desta versão. Não autentica a fonte nem admite o cálculo.</small>
           @if (item.stale) {
             <p role="alert">Esta versão está obsoleta em relação à energia
               atual ou ao período. Somente para consulta histórica.</p>
