@@ -149,7 +149,7 @@
             <div><dt>Fonte normativa</dt><dd>{{labelState(a.readiness.norm)}}</dd></div>
           </dl>
           @for (finding of additionalityGates();track finding.code){
-            @if (finding.code==='VMD0049_ROUTE'||finding.code==='MARKET_ROUTE'||finding.code==='REGULATORY_SURPLUS'){
+            @if (finding.code==='VMD0049_ROUTE'||finding.code==='REGULATORY_SURPLUS'){
               <section class="cf-journey-context"><strong>{{term(finding.code)}} · {{term(finding.state)}}</strong>
                 <p>{{finding.text}}</p>
                 <p>Referência: {{finding.code}}</p></section>

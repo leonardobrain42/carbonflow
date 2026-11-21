@@ -39,6 +39,36 @@ class ProjectRequirementProjectionTest {
     }
 
     @Test
+    void marketAndAdditionalityTestsWaitForAnOpenFirstSliceDeclaration() {
+        var closed = OpenApplicability.evaluate(new OpenApplicability.Input(false, true, true,
+            "DCFC", "PHEV", "SIN", false, true, null, null, "NOT_DECLARED", null, null,
+            "UNKNOWN", null, null), false);
+        assertEquals("CLOSED_RESTRICTION", closed.network());
+        assertFalse(closed.canUseForE8());
+        assertTrue(closed.findings().stream().noneMatch(f ->
+            List.of("MARKET_ROUTE", "VMD0049_ROUTE", "REGULATORY_SURPLUS").contains(f.code())));
+
+        var missing = OpenApplicability.evaluate(null, false);
+        assertTrue(missing.findings().stream().anyMatch(f -> "NO_DECLARATION".equals(f.code())));
+        assertTrue(missing.findings().stream().noneMatch(f -> "MARKET_ROUTE".equals(f.code())));
+
+        var open = disclosurePresent();
+        assertFalse(open.canUseForE8());
+        assertEquals("PENDING_NORMATIVE_REVIEW", open.norm());
+        assertTrue(open.findings().stream().anyMatch(f -> "MARKET_ROUTE".equals(f.code())
+            && f.text().contains("Não é rota de adicionalidade")
+            && f.text().contains("A declaração não conclui este teste.")));
+        assertTrue(open.findings().stream().anyMatch(f -> "VMD0049_ROUTE".equals(f.code())
+            && f.text().contains("não aprova a adicionalidade")));
+        assertTrue(open.findings().stream().anyMatch(f -> "REGULATORY_SURPLUS".equals(f.code())
+            && f.text().contains("não aprova este teste")));
+        var projected = project(true, true, open, preflight(false));
+        assertNotEquals("MINE", item(projected, "MARKET_ROUTE").group());
+        assertFalse(item(projected, "MARKET_ROUTE").admitsE8());
+        assertTrue(item(projected, "MARKET_ROUTE").reason().contains("Não é uma rota de adicionalidade"));
+    }
+
+    @Test
     void anotherMethodologyDoesNotReceiveOpenRequirements() {
         var foreign = ProjectRequirementProjection.project(new ProjectRequirementProjection.Input(
             "p", "ACM0002", true, true, true, true, true, true,

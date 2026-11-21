@@ -41,6 +41,8 @@ const app={
   stale:false,canUseForE8:false,findings:[
    {code:'VMD0049_ROUTE',state:'PENDING_NORMATIVE_SOURCE',
     text:'Lista positiva é hipótese dependente de edição válida.'},
+   {code:'MARKET_ROUTE',state:'PENDING_OFFICIAL_DATA',
+    text:'Teste de mercado da aplicabilidade. Não é rota de adicionalidade.'},
    {code:'REGULATORY_SURPLUS',state:'PENDING_LEGAL_REVIEW',
     text:'Excedente regulatório exige revisão independente.'},
    {code:'OWNER_CONTRACT',state:'NEEDS_EVIDENCE',
@@ -163,6 +165,7 @@ test('UX-ADD-01: declared rights, separate chronology and conditional route neve
   await page.getByRole('button',{name:'1. Enquadramento'}).click();
   await page.getByText('Referência: VMD0049_ROUTE',{exact:true}).waitFor();
   await page.getByText('Lista positiva é hipótese dependente de edição válida.').waitFor();
+  assert.equal(await page.getByText('Referência: MARKET_ROUTE',{exact:true}).count(),0);
   await page.getByText('Excedente regulatório exige revisão independente.').waitFor();
   assert.equal(await page.getByText('Adicionalidade aprovada',{exact:true}).count(),0);
   await page.getByRole('button',{name:'5. Vínculo ao PD'}).click();

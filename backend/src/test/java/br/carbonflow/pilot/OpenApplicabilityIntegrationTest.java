@@ -9,6 +9,7 @@ import java.net.URL;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.Set;
 import java.util.UUID;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -111,8 +112,9 @@ class OpenApplicabilityIntegrationTest {
         assertEquals("OUTSIDE_FIRST_IMPLEMENTED_SCOPE",restricted.category());
         assertFalse(restricted.canUseForE8());
         assertTrue(restricted.findings().stream().anyMatch(f->"CLOSED_NETWORK".equals(f.code())));
-        assertTrue(restricted.findings().stream().anyMatch(f->"MARKET_ROUTE".equals(f.code())
-            && "PENDING_OFFICIAL_DATA".equals(f.state())));
+        assertTrue(restricted.findings().stream().noneMatch(f->Set.of(
+            "MARKET_ROUTE","VMD0049_ROUTE","REGULATORY_SURPLUS").contains(f.code())));
+        assertFalse(restricted.canUseForE8());
     }
 
     private Actor actor() {

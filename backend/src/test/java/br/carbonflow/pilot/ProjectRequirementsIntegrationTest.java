@@ -56,8 +56,9 @@ class ProjectRequirementsIntegrationTest {
         assertTrue(open.path("openBranch").asBoolean());
         assertEquals("ABSENT", finding(open, "NO_DECLARATION").path("state").asText());
         assertEquals("MINE", finding(open, "NO_DECLARATION").path("group").asText());
-        assertEquals("AWAITING_NORMATIVE_EVALUATION", finding(open, "MARKET_ROUTE").path("state").asText());
-        assertNotEquals("MINE", finding(open, "MARKET_ROUTE").path("group").asText());
+        assertFalse(open.findValuesAsText("requirementId").contains("MARKET_ROUTE"));
+        assertFalse(open.findValuesAsText("requirementId").contains("VMD0049_ROUTE"));
+        assertFalse(open.findValuesAsText("requirementId").contains("REGULATORY_SURPLUS"));
         assertEquals("NOT_INCIDENT", finding(open, "ED_EC").path("state").asText());
         assertFalse(finding(open, "ED_EC").path("blocksExAntePd").asBoolean());
         assertFalse(open.path("exAnteRequiresMeasuredEnergy").asBoolean());
@@ -77,6 +78,9 @@ class ProjectRequirementsIntegrationTest {
             owner.cookie(), key(), "\"0\"", withoutProof).statusCode());
         JsonNode gaps = json(call("GET", path, owner.cookie()));
         assertEquals("NEEDS_EVIDENCE", finding(gaps, "DRIVER_DISCLOSURE").path("state").asText());
+        assertEquals("AWAITING_NORMATIVE_EVALUATION", finding(gaps, "MARKET_ROUTE").path("state").asText());
+        assertNotEquals("MINE", finding(gaps, "MARKET_ROUTE").path("group").asText());
+        assertTrue(finding(gaps, "MARKET_ROUTE").path("reason").asText().contains("Não é uma rota de adicionalidade"));
         assertFalse(gaps.findValuesAsText("requirementId").contains("NO_DECLARATION"));
 
         String withProof = withoutProof.replace("\"NOT_DECLARED\"", "\"ON_CHARGER\"")
