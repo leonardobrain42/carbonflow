@@ -81,6 +81,13 @@ test('analisar mostra ação, espera e recorte sem concluir as quatro pendência
           ownerRole:'equipe CarbonFlow',nextAction:'Aguardar a equipe CarbonFlow.',actionLabel:null,
           destination:null,group:'AWAITING_SOURCE',clientAction:false,blocksExAntePd:false,admitsE8:false,
           affectedOutputs:['aplicabilidade']},
+        {requirementId:'E8_INPUT_BINDING_M1',methodologyId:'VM0038',edition:'1.1',ruleRef:'CF-OPEN-008',
+          state:'STALE',situation:'Desatualizado',
+          reason:'A fronteira da estação mudou. Só o vínculo de energia deste período pede rechecagem.',
+          ownerRole:'equipe CarbonFlow',
+          nextAction:'Aguardar a equipe CarbonFlow. Um vínculo interno não admite a fonte nem libera o cálculo.',
+          actionLabel:null,destination:null,group:'AWAITING_REVIEW',clientAction:false,
+          blocksExAntePd:false,admitsE8:false,affectedOutputs:['emissões do projeto','quantificação']},
         {requirementId:'REGULATORY_SURPLUS',state:'AWAITING_NORMATIVE_EVALUATION',situation:'Aguardando avaliação da equipe',
           reason:'Preencher a declaração não aprova o excedente regulatório.',ownerRole:'REV',
           nextAction:'Aguardar parecer humano.',actionLabel:null,destination:null,group:'AWAITING_REVIEW',
@@ -105,12 +112,14 @@ test('analisar mostra ação, espera e recorte sem concluir as quatro pendência
     await page.getByText('Vínculo de frota do período M1',{exact:true}).waitFor();
     await page.getByText('Fonte vinculada, não admitida',{exact:true}).waitFor();
     await page.getByText('não produz BE, PE, LE ou ER',{exact:false}).waitFor();
+    await page.getByText('Vínculo de energia do período M1',{exact:true}).waitFor();
+    await page.getByText('Só o vínculo de energia deste período pede rechecagem.',{exact:false}).waitFor();
     await page.getByRole('button',{name:'Abrir as estações'}).waitFor();
     await page.getByText('Próximo passo: Indicar a referência do comprovante na declaração.').waitFor();
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
     const notes=page.getByText('Papel, regra e referência',{exact:true});
-    assert.equal(await notes.count(),7);
-    for (let i=0;i<7;i++) await notes.nth(i).click();
+    assert.equal(await notes.count(),8);
+    for (let i=0;i<8;i++) await notes.nth(i).click();
     await page.getByText('Não bloqueia o documento ex ante.').waitFor();
     await page.getByText('Metodologia aplicável: VM0038 v1.1',{exact:true}).first().waitFor();
     await page.getByText('Regra: CF-OPEN-004',{exact:true}).waitFor();

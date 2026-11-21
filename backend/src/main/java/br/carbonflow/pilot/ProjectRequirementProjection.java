@@ -215,7 +215,8 @@ final class ProjectRequirementProjection {
             items.put("RIGHTS_DEPENDENCY", review(input, "RIGHTS_DEPENDENCY", "RECHECK_REQUIRED",
                 "Precisa rechecagem",
                 "O contrato, a prova de divulgação ou a declaração de sobreposição mudou. "
-                    + "A revisão anterior permanece registrada. Esta alteração não aprova direitos nem adicionalidade.",
+                    + "A revisão anterior permanece registrada. Esta alteração não aprova direitos nem adicionalidade. "
+                    + "O teste de mercado, a frota e o vínculo de energia permanecem no estado em que já estavam.",
                 "Aguardar a revisão competente desta versão. A declaração nova não conclui o teste.",
                 destination(input.canOpenApplicability(), "analisar", null), false,
                 List.of("direitos")));
@@ -229,15 +230,18 @@ final class ProjectRequirementProjection {
             overlay(items, "AFEC_MPG", stale, stale
                 ? "Os ratings preparatórios vinculados à frota ficaram desatualizados."
                 : "Há ratings preparatórios vinculados à frota. Eles não estão admitidos para a linha de base.");
+            if (stale) restalePrefix(items, "E8_FLEET_SELECTION_",
+                "A seleção de frota deste período ficou desatualizada. "
+                    + "O vínculo de energia e o fator fóssil não mudam por esta seleção.");
         }
         if (owners.bindingPrepared()) {
             boolean stale = owners.bindingState().startsWith("STALE");
-            overlay(items, "EF_FUEL", stale, stale
-                ? "O vínculo preparatório de fatores ficou desatualizado. IR e Dy não mudam de estado por esta seleção."
-                : "Há um vínculo preparatório de fatores. Conferência interna não admite o fator fóssil nem libera o cálculo.");
             overlay(items, "EF_GRID", stale, stale
-                ? "O fator elétrico preparatório vinculado ao período ficou desatualizado."
-                : "Há um fator elétrico preparatório. Ele não é VT0011 admitido e não habilita E8.");
+                ? "O vínculo de energia e fator elétrico ficou desatualizado. Só este vínculo pede rechecagem."
+                : "Há um vínculo preparatório de energia e fator elétrico. Ele não é VT0011 admitido e não habilita E8.");
+            if (stale) restalePrefix(items, "E8_INPUT_BINDING_",
+                "O vínculo de energia deste período ficou desatualizado. "
+                    + "A frota, o fator fóssil, IR e Dy não mudam por esta seleção.");
         }
     }
 
@@ -267,6 +271,12 @@ final class ProjectRequirementProjection {
                 stale ? "Reconciliar a fronteira com as revisões atuais."
                     : "Selecionar as estações e os carregadores da fronteira.",
                 "Abrir as estações", destination(act, "estacoes", null), act, "PREP"));
+            if (stale) {
+                restale(items, "EF_GRID",
+                    "A fronteira da estação mudou. Só o vínculo de energia deste contorno pede rechecagem.");
+                restalePrefix(items, "E8_INPUT_BINDING_",
+                    "A fronteira da estação mudou. Só o vínculo de energia deste período pede rechecagem.");
+            }
             return;
         }
         String planned = posture.plannedOnly()
@@ -304,6 +314,19 @@ final class ProjectRequirementProjection {
             state, situation, reason, role, next, clientAction ? label : null, destination,
             clientAction ? "MINE" : "AWAITING_REVIEW", clientAction, false, false,
             List.of("monitoramento"));
+    }
+
+    private static void restalePrefix(LinkedHashMap<String, Item> items, String prefix, String reason) {
+        for (String code : List.copyOf(items.keySet())) {
+            if (code.startsWith(prefix)) restale(items, code, reason);
+        }
+    }
+
+    /** A linked source can go stale. A missing source stays missing. */
+    private static void restale(LinkedHashMap<String, Item> items, String code, String reason) {
+        Item current = items.get(code);
+        if (current == null || !"SOURCE_CANDIDATE".equals(current.state())) return;
+        overlay(items, code, true, reason);
     }
 
     private static void overlay(LinkedHashMap<String, Item> items, String code, boolean stale, String reason) {
