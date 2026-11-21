@@ -18,8 +18,12 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
       canIssueVcu:false, engine:null, energyBindingId:null, fleetSelectionId:null,
       inputSha256:'abc', gates:[{
         code:'IR', state:'MISSING',
-        reason:'IR não tem valor normalizado armazenado. A tentativa não inventa 1.',
+        reason:'A melhoria tecnológica não tem valor normalizado armazenado. A tentativa não inventa 1.',
         nextAction:'Completar o vínculo e a admissão antes de executar', owner:'PREP/REV',
+      },{
+        code:'HOURLY_EFEL_NOT_UNIFORM', state:'REVIEW_REQUIRED',
+        reason:'As horas do vínculo não compartilham um único fator elétrico. O motor não calcula média.',
+        nextAction:'Manter um único fator elétrico horário ou esperar o cálculo por hora', owner:'PREP/REV',
       }], equationPlan:[], memory:null, createdAt:'2026-11-21T00:00:00Z',
     };
     await page.route('**/v1/account-session', route => route.fulfill({json:{
@@ -99,8 +103,11 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
     await page.getByText('Bloqueado · v1').waitFor();
     await page.getByText('Não calculados').waitFor();
     await page.getByText('Melhoria tecnológica · Não informado').waitFor();
-    await page.getByText('IR não tem valor normalizado armazenado.').waitFor();
-    await page.getByText('Papel previsto: preparação e revisão').waitFor();
+    await page.getByText('A melhoria tecnológica não tem valor normalizado armazenado. A tentativa não inventa 1.').waitFor();
+    await page.getByText('Referência: IR', {exact:true}).waitFor();
+    await page.getByText('Fator elétrico das horas · Verificação técnica pendente').waitFor();
+    await page.getByText('Referência: HOURLY_EFEL_NOT_UNIFORM', {exact:true}).waitFor();
+    await page.getByText('Completar o vínculo e a admissão antes de executar · Papel previsto: preparação e revisão').waitFor();
     assert.equal(posted.body, '{}');
     assert.equal(posted.match, '"0"');
     assert.match(posted.key, /^[0-9a-f-]{36}$/);
