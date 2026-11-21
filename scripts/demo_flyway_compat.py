@@ -202,8 +202,9 @@ def main() -> None:
     args = parser.parse_args()
     demo.validate()
     demo.runtime_check()
-    if checksum(SQL_DIR/"V69__open_asset_evidence_links.sql") != V69 or \
-       checksum(SQL_DIR/"V71__open_e8_project_run.sql") != NEW:
+    if (checksum(SQL_DIR/"V69__open_asset_evidence_links.sql") != V69 or
+        checksum(SQL_DIR/"V69_1__open_asset_evidence_submitted_filename.sql") != V69_1 or
+        checksum(SQL_DIR/"V71__open_e8_project_run.sql") != NEW):
         raise RuntimeError("Arquivos de migração locais não correspondem às versões publicadas.")
     state = inspect()
     hist = {r["version"]:r for r in state["history"]}
@@ -211,9 +212,12 @@ def main() -> None:
     print("Sandbox: V71="+str(applied)+", V69.1="+("aplicada" if
           hist.get("69.1",{}).get("success") else "pendente"))
     if applied == NEW:
-        print("V71 já compatível; nenhuma alteração.")
+        print("V71 E8 já aplicada e compatível; nenhuma alteração.")
         return
-    violations = problems(state)
+    legacy_filename = hist.get("71",{}).get("script") == LEGACY_FILENAME_SCRIPT
+    violations = legacy_filename_problems(state) if legacy_filename else problems(state)
+    if legacy_filename and not violations:
+        violations += legacy_filename_data_problems()
     if violations:
         raise RuntimeError("Reparo recusado: "+"; ".join(violations))
     if not args.apply:
@@ -226,6 +230,17 @@ def main() -> None:
     with path.open("x",encoding="utf-8") as file:
         json.dump({"at":stamp,"project":demo.PROJECT,"state":state},file,indent=2)
         file.write("\n")
+    if legacy_filename:
+        reconcile_legacy_filename()
+        after = inspect()
+        history = {row["version"]:row for row in after["history"]}
+        if ("71" in history or history.get("69.1",{}).get("checksum") != V69_1 or
+            after.get("run") or after.get("command")):
+            raise RuntimeError("Reconciliação da V71 histórica não foi confirmada.")
+        print("V71 histórica de filename reclassificada como V69.1 após validações.")
+        print("V71 E8 está PENDENTE e será executada pelo Flyway no próximo boot.")
+        print("Registro original guardado em: "+str(path))
+        return
     sql(f"""
 BEGIN;
 LOCK TABLE flyway_schema_history IN SHARE ROW EXCLUSIVE MODE;
