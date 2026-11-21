@@ -185,7 +185,9 @@ jobs:
               UPDATE flyway_schema_history SET checksum=167374965 WHERE version='71';"
           python3 scripts/demo_flyway_compat.py
           python3 scripts/demo_flyway_compat.py --apply
-          docker compose -p "$CARBONFLOW_DEMO_PROJECT" -f compose.yaml -f compose.demo.yaml up -d --wait app
+          # Reuse demo.compose's admin roster and port, avoiding a Compose
+          # configuration drift/recreation when the app starts again.
+          python3 -c 'import sys; sys.path.insert(0, "scripts"); import demo_sandbox as d; d.compose("up", "-d", "--wait", "app")'
           docker compose -p "$CARBONFLOW_DEMO_PROJECT" -f compose.yaml -f compose.demo.yaml exec -T db \
             psql -U carbonflow -d carbonflow -v ON_ERROR_STOP=1 -c "
               SELECT CASE WHEN
