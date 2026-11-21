@@ -33,7 +33,7 @@ Não existem transições automáticas para `ADMITTED`. A mudança de V64 para o
 
 ## UX
 
-Na seção **Prontidão para quantificação → Entradas já preparadas no projeto** a pessoa recebe duas linhas por período para energia/fator e frota/ratings. Cada linha mostra a situação, o motivo e a ação. As demais dependências usam o nome da pendência e o papel previsto em português; o código estável fica na referência. O motivo do parecer, da energia, do fator elétrico, do caderno e da apuração preliminar descreve a situação em português. O código interno do estado permanece fora dessa frase. A fonte oficial da VM0038 permanece no painel de equações, e os dados licenciados ficam exclusivamente nos fluxos de origem com permissões próprias.
+Na seção **Prontidão para quantificação → Entradas já preparadas no projeto** a pessoa recebe duas linhas por período para energia/fator e frota/ratings. Cada linha mostra a situação, o motivo, a ação e a referência estável do vínculo. As demais dependências usam o nome da pendência e o papel previsto em português; o código estável fica na referência. O motivo do parecer, da energia, do fator elétrico, do caderno e da apuração preliminar descreve a situação em português. O código interno do estado permanece fora dessa frase. A fonte oficial da VM0038 permanece no painel de equações, e os dados licenciados ficam exclusivamente nos fluxos de origem com permissões próprias.
 
 ## Aceite de testes
 

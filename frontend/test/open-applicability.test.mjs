@@ -98,11 +98,12 @@ test('a ficha OPEN permite preparar direitos sem fonte admitida nem cálculo E8'
     assert.equal(revision,1);
     assert.equal(answers.privateLand,true);
     assert.equal(answers.restrictedToIdentifiedVehicles,false);
-    await page.getByText('Rede aberta candidata',{exact:false}).waitFor();
-    await page.getByText('Referência: OPEN_CANDIDATE',{exact:true}).waitFor();
-    await page.getByText('Divulgação aos motoristas',{exact:true}).waitFor();
-    await page.getByText('Referência: DRIVER_DISCLOSURE',{exact:false}).waitFor();
-    await page.getByText('Dados oficiais pendentes',{exact:false}).waitFor();
+    const ficha=page.getByRole('region',{name:'Aplicabilidade de rede aberta'});
+    await ficha.getByText('Rede aberta candidata',{exact:false}).waitFor();
+    await ficha.getByText('Referência: OPEN_CANDIDATE',{exact:true}).waitFor();
+    await ficha.getByText('Divulgação aos motoristas',{exact:true}).waitFor();
+    await ficha.getByText('Referência: DRIVER_DISCLOSURE',{exact:false}).waitFor();
+    await ficha.getByText('Dados oficiais pendentes',{exact:false}).waitFor();
     await page.getByText('Nenhuma linha está liberada para o E8.',{exact:false}).count().then(_=>{});
     await page.getByText('Não liberado enquanto faltarem fontes',{exact:false}).waitFor();
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);

@@ -59,6 +59,10 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
         code:'EVR', state:'MISSING_BINDING',
         reason:'Não há snapshot nacional EVR por modelo/ano admitido e vinculado ao projeto.',
         nextAction:'Selecionar fonte EVR e avaliar cobertura', owner:'PREP',
+      },{
+        code:'E8_FLEET_SELECTION_M1', state:'NOT_ADMITTED',
+        reason:'Há uma seleção preparatória de frota. Ela não está admitida.',
+        nextAction:'Aguardar a avaliação da equipe', owner:'PREP',
       }], equationPlan:[{
         outputCode:'BE', ruleReference:'VM0038-1.1-EQ1', unit:'tCO2e',
         description:'Linha de base ainda sem execução.', requiredInputs:['ED'],
@@ -82,8 +86,10 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
     await page.goto(base + '/workspace/projects/' + project + '/technical?secao=quantificar');
     await page.getByRole('heading', {name:'Última tentativa de cálculo · M1'}).waitFor();
     await page.getByText('Estoque nacional EVR · Fonte ainda não vinculada').waitFor();
-    await page.getByText('Papel previsto: preparação').waitFor();
+    await page.getByText('Selecionar fonte EVR e avaliar cobertura · Papel previsto: preparação').waitFor();
     await page.getByText('Referência: EVR').waitFor();
+    await page.getByText('Frota EVR e comparáveis · M1').waitFor();
+    await page.getByText('Referência: E8_FLEET_SELECTION_M1', {exact:true}).waitFor();
     await page.getByText('BE · VM0038-1.1-EQ1').click();
     await page.getByText('Não há energia entregue ED admitida por carregador e período.').waitFor();
     await page.getByText('Energia entregue', {exact:true}).first().waitFor();
