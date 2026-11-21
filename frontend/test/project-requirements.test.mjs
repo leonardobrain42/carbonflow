@@ -80,8 +80,13 @@ test('analisar mostra ação, espera e recorte sem concluir as quatro pendência
     await page.getByRole('heading',{name:'Aguardando revisão'}).waitFor();
     await page.getByRole('heading',{name:'Fora do recorte'}).waitFor();
     await page.getByText('Nenhum BE, PE, LE ou ER foi calculado.').waitFor();
-    await page.getByText('Não bloqueia o documento ex ante.').waitFor();
     await page.getByText('Divulgação aos motoristas',{exact:true}).waitFor();
+    await page.getByText('Próximo passo: Indicar a referência do comprovante na declaração.').waitFor();
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
+    const notes=page.getByText('Papel, regra e referência',{exact:true});
+    assert.equal(await notes.count(),4);
+    for (let i=0;i<4;i++) await notes.nth(i).click();
+    await page.getByText('Não bloqueia o documento ex ante.').waitFor();
     await page.getByText('Metodologia aplicável: VM0038 v1.1',{exact:true}).waitFor();
     await page.getByText('Regra: CF-OPEN-004',{exact:true}).waitFor();
     await page.getByText('Referência: DRIVER_DISCLOSURE',{exact:true}).waitFor();
