@@ -416,9 +416,12 @@
       } @else {
         <ul class="cf-tech-gates">
           @for (gate of preview.gates; track $index) {
-            <li><strong>{{gate.code}}</strong> · {{gate.detail}}
-              @if (gate.hour) { <small> · Hora: {{gate.hour}}</small> }
-              @if (gate.charger) { <small> · Carregador: {{gate.charger}}</small> }
+            <li><strong>{{monitorTitle(gate.code)}}</strong>
+              <p>{{gate.detail}}</p>
+              <small>Referência: {{gate.code}}
+                @if (gate.hour) { · Hora: {{gate.hour}} }
+                @if (gate.charger) { · Carregador: {{gate.charger}} }
+              </small>
             </li>
           }
         </ul>
@@ -452,7 +455,7 @@
           <p role="status">Reavaliando referências, pareceres e evidências…</p>
         }
         @if (proofReadiness(); as proof) {
-          <p role="status"><strong>{{proof.state}}</strong> ·
+          <p role="status"><strong>{{stateName(proof.state)}}</strong> ·
             {{proof.stale?'Snapshot obsoleto, bloqueado':'Histórico coerente com o QA atual'}}</p>
           <p>Energia histórica registrada: ED {{proof.historicalEdKwh}} kWh ·
             EC {{proof.historicalEcKwh}} kWh. Nenhum valor é admissível no E8 por esta tela.</p>
@@ -462,9 +465,10 @@
           @if (proof.gates.length) {
             <ul class="cf-tech-gates" aria-label="Impedimentos de vigência">
               @for (gate of proof.gates; track $index) {
-                <li><strong>{{gate.code}}</strong>
+                <li><strong>{{monitorTitle(gate.code)}}</strong>
                   @if (gate.subject) {<small> · {{gate.subject}}</small>}
                   <p>{{gate.detail}}</p>
+                  <small>Referência: {{gate.code}}</small>
                 </li>
               }
             </ul>
@@ -560,7 +564,7 @@
         @for (item of mrDossiers(); track item.reference.code) {
           <li>
             <strong>{{item.reference.code}} · revisão {{item.reference.version}}
-              · {{item.state}}</strong>
+              · {{stateName(item.state)}}</strong>
             <p>Snapshot {{item.reference.snapshotId}} ·
               SHA-256 {{item.reference.snapshotSha256.slice(0,16)}}…</p>
             <p>{{item.reference.note}}</p>
@@ -569,7 +573,9 @@
                 Reavalie as leituras e vincule um novo snapshot, preservando o histórico.</p>
             }
             @for (gate of item.gates; track $index) {
-              <p>{{gate.code}} · {{gate.detail}}</p>
+              <p>{{monitorTitle(gate.code)}}</p>
+              <p>{{gate.detail}}</p>
+              <small>Referência: {{gate.code}}</small>
             }
             <small>Uso para E8/VCU: indisponível. A análise normativa é uma etapa distinta.</small>
             @if (canViewMethod) {
@@ -640,7 +646,7 @@
       <section class="cf-journey-context" aria-labelledby="cf-method-review-title">
         <h4 id="cf-method-review-title">Avaliação metodológica interna · {{assessment.period}}</h4>
         <p>VM0038 v{{assessment.methodologyEdition}} · MR v{{assessment.dossierVersion}}
-          · <strong>{{assessment.state}}</strong></p>
+          · <strong>{{stateName(assessment.state)}}</strong></p>
         <p>Esta análise registra uma conferência técnica interna com referências. Não é
           certificação da VVB ou decisão da Verra, não comprova a validade jurídica
           e não admite energia no motor E8.</p>
@@ -649,7 +655,9 @@
             anterior é histórica; é necessário revisar as evidências atuais.</p>
         }
         @for (gate of assessment.gates; track $index) {
-          <p>{{gate.code}} · {{gate.detail}}</p>
+          <p>{{monitorTitle(gate.code)}}</p>
+          <p>{{gate.detail}}</p>
+          <small>Referência: {{gate.code}}</small>
         }
         @if (assessment.review; as lastReview) {
           <p>Último parecer: {{lastReview.outcome}} · versão {{lastReview.version}}
@@ -775,8 +783,9 @@
     <h4>Pendências do monitoramento</h4>
     <ul class="cf-tech-gates">
       @for (gate of plan.readiness.gates; track gate.code+'-'+gate.chargerCode+'-'+gate.meterCode) {
-        <li><strong>{{gate.code}} · {{stateName(gate.state)}}</strong>
+        <li><strong>{{monitorTitle(gate.code)}} · {{stateName(gate.state)}}</strong>
           <p>{{gate.reason}}</p>
+          <small>Referência: {{gate.code}}</small>
           @if (gate.chargerCode || gate.meterCode) {
             <small>{{gate.chargerCode || 'Projeto'}} {{gate.meterCode || ''}}</small>
           }
