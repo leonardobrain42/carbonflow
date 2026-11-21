@@ -108,6 +108,20 @@
           <input id="cf-rights-name" maxlength="200" [value]="partyDraft().displayName"
             (input)="partyDraft.update(current=>({...current,displayName:$any($event.target).value}))"/>
           <button type="button" (click)="registerParty()" [disabled]="busy()">Registrar titular</button>
+          @if (origin('rightsParty'); as item){
+            <details>
+              <summary>Ver origem do titular</summary>
+              @if (item.concludes){<p role="alert">A origem não pode concluir o direito.</p>}
+              @else {
+                <dl>
+                  <dt>Versão</dt><dd>{{item.version}}</dd>
+                  <dt>Situação</dt><dd>{{item.situation}}</dd>
+                  <dt>Regra</dt><dd>{{item.rule}}</dd>
+                  <dt>Papel previsto</dt><dd>{{item.role}}</dd>
+                </dl>
+              }
+            </details>
+          }
           <label for="cf-open-owner">Titular registrado</label>
           <select id="cf-open-owner" [value]="form().rightsPartyCode ?? ''"
             (change)="chooseParty($any($event.target).value)">

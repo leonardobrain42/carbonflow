@@ -24,8 +24,10 @@ type Finding={code:string;state:string;text:string};
 type Readiness={category:string;network:string;rights:string;norm:string;
   canContinuePreparation:boolean;canUseForE8:boolean;stale:boolean;
   findings:Finding[];sourceDependencies:string[]};
+type Origin={field:string;version:string;situation:string;rule:string;role:string;concludes:boolean};
 type View={projectId:string;version:number;latestTriageVersion:number;
-  latest:{version:number;triageVersion:number;answers:Declaration}|null;readiness:Readiness};
+  latest:{version:number;triageVersion:number;answers:Declaration}|null;readiness:Readiness;
+  origins?:Origin[]};
 
 const EMPTY:Declaration={
   unrestrictedBevAccess:null,restrictedToIdentifiedVehicles:null,privateLand:null,
@@ -92,6 +94,7 @@ export class OpenApplicabilityComponent implements OnChanges {
     this.form.update(current=>({...current,[field]:actual}));
   }
   bool(value:YesNo){return value===null?'':String(value);}
+  origin(field:string){return this.view()?.origins?.find(item=>item.field===field)??null;}
   eventsOf(kind:string){return this.events().filter(event=>event.kind===kind);}
   async uploadFile(subject:'CONTRACT'|'DISCLOSURE',input:HTMLInputElement){
     const file=input.files?.[0];

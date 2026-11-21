@@ -95,6 +95,9 @@ test('a ficha OPEN permite preparar direitos sem fonte admitida nem cálculo E8'
           canUseForE8:false,stale:false,findings,
           sourceDependencies:['OPEN-METHOD','OPEN-EV-PENETRATION','OPEN-EV-SALES','OPEN-RIGHTS'],
         },
+        origins:[{field:'rightsParty',version:'v1',situation:'Registro do projeto, não admitido',
+          rule:'CF-IMP-013',role:'Revisão interna. Este papel não designa uma pessoa nem cria permissão.',
+          concludes:false}],
       }});
     });
     await page.route('**/v1/projects/*/technical/requirements',r=>r.fulfill({json:{
@@ -151,6 +154,9 @@ test('a ficha OPEN permite preparar direitos sem fonte admitida nem cálculo E8'
     await vcsEvent;
     await page.getByRole('button',{name:'Salvar declaração sem aprovação automática'}).click();
     await page.getByText('Declaração versionada salva. A jornada pode continuar',{exact:false}).waitFor();
+    await page.getByText('Ver origem do titular',{exact:true}).click();
+    await page.getByText('CF-IMP-013',{exact:true}).waitFor();
+    await page.getByText('não designa uma pessoa',{exact:false}).waitFor();
     assert.equal(revision,1);
     assert.equal(answers.privateLand,true);
     assert.equal(answers.restrictedToIdentifiedVehicles,false);

@@ -113,6 +113,18 @@ class ProjectRequirementProjectionTest {
     }
 
     @Test
+    void fieldOriginDoesNotConclude() {
+        var recorded = OpenApplicability.described("rightsParty", 2,
+            "Registro do projeto, não admitido", "CF-IMP-013");
+        assertEquals("v2", recorded.version());
+        assertEquals("CF-IMP-013", recorded.rule());
+        assertTrue(recorded.role().contains("não designa uma pessoa"));
+        assertFalse(recorded.concludes());
+        assertEquals("Ainda não registrado", OpenApplicability.described(
+            "rightsContract", null, "Ainda não informado", "CF-IMP-013").version());
+    }
+
+    @Test
     void disclosureAfterEitherStartStaysAReview() {
         var operational = OpenApplicability.evaluate(dates("2027-03-01", "2027-02-01", "2027-04-01"), false);
         var gap = operational.findings().stream().filter(f -> "RIGHTS_DATE_GAP".equals(f.code())).findFirst().orElseThrow();

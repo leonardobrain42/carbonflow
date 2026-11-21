@@ -72,7 +72,9 @@ class OpenApplicability {
     record Readiness(String category,String network,String rights,String norm,
         boolean canContinuePreparation,boolean canUseForE8,boolean stale,List<Finding> findings,
         List<String> sourceDependencies) {}
-    record View(String projectId,int version,int latestTriageVersion,Revision latest,Readiness readiness) {}
+    record Origin(String field,String version,String situation,String rule,String role,boolean concludes) {}
+    record View(String projectId,int version,int latestTriageVersion,Revision latest,Readiness readiness,
+        List<Origin> origins) {}
     private record SavedCommand(String project,int revision,byte[] fingerprint) {}
 
     private final DynamicProjectScope scope;
@@ -186,7 +188,8 @@ class OpenApplicability {
                 r.getObject(20,OffsetDateTime.class)),project);
         Readiness ready=evaluate(revision==null?null:revision.answers(),
             revision!=null && revision.triageVersion()!=triage);
-        return new View(project,revision==null?0:revision.version(),triage,revision,ready);
+        return new View(project,revision==null?0:revision.version(),triage,revision,ready,
+            origins(c,project,revision==null?null:revision.answers()));
     }
 
     static Readiness evaluate(Input data,boolean stale) {
@@ -306,6 +309,42 @@ class OpenApplicability {
             true,false,stale,List.copyOf(findings),
             List.of("OPEN-METHOD","OPEN-POSITIVE","OPEN-EV-PENETRATION","OPEN-EV-SALES",
                     "OPEN-RIGHTS","OPEN-ED-EC"));
+    }
+
+    static Origin described(String field, Integer version, String situation, String rule) {
+        return new Origin(field, version==null ? "Ainda não registrado" : "v"+version,
+            situation, rule,
+            "Revisão interna. Este papel não designa uma pessoa nem cria permissão.", false);
+    }
+
+    private static List<Origin> origins(Connection c, String project, Input data) throws SQLException {
+        if(data==null) return List.of();
+        Integer party=version(c,"app_project_rights_party","party_code",project,data.rightsPartyCode());
+        Integer contract=version(c,"app_project_rights_contract","contract_code",project,data.rightsContractCode());
+        Integer operational=version(c,"app_project_rights_event","event_code",project,data.operationalEventCode());
+        Integer vcs=version(c,"app_project_rights_event","event_code",project,data.vcsEventCode());
+        return List.of(
+            described("rightsParty", party, party==null
+                ? "Ainda não informado" : "Registro do projeto, não admitido", "CF-IMP-013"),
+            described("rightsContract", contract, data.contractFileId()==null
+                ? "Falta o arquivo" : "Arquivo recebido, aguardando revisão", "CF-IMP-013"),
+            described("contractFile", data.contractFileId()==null?null:1,
+                data.contractFileId()==null ? "Ainda não informado" : "Arquivo recebido, aguardando revisão",
+                "ECA-005"),
+            described("disclosureFile", data.disclosureFileId()==null?null:1,
+                data.disclosureFileId()==null ? "Ainda não informado" : "Arquivo recebido, aguardando revisão",
+                "ECA-005"),
+            described("operationalStart", operational, operational==null
+                ? "Ainda não informado" : "Evento registrado, data não comprovada", "CF-OPEN-010"),
+            described("vcsStart", vcs, vcs==null
+                ? "Ainda não informado" : "Evento registrado, data não comprovada", "CF-OPEN-010"));
+    }
+
+    private static Integer version(Connection c, String table, String column, String project, String code)
+            throws SQLException {
+        if(code==null || !table.matches("app_project_rights_(party|contract|event)")) return null;
+        return first(c,"SELECT max(version) FROM "+table+" WHERE project_id=? AND "+column+"=?",
+            r->(Integer)r.getObject(1), project, code);
     }
 
     private static Input normalize(Input i) {
