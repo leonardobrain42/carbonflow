@@ -37,9 +37,14 @@ Em **Analisar**, o painel fica antes da declaração. O detalhe das equações s
 
 `GET /journey` inclui o mesmo objeto `diagnosis` do endpoint de requisitos. O percentual de tarefas não soma esses itens. A primeira ação que a conta pode registrar aponta para a mesma tela, e `PUT /journey/resume` aceita esse destino. `analisar` fica disponível para quem tem a declaração ou as informações iniciais. Um passo inventado nesse destino continua recusado. Quem só vê o cálculo não recebe a pendência da declaração nem consegue gravar a retomada em Analisar.
 
+## Rechecagem pelo dono do dado
+
+Uma segunda revisão da declaração só pede rechecagem de direitos quando o contrato, a prova de divulgação ou a sobreposição mudam e a prova continua presente. A revisão anterior permanece. Excedente regulatório, EVR e ED/EC não mudam por causa dessa alteração. Se a divulgação ainda falta, a pendência continua sendo a prova ausente.
+
+Quando o projeto já tem seleção de frota ou vínculo de fatores, o diagnóstico deixa de dizer que o dado está simplesmente ausente: a situação passa a ser fonte candidata, ou desatualizada se o dono marcou o vínculo como obsoleto. IR e Dy não acompanham essa seleção. Nenhuma dessas situações admite E8. O catálogo interno de fontes não é lido por esta rota; o estado usado é o do vínculo do próprio projeto.
+
 ## O que continua fora
 
-- UX-08D: incidência vinda dos avaliadores #93/#99/#92/#98/#97, com `RECHECK_REQUIRED` por dependência real de prova.
 - UX-08E: homologação #101, ensaio moderado e auditoria de acessibilidade além deste roteiro automatizado.
 
 A ficha OPEN, os CHECK `usable_for_e8=false` e o piloto sintético não mudam de regra.

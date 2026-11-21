@@ -29,10 +29,23 @@ final class ProjectRequirementProjection {
     record View(String projectId, String methodology, boolean openBranch, boolean diagnosticVisible,
             boolean canRunE8, boolean canIssueVcu, boolean exAnteRequiresMeasuredEnergy,
             String limits, Summary summary, List<Item> requirements) {}
+    /** Owner signals already decided elsewhere. Missing means the owner has no row. */
+    record Owners(boolean rightsRecheck, String fleetState, String bindingState) {
+        static final Owners NONE = new Owners(false, "FLEET_SELECTION_MISSING", "BINDING_MISSING");
+
+        boolean fleetPrepared() {
+            return fleetState != null && !fleetState.contains("MISSING");
+        }
+
+        boolean bindingPrepared() {
+            return bindingState != null && !bindingState.contains("MISSING");
+        }
+    }
     record Input(String projectId, String methodology, boolean canViewApplicability,
             boolean canViewCalculation, boolean canOpenApplicability, boolean canOpenPreparation,
             boolean canOpenQuantification, boolean canOpenMonitoring,
-            OpenApplicability.Readiness applicability, OpenCalculationPreflight.Result preflight) {}
+            OpenApplicability.Readiness applicability, OpenCalculationPreflight.Result preflight,
+            Owners owners) {}
 
     private static final Set<String> SOURCE_GATES = Set.of("EVR", "AFEC_MPG", "EF_FUEL", "EF_GRID");
     private static final Set<String> REVIEW_GATES = Set.of("NORMATIVE_PACK", "CARBON_RIGHTS", "IR", "DY");
@@ -46,6 +59,7 @@ final class ProjectRequirementProjection {
         if (visible && open) {
             if (input.canViewApplicability()) projectApplicability(input, items);
             if (input.canViewCalculation() && input.preflight() != null) projectPreflight(input, items);
+            applyOwners(input, items);
             if (!items.containsKey("ED_EC")) items.put("ED_EC", energyNotRequired(false));
         } else if (visible) {
             items.put("METHODOLOGY_BRANCH", methodologyLimit(input));
@@ -186,6 +200,51 @@ final class ProjectRequirementProjection {
         if (code.startsWith("E8_EFEL") || code.startsWith("E8_VT0011") || code.startsWith("E8_TOOL07")
                 || "EF_GRID".equals(code)) return "emissões do projeto";
         return "quantificação";
+    }
+
+    private static void applyOwners(Input input, LinkedHashMap<String, Item> items) {
+        Owners owners = input.owners() == null ? Owners.NONE : input.owners();
+        boolean rightsOpen = !items.containsKey("DRIVER_DISCLOSURE") && !items.containsKey("OWNER_CONTRACT");
+        if (input.canViewApplicability() && owners.rightsRecheck() && rightsOpen) {
+            items.put("RIGHTS_DEPENDENCY", review(input, "RIGHTS_DEPENDENCY", "RECHECK_REQUIRED",
+                "Precisa rechecagem",
+                "O contrato, a prova de divulgação ou a declaração de sobreposição mudou. "
+                    + "A revisão anterior permanece registrada. Esta alteração não aprova direitos nem adicionalidade.",
+                "Aguardar a revisão competente desta versão. A declaração nova não conclui o teste.",
+                destination(input.canOpenApplicability(), "analisar", null), false,
+                List.of("direitos")));
+        }
+        if (!input.canViewCalculation()) return;
+        if (owners.fleetPrepared()) {
+            boolean stale = owners.fleetState().startsWith("STALE");
+            overlay(items, "EVR", stale, stale
+                ? "A seleção preparatória de frota ficou desatualizada. Só este vínculo pede rechecagem."
+                : "Há uma seleção preparatória de frota neste projeto. Ela não é fonte admitida e não libera o cálculo.");
+            overlay(items, "AFEC_MPG", stale, stale
+                ? "Os ratings preparatórios vinculados à frota ficaram desatualizados."
+                : "Há ratings preparatórios vinculados à frota. Eles não estão admitidos para a linha de base.");
+        }
+        if (owners.bindingPrepared()) {
+            boolean stale = owners.bindingState().startsWith("STALE");
+            overlay(items, "EF_FUEL", stale, stale
+                ? "O vínculo preparatório de fatores ficou desatualizado. IR e Dy não mudam de estado por esta seleção."
+                : "Há um vínculo preparatório de fatores. Conferência interna não admite o fator fóssil nem libera o cálculo.");
+            overlay(items, "EF_GRID", stale, stale
+                ? "O fator elétrico preparatório vinculado ao período ficou desatualizado."
+                : "Há um fator elétrico preparatório. Ele não é VT0011 admitido e não habilita E8.");
+        }
+    }
+
+    private static void overlay(LinkedHashMap<String, Item> items, String code, boolean stale, String reason) {
+        Item current = items.get(code);
+        if (current == null) return;
+        items.put(code, new Item(current.requirementId(), current.methodologyId(), current.edition(),
+            current.scenario(), current.ruleRef(), stale ? "STALE" : "SOURCE_CANDIDATE",
+            stale ? "Desatualizado" : "Fonte candidata, não admitida", reason,
+            "equipe CarbonFlow",
+            "Aguardar a equipe CarbonFlow. Preparação interna não admite a fonte nem libera o cálculo.",
+            null, null, stale ? "AWAITING_REVIEW" : "AWAITING_SOURCE", false, false, false,
+            current.affectedOutputs()));
     }
 
     private static Item energyNotRequired(boolean fromSheet) {
