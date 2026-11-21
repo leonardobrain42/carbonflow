@@ -15,7 +15,8 @@
         <dd>{{target.latest?'Versão '+target.latest.number+' (interna)':'Ainda não redigido'}}</dd></div>
       @if (target.latest){
         <div><dt>Guia fixado na versão do PD</dt><dd>v{{target.latest.guideVersion}}</dd></div>
-        <div><dt>Integridade da versão PD</dt><dd><code>{{target.latest.sha256}}</code></dd></div>
+        <div><dt>Integridade da versão PD</dt><dd><code>{{target.latest.sha256}}</code>
+          <small>Detecta alteração desta versão. Não é assinatura certificada nem aprovação do documento.</small></dd></div>
       }
       @if (guide){
         <div><dt>Formulário tipado</dt>

@@ -53,7 +53,8 @@
                     <div><dt>Snapshot EVR/ratings vinculado</dt><dd>Seleção v{{selection.version}} · ano {{selection.observationYear}}</dd></div>
                     <div><dt>Ciclo</dt><dd>{{selection.cycle}}</dd></div>
                     <div><dt>Estado</dt><dd>{{labelState(selection.state)}}</dd></div>
-                    <div><dt>Hash de seleção</dt><dd><code>{{selection.selectionSha256}}</code></dd></div>
+                    <div><dt>Hash de seleção</dt><dd><code>{{selection.selectionSha256}}</code>
+                      <small>Declarado nesta seleção. Não autentica a fonte nem admite o cálculo.</small></dd></div>
                   </dl>
                   @for (gate of selection.gates;track gate){
                     <p class="cf-workspace-note">{{fleetNote(gate)}}</p>
