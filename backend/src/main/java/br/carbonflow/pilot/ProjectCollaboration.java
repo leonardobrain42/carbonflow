@@ -24,7 +24,7 @@ final class ProjectCollaboration {
             "VIEW_OPEN_VT0011_WORKBOOK", "SUBMIT_OPEN_VT0011_WORKBOOK",
             "VIEW_OPEN_SIMPLE_OM_A1", "PREPARE_OPEN_SIMPLE_OM_A1",
             "VIEW_OPEN_E8_BINDING_CANDIDATE", "PREPARE_OPEN_E8_BINDING_CANDIDATE",
-            "VIEW_OPEN_E8_FLEET_SELECTION");
+            "VIEW_OPEN_E8_FLEET_SELECTION", "VIEW_OPEN_E8_RUN", "RECORD_OPEN_E8_RUN");
 
     private ProjectCollaboration() {}
 
@@ -54,8 +54,11 @@ final class ProjectCollaboration {
                 if (!"DOCUMENTATION".equals(activity)) {
                     actions.add("GUIDE_" + activity);
                     actions.add("VIEW_GUIDES");
-                    if ("CALCULATION".equals(activity))
+                    if ("CALCULATION".equals(activity)) {
                         actions.add("VIEW_OPEN_CALCULATION");
+                        actions.add("VIEW_OPEN_E8_RUN");
+                        if (preparer) actions.add("RECORD_OPEN_E8_RUN");
+                    }
                     if ("MONITORING".equals(activity)) {
                         actions.add("VIEW_OPEN_MONITORING");
                         actions.add("VIEW_OPEN_PERIOD_ADMISSION");
@@ -67,6 +70,7 @@ final class ProjectCollaboration {
                             actions.add("VIEW_OPEN_SIMPLE_OM_A1");
                             actions.add("VIEW_OPEN_E8_BINDING_CANDIDATE");
                             actions.add("VIEW_OPEN_E8_FLEET_SELECTION");
+                            actions.add("VIEW_OPEN_E8_RUN");
                         }
                         if (preparer) {
                             actions.add("PREPARE_OPEN_E8_ENERGY_CANDIDATE");
@@ -74,6 +78,7 @@ final class ProjectCollaboration {
                             actions.add("SUBMIT_OPEN_VT0011_WORKBOOK");
                             actions.add("PREPARE_OPEN_SIMPLE_OM_A1");
                             actions.add("PREPARE_OPEN_E8_BINDING_CANDIDATE");
+                            actions.add("RECORD_OPEN_E8_RUN");
                         }
                         if (preparer) actions.add("SAVE_OPEN_MONITORING");
                         if (preparer || "OP".equals(grant.role())) {
