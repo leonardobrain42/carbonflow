@@ -101,7 +101,7 @@ export class OpenE8BindingsComponent implements OnChanges {
          energy===this.energyCandidateId){
         await this.reload();
         this.chosen.set(created);
-        this.notice.set('Vínculo imutável criado. Esta entrada NÃO está admitida para cálculos E8.');
+        this.notice.set('Vínculo imutável criado. Esta entrada não está admitida para o cálculo.');
       }
     } catch(problem) {
       if(root===this.root())this.error.set(this.message(problem));

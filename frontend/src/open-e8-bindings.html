@@ -1,17 +1,18 @@
 <section class="cf-journey-context" aria-labelledby="cf-e8-bind-title">
   <h5 id="cf-e8-bind-title">Vínculo preparatório E8 · {{period}}</h5>
-  <p>Conecta as versões reais de ED/EC e do fator EFel horário em uma memória
-    imutável do projeto. Exige cobertura de cada hora e revisão interna da
-    fonte. <strong>NÃO executa BE, PE ou ER nem admite fatores ou créditos.</strong></p>
+  <p>Conecta as versões reais de energia entregue, energia consumida e do fator
+    elétrico horário em uma memória imutável do projeto. Exige cobertura de cada
+    hora e revisão interna da fonte. <strong>Não executa a linha de base, as
+    emissões do projeto nem a redução, e não admite fatores ou créditos.</strong></p>
   @if (error()) { <p role="alert">{{error()}}</p> }
   @if (notice()) { <p role="status">{{notice()}}</p> }
   @if (loading()) { <p role="status">Consultando histórico de vínculos…</p> }
   @if (canPrepare && sourceCurrent) {
     <button type="button" class="cf-workspace-outline" [disabled]="busy()||loading()"
-      (click)="prepare()">Vincular versões ED/EC e EFel (sem liberar E8)</button>
+      (click)="prepare()">Vincular energia e fator elétrico (sem liberar o cálculo)</button>
   } @else if (!sourceCurrent) {
-    <p>A fonte EFel selecionada não possui revisão interna vigente; vínculo
-      indisponível. Revise a fonte antes de registrar um novo snapshot.</p>
+    <p>A fonte do fator elétrico selecionada não possui revisão interna vigente;
+      o vínculo fica indisponível. Revise a fonte antes de registrar uma nova versão.</p>
   }
   @if (entries().length) {
     <ul class="cf-tech-gates">
@@ -21,7 +22,7 @@
           <p>Horas: {{item.hourCount}} · carregadores-hora: {{item.slotCount}}
             · E8: não liberado</p>
           <button type="button" class="cf-workspace-outline"
-            (click)="chosen.set(item)">Ver versões, SHA e horas</button>
+            (click)="chosen.set(item)">Ver versões, integridade e horas</button>
         </li>
       }
     </ul>
@@ -31,11 +32,13 @@
   @if (chosen(); as item) {
     <div class="cf-journey-context">
       <h5>Memória de entrada imutável · versão {{item.version}}</h5>
-      <p>Energia: {{item.energyCandidateId}} · SHA: {{item.energySha256}}</p>
-      <p>EFel: {{item.efelCandidateId}} · SHA: {{item.efelSha256}}
+      <p>Pacote de energia <small>Referência: {{item.energyCandidateId}}</small></p>
+      <p>SHA-256 declarado da energia: <code>{{item.energySha256}}</code></p>
+      <p>Fator elétrico <small>Referência: {{item.efelCandidateId}}</small>
         · parecer interno v{{item.efelReviewVersion}}</p>
+      <p>SHA-256 declarado do fator elétrico: <code>{{item.efelSha256}}</code></p>
       <p>SHA-256 declarado do conjunto: <code>{{item.inputSha256}}</code></p>
-      <p>Não autentica as fontes nem libera o cálculo.</p>
+      <p>Estes SHA-256 detectam alteração desta versão. Não autenticam a fonte nem liberam o cálculo.</p>
       @if (item.stale) {
         <p role="alert">O vínculo está desatualizado; os dados originais
           permanecem disponíveis somente para consulta histórica.</p>
@@ -49,8 +52,8 @@
       <table>
         <caption>Entradas horárias candidatas, sem multiplicação E8</caption>
         <thead><tr><th scope="col">Hora UTC</th><th scope="col">Carregadores</th>
-          <th scope="col">ED (kWh)</th><th scope="col">EC (kWh)</th>
-          <th scope="col">EFel (tCO₂e/kWh)</th></tr></thead>
+          <th scope="col">Energia entregue (kWh)</th><th scope="col">Energia consumida (kWh)</th>
+          <th scope="col">Fator elétrico (tCO₂e/kWh)</th></tr></thead>
         <tbody>
           @for (h of item.hours.slice(0,48); track h.hour) {
             <tr><td>{{h.hour}}</td><td>{{h.chargerCount}}</td>
@@ -72,7 +75,7 @@
     <p>Esta publicação é realizada por gestor de fontes autorizado.
       A interface do projeto exibe <strong>somente referências,
       hashes e decisões de estado</strong>, nunca o catálogo licenciado
-      bruto. A ponderação AFEC/MPG continua preparatória.</p>
+      bruto. A ponderação do consumo elétrico e do consumo fóssil continua preparatória.</p>
     <button type="button" class="cf-workspace-outline"
       [disabled]="loading()" (click)="reload()">
       Atualizar versões publicadas
@@ -107,7 +110,7 @@
         <p>Snapshot EVR: {{item.fleetSnapshotId}} ·
           SHA declarada: <code>{{item.fleetSourceSha256}}</code></p>
         <p>Snapshot de ratings e comparáveis: {{item.ratingSnapshotId}} ·
-          linhagem SHA: <code>{{item.ratingLineageSha256}}</code></p>
+          SHA-256 declarado da linhagem: <code>{{item.ratingLineageSha256}}</code></p>
         <p>SHA-256 declarado da seleção: <code>{{item.selectionSha256}}</code></p>
         <p>Bloqueios e ressalvas:</p>
         <ul>

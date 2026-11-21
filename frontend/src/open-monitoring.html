@@ -1,8 +1,8 @@
 <section class="cf-journey-context" aria-labelledby="cf-monitor-title">
-  <h3 id="cf-monitor-title">Monitoramento · carregadores, ED e EC</h3>
+  <h3 id="cf-monitor-title">Monitoramento · carregadores e energia</h3>
   <p>Cadastre a configuração dos carregadores e dos medidores antes de importar leituras.
-    <strong>ED</strong> é a energia efetivamente entregue aos veículos, medida a jusante;
-    <strong>EC</strong> é a energia consumida pela infraestrutura, medida a montante.
+    <strong>Energia entregue</strong> é a energia efetivamente entregue aos veículos, medida a jusante.
+    <strong>Energia consumida</strong> é a energia consumida pela infraestrutura, medida a montante.
     A configuração não comprova qualquer energia nem autoriza cálculo de créditos.</p>
   @if (loading()) { <p role="status">Carregando o plano de medição…</p> }
   @if (error()) { <p role="alert" class="cf-workspace-alert">{{error()}}</p> }
@@ -384,11 +384,11 @@
 
     }
     @if (view === 'all' || view === 'qa') {
-    <h4>Reconciliação ED/EC por período</h4>
+    <h4>Reconciliação da energia por período</h4>
     <p>Informe horas completas com fuso, por exemplo 2027-02-01T00:00:00Z.
       Um período só fica pronto para snapshot de QA interno quando todas as horas
-      de todos os carregadores têm ED e EC revisadas, sem sobreposição ou lacunas.
-      Mesmo assim, o E8 permanece bloqueado.</p>
+      de todos os carregadores têm energia entregue e energia consumida revisadas,
+      sem sobreposição ou lacunas. Mesmo assim, o cálculo permanece bloqueado.</p>
     <form class="cf-open-monitoring-form" (submit)="checkPeriod($event)">
       <div class="cf-journey-fields">
         <div><label for="cf-period-from">Início do período (inclusive)</label>
@@ -554,8 +554,8 @@
 
     }
     @if (view === 'all' || view === 'dossiers') {
-    <h4>Dossiês de monitoramento (MR) e propagação de STALE</h4>
-    <p>O dossiê MR referencia um snapshot de QA por período (M1, M2 etc.).
+    <h4>Dossiês de monitoramento e rechecagem</h4>
+    <p>O dossiê de monitoramento referencia um snapshot de QA por período (M1, M2 etc.).
       Alterações em medidores, medições, ocorrências ou documentos podem
       torná-lo obsoleto. Os vínculos são registrados por versão, sem
       alterar o snapshot histórico e sem emitir créditos.</p>
@@ -593,13 +593,13 @@
             @if (canViewEnergy) {
               <button type="button" class="cf-workspace-outline"
                 [disabled]="energyBusy()" (click)="inspectEnergy(item.reference.code)">
-                Consultar pacotes horários ED/EC
+                Consultar pacotes horários de energia
               </button>
             }
             @if (canPrepareEnergy) {
               <button type="button" class="cf-workspace-outline"
                 [disabled]="energyPreparing()" (click)="prepareEnergy(item)">
-                Preparar pacote candidato para E8
+                Preparar pacote candidato, sem liberar o cálculo
               </button>
             }
           </li>
@@ -727,9 +727,10 @@
               <li>
                 <strong>{{term(item.state)}} · MR v{{item.dossierVersion}}
                   · parecer interno v{{item.methodReviewVersion}}</strong>
-                <p>ED {{item.edKwh}} kWh · EC {{item.ecKwh}} kWh,
+                <p>Energia entregue {{item.edKwh}} kWh · energia consumida {{item.ecKwh}} kWh,
                   {{item.hourCount}} hora(s), {{item.slotCount}} par(es) carregador/hora.</p>
-                <p>Hash de proveniência SHA-256: {{item.sourceSha256}}</p>
+                <p>SHA-256 declarado da proveniência: <code>{{item.sourceSha256}}</code></p>
+                <small>Detecta alteração deste pacote. Não autentica a fonte nem admite o cálculo.</small>
                 @if (item.stale) {
                   <p role="alert">Pacote obsoleto: não reflete mais o MR,
                     documentos, medidores ou pareceres atuais.</p>
@@ -741,7 +742,7 @@
                   parâmetros e medições é uma etapa posterior.</small>
                 <table>
                   <thead><tr><th>Carregador</th><th>Hora UTC</th>
-                    <th>ED (kWh)</th><th>EC (kWh)</th></tr></thead>
+                    <th>Energia entregue (kWh)</th><th>Energia consumida (kWh)</th></tr></thead>
                   <tbody>
                     @for (slot of item.hours.slice(0,48); track slot.chargerCode+'-'+slot.from) {
                       <tr>

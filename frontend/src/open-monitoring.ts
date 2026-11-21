@@ -762,7 +762,7 @@ export class OpenMonitoringComponent implements OnChanges {
           'Idempotency-Key':crypto.randomUUID()}}));
       if(this.projectId===project) {
         await this.inspectEnergy(item.reference.code);
-        this.notice.set('Pacote ED/EC histórico preparado. Ele ainda não pode entrar no cálculo.');
+        this.notice.set('Pacote de energia preparado. Ele ainda não pode entrar no cálculo.');
       }
     } catch(problem){this.error.set(this.message(problem));}
     finally {this.energyPreparing.set(false);}

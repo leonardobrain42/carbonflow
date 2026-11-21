@@ -108,7 +108,7 @@ const SECTIONS = [
   {id:'estacoes',title:'Estações e fronteira',group:'Fundamentação'},
   {id:'linha-base',title:'Linha de base',group:'Fundamentação'},
   {id:'adicionalidade',title:'Adicionalidade',group:'Fundamentação'},
-  {id:'monitorar',title:'Monitorar ED/EC',group:'Medição'},
+  {id:'monitorar',title:'Monitorar energia',group:'Medição'},
   {id:'evidencias',title:'Evidências',group:'Medição'},
   {id:'quantificar',title:'Quantificação',group:'Medição'},
   {id:'fontes',title:'Fontes e parâmetros',group:'Medição'},
@@ -190,7 +190,7 @@ export class ProjectTechnicalComponent {
     {id:'inventario',label:'1. Instalações e medidores'},
     {id:'leituras',label:'2. Leituras e ocorrências'},
     {id:'qa',label:'3. QA e evidências'},
-    {id:'dossies',label:'4. MR, EFel e VT0011'},
+    {id:'dossies',label:'4. Relatório, fator elétrico e caderno'},
   ] as const;
   readonly section = computed(() => {
     const allowed=this.sections();
