@@ -13,7 +13,6 @@ CREATE TABLE app_open_asset_evidence (
  purpose text NOT NULL CHECK(purpose IN
   ('LOCATION','COMMISSIONING','PUBLIC_ACCESS','SPECIFICATION','INSTALLATION','GRID_CONNECTION')),
  evidence_blob_id uuid NOT NULL,
- submitted_file_name text NOT NULL CHECK(submitted_file_name ~ '^[A-Za-z0-9][A-Za-z0-9._-]{4,115}[.]pdf$'),
  evidence_reference text NOT NULL CHECK(char_length(btrim(evidence_reference)) BETWEEN 8 AND 300),
  locator text CHECK(locator IS NULL OR char_length(btrim(locator)) BETWEEN 3 AND 160),
  submitted_by uuid NOT NULL REFERENCES app_identity(id),
