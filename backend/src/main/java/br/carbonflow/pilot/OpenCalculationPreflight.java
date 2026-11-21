@@ -122,29 +122,29 @@ final class OpenCalculationPreflight {
             "Declaração de titularidade não equivale a prova jurídica e revisão independente.",
             "Obter e revisar direitos e prevenção de dupla contagem", "PP/REV");
         add(gates, "EVR", "MISSING_BINDING",
-            "Não há snapshot nacional EVR por modelo/ano admitido e vinculado ao projeto.",
+            "Não há estoque nacional por modelo e ano admitido e vinculado ao projeto.",
             "Selecionar fonte EVR e avaliar cobertura", "PREP");
         add(gates, "AFEC_MPG", "MISSING_BINDING",
-            "Ratings PBEV e comparáveis revisados não foram vinculados ao EVR do projeto.",
+            "Ratings PBEV e comparáveis revisados não foram vinculados ao estoque nacional do projeto.",
             "Revisar ciclo, modelo, fonte e comparabilidade", "PREP/REV");
         add(gates, "EF_FUEL", "MISSING_BINDING",
-            "Fator fóssil por combustível/ano/gás não admitido para a linha de base.",
+            "O fator fóssil por combustível, ano e gás não está admitido para a linha de base.",
             "Solicitar fonte brasileira e parecer contextual", "PREP/REV");
         add(gates, "IR", "MISSING_BINDING",
-            "Melhoria tecnológica IR não possui regra e prova aplicáveis; não usar 1 por padrão.",
-            "Estabelecer regra e vintage de IR", "REV");
+            "A melhoria tecnológica não possui regra e prova aplicáveis. A preparação não usa 1 por padrão.",
+            "Estabelecer a regra e o período de referência da melhoria tecnológica", "REV");
         add(gates, "DY", "MISSING_BINDING",
-            "Desconto Dy depende de direitos e sobreposição: não assumir 1 ou zero.",
-            "Concluir revisão de dupla contagem e desconto", "REV");
+            "O desconto por outro crédito depende de direitos e de sobreposição. A preparação não assume 1 nem zero.",
+            "Concluir a revisão de dupla contagem e do desconto", "REV");
         add(gates, "ED", "PENDING_MEASUREMENT",
-            "Não há energia entregue ED admitida por carregador e período.",
-            "Preparar medição ED e calibração", "OP/PREP");
+            "Não há energia entregue admitida por carregador e período.",
+            "Preparar a medição da energia entregue e a calibração", "OP/PREP");
         add(gates, "EC", "PENDING_MEASUREMENT",
-            "Não há energia consumida EC admitida por carregador e período; ED ≠ EC.",
-            "Preparar medição EC e reconciliação com ED", "OP/PREP");
+            "Não há energia consumida admitida por carregador e período. Energia entregue e energia consumida são medições diferentes.",
+            "Preparar a medição da energia consumida e a reconciliação com a energia entregue", "OP/PREP");
         add(gates, "EF_GRID", "MISSING_BINDING",
-            "EFel para SIN, vintage e eventual janela horária não está admitido sob VT0011/TOOL07.",
-            "Avaliar série elétrica e método vigente", "PREP/REV");
+            "O fator elétrico do SIN, com período de referência e eventual janela horária, não está admitido. A avaliação segue VT0011 e TOOL07.",
+            "Avaliar a série elétrica e o método vigente", "PREP/REV");
 
         String calculationState = outside || stale
             ? "BLOCKED_NOT_ADMISSIBLE" : "BLOCKED_MISSING_DATA";

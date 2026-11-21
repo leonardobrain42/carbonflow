@@ -46,7 +46,20 @@ class OpenCalculationPreflightTest {
             List.of("NORMATIVE_PACK","EVR","EF_FUEL","IR","ED")));
         assertTrue(be.whyNotCalculated().startsWith("Não calculado."));
         assertTrue(be.whyNotCalculated().contains(
-            "Não há energia entregue ED admitida por carregador e período."));
+            "Não há energia entregue admitida por carregador e período."));
+        assertTrue(be.whyNotCalculated().contains(
+            "A melhoria tecnológica não possui regra e prova aplicáveis. A preparação não usa 1 por padrão."));
+        assertTrue(be.whyNotCalculated().contains(
+            "O fator fóssil por combustível, ano e gás não está admitido para a linha de base."));
+        var dy=result.equationPlan().stream().filter(e->e.outputCode().equals("DY"))
+            .findFirst().orElseThrow();
+        assertTrue(dy.whyNotCalculated().contains(
+            "A preparação não assume 1 nem zero."));
+        var pe=result.equationPlan().stream().filter(e->e.outputCode().equals("PE"))
+            .findFirst().orElseThrow();
+        assertTrue(pe.whyNotCalculated().contains(
+            "Não há energia consumida admitida por carregador e período."));
+        assertTrue(pe.whyNotCalculated().contains("VT0011 e TOOL07"));
         assertFalse(be.whyNotCalculated().contains("tCO2e"));
         assertFalse(be.whyNotCalculated().contains("EF-SYN"));
         assertFalse(result.equationPlan().toString().contains("EF-SYN"));
