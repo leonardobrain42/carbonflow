@@ -83,6 +83,64 @@ const PREPARATORY_NOTES: Record<string, string> = {
     'Caderno elétrico e direitos da série continuam sem admissão.',
   E8_EXECUTION_NOT_ENABLED:
     'A execução do cálculo continua fechada.',
+  MR_VERSION_CHANGED:
+    'A versão do monitoramento mudou desde este pacote.',
+  METHOD_REVIEW_CHANGED:
+    'O parecer do método mudou desde este pacote.',
+  SNAPSHOT_OR_SUPPORT_STALE:
+    'O snapshot ou os documentos de suporte ficaram desatualizados.',
+  SOURCE_REVISIONS_CHANGED:
+    'As revisões de origem mudaram desde este pacote.',
+  CANDIDATE_LINEAGE_CHANGED:
+    'A linhagem do pacote horário mudou.',
+  ENERGY_CANDIDATE_CHANGED_OR_STALE:
+    'O pacote de energia mudou ou ficou desatualizado.',
+  EFEL_HOUR_COVERAGE_CHANGED:
+    'A cobertura horária do fator elétrico mudou.',
+  EFEL_SOURCE_VERSION_SUPERSEDED:
+    'Há uma versão mais recente do fator elétrico.',
+  EFEL_SOURCE_REVIEW_REQUIRED:
+    'O fator elétrico ainda aguarda parecer interno.',
+  NORMATIVE_SOURCE_ADMISSION_REQUIRED:
+    'A fonte ainda não tem admissão normativa.',
+  SOURCE_OR_REVIEW_STALE:
+    'A fonte ou o parecer do caderno ficou desatualizado.',
+  WORKBOOK_VERSION_SUPERSEDED:
+    'Há um caderno mais recente.',
+  INDEPENDENT_INTERNAL_REVIEW_PENDING:
+    'O caderno ainda aguarda conferência interna independente.',
+  INTERNAL_REVIEW_RETURNED:
+    'A conferência interna devolveu o caderno.',
+  TOOL07_OM_CALCULATION_NOT_VERIFIED:
+    'O cálculo da margem de operação ainda não foi verificado.',
+  SOURCE_DATASET_HASH_NOT_AUTHENTICATED:
+    'O hash declarado do conjunto não autentica a fonte.',
+  CO2_TO_CO2E_AND_HOURLY_EFEL_BRIDGE_MISSING:
+    'Ainda não há ponte entre CO2 e a série horária em CO2e.',
+  NORMATIVE_ADMISSION_AND_E8_BLOCKED:
+    'A admissão normativa e a execução do cálculo continuam fechadas.',
+  LCMR_5YEAR_SCREEN_NOT_PASSED:
+    'A triagem de cinco anos não passou.',
+  LCMR_CLASSIFICATION_NOT_AUTHENTICATED:
+    'A classificação LCMR ainda não está autenticada.',
+  PLANT_AND_FUEL_INPUTS_NOT_AUTHENTICATED:
+    'Usinas e combustíveis ainda não estão autenticados.',
+  IMPORTS_AND_GRID_BOUNDARY_NOT_VERIFIED:
+    'Importações e fronteira da rede ainda não foram verificadas.',
+  OPTION_A1_NCV_AND_CO2_FACTORS_NOT_VERIFIED:
+    'Poder calorífico e fatores de CO2 ainda não foram verificados.',
+  VT0011_DATA_VINTAGE_AND_OTHER_METHOD_CHECKS_PENDING:
+    'Vintage e demais conferências do método continuam pendentes.',
+  NO_CO2_TO_CO2E_HOURLY_BRIDGE:
+    'Ainda não há ponte horária de CO2 para CO2e.',
+  E8_NORMATIVE_ADMISSION_NOT_GRANTED:
+    'A admissão normativa do cálculo não foi concedida.',
+  WORKBOOK_OR_EFEL_STALE:
+    'O caderno ou o fator elétrico ficou desatualizado.',
+  OM_RUN_VERSION_SUPERSEDED:
+    'Há uma apuração mais recente.',
+  OM_RESULT_DIFFERS_FROM_PREVIOUSLY_DECLARED_FACTOR:
+    'O resultado difere do fator declarado antes.',
 };
 
 /** Visible sentence for a stored preparatory gate. The code stays off the sentence. */
@@ -154,4 +212,135 @@ export function monitoringGateTitle(code: string): string {
   if (code.startsWith('MR_')) return 'Situação do período';
   if (code.startsWith('METHOD_')) return 'Parecer do método';
   return 'Situação ainda sem texto público';
+}
+
+const TERMS: Record<string, string> = {
+  OPEN_CANDIDATE: 'Rede aberta candidata',
+  PENDING_CONFIGURATION: 'Configuração pendente',
+  EVIDENCE_PENDING: 'Prova ainda pendente',
+  DECLARED_REVIEW_PENDING: 'Declaração aguardando revisão',
+  PENDING_NORMATIVE_REVIEW: 'Revisão normativa pendente',
+  PENDING_NORMATIVE_SOURCE: 'Fonte normativa pendente',
+  PENDING_OFFICIAL_DATA: 'Dados oficiais pendentes',
+  PENDING_LEGAL_REVIEW: 'Revisão jurídica pendente',
+  NEEDS_EVIDENCE: 'Prova necessária',
+  NEEDS_REVIEW: 'Revisão necessária',
+  OUTSIDE_FIRST_SCOPE: 'Fora do recorte inicial',
+  PENDING: 'Pendente',
+  STALE: 'Exige rechecagem',
+  REVIEW_REQUIRED: 'Revisão necessária',
+  NOT_ADMITTED: 'Ainda não admitido',
+  STALE_NOT_ADMITTED: 'Desatualizado e não admitido',
+  SUPERSEDED_NOT_ADMITTED: 'Substituído e não admitido',
+  CHECKED_INTERNAL_NOT_ADMITTED: 'Conferido internamente e não admitido',
+  PENDING_INTERNAL_REVIEW_NOT_ADMITTED: 'Aguarda conferência interna e não está admitido',
+  RETURNED_NOT_ADMITTED: 'Devolvido e não admitido',
+  CANDIDATE_NOT_ADMITTED: 'Candidato e não admitido',
+  PREPARATORY_NOT_ADMITTED: 'Preparatório e não admitido',
+  LCMR_SCREEN_PASSED_PRELIMINARY_NOT_ADMITTED: 'Triagem preliminar passou e não está admitida',
+  LCMR_SCREEN_FAILED_PRELIMINARY_NOT_ADMITTED: 'Triagem preliminar não passou e não está admitida',
+  BINDING_MISSING: 'Vínculo ainda não preparado',
+  FLEET_SELECTION_MISSING: 'Seleção de frota ainda não publicada',
+  CANDIDATE_MISSING: 'Pacote ainda não preparado',
+  EFEL_SOURCE_MISSING: 'Fator elétrico ainda não declarado',
+  BLOCKED_MONITORING_REQUIREMENTS: 'Monitoramento ainda bloqueia esta seção',
+  READY_FOR_INTERNAL_PD_REVIEW: 'Pronta para revisão interna do documento',
+  INTERNAL_QA_ONLY: 'Somente QA interno',
+  CANDIDATE: 'Candidato',
+  QUARANTINED: 'Quarentena',
+  CHECKED_INTERNAL: 'Conferido internamente',
+  RETURNED: 'Devolvido para correção',
+  ACCEPTED_FOR_QA: 'Aceito para QA interno',
+  REJECTED: 'Rejeitado',
+  DOCUMENT_CHECKED_INTERNAL: 'Conferido para análise normativa',
+  CONFIRMED_BLOCKING: 'Impedimento confirmado',
+  CLEARED_FOR_INTERNAL_QA: 'Liberado para QA interno',
+  OPEN: 'Pendente',
+  SUPPORTED_INTERNAL: 'Sustentado na conferência interna',
+  METER_CALIBRATION: 'Calibração do medidor',
+  SOURCE_RIGHTS: 'Direitos de utilização dos dados',
+  SOURCE_OUTAGE: 'Indisponibilidade da fonte de dados',
+  METER_MAINTENANCE: 'Manutenção do medidor',
+  CLOCK_DRIFT: 'Divergência de relógio do medidor',
+  DATA_GAP: 'Lacuna de medição',
+  SOURCE: 'Origem dos dados',
+  METER: 'Medidor',
+  CHARGER: 'Carregador',
+  ED: 'Energia entregue',
+  EC: 'Energia consumida',
+  DCFC: 'Recarga rápida',
+  AC: 'Recarga em corrente alternada',
+  SIN: 'Sistema Interligado Nacional',
+  OTHER: 'Outra rede',
+  GRID_ONLY: 'Somente rede elétrica',
+  ON_SITE: 'Geração local',
+  STORAGE: 'Armazenamento associado',
+  V2G: 'Devolução à rede',
+  UNKNOWN: 'A confirmar',
+  DOWNSTREAM: 'A jusante',
+  UPSTREAM: 'A montante',
+  NOT_DECLARED: 'Ainda não informado',
+  ON_CHARGER: 'No carregador',
+  APP_OR_WEBSITE: 'Aplicativo ou site',
+  TERMS_OF_SERVICE: 'Termos de uso',
+  NO_OVERLAP_DECLARED: 'Sem sobreposição declarada',
+  NO_DECLARATION: 'Declaração',
+  CLOSED_NETWORK: 'Rede fechada',
+  ACCESS_UNDETERMINED: 'Acesso à rede',
+  CONFIGURATION_BRANCH: 'Ramo técnico',
+  CONFIGURATION_PENDING: 'Configuração',
+  OWNER_CONTRACT: 'Contrato do titular',
+  DRIVER_DISCLOSURE: 'Divulgação aos motoristas',
+  RIGHTS_DATE_GAP: 'Datas dos direitos',
+  DOUBLE_CLAIMING: 'Duplo pleito',
+  VMD0049_ROUTE: 'Lista positiva',
+  MARKET_ROUTE: 'Rota de mercado',
+  REGULATORY_SURPLUS: 'Excedente regulatório',
+  ED_EC: 'Energia entregue e consumida',
+  TRIAGE_CHANGED: 'Triagem alterada',
+  CONTORNO_A_COMPROVAR: 'Contorno a comprovar',
+  OPERACAO_PENDENTE: 'Operação pendente',
+  ORIGEM_PENDENTE: 'Origem pendente',
+  REVISAO_SEM_COBERTURA: 'Revisão sem cobertura',
+  EC_NAO_SEGREGADA: 'Energia consumida não segregada',
+  CALIBRACAO_SEM_COBERTURA: 'Calibração sem cobertura',
+  LEITURA_SEM_SEGMENTACAO: 'Leitura sem segmentação',
+  CSV_COLUMNS_INVALID: 'Colunas do arquivo',
+  METER_CODE_INVALID: 'Código do medidor',
+  SEQUENCE_INVALID: 'Sequência da leitura',
+  KIND_INVALID: 'Tipo de energia',
+  TIME_INTERVAL_INVALID: 'Intervalo de tempo',
+  NON_HOURLY_INTERVAL: 'Intervalo que não é de uma hora',
+  TIME_ZONE_INVALID: 'Fuso horário',
+  ENERGY_MISSING: 'Energia ausente',
+  ENERGY_DECIMAL_INVALID: 'Valor de energia',
+  NEGATIVE_ENERGY: 'Energia negativa',
+  ZERO_REQUIRES_EVIDENCE: 'Zero exige evidência',
+  ENERGY_UNIT_INVALID: 'Unidade de energia',
+  ENERGY_PRECISION_EXCEEDED: 'Precisão da energia',
+  METER_NOT_REGISTERED: 'Medidor não cadastrado',
+  METER_KIND_MISMATCH: 'Tipo do medidor',
+  SOURCE_SYSTEM_MISMATCH: 'Sistema de origem',
+  UNSUPPORTED_TOPOLOGY: 'Topologia não suportada',
+  METER_ZONE_MISMATCH: 'Fuso do medidor',
+  DUPLICATE_SOURCE_INTERVAL: 'Intervalo repetido',
+  'OPEN-METHOD': 'Método',
+  'OPEN-POSITIVE': 'Lista positiva',
+  'OPEN-EV-PENETRATION': 'Penetração de elétricos',
+  'OPEN-EV-SALES': 'Vendas de elétricos',
+  'OPEN-RIGHTS': 'Direitos',
+  'OPEN-ED-EC': 'Energia entregue e consumida',
+};
+
+/**
+ * Short Portuguese label for a stored status, kind or finding.
+ * Unknown codes stay visible: identifiers such as PEN-004 are not statuses.
+ */
+export function plainTerm(code: string): string {
+  if (!code) return '';
+  if (TERMS[code]) return TERMS[code];
+  if (MONITORING_TITLES[code]) return MONITORING_TITLES[code];
+  if (GATE_NAMES[code]) return GATE_NAMES[code];
+  if (code.startsWith('PENDENCIA_')) return 'Pendência de evidência';
+  return code;
 }

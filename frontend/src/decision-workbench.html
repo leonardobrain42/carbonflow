@@ -149,8 +149,9 @@
           </dl>
           @for (finding of additionalityGates();track finding.code){
             @if (finding.code==='VMD0049_ROUTE'||finding.code==='MARKET_ROUTE'||finding.code==='REGULATORY_SURPLUS'){
-              <section class="cf-journey-context"><strong>{{finding.code}} · {{finding.state}}</strong>
-                <p>{{finding.text}}</p></section>
+              <section class="cf-journey-context"><strong>{{term(finding.code)}} · {{term(finding.state)}}</strong>
+                <p>{{finding.text}}</p>
+                <p>Referência: {{finding.code}}</p></section>
             }
           }
         } @else {<p>Sem declaração de aplicabilidade consultável. Não há rota automaticamente aceita.</p>}
@@ -197,10 +198,10 @@
           <dl class="cf-tech-capabilities">
             <div><dt>Titular declarado</dt><dd>{{rights.chargingOwner??'Não informado'}}</dd></div>
             <div><dt>Referência de contrato</dt><dd>{{rights.carbonRightsContractRef??'Não informada'}}</dd></div>
-            <div><dt>Canal de divulgação</dt><dd>{{rights.driverDisclosureChannel??'Não informado'}}</dd></div>
+            <div><dt>Canal de divulgação</dt><dd>{{rights.driverDisclosureChannel?term(rights.driverDisclosureChannel):'Não informado'}}</dd></div>
             <div><dt>Referência de divulgação</dt><dd>{{rights.driverDisclosureEvidenceRef??'Não informada'}}</dd></div>
             <div><dt>Data de divulgação</dt><dd>{{rights.driverDisclosureEffectiveOn??'Não informada'}}</dd></div>
-            <div><dt>Duplo pleito</dt><dd>{{rights.doubleClaimingCheck??'Não avaliado'}}</dd></div>
+            <div><dt>Duplo pleito</dt><dd>{{rights.doubleClaimingCheck?term(rights.doubleClaimingCheck):'Não avaliado'}}</dd></div>
           </dl>
           <p>Os campos acima são declarações, não vínculos de PP, procurações,
             provas documentais aceitas nem concessões de poderes. Contas sem permissão não recebem estes dados.</p>
@@ -208,7 +209,8 @@
         @for (finding of additionalityGates();track finding.code){
           @if (finding.code==='OWNER_CONTRACT'||finding.code==='DRIVER_DISCLOSURE'||
             finding.code==='RIGHTS_DATE_GAP'||finding.code==='DOUBLE_CLAIMING'){
-            <p class="cf-workspace-note">{{finding.state}}: {{finding.text}}</p>
+            <p class="cf-workspace-note">{{term(finding.state)}}: {{finding.text}}</p>
+            <p>Referência: {{finding.code}}</p>
           }
         }
         @if (canViewApplicability){
@@ -220,7 +222,9 @@
         <h4>Matriz de pendências da adicionalidade</h4>
         @for (finding of additionalityGates();track finding.code){
           <details class="cf-journey-context">
-            <summary>{{finding.code}} · {{finding.state}}</summary><p>{{finding.text}}</p>
+            <summary>{{term(finding.code)}} · {{term(finding.state)}}</summary>
+            <p>{{finding.text}}</p>
+            <p>Referência: {{finding.code}}</p>
           </details>
         } @empty {
           <p>Sem critérios consultáveis; falta avaliação normativa ou permissão. Não há adicionalidade aprovada.</p>

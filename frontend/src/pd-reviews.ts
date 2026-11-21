@@ -2,6 +2,7 @@ import {Component, inject, input, output, OnInit, signal} from '@angular/core';
 import {DatePipe} from '@angular/common';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {firstValueFrom} from 'rxjs';
+import {monitoringGateTitle, plainTerm} from './calculation-language';
 
 type Action = 'SUBMITTED' | 'RETURNED' | 'APPROVED_INTERNAL' | 'FROZEN_INTERNAL' | 'REOPENED';
 interface ReviewEvent {seq:number; state:Action; actor:string; actorName:string; at:string; reason:string; competenceVersion:number|null}
@@ -27,6 +28,8 @@ export class PdReviewsComponent implements OnInit {
   readonly version = signal(0);
   readonly events = signal<ReviewEvent[]>([]);
   readonly reason = signal('');
+  readonly term = plainTerm;
+  readonly gateTitle = monitoringGateTitle;
   readonly previous = signal<{authorId:string;guideVersion:number;narrative:string}|null>(null);
   readonly busy = signal(false);
   readonly error = signal('');

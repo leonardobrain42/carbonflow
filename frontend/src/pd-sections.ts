@@ -1,6 +1,7 @@
 import {Component, inject, input, output, OnInit, signal} from '@angular/core';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {firstValueFrom} from 'rxjs';
+import {monitoringGateTitle, plainTerm} from './calculation-language';
 
 interface Guide {
   id:string; title:string; version:number; missing:string[]; answers:Record<string,string>;
@@ -23,6 +24,8 @@ export class PdSectionsComponent implements OnInit {
   readonly text = signal('');
   readonly busy = signal(false);
   readonly message = signal('');
+  readonly term = plainTerm;
+  readonly gateTitle = monitoringGateTitle;
   private readonly http = inject(HttpClient);
   get url() { return '/v1/projects/' + encodeURIComponent(this.projectId()) + '/technical/pd-sections'; }
   canLeave() {

@@ -2,6 +2,7 @@ import {Component, Input, OnChanges, SimpleChanges, inject, signal, viewChild} f
 import {AssetEvidenceComponent} from './asset-evidence';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {firstValueFrom} from 'rxjs';
+import {plainTerm} from './calculation-language';
 
 type SiteDetails={name:string;municipality:string;state:string;address:string|null;
   operationalState:'PLANNED'|'INSTALLED'|'ACTIVE';plannedOn:string|null;
@@ -23,6 +24,7 @@ const NEW_CHARGER:ChargerDraft={code:'',siteCode:'',powerKw:'',timeZone:'America
 /** UX-03A: guided inputs backed by V67 sites and V52 canonical chargers, not guide text. */
 @Component({selector:'carbonflow-project-stations',imports:[AssetEvidenceComponent],templateUrl:'./project-stations.html'})
 export class ProjectStationsComponent implements OnChanges {
+  readonly term=plainTerm;
   @Input({required:true}) projectId='';
   @Input() editable=false;
   private readonly http=inject(HttpClient);

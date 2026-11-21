@@ -26,8 +26,8 @@
         @for (item of plan.chargers; track item.code) {
           <li>
             <strong>{{item.code}} · revisão {{item.version}}</strong>
-            <p>{{item.details.siteCode}} · {{item.details.chargerKind}} ·
-              {{item.details.ratedPowerKw ?? 'Potência pendente'}} kW · {{item.details.grid}} · {{item.details.topology}}</p>
+            <p>{{item.details.siteCode}} · {{term(item.details.chargerKind)}} ·
+              {{item.details.ratedPowerKw ?? 'Potência pendente'}} kW · {{term(item.details.grid)}} · {{term(item.details.topology)}}</p>
             @if (editable) {
               <button type="button" class="cf-workspace-outline" [disabled]="saving()"
                 (click)="chooseCharger(item)">Revisar cadastro</button>
@@ -103,8 +103,8 @@
       <ul class="cf-tech-gates">
         @for (item of plan.meters; track item.code) {
           <li>
-            <strong>{{item.code}} · revisão {{item.version}} · {{item.details.energyKind}}</strong>
-            <p>{{item.details.chargerCode}} · {{item.details.meterPosition}} ·
+            <strong>{{item.code}} · revisão {{item.version}} · {{term(item.details.energyKind)}}</strong>
+            <p>{{item.details.chargerCode}} · {{term(item.details.meterPosition)}} ·
               {{item.details.calibrationEvidenceRef || 'Sem evidência de calibração'}}</p>
             @if (editable) {
               <button type="button" class="cf-workspace-outline" [disabled]="saving()"
@@ -221,9 +221,9 @@
               @for (reading of batch.rows.slice(0,20); track reading.line) {
                 <li>
                   Linha {{reading.line}} · {{reading.meterCode || 'Medidor inválido'}} ·
-                  {{reading.kind || '?'}} · {{reading.state}}
-                  @if (reading.reasons.length) {
-                    <span> · {{reading.reasons.join(', ')}}</span>
+                  {{reading.kind ? term(reading.kind) : 'Tipo a confirmar'}} · {{term(reading.state)}}
+                  @for (reason of reading.reasons; track reason) {
+                    <span> · {{term(reason)}} <small>Referência: {{reason}}</small></span>
                   }
                   @if (reviewFor(batch.id,reading.line); as decision) {
                     <p>Parecer interno {{decision.outcome==='ACCEPTED_FOR_QA'?'aceito para QA':'rejeitado'}}
@@ -333,10 +333,10 @@
       <ul class="cf-tech-gates" aria-label="Histórico de ocorrências operacionais">
         @for (event of operationalEvents(); track event.id) {
           <li>
-            <strong>{{event.kind}} · {{event.subjectType}}/{{event.subjectCode}}</strong>
+            <strong>{{term(event.kind)}} · {{term(event.subjectType)}} {{event.subjectCode}}</strong>
             <p>{{event.from}} até {{event.until}} · {{event.incidentReference}}</p>
             <p>{{event.description}}</p>
-            <p>Estado de QA: {{event.review?.outcome || 'PENDENTE DE PARECER'}}
+            <p>Estado de QA: {{event.review ? term(event.review.outcome) : 'Parecer pendente'}}
               @if (event.review) {
                 · revisão {{event.review.version}} · {{event.review.evidenceReference}}
               }
@@ -431,7 +431,7 @@
       <h4>Histórico de snapshots de QA interno</h4>
       <ul class="cf-tech-gates">
         @for (snap of qaSnapshots(); track snap.id) {
-          <li><strong>{{snap.status}}</strong> · {{snap.from}} a {{snap.until}}
+          <li><strong>{{term(snap.status)}}</strong> · {{snap.from}} a {{snap.until}}
             <p>ED {{snap.edKwh}} kWh · EC {{snap.ecKwh}} kWh · SHA-256
               {{snap.sourceSha256.slice(0,16)}}…</p>
             <small>Este histórico não demonstra admissão metodológica e não autoriza E8.</small>
@@ -478,9 +478,9 @@
             <ul class="cf-tech-gates">
               @for (doc of proof.documents; track doc.id) {
                 <li>
-                  <strong>{{doc.kind}} · {{doc.subjectCode}}</strong>
+                  <strong>{{term(doc.kind)}} · {{doc.subjectCode}}</strong>
                   <p>{{doc.fileName}} · SHA-256 {{doc.sha256.slice(0,16)}}…
-                    · {{doc.review?.outcome || 'Parecer pendente'}}</p>
+                    · {{doc.review ? term(doc.review.outcome) : 'Parecer pendente'}}</p>
                   <p>Referência: {{doc.evidenceReference}}</p>
                   @if (canReview) {
                     <button type="button" class="cf-workspace-outline"
@@ -660,7 +660,7 @@
           <small>Referência: {{gate.code}}</small>
         }
         @if (assessment.review; as lastReview) {
-          <p>Último parecer: {{lastReview.outcome}} · versão {{lastReview.version}}
+          <p>Último parecer: {{term(lastReview.outcome)}} · versão {{lastReview.version}}
             · {{lastReview.reviewedAt}}</p>
           <p>{{lastReview.rationale}}</p>
           <small>SHA-256 da cadeia verificada: {{lastReview.evidenceSha256}}</small>
@@ -725,7 +725,7 @@
           <ul class="cf-tech-gates">
             @for (item of energyHistory(); track item.id) {
               <li>
-                <strong>{{item.state}} · MR v{{item.dossierVersion}}
+                <strong>{{term(item.state)}} · MR v{{item.dossierVersion}}
                   · parecer interno v{{item.methodReviewVersion}}</strong>
                 <p>ED {{item.edKwh}} kWh · EC {{item.ecKwh}} kWh,
                   {{item.hourCount}} hora(s), {{item.slotCount}} par(es) carregador/hora.</p>
@@ -735,7 +735,7 @@
                     documentos, medidores ou pareceres atuais.</p>
                 }
                 @for (gate of item.gates; track gate) {
-                  <p>{{gate}}</p>
+                  <p>{{note(gate)}} <small>Referência: {{gate}}</small></p>
                 }
                 <small>Uso para E8: não admitido. A admissão normativa dos fatores,
                   parâmetros e medições é uma etapa posterior.</small>

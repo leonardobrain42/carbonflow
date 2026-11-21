@@ -2,7 +2,7 @@ import {Component, Input, OnChanges, SimpleChanges, inject, signal} from '@angul
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {firstValueFrom} from 'rxjs';
 import {OpenEfelCandidatesComponent} from './open-efel';
-import {monitoringGateTitle} from './calculation-language';
+import {monitoringGateTitle, plainTerm, preparatoryNote} from './calculation-language';
 
 type ChargerInput = {
   siteCode:string; chargerKind:string; ratedPowerKw:number|null;
@@ -769,6 +769,8 @@ export class OpenMonitoringComponent implements OnChanges {
   }
 
   monitorTitle(code:string){return monitoringGateTitle(code);}
+  term(code:string){return plainTerm(code);}
+  note(code:string){return preparatoryNote(code);}
   stateName(code:string) {
     const labels:Record<string,string>={
       MISSING:'A informar',STALE:'Exige rechecagem',

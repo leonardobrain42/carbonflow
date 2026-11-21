@@ -18,7 +18,7 @@
     <ul class="cf-tech-gates">
       @for(run of runs();track run.id) {
         <li>
-          <strong>Apuração v{{run.version}} · {{run.state}}</strong>
+          <strong>Apuração v{{run.version}} · {{term(run.state)}}</strong>
           <p>Participação LCMR: {{run.preview.selectedShare}}
             · teste quinquenal:
             {{run.preview.fiveYearLcmrScreenPassed?'abaixo de 50%':'não passou'}}</p>
@@ -113,7 +113,9 @@
       </a>. A referência aponta para a versão {{run.version}}, não para a execução
         mais recente.</p>
       <h5>Limitações e pendências da apuração</h5>
-      @for(gate of run.gates;track gate) { <p>{{gate}}</p> }
+      @for(gate of run.gates;track gate) {
+        <p>{{note(gate)}} <small>Referência: {{gate}}</small></p>
+      }
       <p>Este cálculo não demonstra origem verdadeira, inclusão das
         unidades requeridas, admissibilidade do método ou equivalência
         entre CO₂ e CO₂e.</p>

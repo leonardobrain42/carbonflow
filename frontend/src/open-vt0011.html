@@ -20,7 +20,7 @@
     <ul class="cf-tech-gates">
       @for(item of workbooks();track item.id){
         <li>
-          <strong>Versão {{item.version}} · {{item.state}}</strong>
+          <strong>Versão {{item.version}} · {{term(item.state)}}</strong>
           <p>{{item.omMethod}} · {{item.omVintageMode}} · {{item.omDataYear}}
             · {{item.preview.reference}}</p>
           <p>Prévia matemática: {{item.preview.illustrativeCmTco2PerMwh}} tCO2/MWh
@@ -30,7 +30,9 @@
             <p role="alert">A versão da fonte ou parecer do EFel mudou:
               este caderno é histórico e não pode ser reutilizado.</p>
           }
-          @for(gate of item.gates;track gate){ <p>{{gate}}</p> }
+          @for(gate of item.gates;track gate){
+            <p>{{note(gate)}} <small>Referência: {{gate}}</small></p>
+          }
           <button class="cf-workspace-outline" type="button" (click)="select(item)">
             Ver memória de cálculo e parecer
           </button>
@@ -60,7 +62,7 @@
       <p>Notas: {{item.methodologyNote}}</p>
       <p>SHA-256 deste caderno imutável: {{item.contentSha256}}</p>
       @if(item.review; as review){
-        <p>Parecer v{{review.version}}: {{review.outcome}} · {{review.reviewedAt}}</p>
+        <p>Parecer v{{review.version}}: {{term(review.outcome)}} · {{review.reviewedAt}}</p>
         <p>{{review.evidenceReference}} · {{review.rationale}}</p>
       }
       @if(canReview && !item.stale &&
