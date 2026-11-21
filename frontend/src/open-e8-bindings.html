@@ -17,7 +17,7 @@
     <ul class="cf-tech-gates">
       @for (item of entries(); track item.id) {
         <li>
-          <strong>Vínculo v{{item.version}} · {{item.state}}</strong>
+          <strong>Vínculo v{{item.version}} · {{term(item.state)}}</strong>
           <p>Horas: {{item.hourCount}} · carregadores-hora: {{item.slotCount}}
             · E8: não liberado</p>
           <button type="button" class="cf-workspace-outline"
@@ -80,7 +80,7 @@
       <ul class="cf-tech-gates">
         @for (item of fleetSelections(); track item.id) {
           <li>
-            <strong>EVR/PBEV v{{item.version}} · {{item.state}}</strong>
+            <strong>EVR/PBEV v{{item.version}} · {{term(item.state)}}</strong>
             <p>Frota nacional {{item.observationYear}} ·
               ciclo {{item.cycle}} · uso E8: não admitido</p>
             @if (item.stale) {

@@ -1,6 +1,7 @@
 import {Component, Input, OnChanges, SimpleChanges, inject, signal} from '@angular/core';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {firstValueFrom} from 'rxjs';
+import {plainTerm} from './calculation-language';
 
 type YesNo = boolean | null;
 type Declaration = {
@@ -38,6 +39,7 @@ export class OpenApplicabilityComponent implements OnChanges {
   readonly view=signal<View|null>(null);
   readonly form=signal<Declaration>({...EMPTY});
   readonly loading=signal(true);
+  readonly term=plainTerm;
   readonly busy=signal(false);
   readonly error=signal('');
   readonly notice=signal('');

@@ -1,6 +1,7 @@
 import {Component, Input, OnChanges, SimpleChanges, inject, signal} from '@angular/core';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {firstValueFrom} from 'rxjs';
+import {plainTerm, preparatoryNote} from './calculation-language';
 
 type WorkbookRef = {id:string;period:string;omDataYear:number;
   omMethod:string;omVintageMode:string;state:string;review:{version:number}|null};
@@ -31,6 +32,8 @@ type Run = {id:string;period:string;workbookId:string;
 @Component({selector:'carbonflow-tool07-simple-om-a1',standalone:true,
   templateUrl:'./open-tool07-simple-om.html'})
 export class OpenTool07SimpleOmComponent implements OnChanges {
+  readonly term=plainTerm;
+  readonly note=preparatoryNote;
   @Input({required:true}) projectId='';
   @Input({required:true}) workbook!:WorkbookRef;
   @Input() canView=false;

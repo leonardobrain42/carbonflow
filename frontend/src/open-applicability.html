@@ -11,9 +11,9 @@
   @if (view();as state){
     <dl class="cf-tech-capabilities">
       <div><dt>Declaração</dt><dd>{{state.version ? 'Revisão '+state.version : 'Não iniciada'}}</dd></div>
-      <div><dt>Rede</dt><dd>{{state.readiness.network}}</dd></div>
-      <div><dt>Direitos</dt><dd>{{state.readiness.rights}}</dd></div>
-      <div><dt>Análise normativa</dt><dd>{{state.readiness.norm}}</dd></div>
+      <div><dt>Rede</dt><dd>{{term(state.readiness.network)}} <small>Referência: {{state.readiness.network}}</small></dd></div>
+      <div><dt>Direitos</dt><dd>{{term(state.readiness.rights)}} <small>Referência: {{state.readiness.rights}}</small></dd></div>
+      <div><dt>Análise normativa</dt><dd>{{term(state.readiness.norm)}} <small>Referência: {{state.readiness.norm}}</small></dd></div>
       <div><dt>Cálculo real</dt><dd>Não liberado enquanto faltarem fontes, provas e revisão</dd></div>
     </dl>
     @if (state.readiness.stale){
@@ -148,10 +148,15 @@
       <summary>O que ainda precisa ser comprovado?</summary>
       <ul class="cf-tech-gates">
         @for (item of state.readiness.findings;track item.code){
-          <li><strong>{{item.code}}</strong> — {{item.text}} <small>{{item.state}}</small></li>
+          <li><strong>{{term(item.code)}}</strong> — {{item.text}}
+            <small>{{term(item.state)}} · Referência: {{item.code}}</small></li>
         }
       </ul>
-      <p>Fontes dependentes: {{state.readiness.sourceDependencies.join(', ')}}.</p>
+      <p>Fontes dependentes:
+        @for (dep of state.readiness.sourceDependencies; track dep) {
+          {{term(dep)}}@if (!$last) {, }
+        }.</p>
+      <small>Referências: {{state.readiness.sourceDependencies.join(', ')}}</small>
       <p>O preenchimento não depende de todas essas fontes estarem disponíveis; a habilitação
         para cálculo real continua separada e não usa dados sintéticos como fallback.</p>
     </details>

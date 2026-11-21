@@ -26,9 +26,11 @@
         <p role="alert">Esta versão não pode ser aprovada sem reavaliação das dependências ou do guia de origem.</p>
       }
       @if (item.monitoringDependency; as dependency) {
-        <p role="status">Dependência do dossiê MR: {{dependency.state}}</p>
+        <p role="status">Dependência do dossiê MR: {{term(dependency.state)}}</p>
         @for (gate of dependency.gates; track $index) {
-          <p>{{gate.code}} · {{gate.detail}}</p>
+          <p>{{gateTitle(gate.code)}}</p>
+          <p>{{gate.detail}}</p>
+          <small>Referência: {{gate.code}}</small>
         }
         @if (dependency.outdated) {
           <p>Atualize os dados de monitoramento e produza uma nova versão desta seção.

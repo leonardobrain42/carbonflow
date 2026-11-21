@@ -181,7 +181,8 @@
           <summary>Uso real bloqueado</summary>
           <ul class="intake-reasons">
             @for (gate of view.realUseBlockers; track gate.code) {
-              <li><strong>{{ gate.code }}</strong> · {{ gate.message }}</li>
+              <li><strong>{{ gate.code }}</strong> · {{ gate.message }}
+                <small>Regra: {{ gate.rule }}</small></li>
             }
           </ul>
         </details>

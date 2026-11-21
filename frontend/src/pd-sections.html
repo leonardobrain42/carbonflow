@@ -25,14 +25,16 @@
       </details>
     }
     @if (item.monitoringDependency; as dependency) {
-      <p role="status">Vínculo do MR: {{dependency.state}}</p>
+      <p role="status">Vínculo do MR: {{term(dependency.state)}}</p>
       @if (dependency.outdated) {
         <p role="alert">O dossiê MR ou os dados que sustentam esta seção foram alterados.
           Revise a narrativa, verifique as pendências e gere uma nova versão antes
           da aprovação interna.</p>
       }
       @for (gate of dependency.gates; track $index) {
-        <p>{{gate.code}} · {{gate.detail}}</p>
+        <p>{{gateTitle(gate.code)}}</p>
+        <p>{{gate.detail}}</p>
+        <small>Referência: {{gate.code}}</small>
       }
     }
     @if (item.latest; as saved) {

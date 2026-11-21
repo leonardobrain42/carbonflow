@@ -3,6 +3,7 @@ import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {firstValueFrom} from 'rxjs';
 import {OpenVt0011WorkbooksComponent} from './open-vt0011';
 import {OpenE8BindingsComponent} from './open-e8-bindings';
+import {plainTerm, preparatoryNote} from './calculation-language';
 
 export type E8FactorEnergy = {id:string;period:string;state:string;
   hours:{from:string;chargerCode:string}[]};
@@ -21,6 +22,8 @@ type EfelCandidate = {id:string;period:string;energyCandidateId:string;version:n
   imports:[OpenVt0011WorkbooksComponent,OpenE8BindingsComponent],
   templateUrl:'./open-efel.html'})
 export class OpenEfelCandidatesComponent implements OnChanges {
+  readonly term=plainTerm;
+  readonly gateNote=preparatoryNote;
   @Input({required:true}) projectId='';
   @Input({required:true}) energy!:E8FactorEnergy;
   @Input() canView=false;

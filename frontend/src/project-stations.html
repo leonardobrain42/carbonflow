@@ -102,7 +102,7 @@
       <ul class="cf-tech-gates">
         @for (item of catalog.chargers;track item.code){
           <li><strong>{{item.code}} · {{item.siteCode}} · v{{item.version}}</strong>
-            <p>{{item.kind}} · {{item.powerKw ?? 'Potência pendente'}} kW · {{item.grid}} · {{item.topology}}</p>
+            <p>{{term(item.kind)}} · {{item.powerKw ?? 'Potência pendente'}} kW · {{term(item.grid)}} · {{term(item.topology)}}</p>
             @if (!eligible(item)){<p>Fora do recorte ou estação ainda não cadastrada; não pode ser selecionado.</p>}
             @if (editable&&eligible(item)){<button type="button" class="cf-workspace-outline" [disabled]="busy()"
               (click)="pickCharger(item)">Revisar configuração</button>}

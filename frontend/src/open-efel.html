@@ -14,7 +14,7 @@
     <ul class="cf-tech-gates">
       @for (item of candidates(); track item.id) {
         <li>
-          <strong>Fonte v{{item.version}} · {{item.state}}</strong>
+          <strong>Fonte v{{item.version}} · {{term(item.state)}}</strong>
           <p>{{item.sourceTitle}} · {{item.sourcePublisher}} · {{item.sourceVintage}}</p>
           <p>Procedimento declarado: {{item.claimedProcedure}}</p>
           <p>{{item.hourCount}} horas · {{item.originalUnit}}
@@ -24,8 +24,10 @@
             <p role="alert">Esta versão está obsoleta em relação à energia
               atual ou ao período. Somente para consulta histórica.</p>
           }
-          @for (gate of item.gates; track gate) { <p>{{gate}}</p> }
-          <p>Revisão interna: {{item.review?.outcome??'PENDENTE'}}
+          @for (gate of item.gates; track gate) {
+            <p>{{gateNote(gate)}} <small>Referência: {{gate}}</small></p>
+          }
+          <p>Revisão interna: {{item.review?term(item.review.outcome):'Parecer pendente'}}
             · uso E8: <strong>não admitido</strong></p>
           <button type="button" class="cf-workspace-outline"
             (click)="select(item)">Examinar proveniência e parecer</button>
@@ -60,7 +62,7 @@
         <p>Primeiras 48 horas exibidas; todas ficam disponíveis pela API de origem.</p>
       }
       @if (item.review; as review) {
-        <p>Último parecer v{{review.version}}: {{review.outcome}}
+        <p>Último parecer v{{review.version}}: {{term(review.outcome)}}
           · {{review.reviewedAt}}</p>
         <p>{{review.rationale}} · {{review.evidenceReference}}</p>
       }

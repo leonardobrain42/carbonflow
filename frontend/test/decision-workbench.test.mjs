@@ -158,6 +158,7 @@ test('UX-ADD-01: declared rights, separate chronology and conditional route neve
   await page.getByText('Compromisso anterior à consideração da receita de carbono.',{exact:false}).waitFor();
   assert.equal(observed.some(x=>x.includes('calculation')||x.includes('fleet')),false);
   await page.getByRole('button',{name:'1. Enquadramento'}).click();
+  await page.getByText('Referência: VMD0049_ROUTE',{exact:true}).waitFor();
   await page.getByText('Lista positiva é hipótese dependente de edição válida.').waitFor();
   await page.getByText('Excedente regulatório exige revisão independente.').waitFor();
   assert.equal(await page.getByText('Adicionalidade aprovada',{exact:true}).count(),0);
