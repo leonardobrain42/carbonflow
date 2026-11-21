@@ -270,6 +270,59 @@ jobs:
                   raise RuntimeError("Post-upgrade login/logout failed: " + code)
           print("LOGIN_UPGRADE_OK: three original accounts authenticated via container API")
           PY
+      - name: Reproduce actual legacy V71 filename collision (no E8 tables)
+        env:
+          CARBONFLOW_PORT: '18088'
+        run: |
+          set -euo pipefail
+          # This is CI's disposable database ONLY. This models the exact
+          # historical script/description/checksum observed in the user's DB.
+          # Never drop project tables/columns in a real sandbox.
+          python3 -c 'import sys; sys.path.insert(0, "scripts"); import demo_sandbox as d; d.compose("stop", "app")'
+          docker compose -p "$CARBONFLOW_DEMO_PROJECT" -f compose.yaml -f compose.demo.yaml exec -T db \
+            psql -U carbonflow -d carbonflow -v ON_ERROR_STOP=1 -c "
+              BEGIN;
+              DROP TABLE app_open_e8_run_command;
+              DROP TABLE app_open_e8_run;
+              DELETE FROM flyway_schema_history WHERE version='69.1';
+              UPDATE flyway_schema_history SET
+                description='asset evidence submitted filename backfill',
+                script='db/migration/V71__asset_evidence_submitted_filename_backfill.sql',
+                checksum=167374965
+              WHERE version='71';
+              COMMIT;"
+          # First pass is read-only. --apply reclassifies only the prevalidated
+          # filename migration metadata into V69.1, not as the E8 V71.
+          python3 scripts/demo_flyway_compat.py
+          python3 scripts/demo_flyway_compat.py --apply
+          docker compose -p "$CARBONFLOW_DEMO_PROJECT" -f compose.yaml -f compose.demo.yaml exec -T db \
+            psql -U carbonflow -d carbonflow -v ON_ERROR_STOP=1 -c "
+              SELECT CASE WHEN
+                 EXISTS (SELECT 1 FROM flyway_schema_history
+                         WHERE version='69.1' AND checksum=1930605372 AND success)
+                 AND NOT EXISTS (SELECT 1 FROM flyway_schema_history WHERE version='71')
+                 AND to_regclass('public.app_open_e8_run') IS NULL
+                 AND to_regclass('public.app_open_e8_run_command') IS NULL
+              THEN 'LEGACY_RECLASSIFIED_OK' ELSE 'LEGACY_RECLASSIFIED_FAILED' END;" \
+            | grep LEGACY_RECLASSIFIED_OK
+          python3 -c 'import sys; sys.path.insert(0, "scripts"); import demo_sandbox as d; d.compose("up", "-d", "--wait", "app")'
+          docker compose -p "$CARBONFLOW_DEMO_PROJECT" -f compose.yaml -f compose.demo.yaml exec -T db \
+            psql -U carbonflow -d carbonflow -v ON_ERROR_STOP=1 -c "
+              SELECT CASE WHEN
+                 EXISTS (SELECT 1 FROM flyway_schema_history
+                         WHERE version='69.1' AND checksum=1930605372 AND success)
+                 AND EXISTS (SELECT 1 FROM flyway_schema_history
+                             WHERE version='71' AND checksum=-1979807539 AND success)
+                 AND to_regclass('public.app_open_e8_run') IS NOT NULL
+                 AND to_regclass('public.app_open_e8_run_command') IS NOT NULL
+                 AND (SELECT count(*) FROM app_identity i
+                      JOIN app_account_credential c ON c.identity_id=i.id
+                      WHERE i.status='ACTIVE' AND i.email_verified_at IS NOT NULL
+                      AND i.email_normalized IN
+                      ('demo@carbonflow.test','segunda@carbonflow.test','admin@carbonflow.test'))=3
+              THEN 'LEGACY_UPGRADE_OK' ELSE 'LEGACY_UPGRADE_FAILED' END;" \
+            | grep LEGACY_UPGRADE_OK
+          python3 -c 'import sys; sys.path.insert(0, "scripts"); import demo_sandbox as d; d.compose("exec", "-T", "app", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:8080/health/ready")'
       - name: Destroy only the disposable demo environment
         if: always()
         run: |
