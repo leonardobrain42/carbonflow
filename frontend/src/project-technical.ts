@@ -4,6 +4,7 @@ import {PdSectionsComponent} from './pd-sections';
 import {ProjectGuidesComponent} from './project-guides';
 import {OpenApplicabilityComponent} from './open-applicability';
 import {OpenCalculationReadinessComponent} from './open-calculation-readiness';
+import {ProjectRequirementsComponent} from './project-requirements';
 import {OpenMonitoringComponent} from './open-monitoring';
 import {ProjectStationsComponent} from './project-stations';
 import {DecisionWorkbenchComponent} from './decision-workbench';
@@ -128,7 +129,7 @@ function formValues(data: IntakeData | null): IntakeForm {
 
 @Component({
   selector: 'carbonflow-project-technical',
-  imports: [RouterLink, WorkspaceNavigationComponent, ProjectGuidesComponent, OpenApplicabilityComponent, OpenCalculationReadinessComponent, OpenMonitoringComponent, ProjectStationsComponent, DecisionWorkbenchComponent, JourneyFocusComponent, PdSectionsComponent, PdReviewsComponent, TechnicalGlossaryComponent],
+  imports: [RouterLink, WorkspaceNavigationComponent, ProjectGuidesComponent, OpenApplicabilityComponent, OpenCalculationReadinessComponent, OpenMonitoringComponent, ProjectStationsComponent, DecisionWorkbenchComponent, JourneyFocusComponent, PdSectionsComponent, PdReviewsComponent, TechnicalGlossaryComponent, ProjectRequirementsComponent],
   templateUrl: './project-technical.html',
 })
 export class ProjectTechnicalComponent {

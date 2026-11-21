@@ -93,6 +93,11 @@ class OpenApplicability {
         });
     }
 
+    /** Readiness already derived by the applicability owner. No second ledger. */
+    static Readiness currentReadiness(Connection c,String project)throws SQLException {
+        return build(c,project).readiness();
+    }
+
     private static View build(Connection c,String project)throws SQLException {
         int triage=first(c, """
             SELECT COALESCE(MAX(version),0) FROM app_project_triage_revision WHERE project_id=?

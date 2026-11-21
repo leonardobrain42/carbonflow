@@ -1,0 +1,50 @@
+<section class="cf-journey-context" aria-labelledby="cf-req-title">
+  <h3 id="cf-req-title">O que este projeto ainda precisa</h3>
+  <p>Cada pendência diz o motivo, quem deve agir e o próximo passo.
+    Preencher um campo não aprova o projeto, a fonte nem o cálculo.</p>
+  @if (loading()) {
+    <p role="status">Lendo as pendências autorizadas…</p>
+  } @else if (error()) {
+    <p role="alert" class="cf-workspace-alert">{{error()}}</p>
+    <button type="button" class="cf-workspace-outline" (click)="load()">Tentar novamente</button>
+  } @else if (view(); as state) {
+    <p role="status">{{state.limits}}</p>
+    @if (!state.diagnosticVisible) {
+      <p>O diagnóstico detalhado não está disponível para esta conta.</p>
+    } @else if (!state.requirements.length) {
+      <p>Não há pendência visível para esta conta. Isso não significa projeto aprovado.</p>
+    }
+    @for (group of groups; track group.id) {
+      @if (items(group.id).length) {
+        <section [attr.aria-label]="group.title">
+          <h4>{{group.title}}</h4>
+          <ul class="cf-tech-gates">
+            @for (item of items(group.id); track item.requirementId) {
+              <li>
+                <strong>{{item.situation}}</strong>
+                <p>{{item.reason}}</p>
+                <p>Próximo passo: {{item.nextAction}}</p>
+                <p>Responsável previsto: {{item.ownerRole}}. Nenhuma pessoa foi designada por este diagnóstico.</p>
+                @if (item.affectedOutputs.length) {
+                  <p>Entra em: {{item.affectedOutputs.join(', ')}}.</p>
+                }
+                @if (!item.blocksExAntePd && item.requirementId === 'ED_EC') {
+                  <p>Não bloqueia o documento ex ante.</p>
+                }
+                @if (item.destination && item.actionLabel) {
+                  <button type="button" class="cf-workspace-outline"
+                    (click)="openSection.emit(item.destination.screen)">{{item.actionLabel}}</button>
+                }
+              </li>
+            }
+          </ul>
+        </section>
+      }
+    }
+    @if (state.openBranch && canQuantify) {
+      <button type="button" class="cf-workspace-outline" (click)="openSection.emit('quantificar')">
+        Abrir a prontidão para quantificação
+      </button>
+    }
+  }
+</section>

@@ -67,6 +67,20 @@ test('a ficha OPEN permite preparar direitos sem fonte admitida nem cálculo E8'
         },
       }});
     });
+    await page.route('**/v1/projects/*/technical/requirements',r=>r.fulfill({json:{
+      projectId:project,methodology:'VM0038',openBranch:true,diagnosticVisible:true,
+      canRunE8:false,canIssueVcu:false,exAnteRequiresMeasuredEnergy:false,
+      limits:'Nenhum BE, PE, LE ou ER foi calculado.',
+      summary:{mine:1,awaitingSource:0,awaitingReview:1,outOfScope:1},
+      requirements:[{
+        requirementId:'DRIVER_DISCLOSURE',state:'NEEDS_EVIDENCE',situation:'Falta comprovante',
+        reason:'É necessária prova datada de divulgação aos motoristas.',ownerRole:'PREP',
+        nextAction:'Indicar a referência do comprovante.',actionLabel:'Abrir a declaração',
+        destination:{area:'technical',screen:'analisar',step:null},group:'MINE',
+        clientAction:true,blocksExAntePd:false,admitsE8:false,affectedOutputs:['direitos'],
+      }],
+    }}));
+    await page.route('**/v1/projects/*/journey/resume',r=>r.fulfill({status:204}));
     await page.goto(base+'/workspace/projects/'+project+'/technical?secao=analisar');
     await page.getByRole('heading',{name:'Rede aberta — aplicabilidade VM0038 v1.1 (preparação)'}).waitFor();
     await page.getByLabel('Qualquer BEV compatível pode utilizar?').selectOption('true');
