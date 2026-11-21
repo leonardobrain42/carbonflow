@@ -154,7 +154,7 @@
           } @empty { <p>Nenhuma entrada vinculada disponível para esta conta.</p> }
         }
       }
-      @if (canOpenDocument() && guide.version) {
+      @if (canOpenDocument() && guide.version && !(pdStatus() === 'ready' && currentPd())) {
         <button type="button" class="cf-workspace-outline" [disabled]="busy()" (click)="document.emit(guide.id)">Abrir seção correspondente do PD</button>
       }
       @if (guide.missing.length) {

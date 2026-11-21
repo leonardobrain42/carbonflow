@@ -300,6 +300,7 @@ test('guia com permissão de documento mostra a prévia da própria seção', as
     await page.goto(base + '/workspace/projects/' + projectId + '/technical?secao=guias&guia=quantification');
     await page.getByRole('heading',{name:'Como isso entrará no PD?'}).waitFor();
     await page.getByText('Versão 2 (interna)').waitFor();
+    await page.getByText('Conferir proveniência',{exact:true}).click();
     await page.getByText('2027').waitFor();
     await page.getByText('ainda não estão inseridas automaticamente na versão do PD.').waitFor();
     await page.getByText('Nenhuma linha acima concede validação Verra/VVB.').waitFor();

@@ -133,6 +133,7 @@ test('UX-BL-01: baseline presents actual period selection, factor blockers and P
   assert.ok(page.url().includes('etapa=fatores'));
   await page.getByRole('button',{name:'6. Vínculo ao PD'}).click();
   await page.getByRole('heading',{name:'Como isso entrará no PD?'}).waitFor();
+  await page.getByText('Conferir proveniência',{exact:true}).click();
   await page.getByText('Não é assinatura certificada nem aprovação do documento.').waitFor();
   await page.getByText('Guia textual teve nova revisão',{exact:false}).waitFor();
   await page.getByText('Rede de postos públicos contrafactual',{exact:false}).waitFor();
@@ -165,6 +166,7 @@ test('UX-ADD-01: declared rights, separate chronology and conditional route neve
   await page.getByText('Excedente regulatório exige revisão independente.').waitFor();
   assert.equal(await page.getByText('Adicionalidade aprovada',{exact:true}).count(),0);
   await page.getByRole('button',{name:'5. Vínculo ao PD'}).click();
+  await page.getByText('Conferir proveniência',{exact:true}).click();
   await page.getByText('seção correspondente da descrição de projeto',{exact:false}).waitFor();
  }finally{await browser.close();}
 });
