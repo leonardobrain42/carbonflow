@@ -42,7 +42,9 @@ class OpenMonitoringChecksTest {
         assertNull(result.ecKwh());
         assertTrue(result.gates().stream().anyMatch(g ->
             g.code().equals("ED_EC_OBSERVATIONS") &&
-            g.state().equals("PENDING_MEASUREMENT")));
+            g.state().equals("PENDING_MEASUREMENT") &&
+            g.reason().equals("Nenhum lote de medição de energia entregue e consumida foi admitido. "
+                + "Dados de cobrança ou sessões não são energia medida.")));
         assertFalse(result.toString().contains("2700"));
         assertFalse(result.toString().contains("3000"));
     }
@@ -50,7 +52,10 @@ class OpenMonitoringChecksTest {
     @Test
     void configurationDiagnosesMissingEdAndEcIndependently() {
         var none=OpenMonitoringChecks.evaluate(List.of(charger(1,"GRID_ONLY")),List.of(),null,null);
-        assertTrue(none.gates().stream().anyMatch(g -> g.code().equals("ED_METER_MISSING")));
+        assertTrue(none.gates().stream().anyMatch(g -> g.code().equals("ED_METER_MISSING")
+            && g.reason().equals("Defina o medidor a jusante da energia entregue aos veículos.")));
+        assertTrue(none.gates().stream().anyMatch(g -> g.code().equals("EC_METER_MISSING")
+            && g.reason().startsWith("Defina o medidor a montante da energia consumida")));
         assertTrue(none.gates().stream().anyMatch(g -> g.code().equals("EC_METER_MISSING")));
         var onlyEd=OpenMonitoringChecks.evaluate(List.of(charger(1,"GRID_ONLY")),
             List.of(meter("ED-1","ED",1,OffsetDateTime.parse("2028-01-01T00:00:00Z"))),null,null);

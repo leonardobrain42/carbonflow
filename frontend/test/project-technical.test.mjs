@@ -257,10 +257,18 @@ test('CF-IMP-008: rascunho da conta cruza intake e prévia sem adquirir autorida
         meters:[],readiness:{state:'NOT_READY',canPrepare:false,
         canUseForE8:false,edKwh:null,ecKwh:null,gates:[{
           code:'ED_EC_OBSERVATIONS',state:'PENDING_MEASUREMENT',
-          reason:'Nenhum lote de medição ED/EC foi admitido.',
+          reason:'Nenhum lote de medição de energia entregue e consumida foi admitido. Dados de cobrança ou sessões não são energia medida.',
           chargerCode:null,meterCode:null}]}}}));
-    await page.route('**/v1/projects/*/technical/open-monitoring/**', route =>
-      route.fulfill({json:[]}));
+    await page.route('**/v1/projects/*/technical/open-monitoring/**', route => {
+      if (route.request().url().endsWith('/period-qa/snapshots')) {
+        return route.fulfill({json:[{
+          id:'snap-1', projectId, from:'2027-02-01T00:00:00Z', until:'2027-03-01T00:00:00Z',
+          edKwh:'1', ecKwh:'2', sourceSha256:'ab'.repeat(32), status:'CHECKED_INTERNAL',
+          usableForE8:false, createdAt:'2026-11-21T00:00:00Z',
+        }]});
+      }
+      return route.fulfill({json:[]});
+    });
     await page.goto(base + '/workspace/projects/' + projectId +
       '/technical?secao=monitorar&etapa=leituras');
     const monitorSteps=page.getByRole('navigation',{name:'Etapas do monitoramento'});
@@ -270,6 +278,7 @@ test('CF-IMP-008: rascunho da conta cruza intake e prévia sem adquirir autorida
     await page.getByRole('heading',
       {name:'Lotes de leituras recebidas (candidatos)'}).waitFor();
     await page.getByText('Medições de energia · Sem medição admitida').waitFor();
+    await page.getByText('Nenhum lote de medição de energia entregue e consumida foi admitido.').waitFor();
     await page.getByText('Referência: ED_EC_OBSERVATIONS').waitFor();
     await page.getByText('Não — Ainda não pronto').waitFor();
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth+1),false);
@@ -277,6 +286,9 @@ test('CF-IMP-008: rascunho da conta cruza intake e prévia sem adquirir autorida
     await monitorSteps.getByRole('button',{name:'3. QA e evidências'}).click();
     await page.waitForURL('**/technical?secao=monitorar&etapa=qa**');
     await page.getByRole('heading',{name:'Reconciliação da energia por período'}).waitFor();
+    await page.getByText('Energia entregue 1 kWh · energia consumida 2 kWh', {exact:false}).waitFor();
+    await page.getByText('SHA-256 declarado', {exact:false}).waitFor();
+    await page.getByText('não autoriza o cálculo.').waitFor();
     assert.equal(await page.getByRole('heading',{name:'Lotes de leituras recebidas (candidatos)'}).count(),0);
     await page.reload();
     await page.getByRole('heading',{name:'Reconciliação da energia por período'}).waitFor();
