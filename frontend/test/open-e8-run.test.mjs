@@ -12,6 +12,17 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
   try {
     const page = await browser.newPage({viewport:{width:1440, height:900}});
     let posted = null;
+    let showRehearsal = false;
+    const rehearsal = {
+      id:'30000000-0000-4000-8000-000000000098',
+      projectId:project, period:'M1', version:2, state:'REVIEWED_INTERNAL', stale:false,
+      canIssueVcu:false, engine:'PURE_MATH_TEST_ONLY_NOT_ADMITTED',
+      energyBindingId:null, fleetSelectionId:null, inputSha256:'def', gates:[],
+      equationPlan:[], memory:{
+        usableForE8:false, beTco2e:'4.05', peTco2e:'0.9', leTco2e:'0',
+        erTco2e:'3.15', erDisplay:'3.15',
+      }, createdAt:'2026-11-21T00:00:00Z',
+    };
     const blocked = {
       id:'30000000-0000-4000-8000-000000000097',
       projectId:project, period:'M1', version:1, state:'BLOCKED', stale:false,
@@ -84,7 +95,10 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
         };
         await route.fulfill({status:201, json:blocked});
       } else {
-        await route.fulfill({json:{projectId:project, period:'M1', canRecord:true, runs:[]}});
+        await route.fulfill({json:{
+          projectId:project, period:'M1', canRecord:true,
+          runs:showRehearsal ? [rehearsal] : [],
+        }});
       }
     });
     await page.goto(base + '/workspace/projects/' + project + '/technical?secao=quantificar');
@@ -94,7 +108,8 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
     await page.getByText('Referência: EVR').waitFor();
     await page.getByText('Frota EVR e comparáveis · M1').waitFor();
     await page.getByText('Referência: E8_FLEET_SELECTION_M1', {exact:true}).waitFor();
-    await page.getByText('BE · VM0038-1.1-EQ1').click();
+    await page.getByText('Linha de base', {exact:true}).click();
+    await page.getByText('Referência: BE · VM0038-1.1-EQ1', {exact:true}).waitFor();
     await page.getByText('Não há energia entregue ED admitida por carregador e período.').waitFor();
     await page.getByText('Energia entregue', {exact:true}).first().waitFor();
     await page.getByText('Referência: ED', {exact:true}).first().waitFor();
@@ -113,6 +128,18 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
     assert.match(posted.key, /^[0-9a-f-]{36}$/);
     assert.equal(await page.getByText('Habilitada', {exact:true}).count(), 0);
     assert.ok(await page.getByText('Não habilitada').count() >= 1);
+    showRehearsal = true;
+    await page.getByRole('button', {name:'Atualizar diagnóstico'}).click();
+    await page.getByText('Ensaio interno — crédito não habilitado').waitFor();
+    await page.getByText('Emissões do projeto', {exact:true}).waitFor();
+    await page.getByText('Fuga', {exact:true}).waitFor();
+    await page.getByText('Redução de emissões', {exact:true}).waitFor();
+    await page.getByText('Referência: BE', {exact:true}).waitFor();
+    await page.getByText('Referência: PE', {exact:true}).waitFor();
+    await page.getByText('Referência: LE', {exact:true}).waitFor();
+    await page.getByText('Referência: ER', {exact:true}).waitFor();
+    await page.getByText('4.05 tCO2e').waitFor();
+    assert.equal(await page.getByText('Habilitada', {exact:true}).count(), 0);
   } finally {
     await browser.close();
   }
