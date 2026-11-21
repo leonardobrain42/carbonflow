@@ -97,9 +97,16 @@
         <h4>Premissas estruturadas do cenário</h4>
         <p>Registre apenas informações contextuais e referências candidatas.
           Composição EVR, pares de ratings e fatores reais são escolhidos nos respectivos módulos.</p>
+        @if (guide(); as g) {
+          <p role="status">{{labelState(g.state)}}. Responsável previsto: PREP.
+            Nenhuma pessoa foi designada por esta etapa.</p>
+          <p>Motivo: {{g.missing.length
+            ? 'ainda há campo tipado sem resposta nesta etapa.'
+            : 'a premissa tipada está declarada e não aprova a linha de base.'}}</p>
+          <p>Próximo passo: salvar a revisão estruturada nesta mesma etapa.
+            As notas textuais antigas permanecem como histórico e não concluem a tarefa.</p>
+        }
         <carbonflow-typed-guide [projectId]="projectId" guideId="baseline" [editable]="canSaveGuide"/>
-        <button class="cf-workspace-outline" type="button" (click)="openGuide.emit('baseline')">
-          Consultar notas textuais legadas e fontes do guia</button>
       }
       @case ('revisao'){
         <h4>Lacunas de proveniência, admissibilidade e revisão</h4>
@@ -167,9 +174,15 @@
           }
         }
         <h4>Datas e justificativas tipadas</h4>
+        @if (guide(); as g) {
+          <p role="status">{{labelState(g.state)}}. Responsável previsto: PREP.
+            Nenhuma pessoa foi designada por esta etapa.</p>
+          <p>Motivo: {{g.missing.length
+            ? 'ainda há data ou justificativa tipada sem resposta.'
+            : 'as datas tipadas estão declaradas e não provam o ato nem a adicionalidade.'}}</p>
+          <p>Próximo passo: salvar a revisão estruturada nesta mesma etapa.</p>
+        }
         <carbonflow-typed-guide [projectId]="projectId" guideId="additionality" [editable]="canSaveGuide"/>
-        <button class="cf-workspace-outline" type="button" (click)="openGuide.emit('additionality')">
-          Consultar histórico e solicitações do guia</button>
       }
       @case ('direitos'){
         <h4>Titularidade, publicação dos termos e duplo pleito</h4>
@@ -222,8 +235,9 @@
   <footer class="cf-triage-actions">
     <button type="button" class="cf-workspace-outline" (click)="load()" [disabled]="loading()">Atualizar dados deste projeto</button>
     @if (step().id!=='pd'){
-      <button type="button" class="cf-workspace-primary" (click)="selectStep(nextStepId())">
-        Próxima etapa</button>
+      <button type="button" [class]="editingStep() ? 'cf-workspace-outline' : 'cf-workspace-primary'"
+        (click)="selectStep(nextStepId())">
+        {{editingStep() ? 'Seguir para a etapa seguinte' : 'Próxima etapa'}}</button>
     }
   </footer>
 </section>

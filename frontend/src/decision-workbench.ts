@@ -126,6 +126,9 @@ export class DecisionWorkbenchComponent implements OnChanges {
     this.navigate.emit(id);
   }
   hasFleetFor(period:string){return this.fleet().some(item=>item.period===period);}
+  editingStep(){
+    return this.step().id==='premissas'||this.step().id==='cronologia';
+  }
   nextStepId(){
     const all=STEPS[this.kind];
     return all[Math.min(all.findIndex(item=>item.id===this.currentStep())+1,all.length-1)].id;
