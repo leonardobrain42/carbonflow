@@ -228,9 +228,18 @@ def doctor() -> bool:
                 if version == "69":
                     print("Correção V69/V69.1 disponível: atualize o código com a migração "
                           "original V69 e a nova V69.1; não execute Flyway repair.")
+                elif version == "71":
+                    print("V71 divergente no banco persistente. Primeiro faça backup; depois "
+                          "inicie apenas o banco e execute 'python3 scripts/demo_flyway_compat.py' "
+                          "para comparação segura. O ajuste opt-in usa --apply SOMENTE se "
+                          "o esquema for compatível; nunca rode repair genérico.")
                 else:
                     print("Não execute repair sem comparar o esquema existente e "
                           "o histórico de migrações com um backup.")
+            if "Detected resolved migration not applied to database: 69.1" in recent:
+                print("V69.1 foi publicada após versões que este banco já aplicou. "
+                      "Atualize o Compose demo com QUARKUS_FLYWAY_OUT_OF_ORDER=true; "
+                      "a migração será executada pelo próprio Flyway após resolver V71.")
         except (subprocess.CalledProcessError, subprocess.TimeoutExpired, ValueError):
             print("Não foi possível ler o diagnóstico das migrações dos logs.")
     print("Se os serviços estiverem ativos mas sem saúde, consulte localmente:")
