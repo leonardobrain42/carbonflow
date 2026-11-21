@@ -9,7 +9,7 @@
 - DRAFT_OWNER pode planejar; PREP com grant MONITORING pode planejar; REV com esse grant pode consultar. Sem grant, o backend responde 404 opaco.
 - Contratos distintos para ED (a jusante, efetivamente entregue ao BEV) e EC (a montante, consumo da infraestrutura). Identificação, sistema de origem, evidência e validade da calibração, vigência operacional, potência, SIN e topologia com fuso explícito.
 - QA acusa medidor ED/EC ausente, dupla atribuição, calibração não coberta, configuração obsoleta após nova versão de carregador, origem/fuso pendentes e solar/bateria/V2G fora deste ramo.
-- A interface Angular inclui uma seção Monitorar ED/EC com formulários, versões e causas específicas de pendência.
+- A interface Angular inclui uma seção Monitorar ED/EC com formulários, versões e causas específicas de pendência. Cada pendência abre pelo nome em português; o código estável fica na referência.
 - Testes unitários e de integração para fronteiras, datas, versões, autorização, conflitos, calibração e ausência de contaminação sintética.
 
 ## Segurança da separação entre piloto e projetos novos

@@ -99,3 +99,59 @@ export function plannedRole(owner: string): string {
   if (parts.length === 2) return parts[0] + ' e ' + parts[1];
   return parts.slice(0, -1).join(', ') + ' e ' + parts.at(-1);
 }
+
+const MONITORING_TITLES: Record<string, string> = {
+  CHARGER_MISSING: 'Carregador',
+  CHARGER_TOPOLOGY: 'Topologia do carregador',
+  CHARGER_POWER: 'Potência nominal',
+  CHARGER_PROVENANCE: 'Origem do inventário',
+  CHARGER_TIME_ZONE: 'Fuso da instalação',
+  ED_METER_MISSING: 'Medidor de energia entregue',
+  EC_METER_MISSING: 'Medidor de energia consumida',
+  METER_ROLE_CONFLICT: 'Papel dos medidores',
+  METER_BOUNDARY_CONFLICT: 'Fronteira dos medidores',
+  CHARGER_CONFIGURATION_STALE: 'Configuração do carregador',
+  METER_SOURCE_MISSING: 'Origem das leituras',
+  METER_TIME_ZONE: 'Fuso do instrumento',
+  CALIBRATION_MISSING: 'Calibração',
+  CALIBRATION_PERIOD_UNSET: 'Período da calibração',
+  CALIBRATION_NOT_COVERING: 'Cobertura da calibração',
+  METER_CONFIGURATION_NOT_COVERING: 'Cobertura da configuração',
+  CALIBRATION_NOT_REVIEWED: 'Revisão da calibração',
+  ED_EC_OBSERVATIONS: 'Medições de energia',
+  CHARGER_VERSION_STALE: 'Revisão do carregador',
+  OUT_OF_SCOPE_TOPOLOGY: 'Topologia fora do ramo',
+  NO_CHARGERS: 'Carregador',
+  METER_VERSION_STALE: 'Revisão do medidor',
+  QUARANTINE_UNRESOLVED: 'Leitura em quarentena',
+  REVIEW_MISSING: 'Parecer da leitura',
+  NON_HOURLY_READING: 'Intervalo da leitura',
+  READING_INVALID: 'Leitura inválida',
+  METER_CALIBRATION_STALE: 'Calibração da leitura',
+  EC_BELOW_ED: 'Energia consumida e entregue',
+  PENDING_MEASUREMENT: 'Medição do período',
+  SNAPSHOT_QA_STALE: 'QA do período',
+  SNAPSHOT_REVISIONS_CHANGED: 'Revisões posteriores',
+  NO_MEASUREMENT_LINEAGE: 'Origem das medições',
+  SUPPORT_DOCUMENT_MISSING: 'Documento de suporte',
+  SUPPORT_REVIEW_PENDING: 'Parecer do documento',
+  SUPPORT_DOCUMENT_REJECTED: 'Documento rejeitado',
+  PD_MONITORING_INPUT_CHANGED: 'Vínculo do monitoramento no documento',
+  METHOD_PROJECT_METHODOLOGY_CHANGED: 'Metodologia do projeto',
+  METHOD_SNAPSHOT_STALE: 'Snapshot do parecer',
+  METHOD_EVIDENCE_CHANGED: 'Evidências do parecer',
+  METHOD_DOCUMENTARY_GAPS: 'Documentos do parecer',
+  METHOD_REVIEW_PENDING: 'Parecer interno',
+  METHOD_REVIEW_RETURNED: 'Correção do parecer',
+};
+
+/** Visible name for a monitoring gate. The code stays off the heading. */
+export function monitoringGateTitle(code: string): string {
+  if (MONITORING_TITLES[code]) return MONITORING_TITLES[code];
+  if (code.startsWith('OPERATIONAL_')) return 'Ocorrência operacional';
+  if (code.startsWith('HOUR_GAP_')) return 'Hora sem leitura';
+  if (code.startsWith('HOUR_OVERLAP_')) return 'Horas sobrepostas';
+  if (code.startsWith('MR_')) return 'Situação do período';
+  if (code.startsWith('METHOD_')) return 'Parecer do método';
+  return 'Situação ainda sem texto público';
+}

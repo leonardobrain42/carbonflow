@@ -2,6 +2,7 @@ import {Component, Input, OnChanges, SimpleChanges, inject, signal} from '@angul
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {firstValueFrom} from 'rxjs';
 import {OpenEfelCandidatesComponent} from './open-efel';
+import {monitoringGateTitle} from './calculation-language';
 
 type ChargerInput = {
   siteCode:string; chargerKind:string; ratedPowerKw:number|null;
@@ -761,18 +762,28 @@ export class OpenMonitoringComponent implements OnChanges {
           'Idempotency-Key':crypto.randomUUID()}}));
       if(this.projectId===project) {
         await this.inspectEnergy(item.reference.code);
-        this.notice.set('Pacote ED/EC histórico preparado. NOT_ADMITTED: ainda não pode entrar no cálculo E8.');
+        this.notice.set('Pacote ED/EC histórico preparado. Ele ainda não pode entrar no cálculo.');
       }
     } catch(problem){this.error.set(this.message(problem));}
     finally {this.energyPreparing.set(false);}
   }
 
+  monitorTitle(code:string){return monitoringGateTitle(code);}
   stateName(code:string) {
     const labels:Record<string,string>={
-      MISSING:'A informar',STALE:'Rever revisão',
+      MISSING:'A informar',STALE:'Exige rechecagem',
       BLOCKED:'Cobertura insuficiente',NEEDS_REVIEW:'Revisão necessária',
       PENDING_REVIEW:'Aguardando revisão',PENDING_MEASUREMENT:'Sem medição admitida',
       OUT_OF_SCOPE:'Fora do ramo inicial',BLOCKED_OUT_OF_SCOPE:'Ramo incompatível',
+      NOT_READY:'Ainda não pronto',
+      READY_FOR_NORMATIVE_REVIEW:'Pronto para revisão normativa',
+      PENDING_REQUIREMENTS:'Requisitos pendentes',
+      PENDING_DOCUMENTARY_REVIEW:'Documentos em revisão',
+      BLOCKED_STALE:'Evidências desatualizadas',
+      CHECKED_INTERNAL_AWAITING_NORMATIVE_ADMISSION:'Parecer interno, sem admissão normativa',
+      BLOCKED_DOCUMENTARY:'Documentos pendentes',
+      PENDING_INTERNAL_REVIEW:'Parecer interno pendente',
+      RETURNED_FOR_CORRECTION:'Correção solicitada',
     };
     return labels[code]??code;
   }

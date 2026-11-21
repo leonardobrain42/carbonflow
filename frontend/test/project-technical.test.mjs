@@ -255,7 +255,10 @@ test('CF-IMP-008: rascunho da conta cruza intake e prévia sem adquirir autorida
     await page.route('**/v1/projects/*/technical/open-monitoring', route =>
       route.fulfill({json:{projectId,environment:'SANDBOX',chargers:[],
         meters:[],readiness:{state:'NOT_READY',canPrepare:false,
-        canUseForE8:false,edKwh:null,ecKwh:null,gates:[]}}}));
+        canUseForE8:false,edKwh:null,ecKwh:null,gates:[{
+          code:'ED_EC_OBSERVATIONS',state:'PENDING_MEASUREMENT',
+          reason:'Nenhum lote de medição ED/EC foi admitido.',
+          chargerCode:null,meterCode:null}]}}}));
     await page.route('**/v1/projects/*/technical/open-monitoring/**', route =>
       route.fulfill({json:[]}));
     await page.goto(base + '/workspace/projects/' + projectId +
@@ -266,6 +269,10 @@ test('CF-IMP-008: rascunho da conta cruza intake e prévia sem adquirir autorida
       {name:'2. Leituras e ocorrências'}).getAttribute('aria-current'),'step');
     await page.getByRole('heading',
       {name:'Lotes de leituras recebidas (candidatos)'}).waitFor();
+    await page.getByText('Medições de energia · Sem medição admitida').waitFor();
+    await page.getByText('Referência: ED_EC_OBSERVATIONS').waitFor();
+    await page.getByText('Não — Ainda não pronto').waitFor();
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth+1),false);
     assert.equal(await page.getByRole('heading',{name:'Inventário de carregadores'}).count(),0);
     await monitorSteps.getByRole('button',{name:'3. QA e evidências'}).click();
     await page.waitForURL('**/technical?secao=monitorar&etapa=qa**');
