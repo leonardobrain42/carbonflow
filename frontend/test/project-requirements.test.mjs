@@ -95,3 +95,67 @@ test('analisar mostra ação, espera e recorte sem concluir as quatro pendência
     await browser.close();
   }
 });
+
+test('diagnóstico recusa cálculo liberado e anuncia a falha de leitura',async()=>{
+  const browser=await chromium.launch({executablePath});
+  try {
+    const page=await browser.newPage({viewport:{width:390,height:844}});
+    await page.route('**/v1/account-session',r=>r.fulfill({json:{
+      identity:{id:'00000000-0000-4000-8000-000000000124',email:'teste@carbonflow.test',name:'Teste'},
+      projects:[{projectId:project,organizationId:organization,environment:'SANDBOX',state:'DRAFT',version:1}],
+    }}));
+    await page.route('**/v1/organizations',r=>r.fulfill({json:[{
+      id:organization,name:'Teste',environment:'SANDBOX',status:'PRIVATE_DRAFT',role:'DRAFT_OWNER',version:1,
+    }]}));
+    await page.route('**/v1/projects/*/metadata',r=>r.fulfill({json:{
+      projectId:project,organizationId:organization,environment:'SANDBOX',state:'DRAFT',
+      version:1,title:'Rede do diagnóstico',description:'Recarga',
+    }}));
+    await page.route('**/v1/projects/*/technical/capabilities',r=>r.fulfill({json:{
+      projectId:project,environment:'SANDBOX',owner:true,
+      modules:{intake:'PREPARATORY_ONLY',evidence:'NOT_ENABLED',calculation:'NOT_ENABLED'},
+      actions:['VIEW_INTAKE','VIEW_OPEN_APPLICABILITY','VIEW_OPEN_CALCULATION'],
+    }}));
+    await page.route('**/v1/projects/*/technical/intake',r=>r.fulfill({json:{
+      projectId:project,organizationId:organization,environment:'SANDBOX',version:1,
+      state:'RASCUNHO',reviewState:'NAO_AVALIADO',triageCandidate:'VM0038',
+      journey:{id:'VM0038_V1_1',candidate:'VM0038',title:'VM0038 v1.1',
+        description:'Preparação',technicalTopics:[]},
+      methodologies:[{value:'VM0038',label:'VM0038 v1.1'}],
+      data:{activity:'Recarga',country:'BR',state:'DF',locality:'Brasília',candidateMethodology:'VM0038',
+        referenceActDate:'2027-01-01',notes:null},
+      outstandingGates:[],
+    }}));
+    await page.route('**/v1/projects/*/technical/preliminary-dossier',r=>r.fulfill({status:204}));
+    await page.route('**/v1/projects/*/journey/resume',r=>r.fulfill({status:204}));
+    await page.route('**/v1/projects/*/technical/open-applicability',r=>r.fulfill({json:{
+      projectId:project,version:0,latestTriageVersion:1,latest:null,
+      readiness:{category:'PENDING',network:'PENDING_CONFIGURATION',rights:'EVIDENCE_PENDING',
+        norm:'PENDING_NORMATIVE_REVIEW',canContinuePreparation:true,canUseForE8:false,
+        stale:false,findings:[],sourceDependencies:[]},
+    }}));
+    await page.route('**/v1/projects/*/technical/requirements',r=>r.fulfill({json:{
+      projectId:project,methodology:'VM0038',openBranch:true,diagnosticVisible:true,
+      canRunE8:true,canIssueVcu:false,exAnteRequiresMeasuredEnergy:false,
+      limits:'não deve aparecer',summary:{mine:0,awaitingSource:0,awaitingReview:0,outOfScope:0},
+      requirements:[],
+    }}));
+    await page.goto(base+'/workspace/projects/'+project+'/technical?secao=analisar');
+    const alert=page.getByRole('alert');
+    await alert.waitFor();
+    assert.match(await alert.innerText(),/Não foi possível ler o diagnóstico/);
+    assert.equal(await page.getByText('não deve aparecer').count(),0);
+    assert.equal(await page.getByRole('button',{name:'Abrir a declaração'}).count(),0);
+    const retry=page.getByRole('button',{name:'Tentar novamente'});
+    await retry.focus();
+    assert.equal(await retry.evaluate(node=>document.activeElement===node),true);
+    await page.keyboard.press('Enter');
+    await alert.waitFor();
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
+    await page.setViewportSize({width:1440,height:900});
+    await alert.waitFor();
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
+  } finally {
+    await browser.close();
+  }
+});

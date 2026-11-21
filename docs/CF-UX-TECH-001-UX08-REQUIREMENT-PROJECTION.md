@@ -43,8 +43,18 @@ Uma segunda revisão da declaração só pede rechecagem de direitos quando o co
 
 Quando o projeto já tem seleção de frota ou vínculo de fatores, o diagnóstico deixa de dizer que o dado está simplesmente ausente: a situação passa a ser fonte candidata, ou desatualizada se o dono marcou o vínculo como obsoleto. IR e Dy não acompanham essa seleção. Nenhuma dessas situações admite E8. O catálogo interno de fontes não é lido por esta rota; o estado usado é o do vínculo do próprio projeto.
 
+## Homologação do diagnóstico
+
+A leitura passa por PostgreSQL e pela API, com a conta dona no lugar do papel de proponente. Preparador com triagem, revisor com documentação e operador com monitoramento recebem a rota, sem itens de aplicabilidade, sem EVR e sem a referência do contrato. O operador não grava retomada em Analisar. Preparador e revisor gravam, porque enxergam as informações iniciais.
+
+Trocar só o nome do titular cria outra revisão e preserva a anterior. Não pede rechecagem de direitos. Um `If-Match` velho responde 412 e não grava a terceira revisão. `POST` nesta rota responde 404 e não grava diagnóstico. Um pré-cálculo que se apresente como executável continua com `canRunE8` falso.
+
+Um período de monitoramento no pré-cálculo não transforma ED/EC em condição do documento ex ante e não publica a quantidade horária. O item do período fica não admitido.
+
+No navegador, uma resposta que libera o cálculo é recusada: o alerta recebe foco pelo teclado, o botão de nova tentativa funciona com Enter, e a página cabe em 390×844 e 1440×900.
+
 ## O que continua fora
 
-- UX-08E: homologação #101, ensaio moderado e auditoria de acessibilidade além deste roteiro automatizado.
+O ensaio moderado com pessoas nos papéis PP, PREP, REV e OP, e a auditoria com leitor de tela por um participante, continuam bloqueados. Teste automatizado não substitui essa sessão. A issue #124 e a #101 permanecem abertas.
 
 A ficha OPEN, os CHECK `usable_for_e8=false` e o piloto sintético não mudam de regra.
