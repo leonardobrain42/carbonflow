@@ -94,7 +94,7 @@
 .cf-journey-shell .cf-workspace-primary:hover { background: #287c52; }
 .cf-journey-context { margin: 1.1rem 0; border: 1px solid #365543; border-radius: .8rem; background: #10201b; padding: 1rem; }
 .cf-journey-context > :first-child { margin-top: 0; }
-.cf-journey-context p { color: #c5dacd; }
+.cf-journey-context p { color: #c5dacd; overflow-wrap: anywhere; }
 .cf-journey-context summary { cursor: pointer; font-weight: 700; color: #c5efd5; }
 .cf-journey-context a, .cf-triage-actions a:not(.cf-workspace-primary) { text-decoration: underline; text-underline-offset: .2em; }
 .cf-journey-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 1rem; max-width: 760px; }

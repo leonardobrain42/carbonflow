@@ -41,7 +41,9 @@
       }
       <p>Impedimentos atuais:</p>
       <ul>
-        @for (gate of item.gates; track gate) { <li>{{gate}}</li> }
+        @for (gate of item.gates; track gate) {
+          <li>{{note(gate)}} <span>Referência: {{gate}}</span></li>
+        }
       </ul>
       <table>
         <caption>Entradas horárias candidatas, sem multiplicação E8</caption>
@@ -108,7 +110,9 @@
         <p>Assinatura da seleção: <code>{{item.selectionSha256}}</code></p>
         <p>Bloqueios e ressalvas:</p>
         <ul>
-          @for (gate of item.gates; track gate) { <li>{{gate}}</li> }
+          @for (gate of item.gates; track gate) {
+            <li>{{note(gate)}} <span>Referência: {{gate}}</span></li>
+          }
         </ul>
         <p>Os valores fonte são mantidos no catálogo com licença.
           A assinatura não certifica a autenticidade de uma fonte externa
