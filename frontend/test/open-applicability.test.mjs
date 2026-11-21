@@ -48,13 +48,19 @@ test('a ficha OPEN permite preparar direitos sem fonte admitida nem cálculo E8'
     await page.route('**/v1/projects/*/technical/preliminary-dossier',r=>r.fulfill({status:204}));
     let parties=[];
     let contracts=[];
-    const catalog=()=>({parties,contracts,createsLegalPower:false,admitsRights:false});
+    let events=[];
+    const catalog=()=>({parties,contracts,events,createsLegalPower:false,admitsRights:false});
     await page.route('**/v1/projects/*/technical/open-rights**',async route=>{
       const url=route.request().url();
       if(route.request().method()==='PUT' && url.includes('/parties/')){
         const body=route.request().postDataJSON();
         const code=decodeURIComponent(url.split('/parties/')[1]);
         parties=[...parties,{code,version:1,kind:body.kind,displayName:body.displayName}];
+      }
+      if(route.request().method()==='PUT' && url.includes('/events/')){
+        const body=route.request().postDataJSON();
+        const code=decodeURIComponent(url.split('/events/')[1]);
+        events=[...events,{code,version:1,kind:body.kind,eventOn:body.eventOn,documentRef:body.documentRef}];
       }
       if(route.request().method()==='PUT' && url.includes('/contracts/')){
         const body=route.request().postDataJSON();
@@ -114,6 +120,12 @@ test('a ficha OPEN permite preparar direitos sem fonte admitida nem cálculo E8'
     await page.getByLabel('Rótulo do contrato').fill('Contrato local');
     await page.getByRole('button',{name:'Registrar contrato'}).click();
     await page.getByLabel('Contrato registrado').selectOption({label:'Contrato local'});
+    await page.getByLabel('Data do início operacional da estação').fill('2027-02-01');
+    await page.getByLabel('Referência do documento do início operacional').fill('ATO-OP-1');
+    await page.getByRole('button',{name:'Registrar início operacional'}).click();
+    await page.getByLabel('Data do início de crédito VCS').fill('2027-03-01');
+    await page.getByLabel('Referência do documento do início de crédito VCS').fill('ATO-VCS-1');
+    await page.getByRole('button',{name:'Registrar início de crédito VCS'}).click();
     await page.getByRole('button',{name:'Salvar declaração sem aprovação automática'}).click();
     await page.getByText('Declaração versionada salva. A jornada pode continuar',{exact:false}).waitFor();
     assert.equal(revision,1);
@@ -121,6 +133,8 @@ test('a ficha OPEN permite preparar direitos sem fonte admitida nem cálculo E8'
     assert.equal(answers.restrictedToIdentifiedVehicles,false);
     assert.equal(answers.rightsPartyCode,parties[0].code);
     assert.equal(answers.rightsContractCode,contracts[0].code);
+    assert.equal(answers.operationalEventCode,events.find(event=>event.kind==='OPERATIONAL_START').code);
+    assert.equal(answers.vcsEventCode,events.find(event=>event.kind==='VCS_START').code);
     assert.equal(answers.chargingOwner,null);
     const ficha=page.getByRole('region',{name:'Aplicabilidade de rede aberta'});
     await ficha.getByText('Rede aberta candidata',{exact:false}).waitFor();

@@ -113,6 +113,29 @@ class ProjectRequirementProjectionTest {
     }
 
     @Test
+    void disclosureAfterEitherStartStaysAReview() {
+        var operational = OpenApplicability.evaluate(dates("2027-03-01", "2027-02-01", "2027-04-01"), false);
+        var gap = operational.findings().stream().filter(f -> "RIGHTS_DATE_GAP".equals(f.code())).findFirst().orElseThrow();
+        assertEquals("NEEDS_REVIEW", gap.state());
+        assertTrue(gap.text().contains("início operacional"));
+        assertTrue(gap.text().contains("não reprova o projeto"));
+        assertFalse(operational.canUseForE8());
+
+        var vcs = OpenApplicability.evaluate(dates("2027-05-01", "2027-06-01", "2027-04-01"), false);
+        assertTrue(vcs.findings().stream().anyMatch(f -> "RIGHTS_DATE_GAP".equals(f.code())
+            && f.text().contains("início de crédito VCS") && "NEEDS_REVIEW".equals(f.state())));
+
+        var both = OpenApplicability.evaluate(dates("2027-05-01", "2027-01-01", "2027-02-01"), false);
+        assertTrue(both.findings().stream().anyMatch(f -> "RIGHTS_DATE_GAP".equals(f.code())
+            && f.text().contains("início operacional e ao início de crédito VCS")));
+        assertEquals(1, both.findings().stream().filter(f -> "RIGHTS_DATE_GAP".equals(f.code())).count());
+
+        var before = OpenApplicability.evaluate(dates("2027-01-10", "2027-02-01", "2027-03-01"), false);
+        assertTrue(before.findings().stream().noneMatch(f -> "RIGHTS_DATE_GAP".equals(f.code())));
+        assertFalse(before.canUseForE8());
+    }
+
+    @Test
     void openBoundaryPlanStaysSeparateFromMeasuredEnergy() {
         var closed = monitored(OpenApplicability.evaluate(new OpenApplicability.Input(false, true, true,
             "DCFC", "PHEV", "SIN", false, true, null, null, "NOT_DECLARED", null, null,
@@ -440,6 +463,14 @@ class ProjectRequirementProjectionTest {
 
     private static ProjectRequirementProjection.Item item(ProjectRequirementProjection.View view, String id) {
         return view.requirements().stream().filter(i -> id.equals(i.requirementId())).findFirst().orElseThrow();
+    }
+
+    private static OpenApplicability.Input dates(String disclosure, String operational, String vcs) {
+        return new OpenApplicability.Input(true, false, true,
+            "DCFC", "BEV", "SIN", false, false, "Titular", "CONTRACT-1", "ON_CHARGER",
+            "PHOTO-2027", LocalDate.parse(disclosure), "NO_OVERLAP_DECLARED",
+            null, null, "PARTY-1", "CONTRACT-1",
+            "OP-1", LocalDate.parse(operational), "VCS-1", LocalDate.parse(vcs));
     }
 
     private static OpenApplicability.Readiness disclosureMissing() {

@@ -22,9 +22,11 @@ class OpenProjectRights {
     static final String RULE = "CF-IMP-013";
     record PartyInput(String kind, String displayName) {}
     record ContractInput(String partyCode, String label) {}
+    record EventInput(String kind, java.time.LocalDate eventOn, String documentRef) {}
     record Party(String code, int version, String kind, String displayName) {}
     record Contract(String code, int version, String partyCode, int partyVersion, String label) {}
-    record Catalog(List<Party> parties, List<Contract> contracts,
+    record Event(String code, int version, String kind, java.time.LocalDate eventOn, String documentRef) {}
+    record Catalog(List<Party> parties, List<Contract> contracts, List<Event> events,
         boolean createsLegalPower, boolean admitsRights) {}
     private record Saved(String project, String target, int revision, byte[] fingerprint) {}
 
@@ -77,6 +79,25 @@ class OpenProjectRights {
         });
     }
 
+    Catalog saveEvent(String token, String project, String code, String ifMatch, String key, EventInput received) {
+        return scope.write(token, project, "SAVE_OPEN_APPLICABILITY", (connection, context) -> {
+            String event = code(code, "event");
+            EventInput input = event(received);
+            return remember(connection, context, project, "event:" + event, key, ifMatch,
+                context.id() + "|event|" + event + "|" + input,
+                currentEvent(connection, project, event), () -> {
+                    int next = currentEvent(connection, project, event) + 1;
+                    update(connection, """
+                        INSERT INTO app_project_rights_event
+                          (project_id,organization_id,environment,event_code,version,kind,event_on,document_ref,author_id)
+                        VALUES (?,?,?,?,?,?,?,?,?)
+                        """, context.id(), context.organization(), context.environment(), event, next,
+                        input.kind(), input.eventOn(), input.documentRef(), context.actor().id());
+                    return next;
+                });
+        });
+    }
+
     /** The declaration may point only at a contract that belongs to the selected holder. */
     static boolean linked(Connection connection, String project, String partyCode, String contractCode)
             throws SQLException {
@@ -89,6 +110,15 @@ class OpenProjectRights {
               AND c.version=(SELECT max(version) FROM app_project_rights_contract
                              WHERE project_id=? AND contract_code=?)
             """, r -> true, project, contractCode, partyCode, project, contractCode) != null;
+    }
+
+    static Event latestEvent(Connection connection, String project, String code) throws SQLException {
+        if (code == null) return null;
+        return first(connection, """
+            SELECT event_code,version,kind,event_on,document_ref FROM app_project_rights_event
+            WHERE project_id=? AND event_code=? ORDER BY version DESC LIMIT 1
+            """, r -> new Event(r.getString(1), r.getInt(2), r.getString(3),
+                r.getObject(4, java.time.LocalDate.class), r.getString(5)), project, code);
     }
 
     static String holderName(Connection connection, String project, String partyCode) throws SQLException {
@@ -138,7 +168,13 @@ class OpenProjectRights {
             ORDER BY contract_code, version DESC
             """, r -> new Contract(r.getString(1), r.getInt(2), r.getString(3), r.getInt(4), r.getString(5)),
             project);
-        return new Catalog(parties, contracts, false, false);
+        List<Event> events = query(connection, """
+            SELECT DISTINCT ON (event_code) event_code,version,kind,event_on,document_ref
+            FROM app_project_rights_event WHERE project_id=?
+            ORDER BY event_code, version DESC
+            """, r -> new Event(r.getString(1), r.getInt(2), r.getString(3),
+                r.getObject(4, java.time.LocalDate.class), r.getString(5)), project);
+        return new Catalog(parties, contracts, events, false, false);
     }
 
     private static Party latestParty(Connection connection, String project, String code) throws SQLException {
@@ -155,6 +191,13 @@ class OpenProjectRights {
         return value == null ? 0 : value;
     }
 
+    private static int currentEvent(Connection connection, String project, String code) throws SQLException {
+        Integer value = first(connection, """
+            SELECT max(version) FROM app_project_rights_event WHERE project_id=? AND event_code=?
+            """, r -> (Integer) r.getObject(1), project, code);
+        return value == null ? 0 : value;
+    }
+
     private static int currentContract(Connection connection, String project, String code) throws SQLException {
         Integer value = first(connection, """
             SELECT max(version) FROM app_project_rights_contract WHERE project_id=? AND contract_code=?
@@ -166,6 +209,14 @@ class OpenProjectRights {
         if (raw == null || raw.kind() == null
                 || !Set.of("ORGANIZATION", "PERSON").contains(raw.kind())) throw invalid("kind");
         return new PartyInput(raw.kind(), text(raw.displayName(), 2, 200, "displayName"));
+    }
+
+    private static EventInput event(EventInput raw) {
+        if (raw == null || raw.kind() == null
+                || !Set.of("OPERATIONAL_START", "VCS_START").contains(raw.kind())) throw invalid("kind");
+        if (raw.eventOn() == null || raw.eventOn().isAfter(java.time.LocalDate.now().plusYears(20)))
+            throw invalid("eventOn");
+        return new EventInput(raw.kind(), raw.eventOn(), text(raw.documentRef(), 2, 300, "documentRef"));
     }
 
     private static ContractInput contract(ContractInput raw) {

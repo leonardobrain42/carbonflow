@@ -12,10 +12,13 @@ type Declaration = {
   driverDisclosureEvidenceRef:string|null;driverDisclosureEffectiveOn:string|null;
   doubleClaimingCheck:string|null;effectiveFrom:string|null;explanation:string|null;
   rightsPartyCode:string|null;rightsContractCode:string|null;
+  operationalEventCode:string|null;vcsEventCode:string|null;
 };
 type Party={code:string;version:number;kind:string;displayName:string};
 type Contract={code:string;version:number;partyCode:string;partyVersion:number;label:string};
-type RightsCatalog={parties:Party[];contracts:Contract[];createsLegalPower:boolean;admitsRights:boolean};
+type RightsEvent={code:string;version:number;kind:string;eventOn:string;documentRef:string};
+type RightsCatalog={parties:Party[];contracts:Contract[];events?:RightsEvent[];
+  createsLegalPower:boolean;admitsRights:boolean};
 type Finding={code:string;state:string;text:string};
 type Readiness={category:string;network:string;rights:string;norm:string;
   canContinuePreparation:boolean;canUseForE8:boolean;stale:boolean;
@@ -29,7 +32,7 @@ const EMPTY:Declaration={
   v2g:null,chargingOwner:null,carbonRightsContractRef:null,
   driverDisclosureChannel:'NOT_DECLARED',driverDisclosureEvidenceRef:null,
   driverDisclosureEffectiveOn:null,doubleClaimingCheck:'UNKNOWN',effectiveFrom:null,explanation:null,
-  rightsPartyCode:null,rightsContractCode:null,
+  rightsPartyCode:null,rightsContractCode:null,operationalEventCode:null,vcsEventCode:null,
 };
 
 @Component({
@@ -47,6 +50,9 @@ export class OpenApplicabilityComponent implements OnChanges {
   readonly contracts=signal<Contract[]>([]);
   readonly partyDraft=signal({kind:'ORGANIZATION',displayName:''});
   readonly contractLabel=signal('');
+  readonly events=signal<RightsEvent[]>([]);
+  readonly operationalDraft=signal({eventOn:'',documentRef:''});
+  readonly vcsDraft=signal({eventOn:'',documentRef:''});
   readonly loading=signal(true);
   readonly term=plainTerm;
   readonly busy=signal(false);
@@ -84,6 +90,18 @@ export class OpenApplicabilityComponent implements OnChanges {
     this.form.update(current=>({...current,[field]:actual}));
   }
   bool(value:YesNo){return value===null?'':String(value);}
+  eventsOf(kind:string){return this.events().filter(event=>event.kind===kind);}
+  async registerEvent(kind:'OPERATIONAL_START'|'VCS_START'){
+    const draft=kind==='OPERATIONAL_START'?this.operationalDraft():this.vcsDraft();
+    if(!draft.eventOn||!draft.documentRef.trim()||this.busy())return;
+    const code=(kind==='OPERATIONAL_START'?'OP':'VCS')+crypto.randomUUID().slice(0,8).toUpperCase();
+    await this.record('/events/'+code,{kind,eventOn:draft.eventOn,documentRef:draft.documentRef.trim()});
+    if(!this.error()){
+      this.update(kind==='OPERATIONAL_START'?'operationalEventCode':'vcsEventCode',code);
+      if(kind==='OPERATIONAL_START')this.operationalDraft.set({eventOn:'',documentRef:''});
+      else this.vcsDraft.set({eventOn:'',documentRef:''});
+    }
+  }
   contractsForParty(){
     const party=this.form().rightsPartyCode;
     return this.contracts().filter(contract=>contract.partyCode===party);
@@ -157,6 +175,7 @@ export class OpenApplicabilityComponent implements OnChanges {
     }
     this.parties.set(catalog.parties??[]);
     this.contracts.set(catalog.contracts??[]);
+    this.events.set(catalog.events??[]);
   }
   private rightsPath(){
     return '/v1/projects/'+encodeURIComponent(this.projectId)+'/technical/open-rights';

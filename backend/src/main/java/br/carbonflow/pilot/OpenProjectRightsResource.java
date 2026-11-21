@@ -45,6 +45,16 @@ public class OpenProjectRightsResource {
         return ok(rights.saveContract(token, project, contract, version, key, input));
     }
 
+    @PUT
+    @Path("/events/{event}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response saveEvent(@CookieParam(AccountAccess.COOKIE) String token,
+            @PathParam("project") String project, @PathParam("event") String event,
+            @HeaderParam("If-Match") String version, @HeaderParam("Idempotency-Key") String key,
+            OpenProjectRights.EventInput input) {
+        return ok(rights.saveEvent(token, project, event, version, key, input));
+    }
+
     private static Response ok(OpenProjectRights.Catalog catalog) {
         return Response.ok(catalog).header("Cache-Control", "private, no-store").build();
     }

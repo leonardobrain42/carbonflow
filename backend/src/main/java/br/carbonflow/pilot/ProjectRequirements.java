@@ -66,11 +66,12 @@ class ProjectRequirements {
         List<Rights> revisions = query(connection, """
             SELECT carbon_rights_contract_ref, driver_disclosure_evidence_ref,
                    driver_disclosure_effective_on::text, double_claiming_check,
-                   rights_party_code, rights_contract_code
+                   rights_party_code, rights_contract_code,
+                   operational_event_code, vcs_event_code
             FROM app_project_open_applicability_revision
             WHERE project_id=? ORDER BY version DESC LIMIT 2
             """, row -> new Rights(row.getString(1), row.getString(2), row.getString(3), row.getString(4),
-                row.getString(5), row.getString(6)),
+                row.getString(5), row.getString(6), row.getString(7), row.getString(8)),
             project);
         if (revisions.size() < 2) return false;
         Rights current = revisions.get(0);
@@ -89,5 +90,5 @@ class ProjectRequirements {
     }
 
     private record Rights(String contract, String disclosure, String effectiveOn, String overlap,
-        String party, String contractRecord) {}
+        String party, String contractRecord, String operationalEvent, String vcsEvent) {}
 }

@@ -147,12 +147,41 @@
                 [value]="form().driverDisclosureEffectiveOn ?? ''"
                 (change)="update('driverDisclosureEffectiveOn',$any($event.target).value)"/>
             </div>
-            <div>
-              <label for="cf-open-start">Início declarado da operação</label>
-              <input id="cf-open-start" type="date" [value]="form().effectiveFrom ?? ''"
-                (change)="update('effectiveFrom',$any($event.target).value)"/>
-            </div>
           </div>
+          <p>O início operacional da estação e o início de crédito VCS são eventos diferentes.
+            A referência do documento não comprova a data.</p>
+          <label for="cf-op-date">Data do início operacional da estação</label>
+          <input id="cf-op-date" type="date" [value]="operationalDraft().eventOn"
+            (change)="operationalDraft.update(current=>({...current,eventOn:$any($event.target).value}))"/>
+          <label for="cf-op-doc">Referência do documento do início operacional</label>
+          <input id="cf-op-doc" maxlength="300" [value]="operationalDraft().documentRef"
+            (input)="operationalDraft.update(current=>({...current,documentRef:$any($event.target).value}))"/>
+          <button type="button" (click)="registerEvent('OPERATIONAL_START')" [disabled]="busy()">
+            Registrar início operacional</button>
+          <label for="cf-op-event">Início operacional registrado</label>
+          <select id="cf-op-event" [value]="form().operationalEventCode ?? ''"
+            (change)="update('operationalEventCode',$any($event.target).value)">
+            <option value="">Ainda não escolhido</option>
+            @for (event of eventsOf('OPERATIONAL_START'); track event.code){
+              <option [value]="event.code">{{event.eventOn}} · referência não admitida</option>
+            }
+          </select>
+          <label for="cf-vcs-date">Data do início de crédito VCS</label>
+          <input id="cf-vcs-date" type="date" [value]="vcsDraft().eventOn"
+            (change)="vcsDraft.update(current=>({...current,eventOn:$any($event.target).value}))"/>
+          <label for="cf-vcs-doc">Referência do documento do início de crédito VCS</label>
+          <input id="cf-vcs-doc" maxlength="300" [value]="vcsDraft().documentRef"
+            (input)="vcsDraft.update(current=>({...current,documentRef:$any($event.target).value}))"/>
+          <button type="button" (click)="registerEvent('VCS_START')" [disabled]="busy()">
+            Registrar início de crédito VCS</button>
+          <label for="cf-vcs-event">Início de crédito VCS registrado</label>
+          <select id="cf-vcs-event" [value]="form().vcsEventCode ?? ''"
+            (change)="update('vcsEventCode',$any($event.target).value)">
+            <option value="">Ainda não escolhido</option>
+            @for (event of eventsOf('VCS_START'); track event.code){
+              <option [value]="event.code">{{event.eventOn}} · referência não admitida</option>
+            }
+          </select>
           <label for="cf-open-overlap">Risco de dupla reivindicação de créditos</label>
           <select id="cf-open-overlap" [value]="form().doubleClaimingCheck ?? 'UNKNOWN'"
             (change)="update('doubleClaimingCheck',$any($event.target).value)">
