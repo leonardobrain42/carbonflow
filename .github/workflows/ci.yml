@@ -212,6 +212,40 @@ jobs:
               WHERE i.email_normalized IN
                 ('demo@carbonflow.test','segunda@carbonflow.test','admin@carbonflow.test')
                 AND i.status='ACTIVE' AND i.email_verified_at IS NOT NULL;" | grep ACCOUNTS_PRESERVED
+          # Exercise the REAL post-upgrade login endpoint through the container's
+          # loopback, bypassing only CI's host NAT after stop/up. Credentials
+          # arrive on curl stdin, never in commands, logs or HTTP URL.
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          import subprocess
+          import sys
+          sys.path.insert(0, "scripts")
+          import demo_sandbox as demo
+          files = sorted(demo.ACCOUNT_DIR.glob("*.json"))
+          if len(files) != 3:
+              raise RuntimeError("Unexpected demo account count")
+          command = [
+              "docker", "compose", "-p", demo.PROJECT,
+              "-f", str(demo.ROOT/"compose.yaml"),
+              "-f", str(demo.ROOT/"compose.demo.yaml"),
+              "exec", "-T", "app", "curl", "-sS", "-o", "/dev/null",
+              "-w", "%{http_code}", "-H", "Content-Type: application/json",
+              "--data-binary", "@-", "http://127.0.0.1:8080/v1/account-session"
+          ]
+          for path in files:
+              saved=json.loads(path.read_text(encoding="utf-8"))
+              result=subprocess.run(
+                  command, input=json.dumps({"email":saved["email"],
+                                            "password":saved["password"]}),
+                  capture_output=True, text=True,
+                  env={**os.environ, "CARBONFLOW_PORT":demo.PORT}
+              )
+              if result.returncode != 0 or result.stdout.strip() != "204":
+                  raise RuntimeError("Account login failed after persisted migration upgrade")
+          print("LOGIN_UPGRADE_OK: three original accounts authenticated via container API")
+          PY
       - name: Destroy only the disposable demo environment
         if: always()
         run: |
