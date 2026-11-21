@@ -104,16 +104,16 @@ final class OpenE8RunDecision {
     static OpenCalculationPreflight.Gate gate(String code, String state) {
         String reason = switch (code) {
             case "ED" -> "MISSING".equals(state)
-                ? "Não há vínculo ED vigente neste período."
-                : "O pacote ED está vinculado e permanece não admitido.";
+                ? "Não há energia entregue vigente neste período."
+                : "A energia entregue está vinculada e permanece não admitida.";
             case "EC" -> "MISSING".equals(state)
-                ? "Não há vínculo EC vigente neste período."
-                : "O pacote EC está vinculado e permanece não admitido.";
+                ? "Não há energia consumida vigente neste período."
+                : "A energia consumida está vinculada e permanece não admitida.";
             case "EF_GRID" -> "MISSING".equals(state)
                 ? "Não há fator elétrico vinculado neste período."
                 : "O fator elétrico vinculado não é parâmetro admitido do E8.";
             case "HOURLY_EFEL_NOT_UNIFORM" ->
-                "As horas do vínculo não compartilham um único EFel. O motor não calcula média.";
+                "As horas do vínculo não compartilham um único fator elétrico. O motor não calcula média.";
             case "EVR" -> "MISSING".equals(state)
                 ? "Não há seleção de frota EVR neste período."
                 : "A seleção de frota existe e não está admitida.";
@@ -121,11 +121,11 @@ final class OpenE8RunDecision {
                 ? "Não há ratings de projeto vinculados neste período."
                 : "Os ratings vinculados não estão admitidos. O catálogo licenciado não é copiado para o run.";
             case "EF_FUEL" ->
-                "Não há EFfuel de projeto com valor armazenado.";
+                "Não há fator fóssil do projeto com valor armazenado.";
             case "IR" ->
-                "IR não tem valor normalizado armazenado. A tentativa não inventa 1.";
+                "A melhoria tecnológica não tem valor normalizado armazenado. A tentativa não inventa 1.";
             case "DY" ->
-                "Dy não tem valor nem prova armazenados. A tentativa não presume desconto.";
+                "O desconto por outro crédito não tem valor nem prova armazenados. A tentativa não presume desconto.";
             case "NORMATIVE_PACK" ->
                 "O pacote normativo do projeto não está admitido para execução.";
             case "CARBON_RIGHTS" ->
@@ -141,7 +141,7 @@ final class OpenE8RunDecision {
         String action = switch (code) {
             case "ACTOR_SEGREGATION" -> "Outro ator precisa registrar a execução interna";
             case "RUN_REFERENCES" -> "Registrar uma nova tentativa com as versões atuais";
-            case "HOURLY_EFEL_NOT_UNIFORM" -> "Manter um único EFel horário ou esperar o runner horário";
+            case "HOURLY_EFEL_NOT_UNIFORM" -> "Manter um único fator elétrico horário ou esperar o cálculo por hora";
             default -> "Completar o vínculo e a admissão antes de executar";
         };
         String owner = switch (code) {

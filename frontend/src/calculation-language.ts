@@ -16,6 +16,9 @@ const GATE_NAMES: Record<string, string> = {
   EC: 'Energia consumida',
   EF_GRID: 'Fator elétrico da rede',
   MR_PERIOD_DEPENDENCY: 'Período de monitoramento',
+  HOURLY_EFEL_NOT_UNIFORM: 'Fator elétrico das horas',
+  ACTOR_SEGREGATION: 'Separação de quem registra',
+  RUN_REFERENCES: 'Versões da tentativa',
 };
 
 const GATE_PREFIXES: [string, string][] = [

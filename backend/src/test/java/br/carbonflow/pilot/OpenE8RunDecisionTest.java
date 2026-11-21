@@ -24,6 +24,17 @@ class OpenE8RunDecisionTest {
         assertEquals("BE", decision.equationPlan().get(2).outputCode());
         assertEquals("NOT_CALCULATED", decision.equationPlan().get(2).status());
         assertTrue(decision.equationPlan().get(2).blockedBy().contains("ED"));
+        assertEquals("A melhoria tecnológica não tem valor normalizado armazenado. "
+            + "A tentativa não inventa 1.", reason(decision, "IR"));
+        assertEquals("Não há fator fóssil do projeto com valor armazenado.",
+            reason(decision, "EF_FUEL"));
+        assertEquals("Não há energia entregue vigente neste período.",
+            reason(decision, "ED"));
+        var hours = OpenE8RunDecision.gate("HOURLY_EFEL_NOT_UNIFORM", "REVIEW_REQUIRED");
+        assertEquals("As horas do vínculo não compartilham um único fator elétrico. "
+            + "O motor não calcula média.", hours.reason());
+        assertEquals("Manter um único fator elétrico horário ou esperar o cálculo por hora",
+            hours.nextAction());
     }
 
     @Test
@@ -88,4 +99,9 @@ class OpenE8RunDecisionTest {
     }
 
     private static BigDecimal n(String value) { return new BigDecimal(value); }
+
+    private static String reason(OpenE8RunDecision.Decision decision, String code) {
+        return decision.gates().stream().filter(gate -> code.equals(gate.code()))
+            .findFirst().orElseThrow().reason();
+    }
 }

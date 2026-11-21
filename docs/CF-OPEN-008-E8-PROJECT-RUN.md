@@ -21,7 +21,7 @@ Autorização por `DynamicProjectScope`: `VIEW_OPEN_E8_RUN` para o dono do rascu
 
 ## Interface
 
-Preparação técnica mostra a última tentativa do período e, para quem pode registrar, o botão correspondente. O navegador não envia número e não contém fórmula. O botão de reexecução do piloto não é reutilizado.
+Preparação técnica mostra a última tentativa do período e, para quem pode registrar, o botão correspondente. O navegador não envia número e não contém fórmula. O botão de reexecução do piloto não é reutilizado. O motivo da tentativa nomeia a grandeza em português. O código estável fica na referência, inclusive quando as horas não compartilham um único fator elétrico, quando quem registra é autor dos vínculos, ou quando as versões deixaram de ser as vigentes.
 
 ## O que continua pendente para encerrar #97
 
