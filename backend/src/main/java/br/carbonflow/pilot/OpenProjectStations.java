@@ -29,6 +29,10 @@ class OpenProjectStations {
     record Selection(String chargerCode, int chargerVersion, String siteCode, int siteVersion) {}
     record Boundary(int version, List<Selection> selected, String state,
         List<String> findings, boolean usableForE8) {}
+    /** Boundary pins only. Meter flags are false unless every selected charger matches the current revision. */
+    record EnergyPosture(String boundary, boolean plannedOnly, boolean edMeter, boolean ecMeter) {
+        static final EnergyPosture NONE = new EnergyPosture("NO_SELECTION", false, false, false);
+    }
     record Catalog(String projectId, String environment, List<Site> sites,
         List<Charger> chargers, Boundary boundary) {}
     record Choice(String code, int version) {}
@@ -165,6 +169,58 @@ class OpenProjectStations {
         if(refs.isEmpty())messages.add("Nenhum carregador está na fronteira.");
         else if(!stale)messages.add("Fronteira preparatória: prova de titularidade, revisão e aplicabilidade pendentes.");
         return new Boundary(version,List.copyOf(refs),state,List.copyOf(messages),false);
+    }
+
+    static EnergyPosture posture(Connection c, String project) throws SQLException {
+        int version = currentBoundary(c, project);
+        if (version == 0) return EnergyPosture.NONE;
+        record Pin(String charger, int chargerVersion, String site, int siteVersion,
+                Integer currentCharger, String currentSite, Integer currentSiteVersion,
+                String operational) {}
+        List<Pin> pins = query(c, """
+            SELECT b.charger_code, b.charger_version, b.site_code, b.site_version,
+              c.version AS current_charger, c.site_code AS current_site,
+              s.version AS current_site_version, s.operational_state
+            FROM app_open_project_boundary_charger b
+            LEFT JOIN (
+              SELECT DISTINCT ON (charger_code) charger_code, version, site_code
+              FROM app_open_charger_revision WHERE project_id=?
+              ORDER BY charger_code, version DESC
+            ) c ON c.charger_code=b.charger_code
+            LEFT JOIN (
+              SELECT DISTINCT ON (site_code) site_code, version, operational_state
+              FROM app_open_site_revision WHERE project_id=?
+              ORDER BY site_code, version DESC
+            ) s ON s.site_code=b.site_code
+            WHERE b.project_id=? AND b.boundary_version=?
+            ORDER BY b.charger_code
+            """, r -> new Pin(r.getString("charger_code"), r.getInt("charger_version"),
+                r.getString("site_code"), r.getInt("site_version"),
+                (Integer) r.getObject("current_charger"), r.getString("current_site"),
+                (Integer) r.getObject("current_site_version"), r.getString("operational_state")),
+            project, project, project, version);
+        if (pins.isEmpty()) return EnergyPosture.NONE;
+        boolean stale = pins.stream().anyMatch(pin -> pin.currentCharger() == null
+            || pin.currentSiteVersion() == null || pin.currentSite() == null
+            || pin.currentCharger() != pin.chargerVersion()
+            || pin.currentSiteVersion() != pin.siteVersion()
+            || !pin.currentSite().equals(pin.site()));
+        if (stale) return new EnergyPosture("STALE", false, false, false);
+        record MeterPin(String charger, int chargerVersion, String kind) {}
+        List<MeterPin> meters = query(c, """
+            SELECT DISTINCT ON (meter_code) charger_code, charger_version, energy_kind
+            FROM app_open_meter_configuration_revision WHERE project_id=?
+            ORDER BY meter_code, version DESC
+            """, r -> new MeterPin(r.getString("charger_code"), r.getInt("charger_version"),
+                r.getString("energy_kind")), project);
+        boolean ed = pins.stream().allMatch(pin -> meters.stream().anyMatch(meter ->
+            pin.charger().equals(meter.charger()) && meter.chargerVersion() == pin.chargerVersion()
+                && "ED".equals(meter.kind())));
+        boolean ec = pins.stream().allMatch(pin -> meters.stream().anyMatch(meter ->
+            pin.charger().equals(meter.charger()) && meter.chargerVersion() == pin.chargerVersion()
+                && "EC".equals(meter.kind())));
+        boolean plannedOnly = pins.stream().noneMatch(pin -> "ACTIVE".equals(pin.operational()));
+        return new EnergyPosture("SELECTED", plannedOnly, ed, ec);
     }
 
     private static int currentBoundary(Connection c,String project) throws SQLException {

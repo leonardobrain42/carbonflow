@@ -40,11 +40,12 @@ class ProjectRequirements {
             applicability && open ? OpenApplicability.currentReadiness(connection, context.id()) : null,
             calculation && open ? OpenCalculationReadiness.diagnose(
                 connection, context.id(), context.environment()) : null,
-            owners(connection, context.id(), applicability, calculation)));
+            owners(connection, context.id(), applicability, calculation,
+                actions.contains("VIEW_OPEN_MONITORING"))));
     }
 
     private static ProjectRequirementProjection.Owners owners(Connection connection, String project,
-            boolean applicability, boolean calculation) throws SQLException {
+            boolean applicability, boolean calculation, boolean monitoring) throws SQLException {
         String fleet = "FLEET_SELECTION_MISSING";
         String binding = "BINDING_MISSING";
         if (calculation) {
@@ -55,7 +56,9 @@ class ProjectRequirements {
             }
         }
         return new ProjectRequirementProjection.Owners(
-            applicability && rightsRecheck(connection, project), fleet, binding);
+            applicability && rightsRecheck(connection, project), fleet, binding,
+            monitoring ? OpenProjectStations.posture(connection, project)
+                : OpenProjectStations.EnergyPosture.NONE);
     }
 
     /** A present proof that changed needs review. A still-missing proof stays a gap. */

@@ -51,6 +51,18 @@ test('analisar mostra ação, espera e recorte sem concluir as quatro pendência
       limits:'Nenhum BE, PE, LE ou ER foi calculado. Este diagnóstico não aprova adicionalidade, direitos, fonte ou crédito.',
       summary:{mine:1,awaitingSource:1,awaitingReview:1,outOfScope:1},
       requirements:[
+        {requirementId:'BOUNDARY',methodologyId:'VM0038',edition:'1.1',ruleRef:'CF-OPEN-009',
+          state:'ABSENT',situation:'Ainda não informado',
+          reason:'A fronteira ainda não seleciona carregador DCFC do SIN. Estação planejada não produz energia medida, e a falta de leitura não vale zero.',
+          ownerRole:'PREP',nextAction:'Selecionar as estações e os carregadores da fronteira.',
+          actionLabel:'Abrir as estações',destination:{area:'technical',screen:'estacoes',step:null},
+          group:'MINE',clientAction:true,blocksExAntePd:false,admitsE8:false,affectedOutputs:['monitoramento']},
+        {requirementId:'ED_METER',methodologyId:'VM0038',edition:'1.1',ruleRef:'CF-OPEN-009',
+          state:'ABSENT',situation:'Ainda não informado',
+          reason:'Falta o medidor da energia entregue (ED), a jusante, distinto da energia consumida.',
+          ownerRole:'OP',nextAction:'Cadastrar o instrumento de ED na fronteira atual.',
+          actionLabel:'Abrir o monitoramento',destination:{area:'technical',screen:'monitorar',step:null},
+          group:'MINE',clientAction:true,blocksExAntePd:false,admitsE8:false,affectedOutputs:['monitoramento']},
         {requirementId:'DRIVER_DISCLOSURE',methodologyId:'VM0038',edition:'1.1',ruleRef:'CF-OPEN-004',
           state:'NEEDS_EVIDENCE',situation:'Falta comprovante',
           reason:'Falta a prova datada de divulgação aos motoristas.',ownerRole:'PREP',
@@ -81,18 +93,23 @@ test('analisar mostra ação, espera e recorte sem concluir as quatro pendência
     await page.getByRole('heading',{name:'Fora do recorte'}).waitFor();
     await page.getByText('Nenhum BE, PE, LE ou ER foi calculado.').waitFor();
     await page.getByText('Divulgação aos motoristas',{exact:true}).waitFor();
+    await page.getByText('Fronteira do projeto',{exact:true}).waitFor();
+    await page.getByText('Medidor da energia entregue',{exact:true}).waitFor();
+    await page.getByRole('button',{name:'Abrir as estações'}).waitFor();
     await page.getByText('Próximo passo: Indicar a referência do comprovante na declaração.').waitFor();
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
     const notes=page.getByText('Papel, regra e referência',{exact:true});
-    assert.equal(await notes.count(),4);
-    for (let i=0;i<4;i++) await notes.nth(i).click();
+    assert.equal(await notes.count(),6);
+    for (let i=0;i<6;i++) await notes.nth(i).click();
     await page.getByText('Não bloqueia o documento ex ante.').waitFor();
-    await page.getByText('Metodologia aplicável: VM0038 v1.1',{exact:true}).waitFor();
+    await page.getByText('Metodologia aplicável: VM0038 v1.1',{exact:true}).first().waitFor();
     await page.getByText('Regra: CF-OPEN-004',{exact:true}).waitFor();
+    await page.getByText('Regra: CF-OPEN-009',{exact:true}).first().waitFor();
     await page.getByText('Referência: DRIVER_DISCLOSURE',{exact:true}).waitFor();
-    await page.getByText('Papel previsto: preparação').waitFor();
+    await page.getByText('Referência: BOUNDARY',{exact:true}).waitFor();
+    await page.getByText('Papel previsto: preparação').first().waitFor();
     await page.getByText('Papel previsto: revisão').waitFor();
-    await page.getByText('Papel previsto: operação').waitFor();
+    await page.getByText('Papel previsto: operação').first().waitFor();
     await page.getByText('Papel previsto: equipe CarbonFlow').waitFor();
     await page.getByText('Nenhuma pessoa foi designada por este diagnóstico.').first().waitFor();
     assert.equal(await page.getByText('PENDING_OFFICIAL_DATA').count(),0);
