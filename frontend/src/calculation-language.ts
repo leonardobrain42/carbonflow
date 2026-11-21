@@ -319,7 +319,7 @@ const TERMS: Record<string, string> = {
   RIGHTS_DATE_GAP: 'Datas dos direitos',
   DOUBLE_CLAIMING: 'Duplo pleito',
   VMD0049_ROUTE: 'Lista positiva',
-  MARKET_ROUTE: 'Rota de mercado',
+  MARKET_ROUTE: 'Teste de mercado da aplicabilidade',
   REGULATORY_SURPLUS: 'Excedente regulatório',
   ED_EC: 'Energia entregue e consumida',
   TRIAGE_CHANGED: 'Triagem alterada',

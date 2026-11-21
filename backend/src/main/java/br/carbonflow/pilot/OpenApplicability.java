@@ -183,15 +183,24 @@ class OpenApplicability {
                 findings.add(new Finding("DOUBLE_CLAIMING","NEEDS_REVIEW",
                     "Conferir sobreposição de direitos e outros programas, não presumir exclusividade."));
             }
+            if("OPEN_CANDIDATE".equals(network) && !outside && !incomplete) {
+                // §4 market test, §8 positive list and regulatory surplus are distinct.
+                // A saved declaration never concludes any of them.
+                findings.add(new Finding("MARKET_ROUTE","PENDING_OFFICIAL_DATA",
+                    "Teste de aplicabilidade de mercado da VM0038 §4 para rede aberta. "
+                        + "Não é rota de adicionalidade. Dado oficial ausente não vale zero e não reprova o projeto. "
+                        + "A declaração não conclui este teste."));
+                findings.add(new Finding("VMD0049_ROUTE","PENDING_NORMATIVE_SOURCE",
+                    "Lista positiva VMD0049 é hipótese de adicionalidade, distinta do teste de mercado e do excedente regulatório. "
+                        + "Presença na tabela da edição não aprova a adicionalidade."));
+                findings.add(new Finding("REGULATORY_SURPLUS","PENDING_LEGAL_REVIEW",
+                    "Excedente regulatório exige parecer humano, separado da lista positiva. "
+                        + "Preencher a declaração não aprova este teste."));
+                findings.add(new Finding("ED_EC","PENDING_MEASUREMENT",
+                    "ED e EC exigem instrumentos e registros distintos; nenhum valor é simulado. "
+                        + "A falta deles não bloqueia o documento ex ante."));
+            }
         }
-        findings.add(new Finding("VMD0049_ROUTE","PENDING_NORMATIVE_SOURCE",
-            "Rota de lista positiva é hipótese separada; selecionar edição vigente e verificar Brasil/tecnologia."));
-        findings.add(new Finding("MARKET_ROUTE","PENDING_OFFICIAL_DATA",
-            "Rota alternativa exige dados nacionais oficiais recentes na validação; ausência não equivale a zero."));
-        findings.add(new Finding("REGULATORY_SURPLUS","PENDING_LEGAL_REVIEW",
-            "Excedente regulatório e cronologia exigem análise separada; não decorrentes de lista positiva."));
-        findings.add(new Finding("ED_EC","PENDING_MEASUREMENT",
-            "ED e EC exigem instrumentos e registros distintos; nenhum valor é simulado."));
         if(stale) findings.add(0,new Finding("TRIAGE_CHANGED","STALE",
             "A triagem foi revisada depois desta declaração. Reconfirme o recorte antes de análise."));
         String rights=findings.stream().anyMatch(f->Set.of("OWNER_CONTRACT","DRIVER_DISCLOSURE",
