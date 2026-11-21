@@ -14,7 +14,7 @@
       <div><dt>Medidores configurados</dt><dd>{{plan.meters.length}}</dd></div>
       <div><dt>Energia entregue (ED)</dt><dd>Pendente de medição admitida</dd></div>
       <div><dt>Energia consumida (EC)</dt><dd>Pendente de medição admitida</dd></div>
-      <div><dt>Pronto para E8?</dt><dd>Não — {{stateName(plan.readiness.state)}}</dd></div>
+      <div><dt>Pronto para o cálculo?</dt><dd>Não — {{stateName(plan.readiness.state)}}</dd></div>
     </dl>
     <p>Para projetos reais, não são importadas leituras, registros de cobrança ou dados do piloto sintético.
       Mesmo com certificados informados, a calibração e a fronteira devem ser revisadas.</p>
@@ -407,7 +407,7 @@
       <p role="status"><strong>{{preview.state==='READY_FOR_INTERNAL_QA_SNAPSHOT'
         ?'Reconciliação técnica possível':'Reconciliação bloqueada'}}</strong></p>
       @if (preview.readyForInternalSnapshot) {
-        <p>ED revisada: {{preview.edKwh}} kWh · EC revisada: {{preview.ecKwh}} kWh.
+        <p>Energia entregue revisada: {{preview.edKwh}} kWh · energia consumida revisada: {{preview.ecKwh}} kWh.
           Esses valores são exclusivamente de QA interno, não de crédito.</p>
         @if (canReview) {
           <button type="button" class="cf-workspace-primary" [disabled]="qaLoading()"
@@ -432,9 +432,9 @@
       <ul class="cf-tech-gates">
         @for (snap of qaSnapshots(); track snap.id) {
           <li><strong>{{term(snap.status)}}</strong> · {{snap.from}} a {{snap.until}}
-            <p>ED {{snap.edKwh}} kWh · EC {{snap.ecKwh}} kWh · SHA-256
-              {{snap.sourceSha256.slice(0,16)}}…</p>
-            <small>Este histórico não demonstra admissão metodológica e não autoriza E8.</small>
+            <p>Energia entregue {{snap.edKwh}} kWh · energia consumida {{snap.ecKwh}} kWh ·
+              SHA-256 declarado {{snap.sourceSha256.slice(0,16)}}…</p>
+            <small>Detecta alteração deste snapshot. Não autentica a fonte, não demonstra admissão e não autoriza o cálculo.</small>
             <button type="button" class="cf-workspace-outline"
               [disabled]="proofLoading()"
               (click)="inspectSnapshot(snap.id)">
@@ -450,18 +450,18 @@
       <section class="cf-journey-context" aria-labelledby="cf-proof-title">
         <h4 id="cf-proof-title">Evidências e vigência do snapshot</h4>
         <p>Snapshot {{snapshotId}}. Conferência documental interna não é validação
-          metodológica nem autorização de uso dos dados para E8.</p>
+          metodológica nem autorização de uso dos dados no cálculo.</p>
         @if (proofLoading()) {
           <p role="status">Reavaliando referências, pareceres e evidências…</p>
         }
         @if (proofReadiness(); as proof) {
           <p role="status"><strong>{{stateName(proof.state)}}</strong> ·
             {{proof.stale?'Snapshot obsoleto, bloqueado':'Histórico coerente com o QA atual'}}</p>
-          <p>Energia histórica registrada: ED {{proof.historicalEdKwh}} kWh ·
-            EC {{proof.historicalEcKwh}} kWh. Nenhum valor é admissível no E8 por esta tela.</p>
+          <p>Energia histórica registrada: energia entregue {{proof.historicalEdKwh}} kWh ·
+            energia consumida {{proof.historicalEcKwh}} kWh. Nenhum valor é admissível para o cálculo por esta tela.</p>
           <p>Documentação revisada internamente:
             {{proof.documentaryComplete ? 'Sim, pendente da avaliação normativa' : 'Não'}}.
-            Uso para E8: <strong>Não</strong>.</p>
+            Uso para o cálculo: <strong>Não</strong>.</p>
           @if (proof.gates.length) {
             <ul class="cf-tech-gates" aria-label="Impedimentos de vigência">
               @for (gate of proof.gates; track $index) {

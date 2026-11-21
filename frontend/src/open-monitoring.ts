@@ -75,7 +75,7 @@ const METHOD_LABELS:Record<MethodCriterion,string>={
   BOUNDARY_DCFC_SIN:'Fronteira VM0038 v1.1, DCFC/SIN e topologia elegível',
   METER_CALIBRATION:'Calibração, período, identificação e posição dos medidores',
   SOURCE_RIGHTS:'Direito de usar as leituras e evidências de origem',
-  HOURLY_ED_EC:'Cobertura horária real com ED e EC separados',
+  HOURLY_ED_EC:'Cobertura horária real com energia entregue e energia consumida separadas',
   CLOCK_GAPS_MAINTENANCE:'Relógio, lacunas, manutenção e reconciliação',
   DOUBLE_CLAIMING:'Titularidade, exclusividade e possível dupla contagem'
 };

@@ -55,11 +55,11 @@ final class OpenMonitoringChecks {
             var ec = belonging.stream().filter(m -> "EC".equals(m.details().energyKind())).toList();
             if (ed.isEmpty()) {
                 add(gates, "ED_METER_MISSING", "MISSING",
-                    "Defina medidor a jusante para energia efetivamente entregue aos BEVs.", code, null);
+                    "Defina o medidor a jusante da energia entregue aos veículos.", code, null);
             }
             if (ec.isEmpty()) {
                 add(gates, "EC_METER_MISSING", "MISSING",
-                    "Defina medidor a montante para consumo do sistema, distinto de ED.", code, null);
+                    "Defina o medidor a montante da energia consumida pela infraestrutura, distinto da energia entregue.", code, null);
             }
             if (ed.size() > 1 || ec.size() > 1) {
                 add(gates, "METER_ROLE_CONFLICT", "NEEDS_REVIEW",
@@ -68,7 +68,7 @@ final class OpenMonitoringChecks {
             }
             if (ed.size() == 1 && ec.size() == 1 && ed.getFirst().code().equals(ec.getFirst().code())) {
                 add(gates, "METER_BOUNDARY_CONFLICT", "NEEDS_REVIEW",
-                    "Um medidor sem fronteiras distintas não comprova ED e EC.", code, null);
+                    "Um medidor sem fronteiras distintas não comprova a energia entregue e a energia consumida.", code, null);
             }
             for (Meter meter : belonging) {
                 MeterInput measurement = meter.details();
@@ -119,7 +119,7 @@ final class OpenMonitoringChecks {
         // A scoped, immutable raw measurement pipeline for dynamic projects is
         // not yet implemented. Never reuse SIM observations or count bookings.
         add(gates, "ED_EC_OBSERVATIONS", "PENDING_MEASUREMENT",
-            "Nenhum lote de medição ED/EC foi admitido. Dados de cobrança ou sessões não são energia medida.",
+            "Nenhum lote de medição de energia entregue e consumida foi admitido. Dados de cobrança ou sessões não são energia medida.",
             null, null);
         return new Readiness(outside ? "BLOCKED_OUT_OF_SCOPE" : "PENDING_MEASUREMENT",
             true, false, null, null, List.copyOf(gates));
