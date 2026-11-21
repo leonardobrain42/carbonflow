@@ -24,7 +24,7 @@
                 <strong>{{item.situation}}</strong>
                 <p>{{item.reason}}</p>
                 <p>Próximo passo: {{item.nextAction}}</p>
-                <p>Responsável previsto: {{item.ownerRole}}. Nenhuma pessoa foi designada por este diagnóstico.</p>
+                <p>Papel previsto: {{roleLabel(item.ownerRole)}}. Nenhuma pessoa foi designada por este diagnóstico.</p>
                 @if (item.affectedOutputs.length) {
                   <p>Entra em: {{item.affectedOutputs.join(', ')}}.</p>
                 }

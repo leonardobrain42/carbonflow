@@ -3,6 +3,7 @@ import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {firstValueFrom} from 'rxjs';
 import {TypedGuideComponent} from './typed-guide';
 import {PdTraceComponent} from './pd-trace';
+import {calculationGateTitle, plannedRole} from './calculation-language';
 
 export type WorkbenchKind='baseline'|'additionality';
 type Field={key:string;label:string;type:string;unit:string|null;helpText:string|null};
@@ -221,6 +222,8 @@ export class DecisionWorkbenchComponent implements OnChanges {
     if(value===null||value===undefined||value==='')return 'Não informado';
     return String(value);
   }
+  gateName(code:string){return calculationGateTitle(code);}
+  roleLabel(owner:string){return plannedRole(owner);}
   labelState(value:string){
     const map:Record<string,string>={
       FORM_COMPLETED_DECLARED:'Campos declarados, sem comprovação',
@@ -231,7 +234,15 @@ export class DecisionWorkbenchComponent implements OnChanges {
       PREPARATORY_NOT_ADMITTED:'Snapshot preparatório — não admitido',
       STALE_NOT_ADMITTED:'Vínculo obsoleto — não admitido',
       MISSING:'Dado faltante',NOT_ADMITTED:'Ainda não admitido',
-      REVIEW_REQUIRED:'Revisão necessária'
+      REVIEW_REQUIRED:'Revisão necessária',
+      BLOCKED_MISSING_DATA:'Aguardando dados e vínculos',
+      BLOCKED_NOT_ADMISSIBLE:'Fora do recorte ou precisa de reavaliação',
+      MISSING_BINDING:'Fonte ainda não vinculada',
+      PENDING_MEASUREMENT:'Medição pendente',
+      READY_FOR_NORMATIVE_REVIEW:'Pronto para revisão normativa',
+      EVIDENCE_PENDING:'Prova ainda pendente',
+      STALE:'Exige rechecagem',
+      OUT_OF_SCOPE:'Fora do recorte inicial',
     };
     return map[value]??value;
   }

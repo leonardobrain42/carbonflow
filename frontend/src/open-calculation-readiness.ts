@@ -1,4 +1,5 @@
 import {Component, Input, OnChanges, SimpleChanges, inject, signal} from '@angular/core';
+import {calculationGateTitle, plannedRole} from './calculation-language';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {firstValueFrom} from 'rxjs';
 
@@ -210,41 +211,11 @@ export class OpenCalculationReadinessComponent implements OnChanges {
   }
 
   gateTitle(gate:CalculationGate):string {
-    const named:Record<string,string>={
-      METHODOLOGY:'Metodologia',
-      COUNTRY:'País',
-      VEHICLE_CLASS:'Classe de veículos',
-      OPEN_APPLICABILITY:'Declaração de rede aberta',
-      NETWORK_MODE:'Modo da rede',
-      TECHNICAL_BRANCH:'Ramo técnico',
-      NORMATIVE_PACK:'Regra e edição',
-      CARBON_RIGHTS:'Direitos sobre as reduções',
-      EVR:'Estoque nacional EVR',
-      AFEC_MPG:'Ratings e comparáveis',
-      EF_FUEL:'Fator fóssil',
-      IR:'Melhoria tecnológica',
-      DY:'Desconto por outro crédito',
-      ED:'Energia entregue',
-      EC:'Energia consumida',
-      EF_GRID:'Fator elétrico da rede',
-      MR_PERIOD_DEPENDENCY:'Período de monitoramento',
-    };
-    if(named[gate.code])return named[gate.code];
-    const period=gate.code.split('_').at(-1)??'';
-    const prefixed:[string,string][]=[
-      ['MR_DEPENDENCY_','Monitoramento do período'],
-      ['METHOD_REVIEW_','Parecer do método no período'],
-      ['E8_ENERGY_INPUT_','Energia do período'],
-      ['E8_EFEL_','Fator elétrico do período'],
-      ['E8_VT0011_CASE2_','Caderno elétrico do período'],
-      ['E8_TOOL07_SIMPLE_OM_','Apuração preliminar do período'],
-      ['E8_INPUT_BINDING_','Vínculo de energia do período'],
-      ['E8_FLEET_SELECTION_','Vínculo de frota do período'],
-    ];
-    for(const [prefix,title] of prefixed){
-      if(gate.code.startsWith(prefix))return title+' '+period;
-    }
-    return gate.code;
+    return calculationGateTitle(gate.code);
+  }
+
+  roleLabel(owner:string):string {
+    return plannedRole(owner);
   }
 
   stateLabel(value:string) {

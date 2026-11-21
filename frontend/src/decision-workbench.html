@@ -82,8 +82,10 @@
             {{c.canRunE8?'Verificar admissibilidade antes de executar.':'E8 não liberado para este projeto.'}}</p>
           @for (gate of baselineGates();track gate.code){
             <details class="cf-journey-context" open>
-              <summary>{{gate.code}} · {{labelState(gate.state)}}</summary>
-              <p>{{gate.reason}}</p><p>Próxima ação: {{gate.nextAction}} · Responsável: {{gate.owner}}</p>
+              <summary>{{gateName(gate.code)}} · {{labelState(gate.state)}}</summary>
+              <p>{{gate.reason}}</p>
+              <p>Próxima ação: {{gate.nextAction}} · Papel previsto: {{roleLabel(gate.owner)}}</p>
+              <p>Referência: {{gate.code}}</p>
             </details>
           } @empty {<p>Não há diagnóstico específico de fatores disponível neste momento.</p>}
         } @else {
@@ -98,7 +100,7 @@
         <p>Registre apenas informações contextuais e referências candidatas.
           Composição EVR, pares de ratings e fatores reais são escolhidos nos respectivos módulos.</p>
         @if (guide(); as g) {
-          <p role="status">{{labelState(g.state)}}. Responsável previsto: PREP.
+          <p role="status">{{labelState(g.state)}}. Papel previsto: preparação.
             Nenhuma pessoa foi designada por esta etapa.</p>
           <p>Motivo: {{g.missing.length
             ? 'ainda há campo tipado sem resposta nesta etapa.'
@@ -118,8 +120,10 @@
         @if (calculation();as c){
           @for (gate of c.gates;track gate.code){
             <details class="cf-journey-context">
-              <summary>{{gate.code}} · {{labelState(gate.state)}}</summary>
-              <p>{{gate.reason}}</p><p>Próxima ação: {{gate.nextAction}} · Responsável: {{gate.owner}}</p>
+              <summary>{{gateName(gate.code)}} · {{labelState(gate.state)}}</summary>
+              <p>{{gate.reason}}</p>
+              <p>Próxima ação: {{gate.nextAction}} · Papel previsto: {{roleLabel(gate.owner)}}</p>
+              <p>Referência: {{gate.code}}</p>
             </details>
           }
         } @else {<p>Não há avaliação de cálculo acessível; nenhuma fonte é considerada aprovada.</p>}
@@ -175,7 +179,7 @@
         }
         <h4>Datas e justificativas tipadas</h4>
         @if (guide(); as g) {
-          <p role="status">{{labelState(g.state)}}. Responsável previsto: PREP.
+          <p role="status">{{labelState(g.state)}}. Papel previsto: preparação.
             Nenhuma pessoa foi designada por esta etapa.</p>
           <p>Motivo: {{g.missing.length
             ? 'ainda há data ou justificativa tipada sem resposta.'
