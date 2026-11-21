@@ -86,8 +86,10 @@ class ProjectRequirementsIntegrationTest {
         assertEquals(200, call("PUT", "/v1/projects/" + id + "/technical/open-rights/contracts/CONTRACT-001",
             owner.cookie(), key(), "\"0\"",
             "{\"partyCode\":\"HOLDER-1\",\"label\":\"Contrato de direitos\"}").statusCode());
+        String contractFile = pdf(owner, id, "CONTRACT", "CONTRACT-001");
         String recorded = withoutProof.replace("\"effectiveFrom\"",
-            "\"rightsPartyCode\":\"HOLDER-1\",\"rightsContractCode\":\"CONTRACT-001\",\"effectiveFrom\"");
+            "\"rightsPartyCode\":\"HOLDER-1\",\"rightsContractCode\":\"CONTRACT-001\","
+                + "\"contractFileId\":\"" + contractFile + "\",\"effectiveFrom\"");
         assertEquals(200, call("PUT", "/v1/projects/" + id + "/technical/open-applicability",
             owner.cookie(), key(), "\"1\"", recorded).statusCode());
         JsonNode gaps = json(call("GET", path, owner.cookie()));
@@ -100,7 +102,9 @@ class ProjectRequirementsIntegrationTest {
         assertTrue(finding(gaps, "MARKET_ROUTE").path("reason").asText().contains("Não é uma rota de adicionalidade"));
         assertFalse(gaps.findValuesAsText("requirementId").contains("NO_DECLARATION"));
 
+        String disclosureFile = pdf(owner, id, "DISCLOSURE", "DECLARATION");
         String withProof = recorded.replace("\"NOT_DECLARED\"", "\"ON_CHARGER\"")
+            .replace("\"effectiveFrom\"", "\"disclosureFileId\":\"" + disclosureFile + "\",\"effectiveFrom\"")
             .replace("\"UNKNOWN\"", "\"NO_OVERLAP_DECLARED\"")
             .replace("\"effectiveFrom\"",
                 "\"driverDisclosureEvidenceRef\":\"PHOTO-2027\",\"driverDisclosureEffectiveOn\":\"2027-01-15\",\"effectiveFrom\"");
@@ -137,20 +141,25 @@ class ProjectRequirementsIntegrationTest {
         assertEquals(200, call("PUT", "/v1/projects/" + id + "/technical/open-rights/contracts/CONTRACT-002",
             owner.cookie(), key(), "\"0\"",
             "{\"partyCode\":\"HOLDER-1\",\"label\":\"Contrato dois\"}").statusCode());
+        String firstFile = pdf(owner, id, "CONTRACT", "CONTRACT-001");
+        String secondFile = pdf(owner, id, "CONTRACT", "CONTRACT-002");
+        String disclosureFile = pdf(owner, id, "DISCLOSURE", "DECLARATION");
         String first = """
             {"unrestrictedBevAccess":true,"restrictedToIdentifiedVehicles":false,
              "chargerType":"DCFC","propulsion":"BEV","electricitySource":"SIN",
              "associatedInfrastructure":false,"v2g":false,
              "rightsPartyCode":"HOLDER-1","rightsContractCode":"CONTRACT-001",
+             "contractFileId":"%s","disclosureFileId":"%s",
              "driverDisclosureChannel":"ON_CHARGER","driverDisclosureEvidenceRef":"PHOTO-1",
              "driverDisclosureEffectiveOn":"2027-01-15","doubleClaimingCheck":"NO_OVERLAP_DECLARED",
              "effectiveFrom":"2027-02-01"}
-            """;
+            """.formatted(firstFile, disclosureFile);
         assertEquals(200, call("PUT", "/v1/projects/" + id + "/technical/open-applicability",
             owner.cookie(), key(), "\"0\"", first).statusCode());
         JsonNode before = json(call("GET", "/v1/projects/" + id + "/technical/requirements", owner.cookie()));
         assertFalse(before.findValuesAsText("requirementId").contains("RIGHTS_DEPENDENCY"));
-        String changed = first.replace("CONTRACT-001", "CONTRACT-002").replace("PHOTO-1", "PHOTO-2");
+        String changed = first.replace("CONTRACT-001", "CONTRACT-002")
+            .replace(firstFile, secondFile).replace("PHOTO-1", "PHOTO-2");
         assertEquals(200, call("PUT", "/v1/projects/" + id + "/technical/open-applicability",
             owner.cookie(), key(), "\"1\"", changed).statusCode());
         JsonNode after = json(call("GET", "/v1/projects/" + id + "/technical/requirements", owner.cookie()));
@@ -494,6 +503,23 @@ class ProjectRequirementsIntegrationTest {
     }
 
     private static String key() { return UUID.randomUUID().toString(); }
+
+    private String pdf(Actor actor, String project, String subject, String code) throws Exception {
+        String name = "CONTRACT".equals(subject) ? "contrato.pdf" : "divulga.pdf";
+        var request = HttpRequest.newBuilder(URI.create(base.toExternalForm())
+            .resolve("/v1/projects/" + project + "/technical/open-rights/files/" + subject + "/" + code))
+            .header("Cookie", actor.cookie())
+            .header("Idempotency-Key", key())
+            .header("Content-Type", "application/pdf")
+            .header("X-File-Name", name)
+            .PUT(HttpRequest.BodyPublishers.ofString("%PDF-1.4\n%EOF\n"));
+        var response = client.send(request.build(), HttpResponse.BodyHandlers.ofString());
+        assertEquals(201, response.statusCode(), response.body());
+        JsonNode body = json(response);
+        assertEquals("PENDING_REVIEW", body.path("state").asText());
+        assertFalse(body.path("usableForE8").asBoolean());
+        return body.path("id").asText();
+    }
 
     private HttpResponse<String> call(String method, String path, String cookie) throws Exception {
         return call(method, path, cookie, null, null, null);

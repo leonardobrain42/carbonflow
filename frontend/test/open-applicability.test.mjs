@@ -52,6 +52,13 @@ test('a ficha OPEN permite preparar direitos sem fonte admitida nem cálculo E8'
     const catalog=()=>({parties,contracts,events,createsLegalPower:false,admitsRights:false});
     await page.route('**/v1/projects/*/technical/open-rights**',async route=>{
       const url=route.request().url();
+      if(route.request().method()==='PUT' && url.includes('/files/')){
+        const id=url.includes('/CONTRACT/')
+          ?'33333333-3333-4333-8333-333333333333'
+          :'44444444-4444-4444-8444-444444444444';
+        await route.fulfill({status:201,json:{id,state:'PENDING_REVIEW',usableForE8:false}});
+        return;
+      }
       if(route.request().method()==='PUT' && url.includes('/parties/')){
         const body=route.request().postDataJSON();
         const code=decodeURIComponent(url.split('/parties/')[1]);
@@ -120,6 +127,16 @@ test('a ficha OPEN permite preparar direitos sem fonte admitida nem cálculo E8'
     await page.getByLabel('Rótulo do contrato').fill('Contrato local');
     await page.getByRole('button',{name:'Registrar contrato'}).click();
     await page.getByLabel('Contrato registrado').selectOption({label:'Contrato local'});
+    const contractFile=page.waitForResponse(response=>response.url().includes('/files/CONTRACT/'));
+    await page.getByLabel('Arquivo do contrato').setInputFiles({
+      name:'contrato.pdf',mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.4\n%EOF\n'),
+    });
+    await contractFile;
+    const disclosureFile=page.waitForResponse(response=>response.url().includes('/files/DISCLOSURE/'));
+    await page.getByLabel('Arquivo da divulgação').setInputFiles({
+      name:'divulgacao.pdf',mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.4\n%EOF\n'),
+    });
+    await disclosureFile;
     await page.getByLabel('Data do início operacional da estação').fill('2027-02-01');
     await page.getByLabel('Referência do documento do início operacional').fill('ATO-OP-1');
     const operationalEvent=page.waitForResponse(response=>
@@ -141,6 +158,8 @@ test('a ficha OPEN permite preparar direitos sem fonte admitida nem cálculo E8'
     assert.equal(answers.rightsContractCode,contracts[0].code);
     assert.equal(answers.operationalEventCode,events.find(event=>event.kind==='OPERATIONAL_START').code);
     assert.equal(answers.vcsEventCode,events.find(event=>event.kind==='VCS_START').code);
+    assert.equal(answers.contractFileId,'33333333-3333-4333-8333-333333333333');
+    assert.equal(answers.disclosureFileId,'44444444-4444-4444-8444-444444444444');
     assert.equal(answers.chargingOwner,null);
     const ficha=page.getByRole('region',{name:'Aplicabilidade de rede aberta'});
     await ficha.getByText('Rede aberta candidata',{exact:false}).waitFor();

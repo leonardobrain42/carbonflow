@@ -136,6 +136,35 @@ class ProjectRequirementProjectionTest {
     }
 
     @Test
+    void typedReferenceWithoutAFileStaysWithTheClient() {
+        var typed = OpenApplicability.evaluate(new OpenApplicability.Input(true, false, true,
+            "DCFC", "BEV", "SIN", false, false, "Titular", "CONTRACT-1", "ON_CHARGER",
+            "PHOTO-2027", LocalDate.parse("2027-01-15"), "NO_OVERLAP_DECLARED",
+            null, null, "PARTY-1", "CONTRACT-1"), false);
+        assertEquals("NEEDS_EVIDENCE", typed.findings().stream()
+            .filter(f -> "OWNER_CONTRACT".equals(f.code())).findFirst().orElseThrow().state());
+        assertEquals("NEEDS_EVIDENCE", typed.findings().stream()
+            .filter(f -> "DRIVER_DISCLOSURE".equals(f.code())).findFirst().orElseThrow().state());
+        assertTrue(typed.findings().stream().anyMatch(f -> f.text().contains("falta o arquivo")));
+        assertTrue(typed.findings().stream().noneMatch(f -> "PROOF_ADMITTED".equals(f.state())));
+        assertFalse(typed.canUseForE8());
+        var view = project(true, true, typed, preflight(false));
+        assertEquals("MINE", item(view, "OWNER_CONTRACT").group());
+        assertEquals("MINE", item(view, "DRIVER_DISCLOSURE").group());
+        assertTrue(item(view, "OWNER_CONTRACT").clientAction());
+
+        var received = disclosurePresent();
+        var waiting = project(true, true, received, preflight(false));
+        assertEquals("Arquivo recebido, aguardando revisão", item(waiting, "OWNER_CONTRACT").situation());
+        assertEquals("Arquivo recebido, aguardando revisão", item(waiting, "DRIVER_DISCLOSURE").situation());
+        assertNull(item(waiting, "OWNER_CONTRACT").destination());
+        assertNull(item(waiting, "DRIVER_DISCLOSURE").destination());
+        assertFalse(item(waiting, "DRIVER_DISCLOSURE").clientAction());
+        assertTrue(waiting.requirements().stream().noneMatch(item -> "PROOF_ADMITTED".equals(item.state())));
+        assertFalse(waiting.canRunE8());
+    }
+
+    @Test
     void openBoundaryPlanStaysSeparateFromMeasuredEnergy() {
         var closed = monitored(OpenApplicability.evaluate(new OpenApplicability.Input(false, true, true,
             "DCFC", "PHEV", "SIN", false, true, null, null, "NOT_DECLARED", null, null,
@@ -481,14 +510,17 @@ class ProjectRequirementProjectionTest {
         return OpenApplicability.evaluate(new OpenApplicability.Input(true, false, true,
             "DCFC", "BEV", "SIN", false, false, "Titular secreto", "CONTRACT-001",
             "NOT_DECLARED", null, null, "UNKNOWN", LocalDate.parse("2027-02-01"), null,
-            "PARTY-1", "CONTRACT-1"), stale);
+            "PARTY-1", "CONTRACT-1", null, null, null, null,
+            "11111111-1111-4111-8111-111111111111", null), stale);
     }
 
     private static OpenApplicability.Readiness disclosurePresent() {
         return OpenApplicability.evaluate(new OpenApplicability.Input(true, false, true,
             "DCFC", "BEV", "SIN", false, false, "Titular", "CONTRACT-001", "ON_CHARGER",
             "PHOTO-2027", LocalDate.parse("2027-01-15"), "NO_OVERLAP_DECLARED",
-            LocalDate.parse("2027-02-01"), null, "PARTY-1", "CONTRACT-1"), false);
+            LocalDate.parse("2027-02-01"), null, "PARTY-1", "CONTRACT-1",
+            null, null, null, null,
+            "11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222"), false);
     }
 
     private static OpenCalculationPreflight.Result preflight(boolean stale) {

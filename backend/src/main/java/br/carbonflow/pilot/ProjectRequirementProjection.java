@@ -371,8 +371,10 @@ final class ProjectRequirementProjection {
 
     private static Item rightsEvidence(Input input, OpenApplicability.Finding finding) {
         if ("ATTACHED_NOT_ADMITTED".equals(finding.state())) {
+            boolean received = finding.text().contains("aguardando revisão");
             return review(input, finding.code(), "ATTACHED_NOT_ADMITTED",
-                "Referência registrada, não admitida", finding.text(),
+                received ? "Arquivo recebido, aguardando revisão" : "Referência registrada, não admitida",
+                finding.text(),
                 "Aguardar a revisão competente. Registrar a referência não admite o direito nem cria um grant.",
                 null, false, List.of("direitos"));
         }

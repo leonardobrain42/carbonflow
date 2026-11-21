@@ -55,6 +55,17 @@ public class OpenProjectRightsResource {
         return ok(rights.saveEvent(token, project, event, version, key, input));
     }
 
+    @PUT
+    @Path("/files/{subject}/{code}")
+    @Consumes("application/pdf")
+    public Response upload(@CookieParam(AccountAccess.COOKIE) String token,
+            @PathParam("project") String project, @PathParam("subject") String subject,
+            @PathParam("code") String code, @HeaderParam("X-File-Name") String filename,
+            @HeaderParam("Idempotency-Key") String key, byte[] pdf) {
+        OpenProjectRights.RightsFile file = rights.upload(token, project, subject, code, filename, key, pdf);
+        return Response.status(201).entity(file).header("Cache-Control", "private, no-store").build();
+    }
+
     private static Response ok(OpenProjectRights.Catalog catalog) {
         return Response.ok(catalog).header("Cache-Control", "private, no-store").build();
     }

@@ -13,6 +13,7 @@ type Declaration = {
   doubleClaimingCheck:string|null;effectiveFrom:string|null;explanation:string|null;
   rightsPartyCode:string|null;rightsContractCode:string|null;
   operationalEventCode:string|null;vcsEventCode:string|null;
+  contractFileId:string|null;disclosureFileId:string|null;
 };
 type Party={code:string;version:number;kind:string;displayName:string};
 type Contract={code:string;version:number;partyCode:string;partyVersion:number;label:string};
@@ -33,6 +34,7 @@ const EMPTY:Declaration={
   driverDisclosureChannel:'NOT_DECLARED',driverDisclosureEvidenceRef:null,
   driverDisclosureEffectiveOn:null,doubleClaimingCheck:'UNKNOWN',effectiveFrom:null,explanation:null,
   rightsPartyCode:null,rightsContractCode:null,operationalEventCode:null,vcsEventCode:null,
+  contractFileId:null,disclosureFileId:null,
 };
 
 @Component({
@@ -91,6 +93,28 @@ export class OpenApplicabilityComponent implements OnChanges {
   }
   bool(value:YesNo){return value===null?'':String(value);}
   eventsOf(kind:string){return this.events().filter(event=>event.kind===kind);}
+  async uploadFile(subject:'CONTRACT'|'DISCLOSURE',input:HTMLInputElement){
+    const file=input.files?.[0];
+    const code=subject==='CONTRACT'?this.form().rightsContractCode:'DECLARATION';
+    if(!file||!code||this.busy()){
+      if(subject==='CONTRACT'&&!code)this.error.set('Registre o contrato antes de anexar o arquivo.');
+      return;
+    }
+    this.busy.set(true);this.error.set('');
+    try{
+      const saved=await firstValueFrom(this.http.put<{id:string;state:string;usableForE8:boolean}>(
+        this.rightsPath()+'/files/'+subject+'/'+encodeURIComponent(code),file,{
+          headers:{'Content-Type':'application/pdf','X-File-Name':file.name,
+            'Idempotency-Key':crypto.randomUUID()},
+        }));
+      if(saved.state!=='PENDING_REVIEW'||saved.usableForE8){
+        this.error.set('O arquivo não pode ser tratado como prova admitida.');
+        return;
+      }
+      this.update(subject==='CONTRACT'?'contractFileId':'disclosureFileId',saved.id);
+    }catch(problem){this.error.set(this.message(problem));}
+    finally{this.busy.set(false);}
+  }
   async registerEvent(kind:'OPERATIONAL_START'|'VCS_START'){
     const draft=kind==='OPERATIONAL_START'?this.operationalDraft():this.vcsDraft();
     if(!draft.eventOn||!draft.documentRef.trim()||this.busy())return;

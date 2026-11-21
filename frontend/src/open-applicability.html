@@ -128,6 +128,9 @@
               <option [value]="contract.code">{{contract.label}}</option>
             }
           </select>
+          <label for="cf-contract-file">Arquivo do contrato</label>
+          <input id="cf-contract-file" type="file" accept="application/pdf"
+            (change)="uploadFile('CONTRACT',$any($event.target))"/>
           <label for="cf-open-channel">Como a informação chega aos motoristas?</label>
           <select id="cf-open-channel" [value]="form().driverDisclosureChannel ?? 'NOT_DECLARED'"
             (change)="update('driverDisclosureChannel',$any($event.target).value)">
@@ -142,7 +145,10 @@
             placeholder="Referência de versão e evidência da publicação"/>
           <div class="cf-journey-fields">
             <div>
-              <label for="cf-open-disclosure-date">Desde quando a divulgação vale?</label>
+              <label for="cf-disclosure-file">Arquivo da divulgação</label>
+          <input id="cf-disclosure-file" type="file" accept="application/pdf"
+            (change)="uploadFile('DISCLOSURE',$any($event.target))"/>
+          <label for="cf-open-disclosure-date">Desde quando a divulgação vale?</label>
               <input id="cf-open-disclosure-date" type="date"
                 [value]="form().driverDisclosureEffectiveOn ?? ''"
                 (change)="update('driverDisclosureEffectiveOn',$any($event.target).value)"/>

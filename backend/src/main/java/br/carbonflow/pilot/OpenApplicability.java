@@ -30,7 +30,20 @@ class OpenApplicability {
         String carbonRightsContractRef,String driverDisclosureChannel,String driverDisclosureEvidenceRef,
         LocalDate driverDisclosureEffectiveOn,String doubleClaimingCheck,LocalDate effectiveFrom,
         String explanation,String rightsPartyCode,String rightsContractCode,
-        String operationalEventCode,LocalDate operationalEventOn,String vcsEventCode,LocalDate vcsEventOn) {
+        String operationalEventCode,LocalDate operationalEventOn,String vcsEventCode,LocalDate vcsEventOn,
+        String contractFileId,String disclosureFileId) {
+        Input(Boolean unrestrictedBevAccess,Boolean restrictedToIdentifiedVehicles,Boolean privateLand,
+            String chargerType,String propulsion,String electricitySource,Boolean associatedInfrastructure,
+            Boolean v2g,String chargingOwner,String carbonRightsContractRef,String driverDisclosureChannel,
+            String driverDisclosureEvidenceRef,LocalDate driverDisclosureEffectiveOn,String doubleClaimingCheck,
+            LocalDate effectiveFrom,String explanation,String rightsPartyCode,String rightsContractCode,
+            String operationalEventCode,LocalDate operationalEventOn,String vcsEventCode,LocalDate vcsEventOn) {
+            this(unrestrictedBevAccess,restrictedToIdentifiedVehicles,privateLand,chargerType,propulsion,
+                electricitySource,associatedInfrastructure,v2g,chargingOwner,carbonRightsContractRef,
+                driverDisclosureChannel,driverDisclosureEvidenceRef,driverDisclosureEffectiveOn,
+                doubleClaimingCheck,effectiveFrom,explanation,rightsPartyCode,rightsContractCode,
+                operationalEventCode,operationalEventOn,vcsEventCode,vcsEventOn,null,null);
+        }
         /** A typed name without a project record is the same as an empty holder. */
         Input(Boolean unrestrictedBevAccess,Boolean restrictedToIdentifiedVehicles,Boolean privateLand,
             String chargerType,String propulsion,String electricitySource,Boolean associatedInfrastructure,
@@ -114,8 +127,9 @@ class OpenApplicability {
                    driver_disclosure_evidence_ref,driver_disclosure_effective_on,
                    double_claiming_check,effective_from,explanation,
                    rights_party_code,rights_contract_code,
-                   operational_event_code,operational_event_on,vcs_event_code,vcs_event_on)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                   operational_event_code,operational_event_on,vcs_event_code,vcs_event_on,
+                   contract_file_id,disclosure_file_id)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 """,context.id(),context.organization(),context.environment(),next,old.latestTriageVersion(),
                 context.actor().id(),input.unrestrictedBevAccess(),input.restrictedToIdentifiedVehicles(),
                 input.privateLand(),input.chargerType(),input.propulsion(),input.electricitySource(),
@@ -124,7 +138,11 @@ class OpenApplicability {
                 input.driverDisclosureEffectiveOn(),input.doubleClaimingCheck(),input.effectiveFrom(),
                 input.explanation(),input.rightsPartyCode(),input.rightsContractCode(),
                 operational==null?null:operational.code(),operational==null?null:operational.eventOn(),
-                vcs==null?null:vcs.code(),vcs==null?null:vcs.eventOn());
+                vcs==null?null:vcs.code(),vcs==null?null:vcs.eventOn(),
+                OpenProjectRights.acceptedFile(connection,context.id(),input.contractFileId(),
+                    "CONTRACT",input.rightsContractCode()),
+                OpenProjectRights.acceptedFile(connection,context.id(),input.disclosureFileId(),
+                    "DISCLOSURE","DECLARATION"));
             update(connection, """
                 INSERT INTO app_project_open_applicability_command(actor_id,command_key,project_id,fingerprint,revision)
                 VALUES (?,?,?,?,?)
@@ -150,7 +168,8 @@ class OpenApplicability {
                    driver_disclosure_evidence_ref,driver_disclosure_effective_on,
                    double_claiming_check,effective_from,explanation,recorded_at,
                    rights_party_code,rights_contract_code,
-                   operational_event_code,operational_event_on,vcs_event_code,vcs_event_on
+                   operational_event_code,operational_event_on,vcs_event_code,vcs_event_on,
+                   contract_file_id::text,disclosure_file_id::text
             FROM app_project_open_applicability_revision WHERE project_id=?
             ORDER BY version DESC LIMIT 1
             """,r->new Revision(r.getInt(1),r.getInt(2),r.getObject(3,UUID.class),
@@ -162,7 +181,8 @@ class OpenApplicability {
                     r.getObject(18,LocalDate.class),r.getString(19),
                     r.getString(21),r.getString(22),
                     r.getString(23),r.getObject(24,LocalDate.class),
-                    r.getString(25),r.getObject(26,LocalDate.class)),
+                    r.getString(25),r.getObject(26,LocalDate.class),
+                    r.getString(27),r.getString(28)),
                 r.getObject(20,OffsetDateTime.class)),project);
         Readiness ready=evaluate(revision==null?null:revision.answers(),
             revision!=null && revision.triageVersion()!=triage);
@@ -212,20 +232,29 @@ class OpenApplicability {
                 findings.add(new Finding("OWNER_CONTRACT","NEEDS_EVIDENCE",
                     "Registre o titular e o contrato neste projeto. "
                         + "Um nome digitado não cria o registro, não cria PP jurídico e não concede poder de representante."));
+            } else if(data.contractFileId()==null) {
+                findings.add(new Finding("OWNER_CONTRACT","NEEDS_EVIDENCE",
+                    "Titular e contrato foram registrados, mas falta o arquivo. "
+                        + "O registro não é prova admitida, não cria PP jurídico e não concede poder de representante."));
             } else {
                 findings.add(new Finding("OWNER_CONTRACT","ATTACHED_NOT_ADMITTED",
-                    "Titular e contrato foram registrados neste projeto. "
+                    "Arquivo do contrato recebido, aguardando revisão. "
                         + "Essa referência não é prova admitida, não cria PP jurídico e não concede poder de representante."));
             }
-            if(data.driverDisclosureChannel()==null ||
-                "NOT_DECLARED".equals(data.driverDisclosureChannel()) ||
-                data.driverDisclosureEvidenceRef()==null ||
-                data.driverDisclosureEffectiveOn()==null) {
+            boolean disclosureDeclared=data.driverDisclosureChannel()!=null
+                && !"NOT_DECLARED".equals(data.driverDisclosureChannel())
+                && data.driverDisclosureEvidenceRef()!=null
+                && data.driverDisclosureEffectiveOn()!=null;
+            if(!disclosureDeclared) {
                 findings.add(new Finding("DRIVER_DISCLOSURE","NEEDS_EVIDENCE",
                     "É necessária prova datada de divulgação aos motoristas em rede aberta."));
+            } else if(data.disclosureFileId()==null) {
+                findings.add(new Finding("DRIVER_DISCLOSURE","NEEDS_EVIDENCE",
+                    "Canal e data foram informados, mas falta o arquivo. "
+                        + "Uma referência digitada não é o arquivo e não comprova a divulgação."));
             } else {
                 findings.add(new Finding("DRIVER_DISCLOSURE","ATTACHED_NOT_ADMITTED",
-                    "Canal, data e referência de divulgação foram registrados. "
+                    "Arquivo da divulgação recebido, aguardando revisão. "
                         + "A referência não comprova a divulgação e não aprova direitos."));
             }
             LocalDate disclosed=data.driverDisclosureEffectiveOn();
@@ -306,7 +335,8 @@ class OpenApplicability {
             i.chargerType(),i.propulsion(),i.electricitySource(),i.associatedInfrastructure(),i.v2g(),
             owner,contract,i.driverDisclosureChannel(),disclosure,i.driverDisclosureEffectiveOn(),
             i.doubleClaimingCheck(),i.effectiveFrom(),note==null?"":note,party,rightsContract,
-            operational,null,vcs,null);
+            operational,null,vcs,null,fileId(i.contractFileId(),"contractFileId"),
+            fileId(i.disclosureFileId(),"disclosureFileId"));
     }
     private static OpenProjectRights.Event dated(Connection connection,String project,String code,String kind)
             throws java.sql.SQLException {
@@ -315,6 +345,11 @@ class OpenApplicability {
         if(event==null || !kind.equals(event.kind()))
             throw invalid("OPERATIONAL_START".equals(kind)?"operationalEventCode":"vcsEventCode");
         return event;
+    }
+    private static String fileId(String raw,String field) {
+        if(raw==null||raw.isBlank()) return null;
+        try { return UUID.fromString(raw.strip()).toString(); }
+        catch(IllegalArgumentException ex) { throw invalid(field); }
     }
     private static String clean(String value,int max) {
         if(value==null||value.isBlank())return null;

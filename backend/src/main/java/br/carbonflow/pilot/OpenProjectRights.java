@@ -10,6 +10,7 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.UUID;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
@@ -28,10 +29,16 @@ class OpenProjectRights {
     record Event(String code, int version, String kind, java.time.LocalDate eventOn, String documentRef) {}
     record Catalog(List<Party> parties, List<Contract> contracts, List<Event> events,
         boolean createsLegalPower, boolean admitsRights) {}
+    record RightsFile(UUID id, String subject, String subjectCode, String fileName,
+        String state, boolean usableForE8) {}
     private record Saved(String project, String target, int revision, byte[] fingerprint) {}
 
     private final DynamicProjectScope scope;
-    OpenProjectRights(DynamicProjectScope scope) { this.scope = scope; }
+    private final OpenMeasurementIngestion storage;
+    OpenProjectRights(DynamicProjectScope scope, OpenMeasurementIngestion storage) {
+        this.scope = scope;
+        this.storage = storage;
+    }
 
     Catalog get(String token, String project) {
         return scope.read(token, project, "VIEW_OPEN_APPLICABILITY",
@@ -96,6 +103,61 @@ class OpenProjectRights {
                     return next;
                 });
         });
+    }
+
+    RightsFile upload(String token, String project, String subject, String code, String filename,
+            String key, byte[] bytes) {
+        String kind = "CONTRACT".equals(subject) ? "CONTRACT" : "DISCLOSURE".equals(subject) ? "DISCLOSURE" : null;
+        if (kind == null) throw invalid("subject");
+        String target = "DISCLOSURE".equals(kind) ? "DECLARATION" : code(code, "contract");
+        String safeName = filename != null && filename.matches("[A-Za-z0-9][A-Za-z0-9._-]{4,115}\\.pdf")
+            ? filename : "anexo.pdf";
+        return scope.write(token, project, "SAVE_OPEN_APPLICABILITY", (connection, context) -> {
+            String command = PilotCommands.key(key);
+            UUID blob = storage.storeSupportPdf(connection, context, safeName, bytes);
+            byte[] digest = AccessSecrets.digest(context.id() + "|file|" + kind + "|" + target + "|" + blob);
+            UUID previous = first(connection, """
+                SELECT file_id FROM app_project_rights_file_command
+                WHERE actor_id=? AND command_key=? AND fingerprint=?
+                """, r -> r.getObject(1, UUID.class), context.actor().id(), command, digest);
+            if (previous != null) return file(connection, project, previous);
+            UUID clash = first(connection, """
+                SELECT file_id FROM app_project_rights_file_command WHERE actor_id=? AND command_key=?
+                """, r -> r.getObject(1, UUID.class), context.actor().id(), command);
+            if (clash != null)
+                throw new PilotProblem(409, "CHAVE_REUTILIZADA", "Idempotency-Key", RULE,
+                    "Esta chave identifica outro arquivo.");
+            if ("CONTRACT".equals(kind) && latestContract(connection, project, target) == null)
+                throw invalid("contract");
+            UUID id = UUID.randomUUID();
+            update(connection, """
+                INSERT INTO app_project_rights_file
+                  (id,project_id,organization_id,environment,subject,subject_code,
+                   evidence_blob_id,file_name,author_id)
+                VALUES (?,?,?,?,?,?,?,?,?)
+                """, id, context.id(), context.organization(), context.environment(), kind, target,
+                blob, safeName, context.actor().id());
+            update(connection, """
+                INSERT INTO app_project_rights_file_command
+                  (actor_id,command_key,project_id,fingerprint,file_id)
+                VALUES (?,?,?,?,?)
+                """, context.actor().id(), command, project, digest, id);
+            return file(connection, project, id);
+        });
+    }
+
+    static UUID acceptedFile(Connection connection, String project, String raw, String subject, String subjectCode)
+            throws SQLException {
+        if (raw == null || raw.isBlank()) return null;
+        UUID id;
+        try { id = UUID.fromString(raw.strip()); }
+        catch (IllegalArgumentException ex) { throw invalid("file"); }
+        RightsFile stored = file(connection, project, id);
+        if (stored == null || !subject.equals(stored.subject()) || subjectCode == null
+                || !subjectCode.equals(stored.subjectCode())
+                || !"PENDING_REVIEW".equals(stored.state()) || stored.usableForE8())
+            throw invalid("file");
+        return id;
     }
 
     /** The declaration may point only at a contract that belongs to the selected holder. */
@@ -175,6 +237,23 @@ class OpenProjectRights {
             """, r -> new Event(r.getString(1), r.getInt(2), r.getString(3),
                 r.getObject(4, java.time.LocalDate.class), r.getString(5)), project);
         return new Catalog(parties, contracts, events, false, false);
+    }
+
+    private static RightsFile file(Connection connection, String project, UUID id) throws SQLException {
+        return first(connection, """
+            SELECT id,subject,subject_code,file_name,state,usable_for_e8
+            FROM app_project_rights_file WHERE project_id=? AND id=?
+            """, r -> new RightsFile(r.getObject(1, UUID.class), r.getString(2), r.getString(3),
+                r.getString(4), r.getString(5), r.getBoolean(6)), project, id);
+    }
+
+    private static Contract latestContract(Connection connection, String project, String code) throws SQLException {
+        return first(connection, """
+            SELECT contract_code,version,party_code,party_version,label
+            FROM app_project_rights_contract WHERE project_id=? AND contract_code=?
+            ORDER BY version DESC LIMIT 1
+            """, r -> new Contract(r.getString(1), r.getInt(2), r.getString(3), r.getInt(4), r.getString(5)),
+            project, code);
     }
 
     private static Party latestParty(Connection connection, String project, String code) throws SQLException {
