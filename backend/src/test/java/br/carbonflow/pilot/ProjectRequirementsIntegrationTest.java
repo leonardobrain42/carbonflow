@@ -9,6 +9,7 @@ import java.net.URL;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.List;
 import java.util.UUID;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -233,6 +234,98 @@ class ProjectRequirementsIntegrationTest {
         assertFalse(calculatorDiagnosis.findValuesAsText("requirementId").contains("NO_DECLARATION"));
         assertFalse(calculatorDiagnosis.findValuesAsText("requirementId").contains("DRIVER_DISCLOSURE"));
         assertEquals("NOT_INCIDENT", finding(calculatorDiagnosis, "ED_EC").path("state").asText());
+    }
+
+    @Test
+    void homologationSeparatesRolesVersionsAndRejectedWrites() throws Exception {
+        Actor owner = actor(), preparer = actor(), reviewer = actor(), operator = actor();
+        UUID org = organization(owner.id());
+        String id = project(owner, org);
+        String path = "/v1/projects/" + id + "/technical/requirements";
+        assertEquals(200, call("PUT", "/v1/projects/" + id + "/technical/intake", owner.cookie(),
+            key(), "\"0\"", """
+                {"activity":"Recarga aberta","country":"BR","candidateMethodology":"VM0038"}
+                """).statusCode());
+        String declared = """
+            {"unrestrictedBevAccess":true,"restrictedToIdentifiedVehicles":false,
+             "chargerType":"DCFC","propulsion":"BEV","electricitySource":"SIN",
+             "associatedInfrastructure":false,"v2g":false,
+             "chargingOwner":"Titular","carbonRightsContractRef":"CONTRACT-SEGREDO",
+             "driverDisclosureChannel":"ON_CHARGER","driverDisclosureEvidenceRef":"PHOTO-SEGREDO",
+             "driverDisclosureEffectiveOn":"2027-01-15","doubleClaimingCheck":"NO_OVERLAP_DECLARED",
+             "effectiveFrom":"2027-02-01"}
+            """;
+        assertEquals(200, call("PUT", "/v1/projects/" + id + "/technical/open-applicability",
+            owner.cookie(), key(), "\"0\"", declared).statusCode());
+        JsonNode ownerView = json(call("GET", path, owner.cookie()));
+        assertFalse(ownerView.path("canRunE8").asBoolean());
+        assertFalse(ownerView.toString().contains("CONTRACT-SEGREDO"));
+        assertFalse(ownerView.toString().contains("assigneeId"));
+        assertEquals("NOT_ADMITTED", finding(ownerView, "EVR").path("state").asText());
+        assertEquals("NOT_INCIDENT", finding(ownerView, "ED_EC").path("state").asText());
+        assertFalse(finding(ownerView, "ED_EC").path("blocksExAntePd").asBoolean());
+
+        database.transaction(c -> {
+            update(c, """
+                INSERT INTO app_project_collaborator_grant
+                  (id,project_id,organization_id,environment,identity_id,granted_by,
+                   role,activities,valid_until)
+                VALUES (?, ?, ?, 'SANDBOX', ?, ?, 'PREP', ARRAY['INTAKE']::text[],
+                   statement_timestamp()+interval '3 days')
+                """, UUID.randomUUID(), id, org, preparer.id(), owner.id());
+            update(c, """
+                INSERT INTO app_project_collaborator_grant
+                  (id,project_id,organization_id,environment,identity_id,granted_by,
+                   role,activities,valid_until)
+                VALUES (?, ?, ?, 'SANDBOX', ?, ?, 'REV', ARRAY['DOCUMENTATION']::text[],
+                   statement_timestamp()+interval '3 days')
+                """, UUID.randomUUID(), id, org, reviewer.id(), owner.id());
+            update(c, """
+                INSERT INTO app_project_collaborator_grant
+                  (id,project_id,organization_id,environment,identity_id,granted_by,
+                   role,activities,valid_until)
+                VALUES (?, ?, ?, 'SANDBOX', ?, ?, 'OP', ARRAY['MONITORING']::text[],
+                   statement_timestamp()+interval '3 days')
+                """, UUID.randomUUID(), id, org, operator.id(), owner.id());
+            return null;
+        });
+        String resume = """
+            {"area":"technical","screen":"analisar","guide":null,"step":null}
+            """;
+        for (Actor limited : List.of(preparer, reviewer, operator)) {
+            JsonNode hidden = json(call("GET", path, limited.cookie()));
+            assertFalse(hidden.path("diagnosticVisible").asBoolean());
+            assertEquals(0, hidden.path("requirements").size());
+            assertFalse(hidden.path("canRunE8").asBoolean());
+            assertFalse(hidden.toString().contains("CONTRACT-SEGREDO"));
+            assertFalse(hidden.toString().contains("PHOTO-SEGREDO"));
+            assertFalse(hidden.toString().contains("EVR"));
+        }
+        assertEquals(200, call("PUT", "/v1/projects/" + id + "/journey/resume",
+            preparer.cookie(), null, null, resume).statusCode());
+        assertEquals(200, call("PUT", "/v1/projects/" + id + "/journey/resume",
+            reviewer.cookie(), null, null, resume).statusCode());
+        assertEquals(422, call("PUT", "/v1/projects/" + id + "/journey/resume",
+            operator.cookie(), null, null, resume).statusCode());
+
+        String renamedOwner = declared.replace("\"Titular\"", "\"Outro titular\"");
+        assertEquals(200, call("PUT", "/v1/projects/" + id + "/technical/open-applicability",
+            owner.cookie(), key(), "\"1\"", renamedOwner).statusCode());
+        JsonNode afterRename = json(call("GET", path, owner.cookie()));
+        assertFalse(afterRename.findValuesAsText("requirementId").contains("RIGHTS_DEPENDENCY"));
+        assertEquals("Titular", database.read(c -> first(c, """
+            SELECT charging_owner FROM app_project_open_applicability_revision
+            WHERE project_id=? AND version=1
+            """, r -> r.getString(1), id)));
+        var rejected = call("PUT", "/v1/projects/" + id + "/technical/open-applicability",
+            owner.cookie(), key(), "\"1\"", renamedOwner.replace("Outro titular", "Terceiro titular"));
+        assertEquals(412, rejected.statusCode(), rejected.body());
+        assertEquals(404, call("POST", path, owner.cookie(), key(), null,
+            "{\"canRunE8\":true}").statusCode());
+        assertEquals(2L, database.read(c -> first(c, """
+            SELECT count(*) FROM app_project_open_applicability_revision WHERE project_id=?
+            """, r -> r.getLong(1), id)).longValue());
+        assertFalse(json(call("GET", path, owner.cookie())).path("canRunE8").asBoolean());
     }
 
     private static JsonNode finding(JsonNode view, String id) {

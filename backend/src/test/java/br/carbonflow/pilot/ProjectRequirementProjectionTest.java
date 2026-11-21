@@ -142,6 +142,42 @@ class ProjectRequirementProjectionTest {
         assertFalse(staleFleet.canRunE8());
     }
 
+    @Test
+    void measuredPeriodDoesNotBlockTheExAnteDocumentOrAdmitE8() {
+        var base = preflight(false);
+        var gates = new java.util.ArrayList<>(base.gates());
+        gates.add(new OpenCalculationPreflight.Gate("MR_DEPENDENCY_M1", "REVIEW_REQUIRED",
+            "O período M1 ainda não passou pela admissão metodológica. QA interno não libera E8.",
+            "Revisar o vínculo do período", "PREP/REV"));
+        gates.add(new OpenCalculationPreflight.Gate("E8_ENERGY_INPUT_M1", "PENDING_MEASUREMENT",
+            "Pacote horário do período M1: CANDIDATE_MISSING. A preparação não substitui admissão.",
+            "Conferir a cadeia do período", "PREP/REV"));
+        gates.add(new OpenCalculationPreflight.Gate("ED", "MISSING_BINDING",
+            "ED ausente no período", "Informar a série", "OP"));
+        gates.add(new OpenCalculationPreflight.Gate("EC", "MISSING_BINDING",
+            "EC de 3000 kWh no período de teste", "Informar a série", "OP"));
+        var lookingAdmitted = new OpenCalculationPreflight.Result(
+            base.projectId(), base.environment(), base.engine(), base.methodology(),
+            base.scenario(), base.workflowState(), base.calculationState(),
+            base.canContinuePreparation(), true, true, base.emissions(),
+            List.copyOf(gates), base.equationPlan());
+        var view = project(true, true, disclosurePresent(), lookingAdmitted);
+        var exAnte = item(view, "ED_EC");
+        assertEquals("NOT_INCIDENT", exAnte.state());
+        assertFalse(exAnte.blocksExAntePd());
+        assertFalse(exAnte.clientAction());
+        assertEquals("NOT_ADMITTED", item(view, "MR_DEPENDENCY_M1").state());
+        assertFalse(item(view, "MR_DEPENDENCY_M1").blocksExAntePd());
+        assertFalse(item(view, "MR_DEPENDENCY_M1").clientAction());
+        assertEquals("NOT_ADMITTED", item(view, "E8_ENERGY_INPUT_M1").state());
+        assertTrue(view.requirements().stream().noneMatch(item ->
+            "ED".equals(item.requirementId()) || "EC".equals(item.requirementId())));
+        assertFalse(view.canRunE8());
+        assertFalse(view.canIssueVcu());
+        assertFalse(view.exAnteRequiresMeasuredEnergy());
+        assertFalse(view.requirements().stream().anyMatch(item -> item.reason().contains("3000")));
+    }
+
     private static ProjectRequirementProjection.View project(boolean applicability, boolean calculation,
             OpenApplicability.Readiness readiness, OpenCalculationPreflight.Result preflight) {
         return ProjectRequirementProjection.project(new ProjectRequirementProjection.Input(
