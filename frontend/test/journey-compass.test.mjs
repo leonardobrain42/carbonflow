@@ -189,3 +189,34 @@ test('UX-07: monitoring collaborator opens permitted technical context without p
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
  }finally{await browser.close();}
 });
+
+test('a visão geral mostra a mesma pendência de Analisar sem alterar o percentual',async()=>{
+ const browser=await chromium.launch({executablePath});
+ try{
+  const page=await browser.newPage({viewport:{width:390,height:844}});
+  const current=journey();
+  current.diagnosis={
+    limits:'Nenhum BE, PE, LE ou ER foi calculado.',
+    canRunE8:false,canIssueVcu:false,
+    summary:{mine:1,awaitingSource:1,awaitingReview:1,outOfScope:1},
+    requirements:[{
+      requirementId:'DRIVER_DISCLOSURE',situation:'Falta comprovante',
+      reason:'Falta a prova datada de divulgação aos motoristas.',
+      nextAction:'Indicar a referência do comprovante na declaração.',
+      actionLabel:'Abrir a declaração',
+      destination:{area:'technical',screen:'analisar',step:null},
+      clientAction:true,admitsE8:false
+    }]
+  };
+  await page.route('**/v1/projects/'+project+'/journey',r=>r.fulfill({json:current}));
+  await page.goto(base+overview);
+  await page.getByRole('heading',{name:'Pendências do diagnóstico'}).waitFor();
+  await page.getByText('Falta a prova datada de divulgação aos motoristas.').waitFor();
+  await page.getByText('1 de 4 tarefas com registro concluído').waitFor();
+  assert.equal(await page.getByRole('link',{name:'Abrir a declaração'}).getAttribute('href'),
+    '/workspace/projects/'+project+'/technical?secao=analisar');
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);
+  await page.setViewportSize({width:1440,height:900});
+  await page.getByRole('heading',{name:'Pendências do diagnóstico'}).waitFor();
+ }finally{await browser.close();}
+});
