@@ -25,9 +25,10 @@ type Readiness={category:string;network:string;rights:string;norm:string;
   canContinuePreparation:boolean;canUseForE8:boolean;stale:boolean;
   findings:Finding[];sourceDependencies:string[]};
 type Origin={field:string;version:string;situation:string;rule:string;role:string;concludes:boolean};
+type PdField={key:string;section:string;gap:string;copiedIntoDocument:boolean;marksReady:boolean};
 type View={projectId:string;version:number;latestTriageVersion:number;
   latest:{version:number;triageVersion:number;answers:Declaration}|null;readiness:Readiness;
-  origins?:Origin[]};
+  origins?:Origin[];pdFields?:PdField[]};
 
 const EMPTY:Declaration={
   unrestrictedBevAccess:null,restrictedToIdentifiedVehicles:null,privateLand:null,

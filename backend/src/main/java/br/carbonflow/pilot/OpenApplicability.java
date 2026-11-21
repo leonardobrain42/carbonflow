@@ -73,8 +73,9 @@ class OpenApplicability {
         boolean canContinuePreparation,boolean canUseForE8,boolean stale,List<Finding> findings,
         List<String> sourceDependencies) {}
     record Origin(String field,String version,String situation,String rule,String role,boolean concludes) {}
+    record PdField(String key,String section,String gap,boolean copiedIntoDocument,boolean marksReady) {}
     record View(String projectId,int version,int latestTriageVersion,Revision latest,Readiness readiness,
-        List<Origin> origins) {}
+        List<Origin> origins,List<PdField> pdFields) {}
     private record SavedCommand(String project,int revision,byte[] fingerprint) {}
 
     private final DynamicProjectScope scope;
@@ -189,7 +190,7 @@ class OpenApplicability {
         Readiness ready=evaluate(revision==null?null:revision.answers(),
             revision!=null && revision.triageVersion()!=triage);
         return new View(project,revision==null?0:revision.version(),triage,revision,ready,
-            origins(c,project,revision==null?null:revision.answers()));
+            origins(c,project,revision==null?null:revision.answers()),pdMap());
     }
 
     static Readiness evaluate(Input data,boolean stale) {
@@ -309,6 +310,18 @@ class OpenApplicability {
             true,false,stale,List.copyOf(findings),
             List.of("OPEN-METHOD","OPEN-POSITIVE","OPEN-EV-PENETRATION","OPEN-EV-SALES",
                     "OPEN-RIGHTS","OPEN-ED-EC"));
+    }
+
+    static List<PdField> pdMap() {
+        String gap="O arquivo ou a data segue fora do documento congelado. "
+            + "A resposta tipada não é copiada e esta prévia não marca o PD como pronto.";
+        return List.of(
+            new PdField("rightsParty","Titularidade","Falta admissão do titular. "+gap,false,false),
+            new PdField("rightsContract","Titularidade","Falta admissão do contrato. "+gap,false,false),
+            new PdField("contractFile","Titularidade","O arquivo do contrato aguarda revisão. "+gap,false,false),
+            new PdField("disclosureFile","Divulgação aos motoristas","O arquivo da divulgação aguarda revisão. "+gap,false,false),
+            new PdField("operationalStart","Início operacional","A data operacional não está comprovada. "+gap,false,false),
+            new PdField("vcsStart","Início de crédito","A data de início VCS não está comprovada. "+gap,false,false));
     }
 
     static Origin described(String field, Integer version, String situation, String rule) {

@@ -215,6 +215,21 @@
             [value]="form().explanation ?? ''"
             (input)="update('explanation',$any($event.target).value)"></textarea>
         </fieldset>
+        @if (state.pdFields?.length){
+          <details>
+            <summary>Como estes campos entrariam no PD</summary>
+            @if (state.pdFields?.some(field => field.copiedIntoDocument || field.marksReady)){
+              <p role="alert">A prévia não pode copiar a resposta nem marcar o PD como pronto.</p>
+            } @else {
+              <ul>
+                @for (field of state.pdFields; track field.key){
+                  <li><strong>{{field.section}}</strong> — {{field.gap}}</li>
+                }
+              </ul>
+              <p>Nenhum campo acima entra no documento congelado. O PD não fica pronto.</p>
+            }
+          </details>
+        }
         <button type="submit" class="cf-workspace-primary" [disabled]="busy()">
           {{busy() ? 'Salvando…' : 'Salvar declaração sem aprovação automática'}}
         </button>

@@ -98,6 +98,9 @@ test('a ficha OPEN permite preparar direitos sem fonte admitida nem cálculo E8'
         origins:[{field:'rightsParty',version:'v1',situation:'Registro do projeto, não admitido',
           rule:'CF-IMP-013',role:'Revisão interna. Este papel não designa uma pessoa nem cria permissão.',
           concludes:false}],
+        pdFields:[{key:'rightsParty',section:'Titularidade',
+          gap:'A resposta tipada não é copiada e esta prévia não marca o PD como pronto.',
+          copiedIntoDocument:false,marksReady:false}],
       }});
     });
     await page.route('**/v1/projects/*/technical/requirements',r=>r.fulfill({json:{
@@ -154,6 +157,9 @@ test('a ficha OPEN permite preparar direitos sem fonte admitida nem cálculo E8'
     await vcsEvent;
     await page.getByRole('button',{name:'Salvar declaração sem aprovação automática'}).click();
     await page.getByText('Declaração versionada salva. A jornada pode continuar',{exact:false}).waitFor();
+    await page.getByText('Como estes campos entrariam no PD',{exact:true}).click();
+    await page.getByText('não é copiada',{exact:false}).waitFor();
+    await page.getByText('O PD não fica pronto.',{exact:false}).waitFor();
     await page.getByText('Ver origem do titular',{exact:true}).click();
     await page.getByText('CF-IMP-013',{exact:true}).waitFor();
     await page.getByText('não designa uma pessoa',{exact:false}).waitFor();

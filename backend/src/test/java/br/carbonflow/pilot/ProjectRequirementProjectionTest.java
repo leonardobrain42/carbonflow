@@ -132,6 +132,16 @@ class ProjectRequirementProjectionTest {
     }
 
     @Test
+    void pdFieldMapDoesNotCopyTheAnswerOrMarkTheDocumentReady() {
+        var fields = OpenApplicability.pdMap();
+        assertTrue(fields.stream().anyMatch(field -> "Titularidade".equals(field.section())
+            && field.gap().contains("não é copiada")));
+        assertTrue(fields.stream().anyMatch(field -> "Início operacional".equals(field.section())));
+        assertTrue(fields.stream().anyMatch(field -> "Início de crédito".equals(field.section())));
+        assertTrue(fields.stream().noneMatch(field -> field.copiedIntoDocument() || field.marksReady()));
+    }
+
+    @Test
     void fieldOriginDoesNotConclude() {
         var recorded = OpenApplicability.described("rightsParty", 2,
             "Registro do projeto, não admitido", "CF-IMP-013");
