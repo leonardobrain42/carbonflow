@@ -14,7 +14,7 @@ test('autorização de artefato por teclado, com segregação e revogação', as
     page.setDefaultTimeout(8000);
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
-    await page.goto(url);
+    await page.goto(url + '/pilot');
     await page.getByRole('heading', {name: 'Entrar no piloto'}).waitFor();
 
     async function press(locator) {

@@ -35,7 +35,7 @@ test('triagem, evidências, comissionamento e troca de medidor no Compose', asyn
       await next('Registrar evidência');
     }
 
-    await page.goto(url);
+    await page.goto(url + '/pilot');
     await enter('PREP');
     await ficha.getByLabel('Configuração de ensaio').selectOption('923');
     await next('Registrar triagem');
@@ -136,7 +136,7 @@ test('bruto, prévia, correção e seleção preservada pela interface da E8-004
       return (await response.json()).line;
     }
 
-    await page.goto(url);
+    await page.goto(url + '/pilot');
     await enter('OP');
     const [queued] = await Promise.all([
       page.waitForResponse(item => item.url().endsWith('/imports') && item.request().method() === 'POST'),
@@ -204,7 +204,7 @@ test('cálculo por retrato ED/EC com revisão, lacuna visível e reexecução', 
       await panel.waitFor();
     }
 
-    await page.goto(url);
+    await page.goto(url + '/pilot');
     await enter('PREP');
     await panel.getByRole('button', {name: 'Propor cálculo', exact: true}).click();
     await panel.getByRole('heading', {name: 'M1 · Aguardando revisão'}).waitFor();
@@ -258,7 +258,7 @@ test('encerra M1 e abre M2 na mesma fronteira, com lacuna de M1 visível ao REV'
       await periods.getByRole('button', {name: 'Registrar transição', exact: true}).click();
     }
 
-    await page.goto(url);
+    await page.goto(url + '/pilot');
     await enter('PREP');
     await periods.getByRole('button', {name: 'Propor M1', exact: true}).click();
     await heading('M1', 'Previsto').waitFor();
@@ -323,7 +323,7 @@ test('prepara PD indicativo, confere a prévia pública, congela e vincula o rec
       await dossier.getByLabel('Justificativa da revisão').fill(reason);
       await dossier.getByRole('button', {name: 'Registrar etapa do dossiê'}).click();
     }
-    await page.goto(url);
+    await page.goto(url + '/pilot');
     await enter('PREP');
     await dossier.getByRole('button', {name: 'Preparar dossiê'}).click();
     for (const [name, reason] of [
@@ -382,7 +382,7 @@ test('confere canal, vincula recibo e comprova a publicação de desenvolvimento
     const page = await browser.newPage({viewport: {width: 1280, height: 900}});
     page.setDefaultTimeout(10000);
     const listings = page.getByRole('region', {name: 'Listagens e consulta pública'});
-    await page.goto(url);
+    await page.goto(url + '/pilot');
     await page.getByLabel('Identidade do piloto').fill('SIM-PP');
     await page.getByLabel('Senha de demonstração').fill('piloto-pp');
     await page.getByRole('button', {name: 'Entrar', exact: true}).click();
@@ -457,7 +457,7 @@ test('acompanha manifestação reservada da consulta até avaliação independen
       return response.json();
     }
 
-    await page.goto(url);
+    await page.goto(url + '/pilot');
     await enter('PREP');
     const {snapshot} = await get('');
     await post('/case-records', {type: 'ODS', status: 'COMPROVADO_SIMULACAO', effectiveDate: '2027-06-30',
@@ -561,7 +561,7 @@ test('contrata VVB, vincula a concessão e registra visita e parecer na sessão 
       return response.json();
     }
 
-    await page.goto(url);
+    await page.goto(url + '/pilot');
     await enter('PREP');
     const checklist = await get('/dossiers/checklist?act=REGISTRO');
     const draft = await post('/dossiers', {document: {act: 'REGISTRO', actDate: '2028-03-01', model: '5.0B', language: 'en',

@@ -8,7 +8,7 @@ test('consulta trabalhos e confere o piso inclusivo de retenção na interface',
   const browser = await chromium.launch({executablePath: process.env.CARBONFLOW_CHROME ?? '/usr/bin/google-chrome'});
   try {
     const page = await browser.newPage();
-    await page.goto(url);
+    await page.goto(url + '/pilot');
     await page.getByLabel('Identidade do piloto').fill('SIM-OP');
     await page.getByLabel('Senha de demonstração').fill('piloto-op');
     await page.getByRole('button', {name: 'Entrar', exact: true}).click();

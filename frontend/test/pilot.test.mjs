@@ -11,7 +11,7 @@ test('demonstra os quatro recortes, a coleta de M2 e a recusa sem EC', async () 
     const page = await browser.newPage({viewport: {width: 1280, height: 896}});
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
-    await page.goto(url);
+    await page.goto(url + '/pilot');
     await page.getByLabel('Identidade do piloto').fill('SIM-PREP');
     await page.getByLabel('Senha de demonstração').fill('piloto-prep');
     await page.getByRole('button', {name: 'Entrar', exact: true}).click();
