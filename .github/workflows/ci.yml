@@ -193,6 +193,9 @@ jobs:
                             WHERE table_name='app_open_asset_evidence'
                               AND column_name='submitted_file_name')
                 THEN 'UPGRADE_OK' ELSE 'UPGRADE_FAILED' END;" | grep UPGRADE_OK
+          # The container can be HEALTHY before its loopback port is reachable
+          # after Compose recreates the app; wait using the existing demo check.
+          python3 -c 'import sys; sys.path.insert(0, "scripts"); import demo_sandbox as d; d.wait_for_health(attempts=15)'
           python3 scripts/demo_sandbox.py smoke
       - name: Destroy only the disposable demo environment
         if: always()
