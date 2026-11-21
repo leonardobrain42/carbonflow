@@ -237,6 +237,12 @@ class OpenPeriodSupportIntegrationTest {
             owner.cookie(),null,null));
         assertTrue(calcWithEnergy.path("gates").toString().contains("E8_ENERGY_INPUT_M1"));
         assertFalse(calcWithEnergy.path("canRunE8").asBoolean());
+        for (JsonNode gate : calcWithEnergy.path("gates")) {
+            String reason=gate.path("reason").asText();
+            assertFalse(reason.contains("_"), gate.path("code").asText()+" "+reason);
+        }
+        assertTrue(calcGate(calcWithEnergy,"E8_ENERGY_INPUT_M1").path("reason").asText()
+            .contains("admissão normativa ainda não existe"));
 
         // Project-scoped SIN hourly factor candidate, with a declared source
         // (the synthetic example.org fixture is NOT a real VT0011 value).

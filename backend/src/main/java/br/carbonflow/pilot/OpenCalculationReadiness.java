@@ -77,7 +77,8 @@ class OpenCalculationReadiness {
                     "CHECKED_INTERNAL_AWAITING_NORMATIVE_ADMISSION".equals(methodState)?
                     "NOT_ADMITTED":"REVIEW_REQUIRED",
                     "Avaliação VM0038 v1.1 ("+dossier.reference().code()+"): "+
-                        methodState+". Parecer interno NÃO admite ED/EC para cálculo real.",
+                        plainStatus(methodState)+
+                        ". Parecer interno não admite energia para o cálculo.",
                     "Conferência normativa e decisão independente de admissibilidade","REV"));
                 String energyState=OpenE8EnergyCandidates.state(connection,project,
                     dossier.reference().code());
@@ -86,7 +87,7 @@ class OpenCalculationReadiness {
                     "STALE_NOT_ADMITTED".equals(energyState)?"STALE":
                     "CANDIDATE_MISSING".equals(energyState)?"PENDING_MEASUREMENT":"NOT_ADMITTED",
                     "Pacote horário ED/EC do período "+dossier.reference().code()+
-                        ": "+energyState+
+                        ": "+plainStatus(energyState)+
                         ". A preparação não substitui admissão normativa nem habilita o motor.",
                     "Conferir cadeia de evidências e completar os parâmetros do E8","PREP/REV"));
                 String efelState=OpenEfelCandidates.state(connection,project,
@@ -96,7 +97,7 @@ class OpenCalculationReadiness {
                     "STALE_NOT_ADMITTED".equals(efelState)?"STALE":
                     "EFEL_SOURCE_MISSING".equals(efelState)?"MISSING":"NOT_ADMITTED",
                     "Fator EFel horário do período "+dossier.reference().code()+
-                        ": "+efelState+
+                        ": "+plainStatus(efelState)+
                         ". Uma série declarada e conferida internamente não é VT0011 admitido.",
                     "Validar série de fatores, instrumento e direitos em fonte autorizada",
                     "PREP/REV"));
@@ -117,7 +118,8 @@ class OpenCalculationReadiness {
                     "VT0011_WORKBOOK_MISSING".equals(vt0011) ||
                     "VT0011_SOURCE_MISSING".equals(vt0011)?"MISSING":"NOT_ADMITTED",
                     "Caderno VT0011/TOOL07 do período "+dossier.reference().code()+
-                        ": "+vt0011+". Pesos Case 2 NÃO verificam OM nem convertem CO2 em CO2e.",
+                        ": "+plainStatus(vt0011)+
+                        ". Pesos Case 2 não verificam OM nem convertem CO2 em CO2e.",
                     "Comprovar dados OM, opção TOOL07, fontes e vínculo horário ao EFel",
                     "PREP/REV"));
                 String simpleOm=OpenTool07SimpleOmRuns.state(connection,project,
@@ -127,7 +129,7 @@ class OpenCalculationReadiness {
                     simpleOm.startsWith("STALE")?"STALE":
                     "SIMPLE_OM_A1_MISSING".equals(simpleOm)?"MISSING":"NOT_ADMITTED",
                     "Apuração preliminar Simple OM A1 de "+
-                        dossier.reference().code()+": "+simpleOm+
+                        dossier.reference().code()+": "+plainStatus(simpleOm)+
                         ". Triagem LCMR e aritmética por usina não substituem a "+
                         "validação das fontes, importações, anos ou CO2/CO2e.",
                     "Verificar integralidade das usinas, combustíveis, dados oficiais e "+
@@ -195,5 +197,48 @@ class OpenCalculationReadiness {
                     row.getString("electricity_source"),
                     (Boolean) row.getObject("associated_infrastructure"),
                     (Boolean) row.getObject("v2g")), project);
+    }
+
+    /** Visible situation for a stored status. The code itself stays off the sentence. */
+    static String plainStatus(String code) {
+        return switch (code==null ? "" : code) {
+            case "BLOCKED_STALE" ->
+                "as evidências deixaram de corresponder ao período";
+            case "BLOCKED_DOCUMENTARY" ->
+                "há documentos ausentes ou ainda não conferidos";
+            case "PENDING_INTERNAL_REVIEW" ->
+                "o parecer interno ainda não foi registrado";
+            case "RETURNED_FOR_CORRECTION" ->
+                "o parecer interno pediu correção";
+            case "CHECKED_INTERNAL_AWAITING_NORMATIVE_ADMISSION" ->
+                "há parecer interno e a admissão normativa ainda não existe";
+            case "CANDIDATE_MISSING" ->
+                "ainda não há pacote horário neste período";
+            case "STALE_NOT_ADMITTED" ->
+                "o registro ficou desatualizado e não está admitido";
+            case "NOT_ADMITTED" ->
+                "há registro interno e a admissão normativa ainda não existe";
+            case "EFEL_SOURCE_MISSING" ->
+                "ainda não há série declarada neste período";
+            case "SUPERSEDED_NOT_ADMITTED" ->
+                "há um registro mais recente e este não está admitido";
+            case "PENDING_INTERNAL_REVIEW_NOT_ADMITTED" ->
+                "aguarda conferência interna e não está admitido";
+            case "RETURNED_NOT_ADMITTED" ->
+                "a conferência interna devolveu o registro e ele não está admitido";
+            case "CHECKED_INTERNAL_NOT_ADMITTED" ->
+                "foi conferido internamente e não está admitido";
+            case "VT0011_SOURCE_MISSING" ->
+                "ainda não há fator elétrico para montar o caderno";
+            case "VT0011_WORKBOOK_MISSING" ->
+                "ainda não há caderno neste período";
+            case "SIMPLE_OM_A1_MISSING" ->
+                "ainda não há apuração neste período";
+            case "LCMR_SCREEN_PASSED_PRELIMINARY_NOT_ADMITTED" ->
+                "a triagem preliminar passou e a admissão ainda não existe";
+            case "LCMR_SCREEN_FAILED_PRELIMINARY_NOT_ADMITTED" ->
+                "a triagem preliminar não passou e a admissão ainda não existe";
+            default -> "situação ainda sem texto público";
+        };
     }
 }
