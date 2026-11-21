@@ -204,10 +204,13 @@ test('guia do projeto não trata o piloto sintético como dado da etapa', async 
     await page.route('**' + root + '/technical/capabilities', r => r.fulfill({json:{
       projectId,environment:'SANDBOX',owner:false,actions:['VIEW_GUIDES'],modules:{}
     }}));
+    let pdReads = 0;
+    await page.route('**' + root + '/technical/pd-sections', r => { pdReads++; return r.fulfill({json:[]}); });
     await page.route('**' + root + '/technical/guides', r => r.fulfill({json:{methodology:'VM0038_V1_1',guides}}));
     await page.goto(base + '/workspace/projects/' + projectId + '/technical?secao=guias&guia=quantification');
     await page.getByRole('heading',{name:'Quantificação'}).waitFor();
     await page.getByText('não entra neste projeto e não conclui esta etapa.').waitFor();
+    assert.equal(pdReads, 0);
     assert.equal(await page.getByRole('link',{name:'Consultar a memória da simulação no piloto'}).count(),0);
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
     await page.getByRole('button',{name:'Monitoramento'}).click();
@@ -250,5 +253,59 @@ test('formulário versionado rejeita ano inválido e preserva revisão e cabeça
     await page.getByRole('button',{name:'Salvar guia'}).click();
     await page.getByText('Revisão 1 salva.').waitFor();
     assert.equal(saves,1);
+  } finally { await browser.close(); }
+});
+
+test('guia com permissão de documento mostra a prévia da própria seção', async () => {
+  const browser = await chromium.launch({executablePath});
+  try {
+    const page = await browser.newPage({viewport:{width:390,height:844}});
+    const root = '/v1/projects/' + projectId;
+    const guides = [
+      {id:'quantification',title:'Quantificação',guidance:'Recorte do cálculo.',
+        fields:[],version:1,answers:{},missing:[],editable:false},
+      {id:'monitoring',title:'Monitoramento',guidance:'Plano de medição.',
+        fields:[],version:0,answers:{},missing:[],editable:false},
+    ];
+    await page.route('**' + root + '/metadata', r => r.fulfill({json:{projectId,environment:'SANDBOX',title:'Frota'}}));
+    await page.route('**' + root + '/technical/capabilities', r => r.fulfill({json:{
+      projectId,environment:'SANDBOX',owner:false,actions:['VIEW_GUIDES','VIEW_DOSSIER'],modules:{}
+    }}));
+    await page.route('**' + root + '/technical/preliminary-dossier', r => r.fulfill({json:null}));
+    await page.route('**' + root + '/technical/guides', r => r.fulfill({json:{methodology:'VM0038_V1_1',guides}}));
+    await page.route('**' + root + '/technical/typed-guides', r => r.fulfill({json:{
+      methodology:'VM0038_V1_1',
+      guides:[{
+        id:'quantification',title:'Quantificação',guidance:'Recorte',methodology:'VM0038',
+        edition:'1.1',branch:'OPEN',definitionVersion:2,version:1,
+        fields:[{key:'vintage',label:'Ano de referência',type:'YEAR',options:[],helpText:'Ano declarado.',
+          required:false,showWhenField:null,showWhenValue:null,requiredWhenField:null,requiredWhenValue:null,
+          unit:null,min:null,max:null,optionParents:{}}],
+        answers:{vintage:2027},legacyAnswers:{},legacyNeedsReview:[],missing:[],editable:false,
+        state:'FORM_COMPLETED_DECLARED',normativeApproved:false
+      }]
+    }}));
+    await page.route('**' + root + '/technical/pd-sections', r => r.fulfill({json:[
+      {guide:{id:'quantification',title:'Quantificação',version:1,missing:[]},
+        latest:{number:2,guideVersion:1,sha256:'abc123'},monitoringDependency:null},
+      {guide:{id:'monitoring',title:'Monitoramento',version:0,missing:[]},
+        latest:null,monitoringDependency:null}
+    ]}));
+    await page.goto(base + '/workspace/projects/' + projectId + '/technical?secao=guias&guia=quantification');
+    await page.getByRole('heading',{name:'Como isso entrará no PD?'}).waitFor();
+    await page.getByText('Versão 2 (interna)').waitFor();
+    await page.getByText('2027').waitFor();
+    await page.getByText('ainda não estão inseridas automaticamente na versão do PD.').waitFor();
+    await page.getByText('Nenhuma linha acima concede validação Verra/VVB.').waitFor();
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
+    await page.getByRole('button',{name:'Monitoramento'}).click();
+    await page.getByText('Ainda não redigido').waitFor();
+    assert.equal(await page.getByText('Versão 2 (interna)').count(),0);
+    await page.setViewportSize({width:1440,height:900});
+    await page.getByRole('heading',{name:'Como isso entrará no PD?'}).waitFor();
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
+    await page.getByRole('button',{name:'Quantificação'}).click();
+    await page.getByRole('button',{name:'Abrir editor e histórico da seção correspondente'}).click();
+    await page.waitForURL(url => url.searchParams.get('secao')==='redigir' && url.searchParams.get('guia')==='quantification');
   } finally { await browser.close(); }
 });

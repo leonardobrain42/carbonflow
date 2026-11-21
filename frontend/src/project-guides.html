@@ -96,6 +96,18 @@
         </fieldset>
         @if (guide.editable) { <button class="cf-workspace-primary" [disabled]="busy() || !dirty()" (click)="save()">Salvar guia</button> }
       }
+      @if (canOpenDocument()) {
+        @if (pdStatus() === 'loading') {
+          <p role="status">Consultando a prévia do documento…</p>
+        } @else if (pdStatus() === 'restricted') {
+          <p role="status">A prévia do documento não está disponível para esta conta.</p>
+        } @else if (pdStatus() === 'error') {
+          <p role="alert" class="cf-workspace-alert">Não foi possível ler a seção do PD. Recarregue a página para tentar de novo.</p>
+        } @else if (pdStatus() === 'ready') {
+          <carbonflow-pd-trace [kind]="guide.id" [guide]="previewGuide()" [section]="currentPd()"
+            [canViewPd]="true" (openDocument)="document.emit($event)" />
+        }
+      }
       @if (notice()) { <p role="status">{{ notice() }}</p> }
       <h4>Fontes, evidências e pareceres</h4>
       <p class="cf-workspace-helper">Consulte os requisitos, solicite dados ou vincule provas sem confundir texto declarado com fato revisado.</p>
