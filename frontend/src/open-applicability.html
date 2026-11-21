@@ -1,9 +1,12 @@
 <section class="cf-journey-context" aria-label="Aplicabilidade de rede aberta">
   <h3>Rede aberta — aplicabilidade VM0038 v1.1 (preparação)</h3>
-  <p>Esta ficha permite preparar a análise enquanto as fontes da equipe CarbonFlow são obtidas.
-    As declarações são hipóteses versionadas e não substituem provas, parecer normativo, Verra ou VVB.
-    Uma rede não deixa de ser aberta por estar em terreno particular ou por cobrar pela recarga:
-    verifique se o uso é restrito a veículos nominados.</p>
+  <p>Registre como o acesso funciona e quem declara os direitos.
+    Terreno particular e cobrança não fecham a rede: o que importa é se o uso fica restrito a veículos identificados.</p>
+  <details class="cf-journey-context">
+    <summary>O que esta declaração não substitui</summary>
+    <p>As respostas são hipóteses versionadas. Elas não substituem provas, parecer normativo, Verra ou VVB.
+      A quantificação fica na tela própria e não usa esta ficha como cálculo.</p>
+  </details>
 
   @if (loading()){<p role="status">Carregando a ficha de aplicabilidade…</p>}
   @if (error()){<p role="alert" class="cf-workspace-alert">{{error()}}</p>}
@@ -144,7 +147,7 @@
         </button>
       </form>
     }
-    <details open class="cf-journey-context">
+    <details class="cf-journey-context">
       <summary>O que ainda precisa ser comprovado?</summary>
       <ul class="cf-tech-gates">
         @for (item of state.readiness.findings;track item.code){

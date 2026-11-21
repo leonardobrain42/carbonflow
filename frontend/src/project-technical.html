@@ -294,24 +294,51 @@
             }
 
             @case ('analisar') {
-              @if (saved.journey.candidate === 'VM0038' && can('VIEW_OPEN_MONITORING')) {
-                <div class="cf-triage-actions">
-                  <button type="button" class="cf-workspace-outline"
-                    (click)="open('estacoes')">Cadastrar estações e delimitar fronteira</button>
+              <p>Declare o acesso à rede e os direitos sobre as reduções.
+                O diagnóstico diz o que ainda falta. Estações, quantificação e o guia ficam nas telas próprias.</p>
+              @if (saved.experienceMode === 'TECHNICAL') {
+                <div class="cf-journey-context">
+                  <strong>Modo técnico</strong>
+                  <dl class="cf-tech-capabilities">
+                    <div><dt>Escopo</dt><dd>{{ saved.environment }} · {{ saved.state }}</dd></div>
+                    <div><dt>Metodologia de referência</dt><dd>{{ saved.journey.title }}</dd></div>
+                    <div><dt>Capacidade de cálculo</dt><dd>{{ capabilities()?.modules?.['calculation'] === 'NOT_ENABLED' ? 'Indisponível neste projeto' : 'Na tela de quantificação' }}</dd></div>
+                  </dl>
                 </div>
               }
-              <carbonflow-project-requirements [projectId]="projectId"
-                [canQuantify]="can('VIEW_OPEN_CALCULATION')"
-                (openSection)="open($any($event))" />
+              <dl class="cf-tech-capabilities">
+                <div><dt>Preparação</dt><dd>{{ saved.version ? 'Rascunho salvo' : 'A iniciar' }}</dd></div>
+                <div><dt>Evidências</dt><dd>{{ capabilities()?.modules?.['evidence'] === 'NOT_ENABLED' ? 'Coleta indisponível neste projeto' : 'A confirmar' }}</dd></div>
+              </dl>
+
               @if (saved.journey.candidate === 'VM0038' && can('VIEW_OPEN_APPLICABILITY')) {
                 <carbonflow-open-applicability [projectId]="projectId"
                   [editable]="can('SAVE_OPEN_APPLICABILITY')">
                 </carbonflow-open-applicability>
+              } @else if (saved.journey.candidate !== 'VM0038') {
+                <p>A ficha de rede aberta vale para a VM0038. Nenhuma outra metodologia é tratada como equivalente.</p>
+              } @else {
+                <p>A declaração de aplicabilidade não está disponível para esta conta.</p>
+              }
+
+              <carbonflow-project-requirements [projectId]="projectId"
+                [canQuantify]="can('VIEW_OPEN_CALCULATION')"
+                (openSection)="open($any($event))" />
+
+              <h3>Requisitos do rascunho</h3>
+              @if (saved.outstandingGates.length) {
+                <ul class="cf-tech-gates">
+                  @for (item of saved.outstandingGates; track item.code) {
+                    <li>{{ item.message }} <small>{{ item.code }} · {{ item.rule }}</small></li>
+                  }
+                </ul>
+              } @else {
+                <p>Nenhum requisito pendente foi devolvido para esta revisão.</p>
               }
 
               @if ((owner() || capabilities()?.actions?.includes('GUIDE_INTAKE')) && capabilities()?.actions?.includes('VIEW_GUIDES') && saved.journey.candidate === 'VM0038') {
-                <section class="cf-journey-context">
-                  <h3>Ficha de aplicabilidade</h3>
+                <details class="cf-journey-context">
+                  <summary>Ficha do guia de aplicabilidade</summary>
                   @if (saved.applicability; as ficha) {
                     <p>Revisão {{ ficha.revision }}</p>
                     <dl>
@@ -319,37 +346,19 @@
                       <dt>Incidência declarada</dt><dd>{{ ficha.incidence || 'Pendente' }}</dd>
                       <dt>Direitos</dt><dd>{{ ficha.rights || 'Pendente' }}</dd>
                     </dl>
+                  } @else {
+                    <p>O guia ainda não tem uma revisão salva nesta conta.</p>
                   }
                   <button type="button" class="cf-workspace-outline" (click)="open('guias')">Abrir guias da metodologia</button>
-                </section>
+                </details>
               }
-              @if (saved.experienceMode === 'TECHNICAL') {
-                <div class="cf-journey-context">
-                  <strong>Modo técnico</strong>
-                  <dl class="cf-tech-capabilities">
-                    <div><dt>Escopo</dt><dd>{{ saved.environment }} · {{ saved.state }}</dd></div>
-                    <div><dt>Metodologia de referência</dt><dd>{{ saved.journey.title }}</dd></div>
-                    <div><dt>Capacidade de cálculo</dt><dd>{{ capabilities()?.modules?.['calculation'] === 'NOT_ENABLED' ? 'Indisponível neste projeto' : 'Consulte a disponibilidade' }}</dd></div>
-                  </dl>
-                </div>
-              } @else {
-                <p>Use esta tela para entender o que falta antes da análise. Depois, volte às informações técnicas para atualizar o rascunho com o que reuniu.</p>
-              }
-              <dl class="cf-tech-capabilities">
-                <div><dt>Preparação</dt><dd>{{ saved.version ? 'Rascunho salvo' : 'A iniciar' }}</dd></div>
-                <div><dt>Evidências</dt><dd>{{ capabilities()?.modules?.['evidence'] === 'NOT_ENABLED' ? 'Coleta indisponível neste projeto' : 'A confirmar' }}</dd></div>
-                <div><dt>Decisões metodológicas</dt><dd>Avaliação pendente</dd></div>
-                <div><dt>Revisão</dt><dd>Avaliação interna pendente</dd></div>
-              </dl>
-              <details class="cf-journey-context" open>
-                <summary>Requisitos a comprovar</summary>
-                <ul class="cf-tech-gates">
-                  @for (item of saved.outstandingGates; track item.code) {
-                    <li>{{ item.message }} <small>{{ item.code }} · {{ item.rule }}</small></li>
-                  }
-                </ul>
-              </details>
+
+              <h3>Continuar em outra frente</h3>
               <div class="cf-triage-actions">
+                @if (saved.journey.candidate === 'VM0038' && can('VIEW_OPEN_MONITORING')) {
+                  <button type="button" class="cf-workspace-outline"
+                    (click)="open('estacoes')">Cadastrar estações e delimitar fronteira</button>
+                }
                 <button class="cf-workspace-outline" type="button" (click)="open('preparar')">{{ can('SAVE_INTAKE') ? 'Atualizar informações' : 'Consultar informações' }}</button>
                 @if (owner()) {
                   <a [routerLink]="['/workspace/projects',projectId,'triage']" class="cf-workspace-link">Consultar respostas da triagem</a>
