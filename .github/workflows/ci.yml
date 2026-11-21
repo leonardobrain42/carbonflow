@@ -226,13 +226,35 @@ jobs:
           files = sorted(demo.ACCOUNT_DIR.glob("*.json"))
           if len(files) != 3:
               raise RuntimeError("Unexpected demo account count")
+          # The application allows only TWO simultaneous account sessions.
+          # Log out each account before checking the next one; a third
+          # unclosed login would correctly return HTTP 409.
+          # The cookie is stored only inside the demo's private tmpfs and
+          # removed even if a request fails. Passwords go through stdin.
+          session_check = """
+          jar="$(mktemp /run/carbonflow-demo-inbox/.ci-login.XXXXXX)"
+          chmod 600 "$jar"
+          trap 'rm -f "$jar"' EXIT
+          login="$(curl -sS -o /dev/null -w '%{http_code}' -c "$jar" \\
+                  -H 'Content-Type: application/json' --data-binary @- \\
+                  http://127.0.0.1:8080/v1/account-session)"
+          if [ "$login" != 204 ]; then
+              printf 'LOGIN_HTTP_%s\\n' "$login"
+              exit 1
+          fi
+          logout="$(curl -sS -o /dev/null -w '%{http_code}' -b "$jar" \\
+                   -X DELETE http://127.0.0.1:8080/v1/account-session)"
+          if [ "$logout" != 204 ]; then
+              printf 'LOGOUT_HTTP_%s\\n' "$logout"
+              exit 1
+          fi
+          printf 'SESSION_CLOSED\\n'
+          """
           command = [
               "docker", "compose", "-p", demo.PROJECT,
               "-f", str(demo.ROOT/"compose.yaml"),
               "-f", str(demo.ROOT/"compose.demo.yaml"),
-              "exec", "-T", "app", "curl", "-sS", "-o", "/dev/null",
-              "-w", "%{http_code}", "-H", "Content-Type: application/json",
-              "--data-binary", "@-", "http://127.0.0.1:8080/v1/account-session"
+              "exec", "-T", "app", "sh", "-ec", session_check
           ]
           for path in files:
               saved=json.loads(path.read_text(encoding="utf-8"))
@@ -242,8 +264,10 @@ jobs:
                   capture_output=True, text=True,
                   env={**os.environ, "CARBONFLOW_PORT":demo.PORT}
               )
-              if result.returncode != 0 or result.stdout.strip() != "204":
-                  raise RuntimeError("Account login failed after persisted migration upgrade")
+              if result.returncode != 0 or result.stdout.strip() != "SESSION_CLOSED":
+                  # HTTP status only: never print headers, cookies or passwords.
+                  code = result.stdout.strip() or "TRANSPORT_ERROR"
+                  raise RuntimeError("Post-upgrade login/logout failed: " + code)
           print("LOGIN_UPGRADE_OK: three original accounts authenticated via container API")
           PY
       - name: Destroy only the disposable demo environment
