@@ -371,6 +371,7 @@ export function plainTerm(code: string): string {
   if (TERMS[code]) return TERMS[code];
   if (MONITORING_TITLES[code]) return MONITORING_TITLES[code];
   if (GATE_NAMES[code]) return GATE_NAMES[code];
+  if (calculationGateTitle(code) !== code) return calculationGateTitle(code);
   if (code.startsWith('PENDENCIA_')) return 'Pendência de evidência';
   return code;
 }

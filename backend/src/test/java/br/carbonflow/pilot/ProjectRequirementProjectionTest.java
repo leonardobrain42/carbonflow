@@ -212,6 +212,48 @@ class ProjectRequirementProjectionTest {
     }
 
     @Test
+    void linkedProjectSourceNeverBecomesAdmittedEnergy() {
+        var base = preflight(false);
+        var gates = new java.util.ArrayList<>(base.gates());
+        gates.add(new OpenCalculationPreflight.Gate("E8_FLEET_SELECTION_M1", "NOT_ADMITTED",
+            "Frota vinculada ao período M1.", "Conferir a seleção", "PREP/REV"));
+        gates.add(new OpenCalculationPreflight.Gate("E8_INPUT_BINDING_M1", "APPROVED_FOR_SCOPE",
+            "Energia vinculada ao período M1.", "Conferir o vínculo", "PREP/REV"));
+        gates.add(new OpenCalculationPreflight.Gate("E8_FLEET_SELECTION_M2", "MISSING",
+            "Nenhuma seleção de frota no período M2.", "Solicitar a seleção", "PREP"));
+        gates.add(new OpenCalculationPreflight.Gate("E8_INPUT_BINDING_M2", "STALE",
+            "O vínculo de energia de M2 ficou obsoleto.", "Preparar nova versão", "PREP/REV"));
+        var linked = new OpenCalculationPreflight.Result(
+            base.projectId(), base.environment(), base.engine(), base.methodology(),
+            base.scenario(), base.workflowState(), base.calculationState(),
+            base.canContinuePreparation(), true, true,
+            new OpenCalculationPreflight.Emissions("6.00", "0", "0", "5.30", "5.30"),
+            List.copyOf(gates), base.equationPlan());
+        var view = project(true, true, disclosurePresent(), linked);
+        var fleet = item(view, "E8_FLEET_SELECTION_M1");
+        assertEquals("SOURCE_CANDIDATE", fleet.state());
+        assertEquals("Fonte vinculada, não admitida", fleet.situation());
+        assertEquals("AWAITING_SOURCE", fleet.group());
+        assertFalse(fleet.clientAction());
+        assertFalse(fleet.admitsE8());
+        assertNull(fleet.destination());
+        assertTrue(fleet.reason().contains("não produz BE, PE, LE ou ER"));
+        assertTrue(fleet.affectedOutputs().contains("linha de base"));
+        var energy = item(view, "E8_INPUT_BINDING_M1");
+        assertEquals("SOURCE_CANDIDATE", energy.state());
+        assertTrue(energy.affectedOutputs().contains("emissões do projeto"));
+        assertEquals("NOT_ADMITTED", item(view, "E8_FLEET_SELECTION_M2").state());
+        assertEquals("Ainda não vinculado", item(view, "E8_FLEET_SELECTION_M2").situation());
+        assertEquals("STALE", item(view, "E8_INPUT_BINDING_M2").state());
+        assertEquals("AWAITING_REVIEW", item(view, "E8_INPUT_BINDING_M2").group());
+        assertNotEquals("STALE", item(view, "EVR").state());
+        assertFalse(view.canRunE8());
+        assertFalse(view.canIssueVcu());
+        assertFalse(view.toString().contains("6.00"));
+        assertFalse(view.toString().contains("5.30"));
+    }
+
+    @Test
     void calculationGrantDoesNotReceiveApplicabilityDetailOrMeasuredEnergyDuty() {
         var hidden = project(false, true, disclosureMissing(), preflight(false));
         assertTrue(hidden.requirements().stream().noneMatch(i ->
