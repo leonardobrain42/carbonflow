@@ -106,12 +106,7 @@ final class ProjectRequirementProjection {
                         "Completar somente o que esta declaração pede.",
                         "Abrir a declaração", destination(input.canOpenApplicability(), "analisar", null),
                         input.canOpenApplicability(), List.of("aplicabilidade"));
-                case "OWNER_CONTRACT", "DRIVER_DISCLOSURE" ->
-                    mine(input, finding.code(), "NEEDS_EVIDENCE", "Falta comprovante", finding.text(),
-                        "Anexar ou indicar a referência do comprovante na declaração. "
-                            + "O envio não admite o direito.",
-                        "Abrir a declaração", destination(input.canOpenApplicability(), "analisar", null),
-                        input.canOpenApplicability(), List.of("direitos"));
+                case "OWNER_CONTRACT", "DRIVER_DISCLOSURE" -> rightsEvidence(input, finding);
                 case "CLOSED_NETWORK", "CONFIGURATION_BRANCH" ->
                     outside(input, finding.code(), finding.text(),
                         "Rever a declaração ou manter o projeto como hipótese fora deste recorte.",
@@ -211,8 +206,10 @@ final class ProjectRequirementProjection {
 
     private static void applyOwners(Input input, LinkedHashMap<String, Item> items) {
         Owners owners = input.owners() == null ? Owners.NONE : input.owners();
-        boolean rightsOpen = !items.containsKey("DRIVER_DISCLOSURE") && !items.containsKey("OWNER_CONTRACT");
-        if (input.canViewApplicability() && owners.rightsRecheck() && rightsOpen) {
+        boolean rightsGap = items.values().stream().anyMatch(item ->
+            Set.of("DRIVER_DISCLOSURE", "OWNER_CONTRACT").contains(item.requirementId())
+                && "NEEDS_EVIDENCE".equals(item.state()));
+        if (input.canViewApplicability() && owners.rightsRecheck() && !rightsGap) {
             items.put("RIGHTS_DEPENDENCY", review(input, "RIGHTS_DEPENDENCY", "RECHECK_REQUIRED",
                 "Precisa rechecagem",
                 "O contrato, a prova de divulgação ou a declaração de sobreposição mudou. "
@@ -345,6 +342,20 @@ final class ProjectRequirementProjection {
             input.canOpenPreparation() ? "Abrir as informações" : null,
             destination(input.canOpenPreparation(), "preparar", null),
             act ? "MINE" : "OUT_OF_SCOPE", act, false, false, List.of("aplicabilidade"));
+    }
+
+    private static Item rightsEvidence(Input input, OpenApplicability.Finding finding) {
+        if ("ATTACHED_NOT_ADMITTED".equals(finding.state())) {
+            return review(input, finding.code(), "ATTACHED_NOT_ADMITTED",
+                "Referência registrada, não admitida", finding.text(),
+                "Aguardar a revisão competente. Registrar a referência não admite o direito nem cria um grant.",
+                null, false, List.of("direitos"));
+        }
+        return mine(input, finding.code(), "NEEDS_EVIDENCE", "Falta comprovante", finding.text(),
+            "Anexar ou indicar a referência do comprovante na declaração. "
+                + "O envio não admite o direito.",
+            "Abrir a declaração", destination(input.canOpenApplicability(), "analisar", null),
+            input.canOpenApplicability(), List.of("direitos"));
     }
 
     private static Item waitingReview(Input input, String id, String reason, List<String> outputs) {

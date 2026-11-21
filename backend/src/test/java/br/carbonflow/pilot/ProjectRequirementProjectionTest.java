@@ -30,8 +30,12 @@ class ProjectRequirementProjectionTest {
         assertEquals(1, missing.requirements().stream().filter(i -> "ED_EC".equals(i.requirementId())).count());
 
         var declared = project(true, true, disclosurePresent(), preflight(false));
-        assertTrue(declared.requirements().stream().noneMatch(i -> "DRIVER_DISCLOSURE".equals(i.requirementId())));
-        assertTrue(declared.requirements().stream().noneMatch(i -> "OWNER_CONTRACT".equals(i.requirementId())));
+        assertEquals("ATTACHED_NOT_ADMITTED", item(declared, "DRIVER_DISCLOSURE").state());
+        assertEquals("ATTACHED_NOT_ADMITTED", item(declared, "OWNER_CONTRACT").state());
+        assertEquals("AWAITING_REVIEW", item(declared, "OWNER_CONTRACT").group());
+        assertFalse(item(declared, "DRIVER_DISCLOSURE").clientAction());
+        assertFalse(item(declared, "OWNER_CONTRACT").admitsE8());
+        assertNull(item(declared, "OWNER_CONTRACT").destination());
         assertEquals("AWAITING_NORMATIVE_EVALUATION", item(declared, "REGULATORY_SURPLUS").state());
         assertFalse(item(declared, "REGULATORY_SURPLUS").clientAction());
         assertTrue(declared.requirements().stream().noneMatch(i ->
@@ -47,6 +51,8 @@ class ProjectRequirementProjectionTest {
         assertFalse(closed.canUseForE8());
         assertTrue(closed.findings().stream().noneMatch(f ->
             List.of("MARKET_ROUTE", "VMD0049_ROUTE", "REGULATORY_SURPLUS").contains(f.code())));
+        assertTrue(closed.findings().stream().anyMatch(f -> "OWNER_CONTRACT".equals(f.code())
+            && "NEEDS_EVIDENCE".equals(f.state())));
 
         var missing = OpenApplicability.evaluate(null, false);
         assertTrue(missing.findings().stream().anyMatch(f -> "NO_DECLARATION".equals(f.code())));
@@ -66,6 +72,29 @@ class ProjectRequirementProjectionTest {
         assertNotEquals("MINE", item(projected, "MARKET_ROUTE").group());
         assertFalse(item(projected, "MARKET_ROUTE").admitsE8());
         assertTrue(item(projected, "MARKET_ROUTE").reason().contains("Não é uma rota de adicionalidade"));
+    }
+
+    @Test
+    void recordedRightsReferenceStaysUnadmitted() {
+        var recorded = disclosurePresent();
+        assertEquals("DECLARED_REVIEW_PENDING", recorded.rights());
+        assertFalse(recorded.canUseForE8());
+        assertTrue(recorded.findings().stream().anyMatch(finding -> "OWNER_CONTRACT".equals(finding.code())
+            && "ATTACHED_NOT_ADMITTED".equals(finding.state())
+            && finding.text().contains("não cria PP jurídico")
+            && finding.text().contains("não concede poder de representante")));
+        assertTrue(recorded.findings().stream().anyMatch(finding -> "DRIVER_DISCLOSURE".equals(finding.code())
+            && finding.text().contains("não comprova a divulgação")));
+        var projected = project(true, true, recorded, preflight(false));
+        assertTrue(item(projected, "OWNER_CONTRACT").reason().contains("não é prova admitida"));
+        assertTrue(item(projected, "DRIVER_DISCLOSURE").nextAction().contains("não admite o direito"));
+        assertFalse(projected.canRunE8());
+
+        var partial = project(true, true, disclosureMissing(), preflight(false));
+        assertEquals("NEEDS_EVIDENCE", item(partial, "DRIVER_DISCLOSURE").state());
+        assertEquals("MINE", item(partial, "DRIVER_DISCLOSURE").group());
+        assertEquals("ATTACHED_NOT_ADMITTED", item(partial, "OWNER_CONTRACT").state());
+        assertNotEquals("MINE", item(partial, "OWNER_CONTRACT").group());
     }
 
     @Test

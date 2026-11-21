@@ -78,6 +78,9 @@ class ProjectRequirementsIntegrationTest {
             owner.cookie(), key(), "\"0\"", withoutProof).statusCode());
         JsonNode gaps = json(call("GET", path, owner.cookie()));
         assertEquals("NEEDS_EVIDENCE", finding(gaps, "DRIVER_DISCLOSURE").path("state").asText());
+        assertEquals("ATTACHED_NOT_ADMITTED", finding(gaps, "OWNER_CONTRACT").path("state").asText());
+        assertNotEquals("MINE", finding(gaps, "OWNER_CONTRACT").path("group").asText());
+        assertFalse(gaps.toString().contains("Titular secreto"));
         assertEquals("AWAITING_NORMATIVE_EVALUATION", finding(gaps, "MARKET_ROUTE").path("state").asText());
         assertNotEquals("MINE", finding(gaps, "MARKET_ROUTE").path("group").asText());
         assertTrue(finding(gaps, "MARKET_ROUTE").path("reason").asText().contains("Não é uma rota de adicionalidade"));
@@ -90,8 +93,13 @@ class ProjectRequirementsIntegrationTest {
         assertEquals(200, call("PUT", "/v1/projects/" + id + "/technical/open-applicability",
             owner.cookie(), key(), "\"1\"", withProof).statusCode());
         JsonNode declared = json(call("GET", path, owner.cookie()));
-        assertFalse(declared.findValuesAsText("requirementId").contains("DRIVER_DISCLOSURE"));
-        assertFalse(declared.findValuesAsText("requirementId").contains("OWNER_CONTRACT"));
+        assertEquals("ATTACHED_NOT_ADMITTED", finding(declared, "DRIVER_DISCLOSURE").path("state").asText());
+        assertEquals("ATTACHED_NOT_ADMITTED", finding(declared, "OWNER_CONTRACT").path("state").asText());
+        assertFalse(finding(declared, "OWNER_CONTRACT").path("clientAction").asBoolean());
+        assertFalse(finding(declared, "OWNER_CONTRACT").path("admitsE8").asBoolean());
+        assertTrue(finding(declared, "OWNER_CONTRACT").path("reason").asText().contains("não cria PP jurídico"));
+        assertTrue(finding(declared, "DRIVER_DISCLOSURE").path("reason").asText().contains("não comprova a divulgação"));
+        assertFalse(declared.toString().contains("PHOTO-2027"));
         assertEquals("AWAITING_NORMATIVE_EVALUATION", finding(declared, "REGULATORY_SURPLUS").path("state").asText());
         assertEquals("NOT_ADMITTED", finding(declared, "EVR").path("state").asText());
         assertFalse(finding(declared, "EVR").path("admitsE8").asBoolean());

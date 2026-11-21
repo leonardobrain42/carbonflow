@@ -45,8 +45,8 @@ const app={
     text:'Teste de mercado da aplicabilidade. Não é rota de adicionalidade.'},
    {code:'REGULATORY_SURPLUS',state:'PENDING_LEGAL_REVIEW',
     text:'Excedente regulatório exige revisão independente.'},
-   {code:'OWNER_CONTRACT',state:'NEEDS_EVIDENCE',
-    text:'A referência não constitui contrato jurídico verificado.'},
+   {code:'OWNER_CONTRACT',state:'ATTACHED_NOT_ADMITTED',
+    text:'Titular e referência de contrato foram registrados. Essa referência não é prova admitida, não cria PP jurídico e não concede poder de representante.'},
    {code:'DRIVER_DISCLOSURE',state:'NEEDS_EVIDENCE',
     text:'Divulgação aos motoristas ainda não comprovada.'}
   ]}
@@ -156,7 +156,10 @@ test('UX-ADD-01: declared rights, separate chronology and conditional route neve
   await page.goto(base+'/workspace/projects/'+project+'/technical?secao=adicionalidade&etapa=direitos');
   await page.getByRole('heading',{name:/3\. Direitos/}).waitFor();
   await page.getByText('Organização declarada, sem procuração').waitFor();
+  await page.getByText('Referência registrada, não admitida',{exact:false}).waitFor();
+  await page.getByText('não cria PP jurídico',{exact:false}).waitFor();
   await page.getByText('Divulgação aos motoristas ainda não comprovada.').waitFor();
+  assert.equal(await page.getByText('poder concedido',{exact:false}).count(),0);
   await page.getByRole('button',{name:'2. Cronologia'}).click();
   await page.getByRole('heading',{name:/2\. Cronologia/}).waitFor();
   await page.getByText('2027-01-01',{exact:false}).first().waitFor();

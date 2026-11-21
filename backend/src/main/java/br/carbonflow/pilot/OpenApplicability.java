@@ -166,6 +166,10 @@ class OpenApplicability {
             if(data.chargingOwner()==null || data.carbonRightsContractRef()==null) {
                 findings.add(new Finding("OWNER_CONTRACT","NEEDS_EVIDENCE",
                     "Registre titular do sistema e referência verificável do contrato de direitos."));
+            } else {
+                findings.add(new Finding("OWNER_CONTRACT","ATTACHED_NOT_ADMITTED",
+                    "Titular e referência de contrato foram registrados. "
+                        + "Essa referência não é prova admitida, não cria PP jurídico e não concede poder de representante."));
             }
             if(data.driverDisclosureChannel()==null ||
                 "NOT_DECLARED".equals(data.driverDisclosureChannel()) ||
@@ -173,6 +177,10 @@ class OpenApplicability {
                 data.driverDisclosureEffectiveOn()==null) {
                 findings.add(new Finding("DRIVER_DISCLOSURE","NEEDS_EVIDENCE",
                     "É necessária prova datada de divulgação aos motoristas em rede aberta."));
+            } else {
+                findings.add(new Finding("DRIVER_DISCLOSURE","ATTACHED_NOT_ADMITTED",
+                    "Canal, data e referência de divulgação foram registrados. "
+                        + "A referência não comprova a divulgação e não aprova direitos."));
             }
             if(data.effectiveFrom()!=null && data.driverDisclosureEffectiveOn()!=null &&
                     data.driverDisclosureEffectiveOn().isAfter(data.effectiveFrom())) {
@@ -203,8 +211,10 @@ class OpenApplicability {
         }
         if(stale) findings.add(0,new Finding("TRIAGE_CHANGED","STALE",
             "A triagem foi revisada depois desta declaração. Reconfirme o recorte antes de análise."));
-        String rights=findings.stream().anyMatch(f->Set.of("OWNER_CONTRACT","DRIVER_DISCLOSURE",
-            "RIGHTS_DATE_GAP","DOUBLE_CLAIMING").contains(f.code()))?"EVIDENCE_PENDING":"DECLARED_REVIEW_PENDING";
+        boolean rightsMissing=findings.stream().anyMatch(f->
+            Set.of("OWNER_CONTRACT","DRIVER_DISCLOSURE").contains(f.code())
+                && "NEEDS_EVIDENCE".equals(f.state()));
+        String rights=rightsMissing?"EVIDENCE_PENDING":"DECLARED_REVIEW_PENDING";
         return new Readiness(category,network,rights,"PENDING_NORMATIVE_REVIEW",
             true,false,stale,List.copyOf(findings),
             List.of("OPEN-METHOD","OPEN-POSITIVE","OPEN-EV-PENETRATION","OPEN-EV-SALES",
