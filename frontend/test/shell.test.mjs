@@ -20,7 +20,13 @@ test('CF-IMP-005: shell responsivo, navegação e controle de sessão no piloto'
     const sidebar = page.getByRole('complementary', {name: 'Navegação lateral da demonstração'});
     await sidebar.waitFor();
     assert.equal(await page.getByRole('navigation', {name: 'Navegação pelas etapas do piloto'}).getByRole('link').count(), 5);
-    await sidebar.getByRole('link', {name: 'Enquadramento e inventário'}).click();
+    // <base href="/"> makes bare #fragments resolve to the public landing.
+    // A pilot navigation link must always stay under /pilot.
+    const intakeLink = sidebar.getByRole('link', {name: 'Enquadramento e inventário'});
+    assert.equal(await intakeLink.getAttribute('href'), '/pilot#cf-intake');
+    assert.equal(await sidebar.locator('a[href^="#cf-"]').count(), 0);
+    await intakeLink.click();
+    assert.equal(new URL(page.url()).pathname, '/pilot');
     assert.ok(page.url().endsWith('#cf-intake'));
     // Angular may still be attaching the project workbench after the sidebar is rendered.
     // Wait for the anchor instead of reading a transient zero immediately after navigation.
