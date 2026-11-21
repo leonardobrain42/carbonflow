@@ -69,6 +69,65 @@ class ProjectRequirementProjectionTest {
     }
 
     @Test
+    void openBoundaryPlanStaysSeparateFromMeasuredEnergy() {
+        var closed = monitored(OpenApplicability.evaluate(new OpenApplicability.Input(false, true, true,
+            "DCFC", "PHEV", "SIN", false, true, null, null, "NOT_DECLARED", null, null,
+            "UNKNOWN", null, null), false),
+            new OpenProjectStations.EnergyPosture("SELECTED", false, true, true));
+        assertTrue(closed.requirements().stream().noneMatch(item ->
+            List.of("BOUNDARY", "ED_METER", "EC_METER", "ENERGY_SERIES").contains(item.requirementId())));
+        assertEquals("NOT_INCIDENT", item(closed, "ED_EC").state());
+
+        var empty = monitored(disclosurePresent(), OpenProjectStations.EnergyPosture.NONE);
+        var boundary = item(empty, "BOUNDARY");
+        assertEquals("ABSENT", boundary.state());
+        assertEquals("MINE", boundary.group());
+        assertEquals("estacoes", boundary.destination().screen());
+        assertEquals("PREP", boundary.ownerRole());
+        assertTrue(boundary.clientAction());
+        assertFalse(boundary.blocksExAntePd());
+        assertFalse(boundary.admitsE8());
+        assertTrue(boundary.reason().contains("não produz energia medida"));
+        assertTrue(boundary.reason().contains("não vale zero"));
+        assertEquals("NOT_INCIDENT", item(empty, "ED_EC").state());
+        assertFalse(empty.exAnteRequiresMeasuredEnergy());
+        assertFalse(empty.canRunE8());
+        assertTrue(empty.requirements().stream().noneMatch(item ->
+            List.of("ED", "EC", "ENERGY_SERIES", "ED_METER").contains(item.requirementId())));
+
+        var planned = monitored(disclosurePresent(),
+            new OpenProjectStations.EnergyPosture("SELECTED", true, false, true));
+        assertTrue(planned.requirements().stream().noneMatch(item -> "BOUNDARY".equals(item.requirementId())));
+        assertTrue(item(planned, "ED_METER").reason().contains("distinto da energia consumida"));
+        assertTrue(item(planned, "ED_METER").reason().contains("não há energia medida"));
+        assertEquals("monitorar", item(planned, "ED_METER").destination().screen());
+        assertTrue(planned.requirements().stream().noneMatch(item ->
+            "EC_METER".equals(item.requirementId()) || "ENERGY_SERIES".equals(item.requirementId())));
+
+        var ready = monitored(disclosurePresent(),
+            new OpenProjectStations.EnergyPosture("SELECTED", false, true, true));
+        var series = item(ready, "ENERGY_SERIES");
+        assertEquals("PENDING_MEASUREMENT", series.state());
+        assertEquals("OP", series.ownerRole());
+        assertFalse(series.blocksExAntePd());
+        assertFalse(series.admitsE8());
+        assertTrue(series.reason().contains("não vale zero"));
+        assertTrue(series.reason().contains("calibração declarada não admite"));
+        assertFalse(ready.toString().contains("2700"));
+        assertFalse(ready.toString().contains("3000"));
+        assertTrue(ready.requirements().stream().noneMatch(item ->
+            "ED_METER".equals(item.requirementId()) || "ED".equals(item.requirementId())));
+
+        var stale = monitored(disclosurePresent(),
+            new OpenProjectStations.EnergyPosture("STALE", false, true, true));
+        assertEquals("STALE", item(stale, "BOUNDARY").state());
+        assertTrue(item(stale, "BOUNDARY").reason().contains("não podem ser presumidas"));
+        assertTrue(stale.requirements().stream().noneMatch(item ->
+            "ED_METER".equals(item.requirementId()) || "ENERGY_SERIES".equals(item.requirementId())));
+        assertFalse(stale.canRunE8());
+    }
+
+    @Test
     void anotherMethodologyDoesNotReceiveOpenRequirements() {
         var foreign = ProjectRequirementProjection.project(new ProjectRequirementProjection.Input(
             "p", "ACM0002", true, true, true, true, true, true,
@@ -206,6 +265,14 @@ class ProjectRequirementProjectionTest {
         assertFalse(view.canIssueVcu());
         assertFalse(view.exAnteRequiresMeasuredEnergy());
         assertFalse(view.requirements().stream().anyMatch(item -> item.reason().contains("3000")));
+    }
+
+    private static ProjectRequirementProjection.View monitored(OpenApplicability.Readiness readiness,
+            OpenProjectStations.EnergyPosture posture) {
+        return ProjectRequirementProjection.project(new ProjectRequirementProjection.Input(
+            "p", "VM0038", true, true, true, true, true, true,
+            readiness, preflight(false),
+            new ProjectRequirementProjection.Owners(false, "FLEET_SELECTION_MISSING", "BINDING_MISSING", posture)));
     }
 
     private static ProjectRequirementProjection.View project(boolean applicability, boolean calculation,

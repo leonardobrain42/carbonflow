@@ -332,6 +332,94 @@ class ProjectRequirementsIntegrationTest {
         assertFalse(json(call("GET", path, owner.cookie())).path("canRunE8").asBoolean());
     }
 
+    @Test
+    void openNetworkAsksForBoundaryAndSeparateMetersWithoutInventingEnergy() throws Exception {
+        Actor owner = actor();
+        String id = project(owner, organization(owner.id()));
+        String path = "/v1/projects/" + id + "/technical/requirements";
+        String root = "/v1/projects/" + id + "/technical";
+        assertEquals(200, call("PUT", root + "/intake", owner.cookie(), key(), "\"0\"", """
+            {"activity":"Recarga aberta","country":"BR","candidateMethodology":"VM0038"}
+            """).statusCode());
+        JsonNode undeclared = json(call("GET", path, owner.cookie()));
+        assertFalse(undeclared.findValuesAsText("requirementId").contains("BOUNDARY"));
+
+        assertEquals(200, call("PUT", root + "/open-applicability", owner.cookie(), key(), "\"0\"", """
+            {"unrestrictedBevAccess":true,"restrictedToIdentifiedVehicles":false,
+             "chargerType":"DCFC","propulsion":"BEV","electricitySource":"SIN",
+             "associatedInfrastructure":false,"v2g":false,
+             "chargingOwner":"Titular","carbonRightsContractRef":"CONTRACT-001",
+             "driverDisclosureChannel":"ON_CHARGER","driverDisclosureEvidenceRef":"PHOTO-1",
+             "driverDisclosureEffectiveOn":"2027-01-15","doubleClaimingCheck":"NO_OVERLAP_DECLARED",
+             "effectiveFrom":"2027-02-01"}
+            """).statusCode());
+        JsonNode plan = json(call("GET", path, owner.cookie()));
+        assertEquals("ABSENT", finding(plan, "BOUNDARY").path("state").asText());
+        assertEquals("estacoes", finding(plan, "BOUNDARY").at("/destination/screen").asText());
+        assertEquals("NOT_INCIDENT", finding(plan, "ED_EC").path("state").asText());
+        assertFalse(finding(plan, "ED_EC").path("blocksExAntePd").asBoolean());
+        assertFalse(plan.findValuesAsText("requirementId").contains("ED"));
+        assertFalse(plan.findValuesAsText("requirementId").contains("EC"));
+        assertFalse(plan.toString().contains("2700"));
+        assertFalse(plan.path("canRunE8").asBoolean());
+
+        String site = """
+            {"name":"Estação Norte","municipality":"Brasília","state":"DF",
+             "address":"Via norte 100","operationalState":"PLANNED","plannedOn":"2027-01-01",
+             "commissionedOn":null,"sourceReference":"PLANO-NORTE-1"}
+            """;
+        assertEquals(200, call("PUT", root + "/open-sites/sites/ST-01", owner.cookie(),
+            key(), "\"0\"", site).statusCode());
+        assertEquals(200, call("PUT", root + "/open-monitoring/chargers/CH-01", owner.cookie(),
+            key(), "\"0\"", """
+            {"siteCode":"ST-01","chargerKind":"DCFC","ratedPowerKw":150.000,
+             "grid":"SIN","topology":"GRID_ONLY","timeZone":"America/Sao_Paulo",
+             "sourceReference":"DOC-CHARGER-123"}
+            """).statusCode());
+        assertEquals(200, call("PUT", root + "/open-sites/boundary", owner.cookie(), key(), "\"0\"", """
+            {"chargers":[{"code":"CH-01","version":1}]}
+            """).statusCode());
+        JsonNode meters = json(call("GET", path, owner.cookie()));
+        assertFalse(meters.findValuesAsText("requirementId").contains("BOUNDARY"));
+        assertEquals("ABSENT", finding(meters, "ED_METER").path("state").asText());
+        assertEquals("ABSENT", finding(meters, "EC_METER").path("state").asText());
+        assertTrue(finding(meters, "ED_METER").path("reason").asText().contains("distinto da energia consumida"));
+        assertTrue(finding(meters, "EC_METER").path("reason").asText().contains("não há energia medida"));
+        assertFalse(meters.findValuesAsText("requirementId").contains("ENERGY_SERIES"));
+        assertFalse(finding(meters, "ED_METER").path("admitsE8").asBoolean());
+
+        String instrument = """
+            {"chargerCode":"CH-01","energyKind":"ED","meterPosition":"DOWNSTREAM",
+             "sourceSystem":"meter-control-system","calibrationEvidenceRef":"CAL-ED-1",
+             "calibrationValidFrom":"2027-01-01T00:00:00Z",
+             "calibrationValidUntil":"2028-01-01T00:00:00Z",
+             "configuredFrom":"2027-01-01T00:00:00Z",
+             "configuredUntil":"2028-01-01T00:00:00Z","timeZone":"America/Sao_Paulo"}
+            """;
+        assertEquals(200, call("PUT", root + "/open-monitoring/meters/ED-1", owner.cookie(),
+            key(), "\"0\"", instrument).statusCode());
+        assertEquals(200, call("PUT", root + "/open-monitoring/meters/EC-1", owner.cookie(),
+            key(), "\"0\"", instrument.replace("\"ED\"", "\"EC\"")
+                .replace("DOWNSTREAM", "UPSTREAM").replace("CAL-ED-1", "CAL-EC-1")).statusCode());
+        JsonNode series = json(call("GET", path, owner.cookie()));
+        assertEquals("PENDING_MEASUREMENT", finding(series, "ENERGY_SERIES").path("state").asText());
+        assertTrue(finding(series, "ENERGY_SERIES").path("reason").asText()
+            .contains("calibração declarada não admite"));
+        assertFalse(series.findValuesAsText("requirementId").contains("ED_METER"));
+        assertFalse(series.findValuesAsText("requirementId").contains("ED"));
+        assertFalse(series.toString().contains("2700"));
+        assertFalse(series.path("canRunE8").asBoolean());
+        assertEquals("NOT_INCIDENT", finding(series, "ED_EC").path("state").asText());
+
+        assertEquals(200, call("PUT", root + "/open-sites/sites/ST-01", owner.cookie(),
+            key(), "\"1\"", site.replace("Estação Norte", "Estação Norte revista")).statusCode());
+        JsonNode stale = json(call("GET", path, owner.cookie()));
+        assertEquals("STALE", finding(stale, "BOUNDARY").path("state").asText());
+        assertFalse(stale.findValuesAsText("requirementId").contains("ENERGY_SERIES"));
+        assertFalse(stale.findValuesAsText("requirementId").contains("ED_METER"));
+        assertFalse(stale.path("canRunE8").asBoolean());
+    }
+
     private static JsonNode finding(JsonNode view, String id) {
         for (var item : view.path("requirements")) {
             if (id.equals(item.path("requirementId").asText())) return item;

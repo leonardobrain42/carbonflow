@@ -30,8 +30,14 @@ final class ProjectRequirementProjection {
             boolean canRunE8, boolean canIssueVcu, boolean exAnteRequiresMeasuredEnergy,
             String limits, Summary summary, List<Item> requirements) {}
     /** Owner signals already decided elsewhere. Missing means the owner has no row. */
-    record Owners(boolean rightsRecheck, String fleetState, String bindingState) {
-        static final Owners NONE = new Owners(false, "FLEET_SELECTION_MISSING", "BINDING_MISSING");
+    record Owners(boolean rightsRecheck, String fleetState, String bindingState,
+            OpenProjectStations.EnergyPosture inventory) {
+        static final Owners NONE = new Owners(false, "FLEET_SELECTION_MISSING", "BINDING_MISSING",
+            OpenProjectStations.EnergyPosture.NONE);
+
+        Owners(boolean rightsRecheck, String fleetState, String bindingState) {
+            this(rightsRecheck, fleetState, bindingState, OpenProjectStations.EnergyPosture.NONE);
+        }
 
         boolean fleetPrepared() {
             return fleetState != null && !fleetState.contains("MISSING");
@@ -61,6 +67,7 @@ final class ProjectRequirementProjection {
             if (input.canViewCalculation() && input.preflight() != null) projectPreflight(input, items);
             applyOwners(input, items);
             if (!items.containsKey("ED_EC")) items.put("ED_EC", energyNotRequired(false));
+            applyInventory(input, items);
         } else if (visible) {
             items.put("METHODOLOGY_BRANCH", methodologyLimit(input));
         }
@@ -233,6 +240,71 @@ final class ProjectRequirementProjection {
                 ? "O fator elétrico preparatório vinculado ao período ficou desatualizado."
                 : "Há um fator elétrico preparatório. Ele não é VT0011 admitido e não habilita E8.");
         }
+    }
+
+    /**
+     * CF-OPEN-009. The open first-slice declaration makes the boundary plan incident.
+     * A planned station and a missing series never become measured energy, and neither blocks the ex ante document.
+     */
+    private static void applyInventory(Input input, LinkedHashMap<String, Item> items) {
+        if (!input.canOpenMonitoring() || input.applicability() == null) return;
+        boolean incident = input.applicability().findings().stream()
+            .anyMatch(finding -> "ED_EC".equals(finding.code()));
+        if (!incident) return;
+        OpenProjectStations.EnergyPosture posture = input.owners() == null
+            || input.owners().inventory() == null
+            ? OpenProjectStations.EnergyPosture.NONE : input.owners().inventory();
+        boolean act = input.canOpenMonitoring();
+        if (!"SELECTED".equals(posture.boundary())) {
+            boolean stale = "STALE".equals(posture.boundary());
+            items.put("BOUNDARY", monitoring("BOUNDARY", stale ? "STALE" : "ABSENT",
+                stale ? "Desatualizado" : "Ainda não informado",
+                stale
+                    ? "A fronteira aponta revisões antigas de estação ou carregador. "
+                        + "Energia entregue e consumida não podem ser presumidas."
+                    : "A fronteira ainda não seleciona carregador DCFC do SIN. "
+                        + "O documento ex ante pede esse plano. "
+                        + "Estação planejada não produz energia medida, e a falta de leitura não vale zero.",
+                stale ? "Reconciliar a fronteira com as revisões atuais."
+                    : "Selecionar as estações e os carregadores da fronteira.",
+                "Abrir as estações", destination(act, "estacoes", null), act, "PREP"));
+            return;
+        }
+        String planned = posture.plannedOnly()
+            ? " Nenhuma estação selecionada está em operação declarada, então não há energia medida."
+            : "";
+        if (!posture.edMeter()) {
+            items.put("ED_METER", monitoring("ED_METER", "ABSENT", "Ainda não informado",
+                "Falta o medidor da energia entregue (ED), a jusante, distinto da energia consumida."
+                    + planned,
+                "Cadastrar o instrumento de ED na fronteira atual. O cadastro não admite a série.",
+                "Abrir o monitoramento", destination(act, "monitorar", null), act, "OP"));
+        }
+        if (!posture.ecMeter()) {
+            items.put("EC_METER", monitoring("EC_METER", "ABSENT", "Ainda não informado",
+                "Falta o medidor da energia consumida (EC), a montante, distinto da energia entregue."
+                    + planned,
+                "Cadastrar o instrumento de EC na fronteira atual. EC não se deduz de ED.",
+                "Abrir o monitoramento", destination(act, "monitorar", null), act, "OP"));
+        }
+        if (posture.edMeter() && posture.ecMeter()) {
+            items.put("ENERGY_SERIES", monitoring("ENERGY_SERIES", "PENDING_MEASUREMENT",
+                "Medição pendente",
+                "ED e EC seguem separados. Não há série admitida por período. "
+                    + "Ausência não vale zero, e calibração declarada não admite o lote." + planned,
+                "Registrar as leituras do período quando a operação existir. "
+                    + "Cobrança e sessões não são energia medida.",
+                "Abrir o monitoramento", destination(act, "monitorar", null), act, "OP"));
+        }
+    }
+
+    private static Item monitoring(String id, String state, String situation,
+            String reason, String next, String label, Destination destination,
+            boolean clientAction, String role) {
+        return new Item(id, "VM0038", "1.1", OpenCalculationPreflight.SCENARIO, "CF-OPEN-009",
+            state, situation, reason, role, next, clientAction ? label : null, destination,
+            clientAction ? "MINE" : "AWAITING_REVIEW", clientAction, false, false,
+            List.of("monitoramento"));
     }
 
     private static void overlay(LinkedHashMap<String, Item> items, String code, boolean stale, String reason) {
