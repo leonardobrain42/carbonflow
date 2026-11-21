@@ -5,9 +5,15 @@ import {Component, inject, input, OnInit, output, signal, viewChild} from '@angu
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {firstValueFrom} from 'rxjs';
 import {GuideReferencesComponent} from './guide-references';
+import {PdTraceComponent} from './pd-trace';
 import {TypedGuideComponent} from './typed-guide';
 
 interface Field { key: string; label: string; type: string; options: string[]; helpText?: string | null }
+interface PdSection {
+  guide: {id: string; title: string; version: number; missing: string[]};
+  latest: {number: number; guideVersion: number; sha256: string} | null;
+  monitoringDependency: {state: string; outdated: boolean} | null;
+}
 interface Guide {
   id: string; title: string; guidance: string; fields: Field[]; version: number;
   answers: Record<string,string>; missing: string[]; editable: boolean;
@@ -16,7 +22,7 @@ interface Guide {
 
 @Component({
   selector: 'carbonflow-project-guides',
-  imports: [GuideReferencesComponent, AcquisitionPanelComponent, GuideFactsPanelComponent, SectionAssessmentComponent, TypedGuideComponent],
+  imports: [GuideReferencesComponent, AcquisitionPanelComponent, GuideFactsPanelComponent, SectionAssessmentComponent, TypedGuideComponent, PdTraceComponent],
   templateUrl: './project-guides.html',
 })
 export class ProjectGuidesComponent implements OnInit {
@@ -28,6 +34,8 @@ export class ProjectGuidesComponent implements OnInit {
   readonly document = output<string>();
   readonly saved = output<Guide>();
   readonly guides = signal<Guide[]>([]);
+  readonly pdSections = signal<PdSection[] | null>(null);
+  readonly pdStatus = signal<'idle' | 'loading' | 'ready' | 'restricted' | 'error'>('idle');
   readonly evidenceRequest = signal<EvidenceRequestLink|null>(null);
   readonly sources = signal<Guide[] | null>(null);
   readonly historyOpen = signal(false);
@@ -43,7 +51,36 @@ export class ProjectGuidesComponent implements OnInit {
   private readonly http = inject(HttpClient);
   private get url() { return '/v1/projects/' + encodeURIComponent(this.projectId()) + '/technical/guides'; }
 
-  ngOnInit() { void this.load(); }
+  ngOnInit() {
+    void this.load();
+    if (this.canOpenDocument()) void this.loadPd();
+  }
+
+  currentPd() {
+    const id = this.current()?.id;
+    return this.pdSections()?.find(section => section.guide.id === id) ?? null;
+  }
+
+  /** Saved typed revision for this guide. An unsaved draft is not the document. */
+  previewGuide() {
+    const current = this.current();
+    const typed = this.typedEditor()?.guide() ?? null;
+    return typed && current && typed.id === current.id ? typed : null;
+  }
+
+  private async loadPd() {
+    this.pdStatus.set('loading');
+    try {
+      const sections = await firstValueFrom(this.http.get<PdSection[]>(
+        '/v1/projects/' + encodeURIComponent(this.projectId()) + '/technical/pd-sections'));
+      this.pdSections.set(sections);
+      this.pdStatus.set('ready');
+    } catch (cause) {
+      this.pdSections.set(null);
+      this.pdStatus.set(cause instanceof HttpErrorResponse && [401, 403, 404].includes(cause.status)
+        ? 'restricted' : 'error');
+    }
+  }
 
   async load() {
     this.loading.set(true);

@@ -15,7 +15,7 @@ type Section={guide:{id:string;title:string;version:number;missing:string[]};
 
 @Component({selector:'carbonflow-pd-trace',standalone:true,templateUrl:'./pd-trace.html'})
 export class PdTraceComponent {
-  @Input({required:true}) kind:'baseline'|'additionality'='baseline';
+  @Input({required:true}) kind='';
   @Input() guide:Guide|null=null;
   @Input() section:Section|null=null;
   @Input() canViewPd=false;
