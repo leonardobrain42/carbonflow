@@ -26,25 +26,28 @@
                   <p>{{name}}</p>
                 }
                 <p>{{item.reason}}</p>
-                @if (editionLabel(item); as edition) {
-                  <p>Metodologia aplicável: {{edition}}</p>
-                }
                 <p>Próximo passo: {{item.nextAction}}</p>
-                <p>Papel previsto: {{roleLabel(item.ownerRole)}}. Nenhuma pessoa foi designada por este diagnóstico.</p>
-                @if (item.affectedOutputs.length) {
-                  <p>Entra em: {{item.affectedOutputs.join(', ')}}.</p>
-                }
-                @if (!item.blocksExAntePd && item.requirementId === 'ED_EC') {
-                  <p>Não bloqueia o documento ex ante.</p>
-                }
-                @if (item.ruleRef) {
-                  <small>Regra: {{item.ruleRef}}</small>
-                }
-                <small>Referência: {{item.requirementId}}</small>
                 @if (item.destination && item.actionLabel) {
                   <button type="button" class="cf-workspace-outline"
                     (click)="openSection.emit(item.destination.screen)">{{item.actionLabel}}</button>
                 }
+                <details class="cf-journey-context">
+                  <summary>Papel, regra e referência</summary>
+                  @if (editionLabel(item); as edition) {
+                    <p>Metodologia aplicável: {{edition}}</p>
+                  }
+                  <p>Papel previsto: {{roleLabel(item.ownerRole)}}. Nenhuma pessoa foi designada por este diagnóstico.</p>
+                  @if (item.affectedOutputs.length) {
+                    <p>Entra em: {{item.affectedOutputs.join(', ')}}.</p>
+                  }
+                  @if (!item.blocksExAntePd && item.requirementId === 'ED_EC') {
+                    <p>Não bloqueia o documento ex ante.</p>
+                  }
+                  @if (item.ruleRef) {
+                    <small>Regra: {{item.ruleRef}}</small>
+                  }
+                  <small>Referência: {{item.requirementId}}</small>
+                </details>
               </li>
             }
           </ul>
