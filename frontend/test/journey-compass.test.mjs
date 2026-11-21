@@ -212,6 +212,8 @@ test('a visão geral mostra a mesma pendência de Analisar sem alterar o percent
   await page.goto(base+overview);
   await page.getByRole('heading',{name:'Pendências do diagnóstico'}).waitFor();
   await page.getByText('Falta a prova datada de divulgação aos motoristas.').waitFor();
+  await page.getByText('Divulgação aos motoristas',{exact:true}).waitFor();
+  await page.getByText('Referência: DRIVER_DISCLOSURE',{exact:true}).waitFor();
   await page.getByText('1 de 4 tarefas com registro concluído').waitFor();
   assert.equal(await page.getByRole('link',{name:'Abrir a declaração'}).getAttribute('href'),
     '/workspace/projects/'+project+'/technical?secao=analisar');

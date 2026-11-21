@@ -31,7 +31,7 @@ Metodologia diferente de VM0038 recebe um único limite explícito. Os requisito
 
 ## Interface
 
-Em **Analisar**, o painel fica antes da declaração. O detalhe das equações saiu desta seção e permanece em **Quantificação**, com o título **Prontidão para quantificação**. Nenhuma fórmula é calculada no Angular. O painel recusa uma resposta que diga que o cálculo ou o crédito está liberado.
+Em **Analisar**, o painel fica antes da declaração. Cada pendência mostra o nome do requisito, a metodologia e a edição quando a projeção já as traz, a regra e a referência estável. O estado público continua sendo a situação, sem expor o código interno. A visão geral repete esse contexto nas ações desta conta. O detalhe das equações saiu desta seção e permanece em **Quantificação**, com o título **Prontidão para quantificação**. Nenhuma fórmula é calculada no Angular. O painel recusa uma resposta que diga que o cálculo ou o crédito está liberado.
 
 ## Visão geral
 

@@ -112,8 +112,18 @@
                   <li>
                     <div>
                       <strong>{{item.situation}}</strong>
+                      @if (requirementName(item.requirementId); as name) {
+                        <p>{{name}}</p>
+                      }
                       <p>{{item.reason}}</p>
+                      @if (editionLabel(item); as edition) {
+                        <p>Metodologia aplicável: {{edition}}</p>
+                      }
                       <p>Próximo passo: {{item.nextAction}}</p>
+                      @if (item.ruleRef) {
+                        <small>Regra: {{item.ruleRef}}</small>
+                      }
+                      <small>Referência: {{item.requirementId}}</small>
                     </div>
                     @if (item.destination && item.actionLabel) {
                       <a class="cf-workspace-link" [routerLink]="['/workspace/projects', project.projectId, 'technical']"
