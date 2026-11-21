@@ -18,6 +18,36 @@ interface EquationStep {
   blockedBy:string[];
   status:string;
 }
+interface RunGate {
+  code:string;
+  state:string;
+  reason:string;
+  nextAction:string;
+  owner:string;
+}
+interface RunMemory {
+  usableForE8:boolean;
+  beTco2e:string;
+  peTco2e:string;
+  leTco2e:string;
+  erTco2e:string;
+  erDisplay:string;
+}
+interface CalculationRun {
+  id:string;
+  period:string;
+  version:number;
+  state:string;
+  stale:boolean;
+  canIssueVcu:boolean;
+  gates:RunGate[];
+  memory:RunMemory|null;
+}
+interface RunListing {
+  period:string;
+  canRecord:boolean;
+  runs:CalculationRun[];
+}
 interface OpenCalculationReadiness {
   projectId:string;
   environment:string;
@@ -47,10 +77,19 @@ export class OpenCalculationReadinessComponent implements OnChanges {
   readonly loading=signal(true);
   readonly error=signal('');
   readonly readiness=signal<OpenCalculationReadiness|null>(null);
+  readonly runPeriod=signal('M1');
+  readonly canRecord=signal(false);
+  readonly latestRun=signal<CalculationRun|null>(null);
+  readonly recording=signal(false);
+  readonly runError=signal('');
   private requestId=0;
+  private runKey='';
 
   ngOnChanges(changes:SimpleChanges) {
-    if(changes['projectId'])void this.load();
+    if(changes['projectId']) {
+      this.runKey='';
+      void this.load();
+    }
   }
 
   async load() {
@@ -78,6 +117,79 @@ export class OpenCalculationReadinessComponent implements OnChanges {
     } finally {
       if(current===this.requestId)this.loading.set(false);
     }
+    if(current===this.requestId)void this.loadRun();
+  }
+
+  async loadRun() {
+    const project=this.projectId;
+    const period=await this.period();
+    if(project!==this.projectId)return;
+    this.runPeriod.set(period);
+    try {
+      const listing=await firstValueFrom(this.http.get<RunListing>(this.runUrl(project,period)));
+      if(project!==this.projectId)return;
+      if(listing.period!==period)throw new Error('Inconsistent period');
+      this.canRecord.set(listing.canRecord);
+      this.latestRun.set(listing.runs[0]??null);
+      this.runError.set('');
+    } catch (problem) {
+      if(project!==this.projectId)return;
+      this.canRecord.set(false);
+      this.latestRun.set(null);
+      this.runError.set(problem instanceof HttpErrorResponse && [401,403,404].includes(problem.status)
+        ? '' : 'Não foi possível consultar a última tentativa.');
+    }
+  }
+
+  async record() {
+    if(this.recording() || !this.canRecord())return;
+    const project=this.projectId;
+    const period=this.runPeriod();
+    const version=this.latestRun()?.version??0;
+    if(!this.runKey)this.runKey=crypto.randomUUID();
+    this.recording.set(true);
+    this.runError.set('');
+    try {
+      const saved=await firstValueFrom(this.http.post<CalculationRun>(this.runUrl(project,period),{},{
+        headers:{'Idempotency-Key':this.runKey,'If-Match':'"'+version+'"'},
+      }));
+      if(project!==this.projectId)return;
+      if(saved.canIssueVcu || saved.memory?.usableForE8)
+        throw new Error('Unexpected E8 admission');
+      this.runKey='';
+      this.latestRun.set(saved);
+    } catch (problem) {
+      if(project!==this.projectId)return;
+      this.runKey='';
+      if(problem instanceof HttpErrorResponse && problem.status===412) {
+        await this.loadRun();
+        this.runError.set('A tentativa mudou. Consulte de novo antes de registrar.');
+      } else if(problem instanceof HttpErrorResponse && [401,403,404].includes(problem.status)) {
+        this.canRecord.set(false);
+        this.runError.set('Seu acesso não permite registrar a tentativa.');
+      } else {
+        this.runError.set('Não foi possível registrar a tentativa.');
+      }
+    } finally {
+      if(project===this.projectId)this.recording.set(false);
+    }
+  }
+
+  private async period() {
+    try {
+      const dossiers=await firstValueFrom(this.http.get<{reference?:{code?:string}}[]>(
+        '/v1/projects/'+encodeURIComponent(this.projectId)+'/technical/open-monitoring/dossiers'));
+      const code=dossiers.find(item=>item.reference?.code)?.reference?.code;
+      if(code)return code;
+    } catch {
+      // Quem vê o cálculo e não o monitoramento registra a tentativa em M1.
+    }
+    return 'M1';
+  }
+
+  private runUrl(project:string, period:string) {
+    return '/v1/projects/'+encodeURIComponent(project)
+      +'/technical/open-monitoring/dossiers/'+encodeURIComponent(period)+'/e8-runs';
   }
 
   preparatoryGates():CalculationGate[] {
@@ -108,6 +220,8 @@ export class OpenCalculationReadinessComponent implements OnChanges {
       PENDING_MEASUREMENT:'Medição pendente',
       NOT_CALCULATED:'Não calculado — aguardando dados admitidos',
       REVIEW_REQUIRED:'Verificação técnica pendente',
+      BLOCKED:'Bloqueado',
+      REVIEWED_INTERNAL:'Ensaio interno',
     };
     return labels[value]??value;
   }

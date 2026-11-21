@@ -78,6 +78,48 @@
         </li>
       }
     </ul>
+    <h4>Última tentativa de cálculo · {{runPeriod()}}</h4>
+    <p>Registrar a tentativa grava o diagnóstico deste período.
+      Nenhum número é enviado pelo navegador e nenhum BE, PE, LE ou ER é calculado
+      enquanto o conjunto estiver incompleto.</p>
+    @if (runError()) {
+      <p role="alert" class="cf-workspace-alert">{{runError()}}</p>
+    }
+    @if (latestRun(); as run) {
+      <dl class="cf-tech-capabilities">
+        <div><dt>Situação</dt><dd>{{stateLabel(run.state)}} · v{{run.version}}</dd></div>
+        <div><dt>BE, PE, LE e ER</dt>
+          <dd>{{run.state==='REVIEWED_INTERNAL' && run.memory && !run.memory.usableForE8
+            ? 'Ensaio interno — crédito não habilitado'
+            : 'Não calculados'}}</dd></div>
+        <div><dt>Emissão de créditos</dt><dd>{{run.canIssueVcu?'Habilitada':'Não habilitada'}}</dd></div>
+      </dl>
+      @if (run.state==='REVIEWED_INTERNAL' && run.memory && !run.memory.usableForE8) {
+        <p>Ensaio interno da memória recebida do servidor.
+          Não é admissão normativa nem emissão de crédito.</p>
+        <dl class="cf-tech-capabilities">
+          <div><dt>BE</dt><dd>{{run.memory.beTco2e}} tCO2e</dd></div>
+          <div><dt>PE</dt><dd>{{run.memory.peTco2e}} tCO2e</dd></div>
+          <div><dt>LE</dt><dd>{{run.memory.leTco2e}} tCO2e</dd></div>
+          <div><dt>ER</dt><dd>{{run.memory.erDisplay}} tCO2e</dd></div>
+        </dl>
+      }
+      <ul class="cf-tech-gates">
+        @for (gate of run.gates; track gate.code) {
+          <li>
+            <strong>{{gate.code}} · {{stateLabel(gate.state)}}</strong>
+            <p>{{gate.reason}}</p>
+            <small>{{gate.nextAction}} · Responsável: {{gate.owner}}</small>
+          </li>
+        }
+      </ul>
+    } @else {
+      <p>Nenhuma tentativa registrada neste período.</p>
+    }
+    @if (canRecord()) {
+      <button type="button" class="cf-workspace-outline" (click)="record()" [disabled]="recording()">
+        Registrar tentativa de cálculo</button>
+    }
     <button type="button" class="cf-workspace-outline" (click)="load()">Atualizar diagnóstico</button>
   }
 </section>
