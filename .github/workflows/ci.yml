@@ -170,6 +170,10 @@ jobs:
           python3 scripts/demo_sandbox.py start --quiet
           python3 scripts/demo_sandbox.py smoke
       - name: Reproduce legacy V71 checksum and late V69.1 on a persisted demo DB
+        # Direct Compose calls must publish the same port as demo_sandbox.py.
+        # Keep the default-port test for the earlier provisioning steps.
+        env:
+          CARBONFLOW_PORT: '18088'
         run: |
           set -euo pipefail
           # This is a disposable CI DB. Real user volumes are NEVER modified.
