@@ -94,6 +94,42 @@ class ProjectRequirementsIntegrationTest {
     }
 
     @Test
+    void changedRightsAskForRecheckWithoutAdmittingTheSource() throws Exception {
+        Actor owner = actor();
+        String id = project(owner, organization(owner.id()));
+        assertEquals(200, call("PUT", "/v1/projects/" + id + "/technical/intake", owner.cookie(),
+            key(), "\"0\"", """
+                {"activity":"Recarga aberta","country":"BR","candidateMethodology":"VM0038"}
+                """).statusCode());
+        String first = """
+            {"unrestrictedBevAccess":true,"restrictedToIdentifiedVehicles":false,
+             "chargerType":"DCFC","propulsion":"BEV","electricitySource":"SIN",
+             "associatedInfrastructure":false,"v2g":false,
+             "chargingOwner":"Titular","carbonRightsContractRef":"CONTRACT-001",
+             "driverDisclosureChannel":"ON_CHARGER","driverDisclosureEvidenceRef":"PHOTO-1",
+             "driverDisclosureEffectiveOn":"2027-01-15","doubleClaimingCheck":"NO_OVERLAP_DECLARED",
+             "effectiveFrom":"2027-02-01"}
+            """;
+        assertEquals(200, call("PUT", "/v1/projects/" + id + "/technical/open-applicability",
+            owner.cookie(), key(), "\"0\"", first).statusCode());
+        JsonNode before = json(call("GET", "/v1/projects/" + id + "/technical/requirements", owner.cookie()));
+        assertFalse(before.findValuesAsText("requirementId").contains("RIGHTS_DEPENDENCY"));
+        String changed = first.replace("CONTRACT-001", "CONTRACT-002").replace("PHOTO-1", "PHOTO-2");
+        assertEquals(200, call("PUT", "/v1/projects/" + id + "/technical/open-applicability",
+            owner.cookie(), key(), "\"1\"", changed).statusCode());
+        JsonNode after = json(call("GET", "/v1/projects/" + id + "/technical/requirements", owner.cookie()));
+        assertEquals("RECHECK_REQUIRED", finding(after, "RIGHTS_DEPENDENCY").path("state").asText());
+        assertFalse(finding(after, "RIGHTS_DEPENDENCY").path("admitsE8").asBoolean());
+        assertEquals("AWAITING_NORMATIVE_EVALUATION", finding(after, "REGULATORY_SURPLUS").path("state").asText());
+        assertEquals("NOT_ADMITTED", finding(after, "EVR").path("state").asText());
+        assertEquals("NOT_INCIDENT", finding(after, "ED_EC").path("state").asText());
+        assertFalse(after.path("canRunE8").asBoolean());
+        assertEquals(2L, database.read(c -> first(c, """
+            SELECT count(*) FROM app_project_open_applicability_revision WHERE project_id=?
+            """, r -> r.getLong(1), id)).longValue());
+    }
+
+    @Test
     void otherMethodologyAndRevokedCalculationGrantStayClosed() throws Exception {
         Actor owner = actor(), calculator = actor(), outsider = actor();
         UUID org = organization(owner.id());

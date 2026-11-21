@@ -1,7 +1,10 @@
 package br.carbonflow.pilot;
 
+import static br.carbonflow.pilot.PilotSql.query;
+
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.List;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
@@ -36,6 +39,48 @@ class ProjectRequirements {
             actions.contains("VIEW_OPEN_MONITORING"),
             applicability && open ? OpenApplicability.currentReadiness(connection, context.id()) : null,
             calculation && open ? OpenCalculationReadiness.diagnose(
-                connection, context.id(), context.environment()) : null));
+                connection, context.id(), context.environment()) : null,
+            owners(connection, context.id(), applicability, calculation)));
     }
+
+    private static ProjectRequirementProjection.Owners owners(Connection connection, String project,
+            boolean applicability, boolean calculation) throws SQLException {
+        String fleet = "FLEET_SELECTION_MISSING";
+        String binding = "BINDING_MISSING";
+        if (calculation) {
+            for (var dossier : OpenMonitoringDossiers.manifest(connection, project).dossiers()) {
+                String period = dossier.reference().code();
+                fleet = prefer(fleet, OpenE8FleetSelections.currentState(connection, project, period));
+                binding = prefer(binding, OpenE8InputBindings.currentState(connection, project, period));
+            }
+        }
+        return new ProjectRequirementProjection.Owners(
+            applicability && rightsRecheck(connection, project), fleet, binding);
+    }
+
+    /** A present proof that changed needs review. A still-missing proof stays a gap. */
+    private static boolean rightsRecheck(Connection connection, String project) throws SQLException {
+        List<Rights> revisions = query(connection, """
+            SELECT carbon_rights_contract_ref, driver_disclosure_evidence_ref,
+                   driver_disclosure_effective_on::text, double_claiming_check
+            FROM app_project_open_applicability_revision
+            WHERE project_id=? ORDER BY version DESC LIMIT 2
+            """, row -> new Rights(row.getString(1), row.getString(2), row.getString(3), row.getString(4)),
+            project);
+        if (revisions.size() < 2) return false;
+        Rights current = revisions.get(0);
+        Rights previous = revisions.get(1);
+        boolean present = current.contract() != null && !current.contract().isBlank()
+            && current.disclosure() != null && !current.disclosure().isBlank();
+        return present && !current.equals(previous);
+    }
+
+    private static String prefer(String current, String candidate) {
+        if (candidate != null && candidate.startsWith("STALE")) return candidate;
+        if (current != null && current.startsWith("STALE")) return current;
+        if (candidate != null && !candidate.contains("MISSING")) return candidate;
+        return current;
+    }
+
+    private record Rights(String contract, String disclosure, String effectiveOn, String overlap) {}
 }

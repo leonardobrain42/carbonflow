@@ -42,7 +42,7 @@ class ProjectRequirementProjectionTest {
     void anotherMethodologyDoesNotReceiveOpenRequirements() {
         var foreign = ProjectRequirementProjection.project(new ProjectRequirementProjection.Input(
             "p", "ACM0002", true, true, true, true, true, true,
-            disclosureMissing(), preflight(false)));
+            disclosureMissing(), preflight(false), ProjectRequirementProjection.Owners.NONE));
         assertFalse(foreign.openBranch());
         assertEquals(1, foreign.requirements().size());
         assertEquals("METHODOLOGY_BRANCH", foreign.requirements().get(0).requirementId());
@@ -106,11 +106,48 @@ class ProjectRequirementProjectionTest {
         assertTrue(closed.requirements().isEmpty());
     }
 
+    @Test
+    void changedProofAsksForRecheckAndPreparedSourceStaysUnadmitted() {
+        var recheck = ProjectRequirementProjection.project(new ProjectRequirementProjection.Input(
+            "p", "VM0038", true, true, true, true, true, false,
+            disclosurePresent(), preflight(false),
+            new ProjectRequirementProjection.Owners(true, "FLEET_SELECTION_MISSING", "BINDING_MISSING")));
+        assertEquals("RECHECK_REQUIRED", item(recheck, "RIGHTS_DEPENDENCY").state());
+        assertEquals("AWAITING_REVIEW", item(recheck, "RIGHTS_DEPENDENCY").group());
+        assertFalse(item(recheck, "RIGHTS_DEPENDENCY").clientAction());
+        assertFalse(item(recheck, "RIGHTS_DEPENDENCY").admitsE8());
+        assertEquals("AWAITING_NORMATIVE_EVALUATION", item(recheck, "REGULATORY_SURPLUS").state());
+        assertEquals("NOT_ADMITTED", item(recheck, "EVR").state());
+
+        var gap = ProjectRequirementProjection.project(new ProjectRequirementProjection.Input(
+            "p", "VM0038", true, true, true, true, true, false,
+            disclosureMissing(), preflight(false),
+            new ProjectRequirementProjection.Owners(true, "PREPARATORY_NOT_ADMITTED", "CANDIDATE_NOT_ADMITTED")));
+        assertEquals("NEEDS_EVIDENCE", item(gap, "DRIVER_DISCLOSURE").state());
+        assertTrue(gap.requirements().stream().noneMatch(i -> "RIGHTS_DEPENDENCY".equals(i.requirementId())));
+        assertEquals("SOURCE_CANDIDATE", item(gap, "EVR").state());
+        assertEquals("SOURCE_CANDIDATE", item(gap, "EF_FUEL").state());
+        assertFalse(item(gap, "EVR").admitsE8());
+        assertEquals("NOT_ADMITTED", item(gap, "IR").state());
+        assertEquals("NOT_INCIDENT", item(gap, "ED_EC").state());
+
+        var staleFleet = ProjectRequirementProjection.project(new ProjectRequirementProjection.Input(
+            "p", "VM0038", true, true, true, true, true, false,
+            disclosurePresent(), preflight(false),
+            new ProjectRequirementProjection.Owners(false, "STALE_NOT_ADMITTED", "BINDING_MISSING")));
+        assertEquals("STALE", item(staleFleet, "EVR").state());
+        assertEquals("STALE", item(staleFleet, "AFEC_MPG").state());
+        assertEquals("NOT_ADMITTED", item(staleFleet, "EF_FUEL").state());
+        assertEquals("NOT_ADMITTED", item(staleFleet, "IR").state());
+        assertFalse(staleFleet.canRunE8());
+    }
+
     private static ProjectRequirementProjection.View project(boolean applicability, boolean calculation,
             OpenApplicability.Readiness readiness, OpenCalculationPreflight.Result preflight) {
         return ProjectRequirementProjection.project(new ProjectRequirementProjection.Input(
             "p", "VM0038", applicability, calculation, applicability, true, calculation, false,
-            applicability ? readiness : null, calculation ? preflight : null));
+            applicability ? readiness : null, calculation ? preflight : null,
+            ProjectRequirementProjection.Owners.NONE));
     }
 
     private static ProjectRequirementProjection.Item item(ProjectRequirementProjection.View view, String id) {
