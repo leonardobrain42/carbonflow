@@ -15,7 +15,7 @@ Esta mudança **não cria tabelas ou novas fontes canônicas**. O objetivo expl�
 
 ## UX/segurança
 
-- Formulário editável apenas pelo `TypedGuideComponent` existente: validação, ETag, idempotência e edição. Notas textuais antigas ficam disponíveis em `Guias técnicos`, sem experiência duplicada.
+- Formulário editável apenas pelo `TypedGuideComponent` existente: validação, ETag, idempotência e edição. Em Premissas e Cronologia a ação principal é salvar nessa mesma etapa. Uma recusa mantém o rascunho na tela. Notas textuais antigas continuam como histórico, sem botão que leve a outra seção para concluir a tarefa.
 - Navegação por botões com `aria-current=step`, links persistentes e proteção de navegação se o editor possuir dados não salvos.
 - Cada fonte consulta sua API **somente se** o capability do projeto permitir. Erros/revogação mostram estado `restricted`/erro, **não** ausência factual. O backend controla a segurança efetiva e recusa chamadas forjadas.
 - A tela mostra status, motivo, próxima ação e responsável de gates reais, mas não expõe estoque, AFEC/MPG, contratos ou arquivos sem o respectivo grant.

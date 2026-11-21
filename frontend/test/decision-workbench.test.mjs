@@ -177,3 +177,57 @@ test('UX-ADD/PD: restricted collaborator does not query private rights, calculat
   assert.equal(observed.includes('/pd-sections'),false);
  }finally{await browser.close();}
 });
+
+test('UX-RES-01: a premissa tipada permanece na etapa e a recusa conserva o rascunho',async()=>{
+ const browser=await chromium.launch({executablePath});
+ try{
+  const page=await browser.newPage({viewport:{width:390,height:844}});
+  const observed=[];
+  const resumes=[];
+  await mock(page,['VIEW_INTAKE','VIEW_GUIDES','SAVE_GUIDE','VIEW_OPEN_APPLICABILITY',
+    'VIEW_OPEN_CALCULATION','VIEW_OPEN_MONITORING','VIEW_OPEN_E8_FLEET_SELECTION',
+    'VIEW_DOSSIER'],observed);
+  await page.route('**/journey/resume',route=>{
+    resumes.push(route.request().postData()??'');
+    return route.fulfill({status:204});
+  });
+  await page.route('**'+root+'/technical/typed-guides/baseline',route=>{
+    if(route.request().method()==='PUT')
+      return route.fulfill({status:412,contentType:'application/json',body:'{}'});
+    return route.fallback();
+  });
+  await page.route('**'+root+'/technical/typed-guides',route=>{
+    if(route.request().method()!=='GET')return route.fallback();
+    const baseline=guide('baseline');
+    baseline.editable=true;
+    baseline.fields=baseline.fields.map(field=>field.key==='vehicleClass'
+      ?{...field,options:['LDV']}:{...field,options:field.options??[]});
+    const additionality=guide('additionality');
+    additionality.editable=true;
+    return route.fulfill({json:{methodology:'VM0038_V1_1',guides:[baseline,additionality]}});
+  });
+  await page.goto(base+'/workspace/projects/'+project+'/technical?secao=linha-base&etapa=premissas');
+  await page.getByRole('heading',{name:/4\. Premissas/}).waitFor();
+  await page.getByText('Responsável previsto: PREP').waitFor();
+  await page.getByText('a premissa tipada está declarada e não aprova a linha de base.').waitFor();
+  assert.equal(await page.getByRole('button',{name:'Consultar notas textuais legadas e fontes do guia'}).count(),0);
+  assert.ok(page.url().includes('etapa=premissas'));
+  const field=page.getByLabel('Alternativa ao projeto');
+  const draft='Premissa ainda não aceita pelo servidor';
+  await field.fill(draft);
+  await page.getByRole('button',{name:'Salvar revisão estruturada'}).click();
+  await page.getByText('Outra revisão foi salva. Copie as alterações e recarregue.').waitFor();
+  assert.equal(await field.inputValue(),draft);
+  assert.ok(page.url().includes('secao=linha-base'));
+  assert.ok(page.url().includes('etapa=premissas'));
+  assert.ok(resumes.some(body=>body.includes('"screen":"linha-base"')&&body.includes('"step":"premissas"')));
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
+  await page.goto(base+'/workspace/projects/'+project+'/technical?secao=adicionalidade&etapa=cronologia');
+  await page.getByRole('heading',{name:/2\. Cronologia/}).waitFor();
+  assert.equal(await page.getByRole('button',{name:'Consultar histórico e solicitações do guia'}).count(),0);
+  await page.getByText('não provam o ato nem a adicionalidade.').waitFor();
+  await page.setViewportSize({width:1440,height:900});
+  await page.getByRole('heading',{name:/2\. Cronologia/}).waitFor();
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
+ }finally{await browser.close();}
+});
