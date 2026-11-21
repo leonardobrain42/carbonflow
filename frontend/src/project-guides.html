@@ -20,13 +20,15 @@
         Um texto preenchido não substitui cadastro de ativos, contrato, evidência anexada ou parecer independente.</p>
       @if (guide.id === 'quantification') {
         <p>Sem resultado admitido para o recorte. Reduções de emissões (ER) em tCO₂e pendentes de cálculo e revisão.</p>
-        <a class="cf-workspace-link" href="/pilot#memory-heading">Consultar a memória da simulação no piloto</a>
+        <p class="cf-workspace-note">A memória do piloto sintético é um exemplo à parte.
+          Ela não entra neste projeto e não conclui esta etapa.</p>
       }
       @if (guide.id === 'monitoring') {
         @if (!answers()['calibration'] || !answers()['validUntil']) {
           <p class="cf-workspace-note">Calibração pendente. Identifique o certificado e sua validade antes de encaminhar o plano.</p>
         }
-        <a class="cf-workspace-link" href="/pilot#cf-imports">Consultar lotes ED/EC no piloto sintético</a>
+        <p class="cf-workspace-note">Os lotes do piloto sintético não são leituras deste projeto.
+          A medição continua na seção Monitorar.</p>
       }
       @if (guide.id === 'safeguards') {
         <p class="cf-workspace-note">A consulta e o recibo aguardam conferência das provas do evento.</p>

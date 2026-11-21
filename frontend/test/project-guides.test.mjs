@@ -188,6 +188,37 @@ test('revisor decide uma proposta de fato cuja origem está fixada', async () =>
   } finally { await browser.close(); }
 });
 
+test('guia do projeto não trata o piloto sintético como dado da etapa', async () => {
+  const browser = await chromium.launch({executablePath});
+  try {
+    const page = await browser.newPage({viewport:{width:390,height:844}});
+    const root = '/v1/projects/' + projectId;
+    const guides = [
+      {id:'quantification',title:'Quantificação',guidance:'Recorte do cálculo.',
+        fields:[],version:0,answers:{},missing:[],editable:false},
+      {id:'monitoring',title:'Monitoramento',guidance:'Plano de medição.',
+        fields:[{key:'calibration',label:'Certificado',type:'text',options:[]}],
+        version:0,answers:{},missing:['Certificado'],editable:false},
+    ];
+    await page.route('**' + root + '/metadata', r => r.fulfill({json:{projectId,environment:'SANDBOX',title:'Frota'}}));
+    await page.route('**' + root + '/technical/capabilities', r => r.fulfill({json:{
+      projectId,environment:'SANDBOX',owner:false,actions:['VIEW_GUIDES'],modules:{}
+    }}));
+    await page.route('**' + root + '/technical/guides', r => r.fulfill({json:{methodology:'VM0038_V1_1',guides}}));
+    await page.goto(base + '/workspace/projects/' + projectId + '/technical?secao=guias&guia=quantification');
+    await page.getByRole('heading',{name:'Quantificação'}).waitFor();
+    await page.getByText('não entra neste projeto e não conclui esta etapa.').waitFor();
+    assert.equal(await page.getByRole('link',{name:'Consultar a memória da simulação no piloto'}).count(),0);
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
+    await page.getByRole('button',{name:'Monitoramento'}).click();
+    await page.getByText('não são leituras deste projeto.').waitFor();
+    assert.equal(await page.getByRole('link',{name:'Consultar lotes ED/EC no piloto sintético'}).count(),0);
+    await page.setViewportSize({width:1440,height:900});
+    await page.getByRole('heading',{name:'Monitoramento'}).waitFor();
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
+  } finally { await browser.close(); }
+});
+
 test('formulário versionado rejeita ano inválido e preserva revisão e cabeçalho do schema', async () => {
   const browser = await chromium.launch({executablePath});
   try {

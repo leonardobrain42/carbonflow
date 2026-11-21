@@ -97,8 +97,16 @@ test('UX-02B: guia tipado condicional, refs versionadas, boolean real, rascunho 
     await page.getByText('Histórico textual anterior (não conclui esta informação)').click();
     await page.getByText('não são a resposta tipada').waitFor();
     await page.getByText('texto antigo').waitFor();
+    // The summary click schedules a render. Wait for it before changing the select,
+    // otherwise a late pass can restore the previous option and keep the conditional field.
+    await page.evaluate(() => new Promise(resolve =>
+      requestAnimationFrame(() => requestAnimationFrame(resolve))));
     await page.getByLabel('Incidência candidata do critério').selectOption('Aplicável');
-    assert.equal(await justification.count(),0);
+    await page.waitForFunction(() => {
+      const select = document.querySelector('#typed-incidence');
+      return select instanceof HTMLSelectElement && select.value === 'Aplicável'
+        && !document.querySelector('#typed-justification');
+    });
     await page.getByRole('button',{name:'Salvar revisão estruturada'}).click();
     await page.getByText('Revisão estruturada 2 salva',{exact:false}).waitFor();
     assert.equal(puts,2);
