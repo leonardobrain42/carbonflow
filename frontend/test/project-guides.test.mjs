@@ -74,6 +74,7 @@ test('guia mostra a referência da regra, a edição consultada e o fallback ap�
     ]}}));
 
     await page.goto(base + '/workspace/projects/' + projectId + '/technical?secao=guias&guia=baseline');
+    await page.getByText('Fontes, evidências e pareceres',{exact:true}).click();
     await page.getByText('Requisitos e fontes desta etapa',{exact:true}).click();
     const check = page.getByRole('button',{name:'Consultar ou atualizar referências'});
     await check.click();
@@ -132,6 +133,7 @@ test('registra solicitação a partir de lacuna e preserva a natureza da respost
       return r.fulfill({json:item});
     });
     await page.goto(base + '/workspace/projects/' + projectId + '/technical?secao=guias&guia=baseline');
+    await page.getByText('Fontes, evidências e pareceres',{exact:true}).click();
     await page.getByText('Solicitações de dados',{exact:true}).click();
     await page.getByRole('button',{name:'Consultar solicitações'}).click();
     await page.getByLabel('Lacuna para solicitar').selectOption('scenario');
@@ -176,6 +178,7 @@ test('revisor decide uma proposta de fato cuja origem está fixada', async () =>
       return r.fulfill({json:candidate});
     });
     await page.goto(base + '/workspace/projects/' + projectId + '/technical?secao=guias&guia=baseline');
+    await page.getByText('Fontes, evidências e pareceres',{exact:true}).click();
     await page.getByText('Evidências e fatos',{exact:true}).click();
     await page.getByRole('button',{name:'Consultar propostas de fatos'}).click();
     await page.getByText('Divergência com o fato vigente',{exact:false}).waitFor();
@@ -210,6 +213,9 @@ test('guia do projeto não trata o piloto sintético como dado da etapa', async 
     await page.goto(base + '/workspace/projects/' + projectId + '/technical?secao=guias&guia=quantification');
     await page.getByRole('heading',{name:'Quantificação'}).waitFor();
     await page.getByText('não entra neste projeto e não conclui esta etapa.').waitFor();
+    assert.equal(await page.getByText('Requisitos e fontes desta etapa',{exact:true}).isVisible(),false);
+    await page.getByText('Fontes, evidências e pareceres',{exact:true}).click();
+    await page.getByText('Requisitos e fontes desta etapa',{exact:true}).waitFor();
     assert.equal(pdReads, 0);
     assert.equal(await page.getByRole('link',{name:'Consultar a memória da simulação no piloto'}).count(),0);
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
