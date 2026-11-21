@@ -113,6 +113,25 @@ class ProjectRequirementProjectionTest {
     }
 
     @Test
+    void reviewedCatalogCandidateStaysUnadmitted() {
+        var view = ProjectRequirementProjection.project(new ProjectRequirementProjection.Input(
+            "p", "VM0038", true, true, true, true, true, false,
+            disclosurePresent(), preflight(false),
+            new ProjectRequirementProjection.Owners(false, "REVIEWED_CANDIDATE", "REVIEWED_CANDIDATE")));
+        assertEquals("SOURCE_CANDIDATE", item(view, "EVR").state());
+        assertEquals("SOURCE_CANDIDATE", item(view, "AFEC_MPG").state());
+        assertEquals("SOURCE_CANDIDATE", item(view, "EF_GRID").state());
+        assertTrue(item(view, "EVR").reason().contains("candidato revisado"));
+        assertTrue(item(view, "EF_GRID").reason().contains("não vale zero"));
+        assertEquals("NOT_ADMITTED", item(view, "EF_FUEL").state());
+        assertEquals("NOT_ADMITTED", item(view, "IR").state());
+        assertEquals("NOT_ADMITTED", item(view, "DY").state());
+        assertTrue(view.requirements().stream().noneMatch(item -> item.admitsE8()));
+        assertFalse(view.canRunE8());
+        assertFalse(view.canIssueVcu());
+    }
+
+    @Test
     void fieldOriginDoesNotConclude() {
         var recorded = OpenApplicability.described("rightsParty", 2,
             "Registro do projeto, não admitido", "CF-IMP-013");
