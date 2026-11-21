@@ -19,6 +19,11 @@ import demo_sandbox as demo
 OLD = 167374965
 NEW = -1979807539
 V69 = -1778044537
+V69_1 = 1930605372
+LEGACY_FILENAME_SCRIPT = "db/migration/V71__asset_evidence_submitted_filename_backfill.sql"
+LEGACY_FILENAME_DESCRIPTION = "asset evidence submitted filename backfill"
+CURRENT_FILENAME_SCRIPT = "db/migration/V69_1__open_asset_evidence_submitted_filename.sql"
+CURRENT_FILENAME_DESCRIPTION = "open asset evidence submitted filename"
 SQL_DIR = demo.ROOT / "backend/src/main/resources/db/migration"
 RUN = {
     "id":"uuid", "project_id":"text", "organization_id":"uuid", "environment":"text",
@@ -34,8 +39,17 @@ COMMAND = {"actor_id":"uuid", "command_key":"text", "project_id":"text",
 QUERY = """
 SELECT json_build_object(
  'history',(SELECT coalesce(json_agg(json_build_object('version',version,'checksum',checksum,
-   'success',success) ORDER BY installed_rank),'[]'::json) FROM flyway_schema_history
+   'success',success,'script',script,'description',description,'installed_rank',installed_rank) ORDER BY installed_rank),'[]'::json) FROM flyway_schema_history
    WHERE version IN ('69','69.1','70','71')),
+ 'filename',(SELECT json_build_object('udt_name',udt_name,'nullable',is_nullable)
+   FROM information_schema.columns WHERE table_schema='public'
+     AND table_name='app_open_asset_evidence' AND column_name='submitted_file_name'),
+ 'filename_constraint',(SELECT pg_get_constraintdef(oid) FROM pg_constraint
+   WHERE conrelid=to_regclass('public.app_open_asset_evidence')
+     AND conname='app_open_asset_evidence_submitted_file_name_check'),
+ 'filename_trigger',(SELECT tgenabled FROM pg_trigger
+   WHERE tgrelid=to_regclass('public.app_open_asset_evidence')
+     AND tgname='app_open_asset_evidence_immutable'),
  'run',(SELECT coalesce(json_object_agg(column_name,udt_name),'{}'::json)
    FROM information_schema.columns WHERE table_schema='public' AND table_name='app_open_e8_run'),
  'command',(SELECT coalesce(json_object_agg(column_name,udt_name),'{}'::json)
@@ -101,14 +115,96 @@ def problems(state: dict) -> list[str]:
             errors.append("ação de acesso V71 ausente: "+action)
     return errors
 
+def legacy_filename_problems(state: dict) -> list[str]:
+    """V71 in this historical sandbox is *not* the E8 migration.
+
+    Reclassify it as V69.1 only if the resulting data/schema meet the
+    published V69.1 contract. Its original SQL cannot be reconstructed.
+    """
+    hist={r["version"]:r for r in state.get("history",[])}
+    errors=[]
+    if hist.get("69",{}).get("checksum") != V69:
+        errors.append("V69 base não corresponde ao arquivo publicado")
+    if not hist.get("70",{}).get("success"):
+        errors.append("V70 ausente ou com falha")
+    old=hist.get("71",{})
+    if (old.get("checksum") != OLD or not old.get("success") or
+        old.get("script") != LEGACY_FILENAME_SCRIPT or
+        old.get("description") != LEGACY_FILENAME_DESCRIPTION):
+        errors.append("V71 não corresponde à migração histórica de filename identificada")
+    if "69.1" in hist:
+        errors.append("V69.1 já existe; NÃO reclassificar outra migração")
+    if any(not row.get("success") for row in hist.values()):
+        errors.append("histórico contém migração com falha")
+    if state.get("run") or state.get("command"):
+        errors.append("V71 E8 criou tabelas; este caso precisa de outra análise")
+    if state.get("filename") != {"udt_name":"text","nullable":"NO"}:
+        errors.append("submitted_file_name não é text NOT NULL")
+    guard=state.get("filename_trigger")
+    if guard != "O":
+        errors.append("trigger imutável de evidência não está habilitado")
+    definition=(state.get("filename_constraint") or "").lower()
+    # Validate the published V69.1 CHECK semantics, not just the name.
+    for required in ("submitted_file_name","pdf","a-za-z0-9","%..%"):
+        if required not in definition:
+            errors.append("CHECK do nome PDF incompatível: "+required)
+    # Rows are checked separately with a SELECT and never touched by --apply.
+    return errors
+
+
+def legacy_filename_data_problems() -> list[str]:
+    invalid = sql("""
+SELECT count(*) FROM app_open_asset_evidence link
+LEFT JOIN app_project_evidence_blob blob
+  ON blob.project_id=link.project_id AND blob.id=link.evidence_blob_id
+WHERE link.submitted_file_name IS NULL
+   OR link.submitted_file_name !~ '^[A-Za-z0-9][A-Za-z0-9._-]{4,115}[.]pdf$'
+   OR link.submitted_file_name LIKE '%..%'
+   OR blob.id IS NULL OR blob.mime_type<>'application/pdf';
+""")
+    return [] if invalid=="0" else ["evidências PDF fora do contrato V69.1: "+invalid]
+
+
+def reconcile_legacy_filename() -> None:
+    """Move the *metadata entry*, never rename a table or falsify a run.
+
+    A private audit copy of the exact old Flyway entry is saved before this
+    controlled rewrite. The current V71 E8 remains PENDING and runs normally
+    at next boot; old filename state becomes V69.1 only after verification.
+    """
+    sql(f"""
+BEGIN;
+LOCK TABLE flyway_schema_history IN SHARE ROW EXCLUSIVE MODE;
+DO $$
+BEGIN
+ IF (SELECT count(*) FROM flyway_schema_history
+     WHERE version='71' AND description='{LEGACY_FILENAME_DESCRIPTION}'
+       AND script='{LEGACY_FILENAME_SCRIPT}' AND checksum={OLD}
+       AND success) != 1
+   OR EXISTS (SELECT 1 FROM flyway_schema_history WHERE version='69.1')
+   OR to_regclass('public.app_open_e8_run') IS NOT NULL
+   OR to_regclass('public.app_open_e8_run_command') IS NOT NULL
+ THEN RAISE EXCEPTION 'Flyway history or E8 schema changed concurrently';
+ END IF;
+END $$;
+UPDATE flyway_schema_history
+ SET version='69.1',description='{CURRENT_FILENAME_DESCRIPTION}',
+     script='{CURRENT_FILENAME_SCRIPT}', checksum={V69_1}
+ WHERE version='71' AND description='{LEGACY_FILENAME_DESCRIPTION}'
+   AND script='{LEGACY_FILENAME_SCRIPT}' AND checksum={OLD} AND success;
+COMMIT;
+""")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Verificar V71 no sandbox; --apply reconcilia só metadados.")
     parser.add_argument("--apply",action="store_true",help="Requer backup prévio e esquema compatível.")
     args = parser.parse_args()
     demo.validate()
     demo.runtime_check()
-    if checksum(SQL_DIR/"V69__open_asset_evidence_links.sql") != V69 or \
-       checksum(SQL_DIR/"V71__open_e8_project_run.sql") != NEW:
+    if (checksum(SQL_DIR/"V69__open_asset_evidence_links.sql") != V69 or
+        checksum(SQL_DIR/"V69_1__open_asset_evidence_submitted_filename.sql") != V69_1 or
+        checksum(SQL_DIR/"V71__open_e8_project_run.sql") != NEW):
         raise RuntimeError("Arquivos de migração locais não correspondem às versões publicadas.")
     state = inspect()
     hist = {r["version"]:r for r in state["history"]}
@@ -116,9 +212,12 @@ def main() -> None:
     print("Sandbox: V71="+str(applied)+", V69.1="+("aplicada" if
           hist.get("69.1",{}).get("success") else "pendente"))
     if applied == NEW:
-        print("V71 já compatível; nenhuma alteração.")
+        print("V71 E8 já aplicada e compatível; nenhuma alteração.")
         return
-    violations = problems(state)
+    legacy_filename = hist.get("71",{}).get("script") == LEGACY_FILENAME_SCRIPT
+    violations = legacy_filename_problems(state) if legacy_filename else problems(state)
+    if legacy_filename and not violations:
+        violations += legacy_filename_data_problems()
     if violations:
         raise RuntimeError("Reparo recusado: "+"; ".join(violations))
     if not args.apply:
@@ -131,6 +230,17 @@ def main() -> None:
     with path.open("x",encoding="utf-8") as file:
         json.dump({"at":stamp,"project":demo.PROJECT,"state":state},file,indent=2)
         file.write("\n")
+    if legacy_filename:
+        reconcile_legacy_filename()
+        after = inspect()
+        history = {row["version"]:row for row in after["history"]}
+        if ("71" in history or history.get("69.1",{}).get("checksum") != V69_1 or
+            after.get("run") or after.get("command")):
+            raise RuntimeError("Reconciliação da V71 histórica não foi confirmada.")
+        print("V71 histórica de filename reclassificada como V69.1 após validações.")
+        print("V71 E8 está PENDENTE e será executada pelo Flyway no próximo boot.")
+        print("Registro original guardado em: "+str(path))
+        return
     sql(f"""
 BEGIN;
 LOCK TABLE flyway_schema_history IN SHARE ROW EXCLUSIVE MODE;
