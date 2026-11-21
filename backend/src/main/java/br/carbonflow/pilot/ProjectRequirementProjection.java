@@ -151,6 +151,8 @@ final class ProjectRequirementProjection {
     }
 
     private static Item preflightItem(Input input, OpenCalculationPreflight.Gate gate) {
+        if (gate.code().startsWith("E8_FLEET_SELECTION_") || gate.code().startsWith("E8_INPUT_BINDING_"))
+            return linkedProjectSource(gate);
         boolean stale = "STALE".equals(gate.state());
         if (SOURCE_GATES.contains(gate.code()) || sourcePeriod(gate.code())) {
             return source(input, gate.code(), stale ? "STALE" : "NOT_ADMITTED",
@@ -367,6 +369,25 @@ final class ProjectRequirementProjection {
     private static Item waitingSource(Input input, String id, String reason, List<String> outputs) {
         return source(input, id, "AWAITING_NORMATIVE_EVALUATION", "Aguardando avaliação da equipe",
             reason, outputs);
+    }
+
+    /** A project link is not an admitted source and never becomes BE, PE, LE or ER. */
+    private static Item linkedProjectSource(OpenCalculationPreflight.Gate gate) {
+        boolean fleet = gate.code().startsWith("E8_FLEET_SELECTION_");
+        boolean stale = "STALE".equals(gate.state());
+        boolean missing = "MISSING".equals(gate.state()) || "PENDING_MEASUREMENT".equals(gate.state());
+        String situation = stale ? "Desatualizado"
+            : missing ? "Ainda não vinculado" : "Fonte vinculada, não admitida";
+        String state = stale ? "STALE" : missing ? "NOT_ADMITTED" : "SOURCE_CANDIDATE";
+        String reason = gate.reason() + (missing
+            ? " Sem este vínculo não há BE, PE, LE ou ER."
+            : " O vínculo não é fonte admitida e não produz BE, PE, LE ou ER.");
+        return new Item(gate.code(), "VM0038", "1.1", OpenCalculationPreflight.SCENARIO, "CF-OPEN-008",
+            state, situation, reason, "equipe CarbonFlow",
+            "Aguardar a equipe CarbonFlow. Um vínculo interno não admite a fonte nem libera o cálculo.",
+            null, null, stale ? "AWAITING_REVIEW" : "AWAITING_SOURCE", false, false, false,
+            fleet ? List.of("linha de base", "quantificação")
+                : List.of("emissões do projeto", "quantificação"));
     }
 
     private static Item source(Input input, String id, String state, String situation, String reason,

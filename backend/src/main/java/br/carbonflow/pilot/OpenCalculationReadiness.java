@@ -140,7 +140,7 @@ class OpenCalculationReadiness {
         return new OpenCalculationPreflight.Result(base.projectId(),base.environment(),
             base.engine(),base.methodology(),base.scenario(),base.workflowState(),
             base.calculationState(),base.canContinuePreparation(),false,false,
-            base.emissions(),List.copyOf(gates),
+            new OpenCalculationPreflight.Emissions(null,null,null,null,null),List.copyOf(gates),
             OpenCalculationTransparency.plan(gates));
     }
 

@@ -69,6 +69,13 @@ test('analisar mostra ação, espera e recorte sem concluir as quatro pendência
           nextAction:'Indicar a referência do comprovante na declaração.',actionLabel:'Abrir a declaração',
           destination:{area:'technical',screen:'analisar',step:null},group:'MINE',clientAction:true,
           blocksExAntePd:false,admitsE8:false,affectedOutputs:['direitos']},
+        {requirementId:'E8_FLEET_SELECTION_M1',methodologyId:'VM0038',edition:'1.1',ruleRef:'CF-OPEN-008',
+          state:'SOURCE_CANDIDATE',situation:'Fonte vinculada, não admitida',
+          reason:'Frota vinculada ao período M1. O vínculo não é fonte admitida e não produz BE, PE, LE ou ER.',
+          ownerRole:'equipe CarbonFlow',
+          nextAction:'Aguardar a equipe CarbonFlow. Um vínculo interno não admite a fonte nem libera o cálculo.',
+          actionLabel:null,destination:null,group:'AWAITING_SOURCE',clientAction:false,
+          blocksExAntePd:false,admitsE8:false,affectedOutputs:['linha de base','quantificação']},
         {requirementId:'MARKET_ROUTE',state:'AWAITING_NORMATIVE_EVALUATION',situation:'Aguardando avaliação da equipe',
           reason:'O teste de mercado da VM0038 §4 aguarda dados oficiais e a avaliação da equipe.',
           ownerRole:'equipe CarbonFlow',nextAction:'Aguardar a equipe CarbonFlow.',actionLabel:null,
@@ -95,12 +102,15 @@ test('analisar mostra ação, espera e recorte sem concluir as quatro pendência
     await page.getByText('Divulgação aos motoristas',{exact:true}).waitFor();
     await page.getByText('Fronteira do projeto',{exact:true}).waitFor();
     await page.getByText('Medidor da energia entregue',{exact:true}).waitFor();
+    await page.getByText('Vínculo de frota do período M1',{exact:true}).waitFor();
+    await page.getByText('Fonte vinculada, não admitida',{exact:true}).waitFor();
+    await page.getByText('não produz BE, PE, LE ou ER',{exact:false}).waitFor();
     await page.getByRole('button',{name:'Abrir as estações'}).waitFor();
     await page.getByText('Próximo passo: Indicar a referência do comprovante na declaração.').waitFor();
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
     const notes=page.getByText('Papel, regra e referência',{exact:true});
-    assert.equal(await notes.count(),6);
-    for (let i=0;i<6;i++) await notes.nth(i).click();
+    assert.equal(await notes.count(),7);
+    for (let i=0;i<7;i++) await notes.nth(i).click();
     await page.getByText('Não bloqueia o documento ex ante.').waitFor();
     await page.getByText('Metodologia aplicável: VM0038 v1.1',{exact:true}).first().waitFor();
     await page.getByText('Regra: CF-OPEN-004',{exact:true}).waitFor();
@@ -110,7 +120,7 @@ test('analisar mostra ação, espera e recorte sem concluir as quatro pendência
     await page.getByText('Papel previsto: preparação').first().waitFor();
     await page.getByText('Papel previsto: revisão').waitFor();
     await page.getByText('Papel previsto: operação').first().waitFor();
-    await page.getByText('Papel previsto: equipe CarbonFlow').waitFor();
+    await page.getByText('Papel previsto: equipe CarbonFlow').first().waitFor();
     await page.getByText('Nenhuma pessoa foi designada por este diagnóstico.').first().waitFor();
     assert.equal(await page.getByText('PENDING_OFFICIAL_DATA').count(),0);
     assert.equal(await page.getByText('Pré-cálculo de emissões',{exact:false}).count(),0);
