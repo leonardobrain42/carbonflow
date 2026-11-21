@@ -1,5 +1,5 @@
 import {Component, Input, OnChanges, SimpleChanges, inject, signal} from '@angular/core';
-import {calculationGateTitle, plannedRole} from './calculation-language';
+import {calculationGateTitle, equationTerm, plannedRole} from './calculation-language';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {firstValueFrom} from 'rxjs';
 
@@ -212,6 +212,10 @@ export class OpenCalculationReadinessComponent implements OnChanges {
 
   gateTitle(gate:CalculationGate):string {
     return calculationGateTitle(gate.code);
+  }
+
+  inputName(code:string):string {
+    return equationTerm(code);
   }
 
   roleLabel(owner:string):string {

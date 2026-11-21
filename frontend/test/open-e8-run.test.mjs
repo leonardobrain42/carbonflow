@@ -86,6 +86,8 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
     await page.getByText('Referência: EVR').waitFor();
     await page.getByText('BE · VM0038-1.1-EQ1').click();
     await page.getByText('Não há energia entregue ED admitida por carregador e período.').waitFor();
+    await page.getByText('Energia entregue', {exact:true}).first().waitFor();
+    await page.getByText('Referência: ED', {exact:true}).first().waitFor();
     await page.getByText('Nenhuma tentativa registrada neste período.').waitFor();
     await page.getByRole('button', {name:'Registrar tentativa de cálculo'}).click();
     await page.getByText('Bloqueado · v1').waitFor();

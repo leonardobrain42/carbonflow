@@ -46,6 +46,28 @@ export function calculationGateTitle(code: string): string {
   return code;
 }
 
+const EQUATION_TERMS: Record<string, string> = {
+  BEV_RATINGS: 'Ratings elétricos dos comparáveis',
+  FOSSIL_COMPARABLE_MPG: 'Consumo fóssil do comparável',
+  PROJECT_YEAR: 'Ano do projeto',
+  AFEC: 'Consumo elétrico médio',
+  MPG: 'Consumo fóssil médio',
+  ERC: 'Créditos deste projeto',
+  ERF: 'Créditos da frota de referência',
+  NO_FLEET_CREDITS_PROOF: 'Prova de ausência de créditos de frota',
+  BE: 'Linha de base',
+  PE: 'Emissões do projeto',
+  LE: 'Fuga',
+  ER: 'Redução de emissões',
+};
+
+/** Portuguese name of an equation input or blocker. The symbol stays beside it. */
+export function equationTerm(code: string): string {
+  return calculationGateTitle(code) === code
+    ? (EQUATION_TERMS[code] ?? code)
+    : calculationGateTitle(code);
+}
+
 const PREPARATORY_NOTES: Record<string, string> = {
   EVR_AND_RATINGS_NOT_NORMATIVELY_ADMITTED:
     'Estoque EVR e ratings continuam sem admissão normativa.',
