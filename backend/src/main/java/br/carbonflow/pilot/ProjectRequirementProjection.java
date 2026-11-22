@@ -94,7 +94,8 @@ final class ProjectRequirementProjection {
                     List.of("adicionalidade"));
                 case "MARKET_ROUTE" -> waitingSource(input, finding.code(),
                     "O teste de mercado da VM0038 §4 aguarda dados oficiais e a avaliação da equipe. "
-                        + "Não é uma rota de adicionalidade, e a ausência de dado não vale zero.",
+                        + "Não é uma rota de adicionalidade, e a ausência de dado não vale zero. "
+                        + "A citação de 0,7% de estoque em 2024 na VMD0049 não fecha o teste de 7,5% e 30%.",
                     List.of("aplicabilidade"));
                 case "REGULATORY_SURPLUS" -> waitingReview(input, finding.code(),
                     "Excedente regulatório, cronologia e adicionalidade aguardam parecer humano. "

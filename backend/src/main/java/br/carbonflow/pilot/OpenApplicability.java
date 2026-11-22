@@ -71,7 +71,7 @@ class OpenApplicability {
     record Finding(String code,String state,String text) {}
     record Readiness(String category,String network,String rights,String norm,
         boolean canContinuePreparation,boolean canUseForE8,boolean stale,List<Finding> findings,
-        List<String> sourceDependencies) {}
+        List<String> sourceDependencies,OpenMarketPenetration.Decision market) {}
     record Origin(String field,String version,String situation,String rule,String role,boolean concludes) {}
     record PdField(String key,String section,String gap,boolean copiedIntoDocument,boolean marksReady) {}
     record View(String projectId,int version,int latestTriageVersion,Revision latest,Readiness readiness,
@@ -195,6 +195,7 @@ class OpenApplicability {
 
     static Readiness evaluate(Input data,boolean stale) {
         var findings=new ArrayList<Finding>();
+        OpenMarketPenetration.Decision market=null;
         String network="PENDING_CONFIGURATION";
         String category="OPEN_LDV_DCFC_SIN_BR_CANDIDATE";
         if(data==null) {
@@ -285,10 +286,11 @@ class OpenApplicability {
             if("OPEN_CANDIDATE".equals(network) && !outside && !incomplete) {
                 // §4 market test, §8 positive list and regulatory surplus are distinct.
                 // A saved declaration never concludes any of them.
+                market=OpenMarketPenetration.forOpenNetwork();
                 findings.add(new Finding("MARKET_ROUTE","PENDING_OFFICIAL_DATA",
                     "Teste de aplicabilidade de mercado da VM0038 §4 para rede aberta. "
                         + "Não é rota de adicionalidade. Dado oficial ausente não vale zero e não reprova o projeto. "
-                        + "A declaração não conclui este teste."));
+                        + "A declaração não conclui este teste. "+market.reason()));
                 findings.add(new Finding("VMD0049_ROUTE","PENDING_NORMATIVE_SOURCE",
                     "Lista positiva VMD0049 é hipótese de adicionalidade, distinta do teste de mercado e do excedente regulatório. "
                         + "Presença na tabela da edição não aprova a adicionalidade."));
@@ -309,7 +311,7 @@ class OpenApplicability {
         return new Readiness(category,network,rights,"PENDING_NORMATIVE_REVIEW",
             true,false,stale,List.copyOf(findings),
             List.of("OPEN-METHOD","OPEN-POSITIVE","OPEN-EV-PENETRATION","OPEN-EV-SALES",
-                    "OPEN-RIGHTS","OPEN-ED-EC"));
+                    "OPEN-RIGHTS","OPEN-ED-EC"),market);
     }
 
     static List<PdField> pdMap() {

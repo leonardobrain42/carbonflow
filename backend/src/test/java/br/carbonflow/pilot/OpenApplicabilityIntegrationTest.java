@@ -56,6 +56,16 @@ class OpenApplicabilityIntegrationTest {
         var saved=json(first);
         assertEquals(1,saved.path("version").asInt());
         assertEquals("OPEN_CANDIDATE",saved.at("/readiness/network").asText());
+        assertEquals("0,7",saved.at("/readiness/market/citedStockPercent").asText());
+        assertEquals("7,5",saved.at("/readiness/market/stockLimitPercent").asText());
+        assertEquals("30",saved.at("/readiness/market/salesLimitPercent").asText());
+        assertTrue(saved.at("/readiness/market/citationBelowStockLimit").asBoolean());
+        assertEquals("CITATION_NOT_SERIES",saved.at("/readiness/market/stockSeries").asText());
+        assertEquals("ABSENT",saved.at("/readiness/market/salesSeries").asText());
+        assertFalse(saved.at("/readiness/market/closesApplicability").asBoolean());
+        assertFalse(saved.at("/readiness/market/usableForE8").asBoolean());
+        assertTrue(saved.at("/readiness/market/reason").asText().contains("não fecha o teste"));
+        assertTrue(saved.at("/readiness/findings").toString().contains("VMD0049_ROUTE"));
         assertEquals("EVIDENCE_PENDING",saved.at("/readiness/rights").asText());
         assertTrue(saved.at("/readiness/findings").toString().contains("nome digitado"));
         assertEquals("PENDING_NORMATIVE_REVIEW",saved.at("/readiness/norm").asText());
@@ -138,6 +148,7 @@ class OpenApplicabilityIntegrationTest {
         assertTrue(restricted.findings().stream().anyMatch(f->"CLOSED_NETWORK".equals(f.code())));
         assertTrue(restricted.findings().stream().noneMatch(f->Set.of(
             "MARKET_ROUTE","VMD0049_ROUTE","REGULATORY_SURPLUS").contains(f.code())));
+        assertNull(restricted.market());
         assertFalse(restricted.canUseForE8());
     }
 

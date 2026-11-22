@@ -72,6 +72,10 @@ class ProjectRequirementProjectionTest {
         assertNotEquals("MINE", item(projected, "MARKET_ROUTE").group());
         assertFalse(item(projected, "MARKET_ROUTE").admitsE8());
         assertTrue(item(projected, "MARKET_ROUTE").reason().contains("Não é uma rota de adicionalidade"));
+        assertTrue(item(projected, "MARKET_ROUTE").reason().contains(
+            "A citação de 0,7% de estoque em 2024 na VMD0049 não fecha o teste de 7,5% e 30%."));
+        assertFalse(open.market().closesApplicability());
+        assertTrue(open.market().citationBelowStockLimit());
     }
 
     @Test

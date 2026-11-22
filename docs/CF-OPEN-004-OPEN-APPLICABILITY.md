@@ -34,7 +34,7 @@ Migração V47 `app_project_open_applicability_revision`:
 - A primeira fatia cobre BEV LDV, DCFC, SIN exclusivo, sem geração local, armazenamento ou V2G. Outro ramo produz `OUTSIDE_FIRST_IMPLEMENTED_SCOPE`, mas mantém a ficha e a autoria disponíveis para análise futura.
 - Contrato do dono **não substitui** divulgação aos motoristas; falta de canal, data ou prova retorna `DRIVER_DISCLOSURE / NEEDS_EVIDENCE`.
 - `NO_OVERLAP_DECLARED` é somente declaração. Risco de dupla reivindicação precisa de verificação jurídica.
-- `VMD0049_ROUTE` (lista positiva), `MARKET_ROUTE` (dados oficiais de penetração), `REGULATORY_SURPLUS` e `ED_EC` são gates distintos. Não usar 0,7% (vintage 2024 da VMD) como limiar de dados mais recentes, e não converter ausência de EV stock ou vendas em zero. Limiares parametrizados e fontes admissíveis devem ser implementados em continuação com avaliação normativa auditada; **não** declarar esses gates como satisfeitos aqui.
+- `VMD0049_ROUTE` (lista positiva), `MARKET_ROUTE` (dados oficiais de penetração), `REGULATORY_SURPLUS` e `ED_EC` são gates distintos. A citação de 0,7% de estoque em 2024 na VMD0049 v1.1 Tabela 1 fica abaixo do limiar de 7,5%, e mesmo assim não fecha o teste §4 (1)(b): estoque oficial abaixo de 7,5% e média trienal de vendas abaixo de 30%. Sem essas séries o resultado é `PENDING_OFFICIAL_DATA`. Ausência não vira zero, zero declarado não substitui a série, e um par numérico sem admissão também não fecha. `closesApplicability` e `usableForE8` permanecem falsos.
 
 ## Critérios verificados pela implementação
 - API e frontend com classificação de rede OPEN mesmo em propriedade privada, dados parciais e indicação explícita de pendências;
