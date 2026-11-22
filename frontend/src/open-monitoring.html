@@ -440,9 +440,60 @@
               (click)="inspectSnapshot(snap.id)">
               Verificar vigência e documentos
             </button>
+            <button type="button" class="cf-workspace-outline"
+              [disabled]="admitting()"
+              (click)="showBatchAdmissions(snap.id)">
+              Ver lotes deste snapshot
+            </button>
           </li>
         }
       </ul>
+    }
+    @if (admissionSnapshot(); as snapshotId) {
+      <section class="cf-journey-context" aria-labelledby="cf-batch-admission-title">
+        <h4 id="cf-batch-admission-title">Admissão independente do lote</h4>
+        <p>Snapshot {{snapshotId}}. Quem enviou o lote, revisou a linha ou congelou
+          o snapshot não grava esta decisão. Energia entregue e energia consumida
+          continuam separadas. <strong>A admissão não libera o cálculo.</strong></p>
+        @if (admitting()) {<p role="status">Consultando os lotes congelados…</p>}
+        @if (!batchAdmissions().length) {
+          <p>Este snapshot não tem lote de medição para admitir.</p>
+        } @else {
+          <ul class="cf-tech-gates">
+            @for (item of batchAdmissions(); track item.batchId) {
+              <li>
+                <strong>{{admissionState(item)}}</strong>
+                <p>Energia entregue {{item.edKwh}} kWh · energia consumida {{item.ecKwh}} kWh
+                  · {{item.lines}} linha(s)</p>
+                <small>Lote {{item.batchId}} · uso no cálculo: não</small>
+              </li>
+            }
+          </ul>
+          @if (canReview) {
+            <form (submit)="admitBatch($event)">
+              <label for="cf-admission-batch">Lote</label>
+              <select id="cf-admission-batch" [value]="admissionBatch"
+                (change)="admissionBatch=$any($event.target).value">
+                @for (item of batchAdmissions(); track item.batchId) {
+                  <option [value]="item.batchId">{{item.batchId}}</option>
+                }
+              </select>
+              <label for="cf-admission-outcome">Decisão</label>
+              <select id="cf-admission-outcome" [value]="admissionOutcome"
+                (change)="admissionOutcome=$any($event.target).value">
+                <option value="ADMITTED_FOR_PERIOD">Admitir neste snapshot</option>
+                <option value="REJECTED">Recusar neste snapshot</option>
+              </select>
+              <label for="cf-admission-reason">Justificativa</label>
+              <input id="cf-admission-reason" [value]="admissionReason"
+                (input)="admissionReason=$any($event.target).value" required>
+              <button type="submit" class="cf-workspace-primary" [disabled]="admitting()">
+                Gravar decisão do lote
+              </button>
+            </form>
+          }
+        }
+      </section>
     }
 
 

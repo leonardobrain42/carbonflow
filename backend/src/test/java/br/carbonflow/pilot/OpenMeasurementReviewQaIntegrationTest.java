@@ -116,6 +116,28 @@ class OpenMeasurementReviewQaIntegrationTest {
             "SELECT count(*) FROM pilot_selected_run WHERE project_id=?",
             r->r.getLong(1),project)).longValue());
 
+        Actor admitter=actor();
+        grant(project,org,owner.id(),admitter.id(),"REV");
+        String admissions=snapshotUrl+"/"+snapshot.path("id").asText()+"/batch-admissions";
+        String decision="{\"batchId\":\""+batch+"\",\"outcome\":\"ADMITTED_FOR_PERIOD\","
+            +"\"reason\":\"Admissão independente do lote já congelado neste período.\"}";
+        assertEquals(404,call("POST",admissions,owner.cookie(),"\"0\"",decision).statusCode());
+        assertEquals(404,call("POST",admissions,operator.cookie(),"\"0\"",decision).statusCode());
+        assertEquals(403,admit(admissions,reviewer.cookie(),key(),"\"0\"",decision).statusCode());
+        String idempotency=key();
+        HttpResponse<String> admitted=admit(admissions,admitter.cookie(),idempotency,"\"0\"",decision);
+        assertEquals(201,admitted.statusCode(),admitted.body());
+        JsonNode admission=read(admitted);
+        assertEquals("ADMITTED_FOR_PERIOD",admission.path("state").asText());
+        assertEquals("2700",admission.path("edKwh").asText());
+        assertEquals("3000",admission.path("ecKwh").asText());
+        assertFalse(admission.path("usableForE8").asBoolean());
+        assertEquals("\"1\"",admitted.headers().firstValue("ETag").orElseThrow());
+        assertEquals(200,admit(admissions,admitter.cookie(),idempotency,"\"0\"",decision).statusCode());
+        String changed=decision.replace("congelado","congelado outra vez");
+        assertEquals(412,admit(admissions,admitter.cookie(),key(),"\"0\"",changed).statusCode());
+        assertEquals(404,call("GET",admissions.replace(project,other),outsider.cookie(),null,null).statusCode());
+
         // The decision ledger can be superseded, never overwritten. Historical
         // snapshot remains pinned at version 1, but a new preview becomes blocked.
         String rejected="{\"outcome\":\"REJECTED\",\"reason\":\"Inconsistência documental posterior: nova verificação obrigatória.\"}";
@@ -127,6 +149,14 @@ class OpenMeasurementReviewQaIntegrationTest {
             .path("state").asText());
         assertEquals(409,call("POST",snapshotUrl,reviewer.cookie(),null,range).statusCode());
         assertEquals(1,read(call("GET",snapshotUrl,reviewer.cookie(),null,null)).size());
+        JsonNode stale=read(call("GET",admissions,owner.cookie(),null,null));
+        assertEquals("STALE",stale.get(0).path("state").asText());
+        assertEquals("2700",stale.get(0).path("edKwh").asText());
+        assertEquals("3000",stale.get(0).path("ecKwh").asText());
+        assertFalse(stale.get(0).path("usableForE8").asBoolean());
+        assertEquals(0L,database.read(c->first(c,"""
+            SELECT count(*) FROM app_open_period_batch_admission WHERE usable_for_e8
+            """,r->r.getLong(1))).longValue());
     }
 
     @Test
@@ -178,6 +208,14 @@ class OpenMeasurementReviewQaIntegrationTest {
         var response=http.send(request,HttpResponse.BodyHandlers.ofString());
         assertEquals(202,response.statusCode(),response.body());
         return read(response);
+    }
+    private HttpResponse<String> admit(String path,String cookie,String key,String match,String body)
+        throws Exception {
+        var request=HttpRequest.newBuilder(URI.create(base.toExternalForm()).resolve(path))
+            .header("Cookie",cookie).header("Content-Type","application/json")
+            .header("Idempotency-Key",key).header("If-Match",match)
+            .POST(HttpRequest.BodyPublishers.ofString(body)).build();
+        return http.send(request,HttpResponse.BodyHandlers.ofString());
     }
     private HttpResponse<String> call(String method,String path,String cookie,String ifMatch,String body)
         throws Exception {

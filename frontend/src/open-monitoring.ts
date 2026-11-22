@@ -33,6 +33,9 @@ type QaPeriod = {state:string;readyForInternalSnapshot:boolean;canRunE8:boolean;
   edKwh:string|null;ecKwh:string|null;gates:QaGate[]};
 type QaSnapshot = {id:string;projectId:string;from:string;until:string;
   edKwh:string;ecKwh:string;sourceSha256:string;status:string;usableForE8:boolean;createdAt:string};
+type BatchAdmission = {id:string|null;snapshotId:string;batchId:string;lines:number;
+  edKwh:string;ecKwh:string;version:number;outcome:string|null;reason:string|null;
+  state:string;stale:boolean;usableForE8:boolean};
 type SupportReview = {version:number;outcome:'DOCUMENT_CHECKED_INTERNAL'|'REJECTED';
   reason:string;reviewedBy:string;reviewedAt:string};
 type SupportDocument = {id:string;snapshotId:string;kind:string;subjectCode:string;
@@ -144,6 +147,12 @@ export class OpenMonitoringComponent implements OnChanges {
   readonly batches=signal<MeasurementBatch[]>([]);
   readonly reviews=signal<Record<string,QaReview>>({});
   readonly qaSnapshots=signal<QaSnapshot[]>([]);
+  readonly batchAdmissions=signal<BatchAdmission[]>([]);
+  readonly admissionSnapshot=signal('');
+  readonly admitting=signal(false);
+  admissionBatch='';
+  admissionOutcome='ADMITTED_FOR_PERIOD';
+  admissionReason='';
   readonly mrDossiers=signal<MrDossier[]>([]);
   readonly mrCode=signal('M1');
   readonly mrSnapshot=signal('');
@@ -483,6 +492,53 @@ export class OpenMonitoringComponent implements OnChanges {
     finally {this.qaLoading.set(false);}
   }
 
+  admissionState(item:BatchAdmission) {
+    if(item.usableForE8)return 'Estado inconsistente';
+    if(item.state==='ADMITTED_FOR_PERIOD')return 'Admitido neste snapshot, sem uso no cálculo';
+    if(item.state==='REJECTED')return 'Recusado para este snapshot';
+    if(item.state==='STALE')return 'Desatualizado; o histórico da admissão permanece';
+    return 'Ainda sem admissão independente';
+  }
+
+  async showBatchAdmissions(snapshot:string) {
+    this.admissionSnapshot.set(snapshot);
+    this.admitting.set(true);
+    this.error.set('');
+    try {
+      const rows=await firstValueFrom(this.http.get<BatchAdmission[]>(
+        '/v1/projects/'+encodeURIComponent(this.projectId)+
+        '/technical/open-monitoring/period-qa/snapshots/'+snapshot+'/batch-admissions'));
+      if(this.admissionSnapshot()===snapshot){
+        this.batchAdmissions.set(rows);
+        if(!rows.some(row=>row.batchId===this.admissionBatch))this.admissionBatch=rows[0]?.batchId??'';
+      }
+    } catch(problem) {this.error.set(this.message(problem));}
+    finally {this.admitting.set(false);}
+  }
+
+  async admitBatch(event:Event) {
+    event.preventDefault();
+    const snapshot=this.admissionSnapshot();
+    const current=this.batchAdmissions().find(row=>row.batchId===this.admissionBatch);
+    const reason=this.admissionReason.trim();
+    if(!this.canReview||!snapshot||!current||this.admitting()||reason.length<15)return;
+    this.admitting.set(true);this.error.set('');
+    try {
+      await firstValueFrom(this.http.post(
+        '/v1/projects/'+encodeURIComponent(this.projectId)+
+        '/technical/open-monitoring/period-qa/snapshots/'+snapshot+'/batch-admissions',
+        {batchId:current.batchId,outcome:this.admissionOutcome,reason},
+        {headers:{
+          'Idempotency-Key':crypto.randomUUID(),
+          'If-Match':'"'+current.version+'"',
+        }}));
+      this.admissionReason='';
+      this.notice.set('Decisão do lote gravada neste snapshot. Ela não libera o cálculo.');
+      await this.showBatchAdmissions(snapshot);
+    } catch(problem) {this.error.set(this.message(problem));}
+    finally {this.admitting.set(false);}
+  }
+
   async inspectSnapshot(snapshot:string) {
     this.proofSnapshot.set(snapshot);
     this.proofLoading.set(true);
@@ -794,7 +850,11 @@ export class OpenMonitoringComponent implements OnChanges {
     if(problem instanceof HttpErrorResponse) {
       if(problem.status===412)return 'O registro foi atualizado por outra pessoa. Recarregue antes de editar.';
       if(problem.status===428)return 'É necessária a versão atual do registro.';
-      if([401,403,404].includes(problem.status))return 'Seu acesso ao monitoramento está indisponível.';
+      if(problem.status===403){
+        const text=problem.error?.message;
+        return typeof text==='string' && text ? text : 'Seu acesso ao monitoramento está indisponível.';
+      }
+      if([401,404].includes(problem.status))return 'Seu acesso ao monitoramento está indisponível.';
       if(problem.status===409)return 'Conflito: revise evidências, versões e pendências do QA antes de tentar novamente.';
       if(problem.status===503)return 'Armazenamento cifrado indisponível. A equipe deve configurar a chave de evidências.';
       if(problem.status===400||problem.status===422)return 'Confira campos, datas com fuso, unidade e referência de origem/calibração.';
