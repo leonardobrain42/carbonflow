@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -39,7 +40,8 @@ class VehicleRatingService {
                  UUID licenseId,String sourceId,String edition,OffsetDateTime purgedAt) {}
     record FleetOption(UUID id,UUID organizationId,int year,long denominator,String coverageState) {}
     record Candidate(int row,String key,String metric,BigDecimal value,String unit,
-                     int year,String geography,String locator) {}
+                     int year,String geography,String locator,
+                     UUID fleetModelId,String fleetModelTitle) {}
     record Rating(UUID id,UUID organizationId,UUID modelId,UUID sourceObjectId,
                   UUID sourceLicenseId,int sourceRow,int year,String role,String fuel,
                   String cycle,int seats,String cycleEvidence,
@@ -184,12 +186,22 @@ class VehicleRatingService {
             Source s=source(c,actor.organizations(),sourceId);
             requireSourceRights(c,s);
             var rows=query(c,"""
-                SELECT row_index,record_key,metric,value_numeric,unit,period_year,geography,locator
-                FROM app_platform_source_candidate WHERE object_id=?
-                ORDER BY row_index LIMIT 2000
+                SELECT c.row_index,c.record_key,c.metric,c.value_numeric,c.unit,
+                       c.period_year,c.geography,c.locator,a.model_id,
+                       CASE WHEN m.id IS NULL THEN NULL
+                            ELSE concat(m.manufacturer,' ',m.model_name,' ',m.variant) END
+                FROM app_platform_source_candidate c
+                LEFT JOIN app_fleet_model_alias a
+                  ON a.organization_id=? AND a.observation_year=c.period_year
+                 AND a.record_key=upper(btrim(c.record_key))
+                LEFT JOIN app_fleet_model m
+                  ON m.id=a.model_id AND m.organization_id=a.organization_id
+                WHERE c.object_id=?
+                ORDER BY c.row_index LIMIT 2000
                 """,r->new Candidate(r.getInt(1),r.getString(2),r.getString(3),
                     r.getBigDecimal(4),r.getString(5),r.getInt(6),r.getString(7),
-                    r.getString(8)),sourceId);
+                    r.getString(8),r.getObject(9,UUID.class),r.getString(10)),
+                s.organizationId(),sourceId);
             ComplianceStaff.audit(c,actor.id(),null,"VIEW_VEHICLE_RATINGS");
             return List.copyOf(rows);
         });
@@ -216,21 +228,28 @@ class VehicleRatingService {
             Source src=source(c,actor.organizations(),input.sourceObjectId());
             if(!src.organizationId().equals(input.organizationId()))throw hidden();
             requireSourceRights(c,src);
-            Model model=oneModel(c,input.modelId(),input.organizationId());
-            if(!"LDV".equals(model.vehicleClass()) ||
-               ("BEV".equals(input.role()) != "BEV".equals(model.propulsion())) ||
-               ("FOSSIL".equals(input.role()) && !"OTHER".equals(model.propulsion())))
-                throw invalid("modelId","Escolha veículo leve com propulsão compatível; não inferir BEV.");
             Candidate candidate=first(c,"""
                 SELECT row_index,record_key,metric,value_numeric,unit,period_year,geography,locator
                 FROM app_platform_source_candidate WHERE object_id=? AND row_index=?
                 """,r->new Candidate(r.getInt(1),r.getString(2),r.getString(3),
                     r.getBigDecimal(4),r.getString(5),r.getInt(6),r.getString(7),
-                    r.getString(8)),src.id(),input.sourceRow());
+                    r.getString(8),null,null),src.id(),input.sourceRow());
             if(candidate==null || !"BR".equals(candidate.geography()) ||
                !("BEV".equals(input.role())?"ev_energy":"fuel_economy").equals(candidate.metric()) ||
                src.referenceYear()!=null && src.referenceYear()!=candidate.year())
                 throw invalid("sourceRow","Linha, grandeza, ano e geografia não são compatíveis com a fonte PBEV.");
+            UUID linked=fleetModel(c,input.organizationId(),candidate.year(),candidate.key());
+            if(linked==null)
+                throw invalid("modelId",
+                    "A chave desta linha PBEV ainda não tem o identificador de modelo da frota neste ano.");
+            if(!linked.equals(input.modelId()))
+                throw new PilotProblem(409,"MODELO_DIVERGENTE","modelId",RULE,
+                    "O rating PBEV precisa usar o identificador de modelo já associado a esta chave na frota.");
+            Model model=oneModel(c,linked,input.organizationId());
+            if(!"LDV".equals(model.vehicleClass()) ||
+               ("BEV".equals(input.role()) != "BEV".equals(model.propulsion())) ||
+               ("FOSSIL".equals(input.role()) && !"OTHER".equals(model.propulsion())))
+                throw invalid("modelId","Escolha veículo leve com propulsão compatível; não inferir BEV.");
             Boolean accepted=first(c,"""
                 SELECT true FROM app_platform_source_assessment
                 WHERE object_id=? AND outcome='APPROVED_FOR_SCOPE'
@@ -573,6 +592,18 @@ class VehicleRatingService {
     private void requireFleetRights(Connection c,Fleet fleet)throws SQLException{
         if(!fleetRights(c,fleet))throw new PilotProblem(403,"FROTA_SEM_DIREITOS","fleet",RULE,
             "Fonte EVR expirada ou não autorizada para derivados.");
+    }
+
+    /** The PBEV line uses the fleet alias for that year. It does not create a second identity. */
+    private static UUID fleetModel(Connection c,UUID organization,int year,String recordKey)
+            throws SQLException{
+        if(recordKey==null)return null;
+        String key=recordKey.strip().toUpperCase(Locale.ROOT);
+        if(!key.matches("[A-Z0-9][A-Z0-9._-]{0,99}"))return null;
+        return first(c,"""
+            SELECT model_id FROM app_fleet_model_alias
+            WHERE organization_id=? AND observation_year=? AND record_key=?
+            """,r->r.getObject(1,UUID.class),organization,year,key);
     }
 
     private Model oneModel(Connection c,UUID id,UUID org)throws SQLException{

@@ -57,17 +57,9 @@
               <option value="BEV">BEV · energia elétrica</option>
               <option value="FOSSIL">Combustão · consumo fóssil</option>
             </select>
-            <label for="cf-rating-model">Identidade canônica do veículo</label>
-            <select id="cf-rating-model" [value]="modelId"
-              (change)="modelId=$any($event.target).value" required>
-              <option value="">Selecione um modelo registrado na Frota EVR</option>
-              @for(model of eligibleModels();track model.id){
-                <option [value]="model.id">{{model.title}} · {{model.propulsion}}</option>
-              }
-            </select>
             <label for="cf-rating-row">Linha exata da tabela autorizada</label>
             <select id="cf-rating-row" [value]="rowIndex"
-              (change)="rowIndex=$any($event.target).value" required>
+              (change)="rowChanged($any($event.target).value)" required>
               <option value="">Selecione a métrica da origem</option>
               @for(c of candidates();track c.row) {
                 @if ((ratingRole==='BEV' && c.metric==='ev_energy') ||
@@ -76,6 +68,15 @@
                 }
               }
             </select>
+            <p id="cf-rating-model">
+              @if (selectedFleetModel()) {
+                Identificador da frota: {{selectedFleetModel()}}
+              } @else if (rowIndex) {
+                Esta chave ainda não tem o identificador de modelo da frota neste ano.
+              } @else {
+                Selecione a linha para usar o identificador já associado na frota.
+              }
+            </p>
             <div class="cf-platform-filters">
               <div>
                 <label for="cf-rating-cycle">Ciclo documentado</label>

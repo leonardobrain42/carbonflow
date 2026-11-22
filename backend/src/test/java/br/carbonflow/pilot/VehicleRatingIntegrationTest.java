@@ -69,6 +69,15 @@ class VehicleRatingIntegrationTest {
         var candidates=ok(send("GET",ROOT+"/sources/"+PBEV_OBJECT+"/candidates",
             manager,null,null,null),200);
         assertEquals(4,candidates.size());
+        assertEquals(BEV_A.toString(),candidates.get(0).path("fleetModelId").asText());
+        assertTrue(candidates.get(0).path("fleetModelTitle").asText().contains("EV-A"));
+
+        String wrongModel="{\"organizationId\":\""+ORG+"\",\"modelId\":\""+BEV_B+
+            "\",\"sourceObjectId\":\""+PBEV_OBJECT+"\",\"sourceRow\":2"+
+            ",\"role\":\"BEV\",\"fuel\":\"ELECTRICITY\",\"cycle\":\"COMBINED\",\"seats\":5,"+
+            "\"cycleEvidence\":\"PBEV combo table line 2\"}";
+        JsonNode divergent=ok(send("POST",ROOT+"/ratings",manager,key(),null,wrongModel),409);
+        assertEquals("MODELO_DIVERGENTE",divergent.path("code").asText());
 
         String[] ids=new String[4];
         UUID[] vehicles={BEV_A,BEV_B,ICE_A,ICE_B};
@@ -184,6 +193,7 @@ class VehicleRatingIntegrationTest {
             update(c,"DELETE FROM app_vehicle_comparable_pair WHERE organization_id=?",ORG);
             update(c,"DELETE FROM app_vehicle_rating WHERE organization_id=?",ORG);
             update(c,"DELETE FROM app_fleet_composition_weight WHERE organization_id=?",ORG);
+            update(c,"DELETE FROM app_fleet_model_alias WHERE organization_id=?",ORG);
             update(c,"DELETE FROM app_fleet_composition_snapshot WHERE organization_id=?",ORG);
             update(c,"DELETE FROM app_fleet_stock_observation WHERE organization_id=?",ORG);
             update(c,"DELETE FROM app_fleet_ingestion WHERE organization_id=?",ORG);
@@ -216,14 +226,20 @@ class VehicleRatingIntegrationTest {
         db.transaction(c->{
             update(c,"INSERT INTO app_organization(id,environment,display_name) VALUES (?,'SANDBOX','PBEV teste')",ORG);
             update(c,"INSERT INTO app_organization(id,environment,display_name) VALUES (?,'SANDBOX','PBEV outsider')",OTHER);
-            for(var model:new Object[][]{
-                {BEV_A,"EV-A","BEV"},{BEV_B,"EV-B","BEV"},
-                {ICE_A,"ICE-A","OTHER"},{ICE_B,"ICE-B","OTHER"}}){
+            Object[][] models={
+                {BEV_A,"EV-A","BEV","A"},{BEV_B,"EV-B","BEV","B"},
+                {ICE_A,"ICE-A","OTHER","C"},{ICE_B,"ICE-B","OTHER","D"}};
+            for(var model:models){
                 update(c,"""
                     INSERT INTO app_fleet_model
                      (id,organization_id,manufacturer,model_name,variant,vehicle_class,propulsion,created_by)
                     VALUES (?,?,'Ficticia',?,'Base','LDV',?,?)
                     """,model[0],ORG,model[1],model[2],MANAGER);
+                update(c,"""
+                    INSERT INTO app_fleet_model_alias
+                     (organization_id,observation_year,record_key,model_id,mapped_by)
+                    VALUES (?,?,?,?,?)
+                    """,ORG,YEAR,model[3],model[0],MANAGER);
             }
             for(var need:new Object[][]{
                 {FLEET_SUB,"OPEN-EVR","BR-LDV-BEV-STOCK-BY-MODEL",FLEET_LIC,FLEET_OBJECT},
