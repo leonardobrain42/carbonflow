@@ -4,6 +4,17 @@ import {calculationGateTitle, equationTerm, plannedRole} from './calculation-lan
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {firstValueFrom} from 'rxjs';
 
+interface ParameterPin {
+  id:string;
+  parameterKind:string;
+  vintageYear:number;
+  normalizedUnit:string|null;
+  valueKind:string;
+  declaredValue:string|null;
+  explicitOne:boolean;
+  state:string;
+  usableForE8:boolean;
+}
 interface CalculationGate {
   code:string;
   state:string;
@@ -81,6 +92,7 @@ export class OpenCalculationReadinessComponent implements OnChanges {
   readonly loading=signal(true);
   readonly error=signal('');
   readonly readiness=signal<OpenCalculationReadiness|null>(null);
+  readonly pins=signal<ParameterPin[]>([]);
   readonly runPeriod=signal('M1');
   readonly canRecord=signal(false);
   readonly latestRun=signal<CalculationRun|null>(null);
@@ -111,6 +123,7 @@ export class OpenCalculationReadinessComponent implements OnChanges {
         if(response.projectId!==project || response.environment!=='SANDBOX')
           throw new Error('Inconsistent project context');
         this.readiness.set(response);
+        void this.loadPins(project, current);
       }
     } catch (problem) {
       if(current===this.requestId) {
@@ -122,6 +135,16 @@ export class OpenCalculationReadinessComponent implements OnChanges {
       if(current===this.requestId)this.loading.set(false);
     }
     if(current===this.requestId)void this.loadRun();
+  }
+
+  private async loadPins(project:string, current:number) {
+    try {
+      const pins=await firstValueFrom(this.http.get<ParameterPin[]>(
+        '/v1/projects/'+encodeURIComponent(project)+'/technical/open-parameter-bindings'));
+      if(current===this.requestId && project===this.projectId)this.pins.set(pins);
+    } catch {
+      if(current===this.requestId)this.pins.set([]);
+    }
   }
 
   async loadRun() {
@@ -194,6 +217,23 @@ export class OpenCalculationReadinessComponent implements OnChanges {
   private runUrl(project:string, period:string) {
     return '/v1/projects/'+encodeURIComponent(project)
       +'/technical/open-monitoring/dossiers/'+encodeURIComponent(period)+'/e8-runs';
+  }
+
+  pinLabel(pin:ParameterPin) {
+    const names:Record<string,string>={
+      EF_FUEL:'Fator fóssil', EF_GRID:'Fator elétrico',
+      IR:'Melhoria tecnológica', DY:'Desconto por outro crédito',
+    };
+    return names[pin.parameterKind]??pin.parameterKind;
+  }
+
+  pinState(pin:ParameterPin) {
+    if(pin.usableForE8)return 'Estado inconsistente';
+    if(pin.state==='STALE_NOT_ADMITTED')return 'Desatualizado e não admitido';
+    if(pin.valueKind==='DECLARED_ZERO')return 'Zero declarado, não admitido';
+    if(pin.explicitOne)return '1 declarado com regra, não é default e não está admitido';
+    if(pin.valueKind==='DECLARED_EXPLICIT')return 'Valor explícito, não admitido';
+    return 'Referência vinculada, não admitida';
   }
 
   preparatoryGates():CalculationGate[] {

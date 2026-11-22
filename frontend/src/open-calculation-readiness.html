@@ -55,6 +55,22 @@
         </li>
       }
     </ol>
+    <h4>Pinos de fator, IR e Dy</h4>
+    <p>Um pino guarda a referência do fator ou o valor declarado de IR e Dy.
+      Ausência continua sem linha. Zero e 1 só aparecem quando foram digitados
+      com regra e prova. Nenhum destes estados libera o cálculo.</p>
+    @if (pins().length) {
+      <ul class="cf-tech-gates">
+        @for (pin of pins(); track pin.id) {
+          <li>
+            <strong>{{pinLabel(pin)}} · {{pin.vintageYear}}</strong>
+            <p>{{pinState(pin)}}@if (pin.normalizedUnit) { · {{pin.normalizedUnit}}}@if (pin.declaredValue !== null) { · declarado {{pin.declaredValue}}}</p>
+          </li>
+        }
+      </ul>
+    } @else {
+      <p>Ainda não há pino de fator fóssil, fator elétrico, IR ou Dy neste projeto.</p>
+    }
     <h4>Entradas já preparadas no projeto</h4>
     <p>Os estados abaixo são lidos das versões de energia entregue, energia consumida,
       fator elétrico, estoque nacional EVR e ratings PBEV publicadas

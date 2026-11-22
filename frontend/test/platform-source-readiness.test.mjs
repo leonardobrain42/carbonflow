@@ -74,6 +74,39 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
     assert.equal(await page.getByRole('heading',{name:'VM0038 v1.1'}).count(),0);
     await page.getByLabel('Situação da fonte').selectOption('METADATA_ONLY');
     await page.getByText('Nenhuma necessidade corresponde aos filtros').waitFor();
+    let posted = null;
+    await page.route('**/v1/platform/open-parameter-bindings/options', route => route.fulfill({json:[{
+      projectId:'20000000-0000-4000-8000-000000000097', title:'Rede aberta',
+      triageVersion:1, pins:[],
+    }]}));
+    await page.route('**/v1/platform/open-fossil-factors', route => route.fulfill({json:{candidates:[{
+      id:'30000000-0000-4000-8000-000000000001', periodYear:2036,
+      status:'CHECKED_INTERNAL_NOT_ADMITTED', normalizedUnit:'tCO2e/USgal',
+    }]}}));
+    await page.route('**/v1/platform/open-grid-factors', route => route.fulfill({json:{candidates:[]}}));
+    await page.route(url => new URL(url).pathname === '/v1/platform/open-parameter-bindings', async route => {
+      posted = {
+        body: route.request().postDataJSON(),
+        match: route.request().headers()['if-match'],
+      };
+      await route.fulfill({status:201, json:{version:1, usableForE8:false}});
+    });
+    await page.getByRole('button', {name:'Pinos do projeto'}).click();
+    await page.getByRole('heading', {name:'Pino de parâmetros do projeto'}).waitFor();
+    await page.getByLabel('Projeto', {exact:true}).selectOption({label:'Rede aberta'});
+    await page.getByLabel('Parâmetro', {exact:true}).selectOption('IR');
+    await page.getByLabel('Ano').fill('2036');
+    await page.getByLabel('Valor declarado').fill('1');
+    await page.getByLabel('Regra').fill('VM0038-1.1 regra explícita do projeto');
+    await page.getByLabel('Prova').fill('prova ficticia do parametro');
+    await page.getByRole('button', {name:'Gravar pino'}).click();
+    await page.getByText('Pino gravado como preparação').waitFor();
+    assert.equal(posted.body.parameterKind, 'IR');
+    assert.equal(posted.body.declaredValue, '1');
+    assert.equal(posted.body.candidateId, null);
+    assert.equal(posted.body.useDefault, undefined);
+    assert.equal(posted.match, '"0"');
+    await page.getByText('Nenhum pino admite o cálculo nem emite crédito.').waitFor();
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth),false);
   } finally {
     await browser.close();
