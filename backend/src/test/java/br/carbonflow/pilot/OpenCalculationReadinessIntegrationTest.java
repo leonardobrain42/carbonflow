@@ -117,6 +117,18 @@ class OpenCalculationReadinessIntegrationTest {
         assertEquals(200,preparerResponse.statusCode());
         assertEquals(7,json(preparerResponse).path("equationPlan").size());
         assertNull(json(preparerResponse).at("/emissions/erTco2e").textValue());
+        assertFalse(json(preparerResponse).path("canRunE8").asBoolean());
+        assertFalse(json(preparerResponse).path("canIssueVcu").asBoolean());
+        JsonNode listed=json(call("GET","/v1/account-session",preparer.cookie(),null,null,null));
+        assertEquals(project,listed.at("/projects/0/projectId").asText());
+        assertEquals("CALCULATION",listed.at("/projects/0/access").asText());
+        assertEquals("OWNER",json(call("GET","/v1/account-session",owner.cookie(),null,null,null))
+            .at("/projects/0/access").asText());
+        assertEquals(200,call("GET","/v1/projects/"+project+"/metadata",preparer.cookie(),null,null,null).statusCode());
+        assertEquals(404,call("PATCH","/v1/projects/"+project+"/metadata",preparer.cookie(),key(),"\"1\"",
+            "{\"title\":\"A segunda conta não é titular\"}").statusCode());
+        assertEquals(404,call("GET","/v1/projects/"+project+"/technical/open-monitoring",
+            preparer.cookie(),null,null,null).statusCode());
         assertEquals(404,call("GET",path,outsider.cookie(),null,null,null).statusCode());
         database.transaction(c -> {
             update(c,"""
@@ -127,6 +139,9 @@ class OpenCalculationReadinessIntegrationTest {
             return null;
         });
         assertEquals(404,call("GET",path,preparer.cookie(),null,null,null).statusCode());
+        assertEquals(0,json(call("GET","/v1/account-session",preparer.cookie(),null,null,null)).path("projects").size());
+        assertEquals("OWNER",json(call("GET","/v1/account-session",owner.cookie(),null,null,null))
+            .at("/projects/0/access").asText());
         assertTrue(database.read(c -> first(c,"""
             SELECT count(*) FROM app_project_technical_access_event
             WHERE actor_id=? AND target_digest=? AND action='VIEW_OPEN_CALCULATION'

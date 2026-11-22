@@ -152,6 +152,10 @@ export class ProjectInvitationPlansComponent {
     }
   }
 
+  label(activity: string) {
+    return this.activityLabel[activity as Activity] ?? activity;
+  }
+
   canSend(plan: Plan) {
     return this.active()?.canSend === true
       && plan.details.activities.every(activity => (this.active()?.supportedActivities ?? ['INTAKE','DOCUMENTATION']).includes(activity))

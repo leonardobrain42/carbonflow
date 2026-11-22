@@ -153,6 +153,28 @@ test('CF-IMP-006: login da conta não reutiliza credenciais ou cookies SIM-*', a
   });
 });
 
+test('CF-IMP-013: segunda conta vê o grant de quantificação sem editar o rascunho', async () => {
+  await withBrowser(async page => {
+    const project = {
+      projectId: 'DRAFT-CALC', organizationId: organization.id, environment: 'SANDBOX',
+      state: 'DRAFT', version: 1, access: 'CALCULATION', title: 'Rede da segunda conta',
+      description: 'Diagnóstico compartilhado',
+    };
+    const state = {signedIn: true, organizations: [organization], projects: [project]};
+    await stubAccount(page, state);
+    await page.goto(base + '/workspace');
+    await page.getByText('Grant de quantificação · SANDBOX').waitFor();
+    await page.getByLabel('Projetos disponíveis nesta conta').selectOption('DRAFT-CALC');
+    await page.getByRole('heading', {name: 'Rede da segunda conta'}).waitFor();
+    await page.getByText('Grant de quantificação nesta conta.').waitFor();
+    const open = page.getByRole('link', {name: 'Abrir quantificação'});
+    assert.ok((await open.getAttribute('href')).includes('secao=quantificar'));
+    assert.equal(await page.getByRole('button', {name: 'Salvar alterações'}).count(), 0);
+    await page.setViewportSize({width: 390, height: 844});
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth), false);
+  });
+});
+
 test('CF-IMP-007: conta cria rascunho persistente e atualiza metadados sem calcular ER', async () => {
   await withBrowser(async page => {
     const state = {signedIn: true, projects: [], organizations: [organization]};
