@@ -28,7 +28,9 @@ SQL_DIR = demo.ROOT / "backend/src/main/resources/db/migration"
 RUN = {
     "id":"uuid", "project_id":"text", "organization_id":"uuid", "environment":"text",
     "period_code":"text", "version":"int4", "predecessor_id":"uuid",
-    "energy_binding_id":"uuid", "fleet_selection_id":"uuid", "input_sha256":"bytea",
+    "energy_binding_id":"uuid", "fleet_selection_id":"uuid",
+    "fuel_pin_id":"uuid", "ir_pin_id":"uuid", "dy_pin_id":"uuid",
+    "input_sha256":"bytea",
     "state":"text", "can_issue_vcu":"bool", "engine":"text", "afec":"text",
     "mpg":"text", "be_tco2e":"text", "pe_tco2e":"text", "le_tco2e":"text",
     "dy":"text", "er_tco2e":"text", "er_display":"text", "trace_json":"jsonb",
