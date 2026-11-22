@@ -1,16 +1,20 @@
 import {Component, inject, input, output, OnInit, signal} from '@angular/core';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {firstValueFrom} from 'rxjs';
-import {monitoringGateTitle, plainTerm} from './calculation-language';
+import {calculationGateTitle, monitoringGateTitle, plainTerm} from './calculation-language';
 
 interface Guide {
   id:string; title:string; version:number; missing:string[]; answers:Record<string,string>;
   fields:{key:string;label:string}[];
 }
 interface Version {number:number;guideVersion:number;author:string;narrative:string;sha256:string}
+interface CalculationNote {period:string;situation:string;causeCode:string|null;cause:string|null;
+  beTco2e:string|null;peTco2e:string|null;leTco2e:string|null;erDisplay:string|null;
+  usableForE8:boolean;marksDocumentReady:boolean;text:string}
 interface Section {guide:Guide;latest:Version | null;
   monitoringDependency:{state:string;outdated:boolean;
-    gates:{code:string;detail:string}[]} | null}
+    gates:{code:string;detail:string}[]} | null;
+  calculation?:CalculationNote|null}
 
 @Component({selector:'carbonflow-pd-sections',templateUrl:'./pd-sections.html'})
 export class PdSectionsComponent implements OnInit {
@@ -26,6 +30,7 @@ export class PdSectionsComponent implements OnInit {
   readonly message = signal('');
   readonly term = plainTerm;
   readonly gateTitle = monitoringGateTitle;
+  readonly calculationTitle = calculationGateTitle;
   private readonly http = inject(HttpClient);
   get url() { return '/v1/projects/' + encodeURIComponent(this.projectId()) + '/technical/pd-sections'; }
   canLeave() {

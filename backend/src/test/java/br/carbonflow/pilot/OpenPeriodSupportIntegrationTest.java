@@ -483,6 +483,20 @@ class OpenPeriodSupportIntegrationTest {
             owner.cookie(),null,null));
         assertFalse(stillBlocked.path("canRunE8").asBoolean());
         assertTrue(stillBlocked.at("/emissions/erTco2e").isNull());
+        JsonNode sections=json(call("GET",technical+"/pd-sections",owner.cookie(),null,null));
+        JsonNode quantification=null;
+        for (JsonNode section : sections) {
+            if ("quantification".equals(section.at("/guide/id").asText())) quantification=section;
+        }
+        assertNotNull(quantification);
+        assertEquals("MEMORY",quantification.at("/calculation/situation").asText());
+        assertEquals("4.05",quantification.at("/calculation/beTco2e").asText());
+        assertEquals("1.5",quantification.at("/calculation/peTco2e").asText());
+        assertEquals("2.55",quantification.at("/calculation/erDisplay").asText());
+        assertFalse(quantification.at("/calculation/usableForE8").asBoolean());
+        assertFalse(quantification.at("/calculation/marksDocumentReady").asBoolean());
+        assertTrue(quantification.at("/calculation/text").asText().contains("O PD não fica pronto"));
+        assertFalse(quantification.at("/calculation").toString().contains("EF-SYN"));
 
         String vtUrl=efelUrl+"/"+efel.path("id").asText()+"/vt0011-workbooks";
         assertEquals(0,json(call("GET",vtUrl,owner.cookie(),null,null)).size());

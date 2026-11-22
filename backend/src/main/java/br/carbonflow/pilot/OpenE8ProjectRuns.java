@@ -455,6 +455,16 @@ class OpenE8ProjectRuns {
             """, actor, key, project, run, fingerprint);
     }
 
+    Attempt newest(Connection c, String project) throws SQLException {
+        String period = first(c, """
+            SELECT period_code FROM app_open_e8_run
+            WHERE project_id=? ORDER BY created_at DESC, version DESC LIMIT 1
+            """, r -> r.getString(1), project);
+        if (period == null) return null;
+        Stored row = latest(c, project, period);
+        return row == null ? null : view(c, row);
+    }
+
     private static Stored latest(Connection c, String project, String period) throws SQLException {
         return first(c, STORED + """
             WHERE project_id=? AND period_code=? ORDER BY version DESC LIMIT 1
