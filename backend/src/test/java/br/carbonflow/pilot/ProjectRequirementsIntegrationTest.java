@@ -512,7 +512,7 @@ class ProjectRequirementsIntegrationTest {
             .header("Idempotency-Key", key())
             .header("Content-Type", "application/pdf")
             .header("X-File-Name", name)
-            .PUT(HttpRequest.BodyPublishers.ofString("%PDF-1.4\n%EOF\n"));
+            .PUT(HttpRequest.BodyPublishers.ofString("%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\n%%EOF\n"));
         var response = client.send(request.build(), HttpResponse.BodyHandlers.ofString());
         assertEquals(201, response.statusCode(), response.body());
         JsonNode body = json(response);
