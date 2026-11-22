@@ -46,6 +46,36 @@ test('a ficha OPEN permite preparar direitos sem fonte admitida nem cálculo E8'
       outstandingGates:[{code:'PEN-004',rule:'TEST',message:'Direitos ainda não comprovados'}],
     }}));
     await page.route('**/v1/projects/*/technical/preliminary-dossier',r=>r.fulfill({status:204}));
+    let parties=[];
+    let contracts=[];
+    let events=[];
+    const catalog=()=>({parties,contracts,events,createsLegalPower:false,admitsRights:false});
+    await page.route('**/v1/projects/*/technical/open-rights**',async route=>{
+      const url=route.request().url();
+      if(route.request().method()==='PUT' && url.includes('/files/')){
+        const id=url.includes('/CONTRACT/')
+          ?'33333333-3333-4333-8333-333333333333'
+          :'44444444-4444-4444-8444-444444444444';
+        await route.fulfill({status:201,json:{id,state:'PENDING_REVIEW',usableForE8:false}});
+        return;
+      }
+      if(route.request().method()==='PUT' && url.includes('/parties/')){
+        const body=route.request().postDataJSON();
+        const code=decodeURIComponent(url.split('/parties/')[1]);
+        parties=[...parties,{code,version:1,kind:body.kind,displayName:body.displayName}];
+      }
+      if(route.request().method()==='PUT' && url.includes('/events/')){
+        const body=route.request().postDataJSON();
+        const code=decodeURIComponent(url.split('/events/')[1]);
+        events=[...events,{code,version:1,kind:body.kind,eventOn:body.eventOn,documentRef:body.documentRef}];
+      }
+      if(route.request().method()==='PUT' && url.includes('/contracts/')){
+        const body=route.request().postDataJSON();
+        const code=decodeURIComponent(url.split('/contracts/')[1]);
+        contracts=[...contracts,{code,version:1,partyCode:body.partyCode,partyVersion:1,label:body.label}];
+      }
+      await route.fulfill({json:catalog()});
+    });
     await page.route('**/v1/projects/*/technical/open-applicability',async route=>{
       if(route.request().method()==='PUT'){
         assert.equal(route.request().headers()['if-match'],'"'+revision+'"');
@@ -65,6 +95,12 @@ test('a ficha OPEN permite preparar direitos sem fonte admitida nem cálculo E8'
           canUseForE8:false,stale:false,findings,
           sourceDependencies:['OPEN-METHOD','OPEN-EV-PENETRATION','OPEN-EV-SALES','OPEN-RIGHTS'],
         },
+        origins:[{field:'rightsParty',version:'v1',situation:'Registro do projeto, não admitido',
+          rule:'CF-IMP-013',role:'Revisão interna. Este papel não designa uma pessoa nem cria permissão.',
+          concludes:false}],
+        pdFields:[{key:'rightsParty',section:'Titularidade',
+          gap:'A resposta tipada não é copiada e esta prévia não marca o PD como pronto.',
+          copiedIntoDocument:false,marksReady:false}],
       }});
     });
     await page.route('**/v1/projects/*/technical/requirements',r=>r.fulfill({json:{
@@ -91,13 +127,52 @@ test('a ficha OPEN permite preparar direitos sem fonte admitida nem cálculo E8'
     await page.getByLabel('Energia do sistema').selectOption('SIN');
     await page.getByLabel('Existe armazenamento/geração associada?').selectOption('false');
     await page.getByLabel('O carregador devolve energia à rede (V2G)?').selectOption('false');
-    await page.getByLabel('Proprietário do sistema de recarga').fill('Operador hipotético');
-    await page.getByLabel('Referência verificável do contrato de direitos').fill('CONTRACT-LOCAL-001');
+    await page.getByLabel('Nome do titular neste projeto').fill('Operador hipotético');
+    await page.getByRole('button',{name:'Registrar titular'}).click();
+    await page.getByLabel('Titular registrado').selectOption({label:'Operador hipotético'});
+    await page.getByLabel('Rótulo do contrato').fill('Contrato local');
+    await page.getByRole('button',{name:'Registrar contrato'}).click();
+    await page.getByLabel('Contrato registrado').selectOption({label:'Contrato local'});
+    const contractFile=page.waitForResponse(response=>response.url().includes('/files/CONTRACT/'));
+    await page.getByLabel('Arquivo do contrato').setInputFiles({
+      name:'contrato.pdf',mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.4\n%EOF\n'),
+    });
+    await contractFile;
+    const disclosureFile=page.waitForResponse(response=>response.url().includes('/files/DISCLOSURE/'));
+    await page.getByLabel('Arquivo da divulgação').setInputFiles({
+      name:'divulgacao.pdf',mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.4\n%EOF\n'),
+    });
+    await disclosureFile;
+    await page.getByLabel('Data do início operacional da estação').fill('2027-02-01');
+    await page.getByLabel('Referência do documento do início operacional').fill('ATO-OP-1');
+    const operationalEvent=page.waitForResponse(response=>
+      response.url().includes('/events/') && response.request().method()==='PUT');
+    await page.getByRole('button',{name:'Registrar início operacional',exact:true}).click();
+    await operationalEvent;
+    await page.getByLabel('Data do início de crédito VCS').fill('2027-03-01');
+    await page.getByLabel('Referência do documento do início de crédito VCS').fill('ATO-VCS-1');
+    const vcsEvent=page.waitForResponse(response=>
+      response.url().includes('/events/') && response.request().method()==='PUT');
+    await page.getByRole('button',{name:'Registrar início de crédito VCS',exact:true}).click();
+    await vcsEvent;
     await page.getByRole('button',{name:'Salvar declaração sem aprovação automática'}).click();
     await page.getByText('Declaração versionada salva. A jornada pode continuar',{exact:false}).waitFor();
+    await page.getByText('Como estes campos entrariam no PD',{exact:true}).click();
+    await page.getByText('não é copiada',{exact:false}).waitFor();
+    await page.getByText('O PD não fica pronto.',{exact:false}).waitFor();
+    await page.getByText('Ver origem do titular',{exact:true}).click();
+    await page.getByText('CF-IMP-013',{exact:true}).waitFor();
+    await page.getByText('não designa uma pessoa',{exact:false}).waitFor();
     assert.equal(revision,1);
     assert.equal(answers.privateLand,true);
     assert.equal(answers.restrictedToIdentifiedVehicles,false);
+    assert.equal(answers.rightsPartyCode,parties[0].code);
+    assert.equal(answers.rightsContractCode,contracts[0].code);
+    assert.equal(answers.operationalEventCode,events.find(event=>event.kind==='OPERATIONAL_START').code);
+    assert.equal(answers.vcsEventCode,events.find(event=>event.kind==='VCS_START').code);
+    assert.equal(answers.contractFileId,'33333333-3333-4333-8333-333333333333');
+    assert.equal(answers.disclosureFileId,'44444444-4444-4444-8444-444444444444');
+    assert.equal(answers.chargingOwner,null);
     const ficha=page.getByRole('region',{name:'Aplicabilidade de rede aberta'});
     await ficha.getByText('Rede aberta candidata',{exact:false}).waitFor();
     await ficha.getByText('Referência: OPEN_CANDIDATE',{exact:true}).waitFor();

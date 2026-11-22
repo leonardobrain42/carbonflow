@@ -11,13 +11,24 @@ type Declaration = {
   carbonRightsContractRef:string|null;driverDisclosureChannel:string|null;
   driverDisclosureEvidenceRef:string|null;driverDisclosureEffectiveOn:string|null;
   doubleClaimingCheck:string|null;effectiveFrom:string|null;explanation:string|null;
+  rightsPartyCode:string|null;rightsContractCode:string|null;
+  operationalEventCode:string|null;vcsEventCode:string|null;
+  contractFileId:string|null;disclosureFileId:string|null;
 };
+type Party={code:string;version:number;kind:string;displayName:string};
+type Contract={code:string;version:number;partyCode:string;partyVersion:number;label:string};
+type RightsEvent={code:string;version:number;kind:string;eventOn:string;documentRef:string};
+type RightsCatalog={parties:Party[];contracts:Contract[];events?:RightsEvent[];
+  createsLegalPower:boolean;admitsRights:boolean};
 type Finding={code:string;state:string;text:string};
 type Readiness={category:string;network:string;rights:string;norm:string;
   canContinuePreparation:boolean;canUseForE8:boolean;stale:boolean;
   findings:Finding[];sourceDependencies:string[]};
+type Origin={field:string;version:string;situation:string;rule:string;role:string;concludes:boolean};
+type PdField={key:string;section:string;gap:string;copiedIntoDocument:boolean;marksReady:boolean};
 type View={projectId:string;version:number;latestTriageVersion:number;
-  latest:{version:number;triageVersion:number;answers:Declaration}|null;readiness:Readiness};
+  latest:{version:number;triageVersion:number;answers:Declaration}|null;readiness:Readiness;
+  origins?:Origin[];pdFields?:PdField[]};
 
 const EMPTY:Declaration={
   unrestrictedBevAccess:null,restrictedToIdentifiedVehicles:null,privateLand:null,
@@ -25,6 +36,8 @@ const EMPTY:Declaration={
   v2g:null,chargingOwner:null,carbonRightsContractRef:null,
   driverDisclosureChannel:'NOT_DECLARED',driverDisclosureEvidenceRef:null,
   driverDisclosureEffectiveOn:null,doubleClaimingCheck:'UNKNOWN',effectiveFrom:null,explanation:null,
+  rightsPartyCode:null,rightsContractCode:null,operationalEventCode:null,vcsEventCode:null,
+  contractFileId:null,disclosureFileId:null,
 };
 
 @Component({
@@ -38,6 +51,13 @@ export class OpenApplicabilityComponent implements OnChanges {
   private readonly http=inject(HttpClient);
   readonly view=signal<View|null>(null);
   readonly form=signal<Declaration>({...EMPTY});
+  readonly parties=signal<Party[]>([]);
+  readonly contracts=signal<Contract[]>([]);
+  readonly partyDraft=signal({kind:'ORGANIZATION',displayName:''});
+  readonly contractLabel=signal('');
+  readonly events=signal<RightsEvent[]>([]);
+  readonly operationalDraft=signal({eventOn:'',documentRef:''});
+  readonly vcsDraft=signal({eventOn:'',documentRef:''});
   readonly loading=signal(true);
   readonly term=plainTerm;
   readonly busy=signal(false);
@@ -61,6 +81,7 @@ export class OpenApplicabilityComponent implements OnChanges {
         '/v1/projects/'+encodeURIComponent(this.projectId)+'/technical/open-applicability'));
       this.view.set(data);
       this.form.set({...EMPTY,...data.latest?.answers});
+      await this.loadRights();
       this.retryKey='';
     }catch(problem){this.error.set(this.message(problem));}
     finally{this.loading.set(false);}
@@ -74,6 +95,71 @@ export class OpenApplicabilityComponent implements OnChanges {
     this.form.update(current=>({...current,[field]:actual}));
   }
   bool(value:YesNo){return value===null?'':String(value);}
+  origin(field:string){return this.view()?.origins?.find(item=>item.field===field)??null;}
+  eventsOf(kind:string){return this.events().filter(event=>event.kind===kind);}
+  async uploadFile(subject:'CONTRACT'|'DISCLOSURE',input:HTMLInputElement){
+    const file=input.files?.[0];
+    const code=subject==='CONTRACT'?this.form().rightsContractCode:'DECLARATION';
+    if(!file||!code||this.busy()){
+      if(subject==='CONTRACT'&&!code)this.error.set('Registre o contrato antes de anexar o arquivo.');
+      return;
+    }
+    this.busy.set(true);this.error.set('');
+    try{
+      const saved=await firstValueFrom(this.http.put<{id:string;state:string;usableForE8:boolean}>(
+        this.rightsPath()+'/files/'+subject+'/'+encodeURIComponent(code),file,{
+          headers:{'Content-Type':'application/pdf','X-File-Name':file.name,
+            'Idempotency-Key':crypto.randomUUID()},
+        }));
+      if(saved.state!=='PENDING_REVIEW'||saved.usableForE8){
+        this.error.set('O arquivo não pode ser tratado como prova admitida.');
+        return;
+      }
+      this.update(subject==='CONTRACT'?'contractFileId':'disclosureFileId',saved.id);
+    }catch(problem){this.error.set(this.message(problem));}
+    finally{this.busy.set(false);}
+  }
+  async registerEvent(kind:'OPERATIONAL_START'|'VCS_START'){
+    const draft=kind==='OPERATIONAL_START'?this.operationalDraft():this.vcsDraft();
+    if(!draft.eventOn||!draft.documentRef.trim()||this.busy())return;
+    const code=(kind==='OPERATIONAL_START'?'OP':'VCS')+crypto.randomUUID().slice(0,8).toUpperCase();
+    await this.record('/events/'+code,{kind,eventOn:draft.eventOn,documentRef:draft.documentRef.trim()});
+    if(!this.error()){
+      this.update(kind==='OPERATIONAL_START'?'operationalEventCode':'vcsEventCode',code);
+      if(kind==='OPERATIONAL_START')this.operationalDraft.set({eventOn:'',documentRef:''});
+      else this.vcsDraft.set({eventOn:'',documentRef:''});
+    }
+  }
+  contractsForParty(){
+    const party=this.form().rightsPartyCode;
+    return this.contracts().filter(contract=>contract.partyCode===party);
+  }
+  chooseParty(code:string){
+    this.update('rightsPartyCode',code);
+    const still=this.contractsForParty().some(contract=>contract.code===this.form().rightsContractCode);
+    if(!still)this.update('rightsContractCode','');
+  }
+  async registerParty(){
+    const draft=this.partyDraft();
+    if(!draft.displayName.trim()||this.busy())return;
+    const code='P'+crypto.randomUUID().slice(0,8).toUpperCase();
+    await this.record('/parties/'+code,draft);
+    if(!this.error()){
+      this.chooseParty(code);
+      this.partyDraft.set({kind:'ORGANIZATION',displayName:''});
+    }
+  }
+  async registerContract(){
+    const party=this.form().rightsPartyCode;
+    const label=this.contractLabel().trim();
+    if(!party||!label||this.busy())return;
+    const code='C'+crypto.randomUUID().slice(0,8).toUpperCase();
+    await this.record('/contracts/'+code,{partyCode:party,label});
+    if(!this.error()){
+      this.update('rightsContractCode',code);
+      this.contractLabel.set('');
+    }
+  }
   async save(event:Event){
     event.preventDefault();
     const snapshot=this.view();
@@ -92,6 +178,35 @@ export class OpenApplicabilityComponent implements OnChanges {
       this.error.set(this.message(problem));
       if(problem instanceof HttpErrorResponse && problem.status>=400 && problem.status<500)this.retryKey='';
     }finally{this.busy.set(false);}
+  }
+  private async loadRights(){
+    try{
+      const catalog=await firstValueFrom(this.http.get<RightsCatalog>(this.rightsPath()));
+      this.acceptCatalog(catalog);
+    }catch{this.parties.set([]);this.contracts.set([]);}
+  }
+  private async record(path:string,body:unknown){
+    this.busy.set(true);this.error.set('');
+    try{
+      const catalog=await firstValueFrom(this.http.put<RightsCatalog>(this.rightsPath()+path,body,{
+        headers:{'If-Match':'"0"','Idempotency-Key':crypto.randomUUID()},
+      }));
+      this.acceptCatalog(catalog);
+    }catch(problem){this.error.set(this.message(problem));}
+    finally{this.busy.set(false);}
+  }
+  private acceptCatalog(catalog:RightsCatalog){
+    if(catalog.createsLegalPower||catalog.admitsRights){
+      this.parties.set([]);this.contracts.set([]);
+      this.error.set('O registro de titular não pode criar poder nem admitir o direito.');
+      return;
+    }
+    this.parties.set(catalog.parties??[]);
+    this.contracts.set(catalog.contracts??[]);
+    this.events.set(catalog.events??[]);
+  }
+  private rightsPath(){
+    return '/v1/projects/'+encodeURIComponent(this.projectId)+'/technical/open-rights';
   }
   private message(problem:unknown){
     if(problem instanceof HttpErrorResponse){

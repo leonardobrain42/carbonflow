@@ -95,6 +95,114 @@ class ProjectRequirementProjectionTest {
         assertEquals("MINE", item(partial, "DRIVER_DISCLOSURE").group());
         assertEquals("ATTACHED_NOT_ADMITTED", item(partial, "OWNER_CONTRACT").state());
         assertNotEquals("MINE", item(partial, "OWNER_CONTRACT").group());
+
+        var named = OpenApplicability.evaluate(new OpenApplicability.Input(true, false, true,
+            "DCFC", "BEV", "SIN", false, false, "Titular digitado", "CONTRACT-LIVRE",
+            "ON_CHARGER", "PHOTO-2027", LocalDate.parse("2027-01-15"), "NO_OVERLAP_DECLARED",
+            LocalDate.parse("2027-02-01"), null), false);
+        assertEquals("NEEDS_EVIDENCE", named.findings().stream()
+            .filter(finding -> "OWNER_CONTRACT".equals(finding.code())).findFirst().orElseThrow().state());
+        assertTrue(named.findings().stream().anyMatch(finding -> "OWNER_CONTRACT".equals(finding.code())
+            && finding.text().contains("nome digitado")
+            && finding.text().contains("não cria PP jurídico")));
+        assertFalse(named.canUseForE8());
+        var namedView = project(true, true, named, preflight(false));
+        assertEquals("MINE", item(namedView, "OWNER_CONTRACT").group());
+        assertTrue(item(namedView, "OWNER_CONTRACT").clientAction());
+        assertFalse(namedView.canRunE8());
+    }
+
+    @Test
+    void reviewedCatalogCandidateStaysUnadmitted() {
+        var view = ProjectRequirementProjection.project(new ProjectRequirementProjection.Input(
+            "p", "VM0038", true, true, true, true, true, false,
+            disclosurePresent(), preflight(false),
+            new ProjectRequirementProjection.Owners(false, "REVIEWED_CANDIDATE", "REVIEWED_CANDIDATE")));
+        assertEquals("SOURCE_CANDIDATE", item(view, "EVR").state());
+        assertEquals("SOURCE_CANDIDATE", item(view, "AFEC_MPG").state());
+        assertEquals("SOURCE_CANDIDATE", item(view, "EF_GRID").state());
+        assertTrue(item(view, "EVR").reason().contains("candidato revisado"));
+        assertTrue(item(view, "EF_GRID").reason().contains("não vale zero"));
+        assertEquals("NOT_ADMITTED", item(view, "EF_FUEL").state());
+        assertEquals("NOT_ADMITTED", item(view, "IR").state());
+        assertEquals("NOT_ADMITTED", item(view, "DY").state());
+        assertTrue(view.requirements().stream().noneMatch(item -> item.admitsE8()));
+        assertFalse(view.canRunE8());
+        assertFalse(view.canIssueVcu());
+    }
+
+    @Test
+    void pdFieldMapDoesNotCopyTheAnswerOrMarkTheDocumentReady() {
+        var fields = OpenApplicability.pdMap();
+        assertTrue(fields.stream().anyMatch(field -> "Titularidade".equals(field.section())
+            && field.gap().contains("não é copiada")));
+        assertTrue(fields.stream().anyMatch(field -> "Início operacional".equals(field.section())));
+        assertTrue(fields.stream().anyMatch(field -> "Início de crédito".equals(field.section())));
+        assertTrue(fields.stream().noneMatch(field -> field.copiedIntoDocument() || field.marksReady()));
+    }
+
+    @Test
+    void fieldOriginDoesNotConclude() {
+        var recorded = OpenApplicability.described("rightsParty", 2,
+            "Registro do projeto, não admitido", "CF-IMP-013");
+        assertEquals("v2", recorded.version());
+        assertEquals("CF-IMP-013", recorded.rule());
+        assertTrue(recorded.role().contains("não designa uma pessoa"));
+        assertFalse(recorded.concludes());
+        assertEquals("Ainda não registrado", OpenApplicability.described(
+            "rightsContract", null, "Ainda não informado", "CF-IMP-013").version());
+    }
+
+    @Test
+    void disclosureAfterEitherStartStaysAReview() {
+        var operational = OpenApplicability.evaluate(dates("2027-03-01", "2027-02-01", "2027-04-01"), false);
+        var gap = operational.findings().stream().filter(f -> "RIGHTS_DATE_GAP".equals(f.code())).findFirst().orElseThrow();
+        assertEquals("NEEDS_REVIEW", gap.state());
+        assertTrue(gap.text().contains("início operacional"));
+        assertTrue(gap.text().contains("não reprova o projeto"));
+        assertFalse(operational.canUseForE8());
+
+        var vcs = OpenApplicability.evaluate(dates("2027-05-01", "2027-06-01", "2027-04-01"), false);
+        assertTrue(vcs.findings().stream().anyMatch(f -> "RIGHTS_DATE_GAP".equals(f.code())
+            && f.text().contains("início de crédito VCS") && "NEEDS_REVIEW".equals(f.state())));
+
+        var both = OpenApplicability.evaluate(dates("2027-05-01", "2027-01-01", "2027-02-01"), false);
+        assertTrue(both.findings().stream().anyMatch(f -> "RIGHTS_DATE_GAP".equals(f.code())
+            && f.text().contains("início operacional e ao início de crédito VCS")));
+        assertEquals(1, both.findings().stream().filter(f -> "RIGHTS_DATE_GAP".equals(f.code())).count());
+
+        var before = OpenApplicability.evaluate(dates("2027-01-10", "2027-02-01", "2027-03-01"), false);
+        assertTrue(before.findings().stream().noneMatch(f -> "RIGHTS_DATE_GAP".equals(f.code())));
+        assertFalse(before.canUseForE8());
+    }
+
+    @Test
+    void typedReferenceWithoutAFileStaysWithTheClient() {
+        var typed = OpenApplicability.evaluate(new OpenApplicability.Input(true, false, true,
+            "DCFC", "BEV", "SIN", false, false, "Titular", "CONTRACT-1", "ON_CHARGER",
+            "PHOTO-2027", LocalDate.parse("2027-01-15"), "NO_OVERLAP_DECLARED",
+            null, null, "PARTY-1", "CONTRACT-1"), false);
+        assertEquals("NEEDS_EVIDENCE", typed.findings().stream()
+            .filter(f -> "OWNER_CONTRACT".equals(f.code())).findFirst().orElseThrow().state());
+        assertEquals("NEEDS_EVIDENCE", typed.findings().stream()
+            .filter(f -> "DRIVER_DISCLOSURE".equals(f.code())).findFirst().orElseThrow().state());
+        assertTrue(typed.findings().stream().anyMatch(f -> f.text().contains("falta o arquivo")));
+        assertTrue(typed.findings().stream().noneMatch(f -> "PROOF_ADMITTED".equals(f.state())));
+        assertFalse(typed.canUseForE8());
+        var view = project(true, true, typed, preflight(false));
+        assertEquals("MINE", item(view, "OWNER_CONTRACT").group());
+        assertEquals("MINE", item(view, "DRIVER_DISCLOSURE").group());
+        assertTrue(item(view, "OWNER_CONTRACT").clientAction());
+
+        var received = disclosurePresent();
+        var waiting = project(true, true, received, preflight(false));
+        assertEquals("Arquivo recebido, aguardando revisão", item(waiting, "OWNER_CONTRACT").situation());
+        assertEquals("Arquivo recebido, aguardando revisão", item(waiting, "DRIVER_DISCLOSURE").situation());
+        assertNull(item(waiting, "OWNER_CONTRACT").destination());
+        assertNull(item(waiting, "DRIVER_DISCLOSURE").destination());
+        assertFalse(item(waiting, "DRIVER_DISCLOSURE").clientAction());
+        assertTrue(waiting.requirements().stream().noneMatch(item -> "PROOF_ADMITTED".equals(item.state())));
+        assertFalse(waiting.canRunE8());
     }
 
     @Test
@@ -427,6 +535,14 @@ class ProjectRequirementProjectionTest {
         return view.requirements().stream().filter(i -> id.equals(i.requirementId())).findFirst().orElseThrow();
     }
 
+    private static OpenApplicability.Input dates(String disclosure, String operational, String vcs) {
+        return new OpenApplicability.Input(true, false, true,
+            "DCFC", "BEV", "SIN", false, false, "Titular", "CONTRACT-1", "ON_CHARGER",
+            "PHOTO-2027", LocalDate.parse(disclosure), "NO_OVERLAP_DECLARED",
+            null, null, "PARTY-1", "CONTRACT-1",
+            "OP-1", LocalDate.parse(operational), "VCS-1", LocalDate.parse(vcs));
+    }
+
     private static OpenApplicability.Readiness disclosureMissing() {
         return disclosureMissing(false);
     }
@@ -434,14 +550,18 @@ class ProjectRequirementProjectionTest {
     private static OpenApplicability.Readiness disclosureMissing(boolean stale) {
         return OpenApplicability.evaluate(new OpenApplicability.Input(true, false, true,
             "DCFC", "BEV", "SIN", false, false, "Titular secreto", "CONTRACT-001",
-            "NOT_DECLARED", null, null, "UNKNOWN", LocalDate.parse("2027-02-01"), null), stale);
+            "NOT_DECLARED", null, null, "UNKNOWN", LocalDate.parse("2027-02-01"), null,
+            "PARTY-1", "CONTRACT-1", null, null, null, null,
+            "11111111-1111-4111-8111-111111111111", null), stale);
     }
 
     private static OpenApplicability.Readiness disclosurePresent() {
         return OpenApplicability.evaluate(new OpenApplicability.Input(true, false, true,
             "DCFC", "BEV", "SIN", false, false, "Titular", "CONTRACT-001", "ON_CHARGER",
             "PHOTO-2027", LocalDate.parse("2027-01-15"), "NO_OVERLAP_DECLARED",
-            LocalDate.parse("2027-02-01"), null), false);
+            LocalDate.parse("2027-02-01"), null, "PARTY-1", "CONTRACT-1",
+            null, null, null, null,
+            "11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222"), false);
     }
 
     private static OpenCalculationPreflight.Result preflight(boolean stale) {

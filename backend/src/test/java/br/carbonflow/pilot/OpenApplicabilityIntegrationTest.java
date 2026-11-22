@@ -57,6 +57,7 @@ class OpenApplicabilityIntegrationTest {
         assertEquals(1,saved.path("version").asInt());
         assertEquals("OPEN_CANDIDATE",saved.at("/readiness/network").asText());
         assertEquals("EVIDENCE_PENDING",saved.at("/readiness/rights").asText());
+        assertTrue(saved.at("/readiness/findings").toString().contains("nome digitado"));
         assertEquals("PENDING_NORMATIVE_REVIEW",saved.at("/readiness/norm").asText());
         assertFalse(saved.at("/readiness/canUseForE8").asBoolean());
         assertTrue(saved.at("/readiness/findings").toString().contains("DRIVER_DISCLOSURE"));
@@ -70,16 +71,28 @@ class OpenApplicabilityIntegrationTest {
         assertEquals(428,call("PUT",path,owner.cookie(),UUID.randomUUID().toString(),
             null,draft).statusCode());
 
+        String rights="/v1/projects/"+id+"/technical/open-rights";
+        var party=call("PUT",rights+"/parties/HOLDER-1",owner.cookie(),UUID.randomUUID().toString(),"\"0\"",
+            "{\"kind\":\"ORGANIZATION\",\"displayName\":\"Titular do carregador\"}");
+        assertEquals(200,party.statusCode(),party.body());
+        assertFalse(json(party).path("createsLegalPower").asBoolean());
+        assertFalse(json(party).path("admitsRights").asBoolean());
+        assertEquals(200,call("PUT",rights+"/contracts/CONTRACT-001",owner.cookie(),
+            UUID.randomUUID().toString(),"\"0\"",
+            "{\"partyCode\":\"HOLDER-1\",\"label\":\"Contrato de direitos\"}").statusCode());
+        String contractFile=pdf(owner,id,"CONTRACT","CONTRACT-001");
+        String disclosureFile=pdf(owner,id,"DISCLOSURE","DECLARATION");
         String withDisclosure="""
                 {"unrestrictedBevAccess":true,"restrictedToIdentifiedVehicles":false,
                  "privateLand":true,"chargerType":"DCFC","propulsion":"BEV",
                  "electricitySource":"SIN","associatedInfrastructure":false,"v2g":false,
-                 "chargingOwner":"Titular do carregador","carbonRightsContractRef":"CONTRACT-001",
+                 "rightsPartyCode":"HOLDER-1","rightsContractCode":"CONTRACT-001",
+                 "contractFileId":"%s","disclosureFileId":"%s",
                  "driverDisclosureChannel":"ON_CHARGER","driverDisclosureEvidenceRef":"PHOTO-2027-01",
                  "driverDisclosureEffectiveOn":"2027-01-15",
                  "doubleClaimingCheck":"NO_OVERLAP_DECLARED",
                  "effectiveFrom":"2027-02-01"}
-                """;
+                """.formatted(contractFile,disclosureFile);
         var updated=call("PUT",path,owner.cookie(),UUID.randomUUID().toString(),"\"1\"",withDisclosure);
         assertEquals(200,updated.statusCode(),updated.body());
         JsonNode improved=json(updated);
@@ -88,6 +101,14 @@ class OpenApplicabilityIntegrationTest {
         assertFalse(improved.at("/readiness/canUseForE8").asBoolean());
         assertTrue(improved.at("/readiness/findings").toString().contains("ATTACHED_NOT_ADMITTED"));
         assertTrue(improved.at("/readiness/findings").toString().contains("não cria PP jurídico"));
+        assertTrue(improved.at("/readiness/findings").toString().contains("aguardando revisão"));
+        assertFalse(improved.at("/readiness/findings").toString().contains("PROOF_ADMITTED"));
+        assertEquals(0,database.read(c->first(c,
+            "SELECT count(*) FROM app_project_authority_request_revision WHERE project_id=?",
+            r->r.getInt(1),id)).intValue());
+        assertEquals(0,database.read(c->first(c,
+            "SELECT count(*) FROM app_project_collaborator_grant WHERE project_id=?",
+            r->r.getInt(1),id)).intValue());
         assertFalse(improved.at("/readiness/findings").toString().contains("PHOTO-2027-01"));
 
         // Reclassify without VIN: private land alone does not make network CLOSED.
@@ -150,6 +171,22 @@ class OpenApplicabilityIntegrationTest {
             "{\"organizationId\":\""+org+"\",\"title\":\"Projeto OPEN teste\"}");
         assertEquals(201,result.statusCode(),result.body());
         return json(result).path("projectId").asText();
+    }
+    private String pdf(Actor actor,String project,String subject,String code)throws Exception {
+        String name="CONTRACT".equals(subject)?"contrato.pdf":"divulga.pdf";
+        var request=HttpRequest.newBuilder(URI.create(base.toExternalForm())
+            .resolve("/v1/projects/"+project+"/technical/open-rights/files/"+subject+"/"+code))
+            .header("Cookie",actor.cookie())
+            .header("Idempotency-Key",UUID.randomUUID().toString())
+            .header("Content-Type","application/pdf")
+            .header("X-File-Name",name)
+            .PUT(HttpRequest.BodyPublishers.ofString("%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\n%%EOF\n"));
+        var response=client.send(request.build(),HttpResponse.BodyHandlers.ofString());
+        assertEquals(201,response.statusCode(),response.body());
+        JsonNode body=json(response);
+        assertEquals("PENDING_REVIEW",body.path("state").asText());
+        assertFalse(body.path("usableForE8").asBoolean());
+        return body.path("id").asText();
     }
     private long count(String project){
         return database.read(c->first(c,

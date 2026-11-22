@@ -224,11 +224,16 @@ final class ProjectRequirementProjection {
         if (!input.canViewCalculation()) return;
         if (owners.fleetPrepared()) {
             boolean stale = owners.fleetState().startsWith("STALE");
+            boolean reviewed = owners.fleetState().contains("REVIEWED");
             overlay(items, "EVR", stale, stale
                 ? "A seleção preparatória de frota ficou desatualizada. Só este vínculo pede rechecagem."
+                : reviewed
+                ? "Há um candidato revisado de frota no catálogo. O vínculo do projeto continua fonte candidata e não admite EVR."
                 : "Há uma seleção preparatória de frota neste projeto. Ela não é fonte admitida e não libera o cálculo.");
             overlay(items, "AFEC_MPG", stale, stale
                 ? "Os ratings preparatórios vinculados à frota ficaram desatualizados."
+                : reviewed
+                ? "Há um candidato revisado de rating no catálogo. O vínculo do projeto continua fonte candidata e não admite AFEC/MPG."
                 : "Há ratings preparatórios vinculados à frota. Eles não estão admitidos para a linha de base.");
             if (stale) restalePrefix(items, "E8_FLEET_SELECTION_",
                 "A seleção de frota deste período ficou desatualizada. "
@@ -236,8 +241,12 @@ final class ProjectRequirementProjection {
         }
         if (owners.bindingPrepared()) {
             boolean stale = owners.bindingState().startsWith("STALE");
+            boolean reviewed = owners.bindingState().contains("REVIEWED");
             overlay(items, "EF_GRID", stale, stale
                 ? "O vínculo de energia e fator elétrico ficou desatualizado. Só este vínculo pede rechecagem."
+                : reviewed
+                ? "Há um candidato revisado de fator elétrico no catálogo. O vínculo do projeto continua fonte candidata. "
+                    + "O fator fóssil, IR e Dy não acompanham, e a ausência não vale zero."
                 : "Há um vínculo preparatório de energia e fator elétrico. Ele não é VT0011 admitido e não habilita E8.");
             if (stale) restalePrefix(items, "E8_INPUT_BINDING_",
                 "O vínculo de energia deste período ficou desatualizado. "
@@ -371,8 +380,10 @@ final class ProjectRequirementProjection {
 
     private static Item rightsEvidence(Input input, OpenApplicability.Finding finding) {
         if ("ATTACHED_NOT_ADMITTED".equals(finding.state())) {
+            boolean received = finding.text().contains("aguardando revisão");
             return review(input, finding.code(), "ATTACHED_NOT_ADMITTED",
-                "Referência registrada, não admitida", finding.text(),
+                received ? "Arquivo recebido, aguardando revisão" : "Referência registrada, não admitida",
+                finding.text(),
                 "Aguardar a revisão competente. Registrar a referência não admite o direito nem cria um grant.",
                 null, false, List.of("direitos"));
         }
