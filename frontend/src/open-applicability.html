@@ -152,7 +152,7 @@
             A referência do documento não comprova a data.</p>
           <label for="cf-op-date">Data do início operacional da estação</label>
           <input id="cf-op-date" type="date" [value]="operationalDraft().eventOn"
-            (change)="operationalDraft.update(current=>({...current,eventOn:$any($event.target).value}))"/>
+            (input)="operationalDraft.update(current=>({...current,eventOn:$any($event.target).value}))"/>
           <label for="cf-op-doc">Referência do documento do início operacional</label>
           <input id="cf-op-doc" maxlength="300" [value]="operationalDraft().documentRef"
             (input)="operationalDraft.update(current=>({...current,documentRef:$any($event.target).value}))"/>
@@ -168,7 +168,7 @@
           </select>
           <label for="cf-vcs-date">Data do início de crédito VCS</label>
           <input id="cf-vcs-date" type="date" [value]="vcsDraft().eventOn"
-            (change)="vcsDraft.update(current=>({...current,eventOn:$any($event.target).value}))"/>
+            (input)="vcsDraft.update(current=>({...current,eventOn:$any($event.target).value}))"/>
           <label for="cf-vcs-doc">Referência do documento do início de crédito VCS</label>
           <input id="cf-vcs-doc" maxlength="300" [value]="vcsDraft().documentRef"
             (input)="vcsDraft.update(current=>({...current,documentRef:$any($event.target).value}))"/>

@@ -122,10 +122,16 @@ test('a ficha OPEN permite preparar direitos sem fonte admitida nem cálculo E8'
     await page.getByLabel('Contrato registrado').selectOption({label:'Contrato local'});
     await page.getByLabel('Data do início operacional da estação').fill('2027-02-01');
     await page.getByLabel('Referência do documento do início operacional').fill('ATO-OP-1');
-    await page.getByRole('button',{name:'Registrar início operacional'}).click();
+    const operationalEvent=page.waitForResponse(response=>
+      response.url().includes('/events/') && response.request().method()==='PUT');
+    await page.getByRole('button',{name:'Registrar início operacional',exact:true}).click();
+    await operationalEvent;
     await page.getByLabel('Data do início de crédito VCS').fill('2027-03-01');
     await page.getByLabel('Referência do documento do início de crédito VCS').fill('ATO-VCS-1');
-    await page.getByRole('button',{name:'Registrar início de crédito VCS'}).click();
+    const vcsEvent=page.waitForResponse(response=>
+      response.url().includes('/events/') && response.request().method()==='PUT');
+    await page.getByRole('button',{name:'Registrar início de crédito VCS',exact:true}).click();
+    await vcsEvent;
     await page.getByRole('button',{name:'Salvar declaração sem aprovação automática'}).click();
     await page.getByText('Declaração versionada salva. A jornada pode continuar',{exact:false}).waitFor();
     assert.equal(revision,1);
