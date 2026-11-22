@@ -92,6 +92,21 @@ async function mock(page,actions,observed){
  const routes=[
   ['/typed-guides', {methodology:'VM0038_V1_1',guides:[guide('baseline'),guide('additionality')]}],
   ['/open-applicability', app],
+  ['/open-additionality', {
+    declarationRoute:'Incidência a verificar',declarationIsOpinion:false,
+    marketTestClosesApplicability:false,concludesAdditionality:false,usableForE8:false,
+    criteria:[
+      {code:'POSITIVE_LIST',title:'Lista positiva',state:'HUMAN_OPINION',stateLabel:'Parecer humano',
+        text:'A lista positiva é parecer humano. A rota escrita no guia e a citação da VMD0049 não aprovam a adicionalidade.',
+        humanOpinion:true,concludes:false},
+      {code:'REGULATORY_SURPLUS',title:'Excedente regulatório',state:'HUMAN_OPINION',stateLabel:'Parecer humano',
+        text:'O excedente regulatório é parecer humano, separado da lista positiva.',
+        humanOpinion:true,concludes:false},
+      {code:'CHRONOLOGY',title:'Cronologia',state:'HUMAN_OPINION',stateLabel:'Parecer humano',
+        text:'O compromisso declarado é anterior à consideração da receita. Isso pede parecer humano e não reprova nem aprova a adicionalidade.',
+        humanOpinion:true,concludes:false}
+    ]
+  }],
   ['/open-calculation-readiness', calc],
   ['/open-monitoring/dossiers', [{reference:{code:'P-2027',version:1},
     state:'READY_FOR_NORMATIVE_REVIEW',stale:false,gates:[]}]],
@@ -170,6 +185,9 @@ test('UX-ADD-01: declared rights, separate chronology and conditional route neve
   await page.getByText('Lista positiva é hipótese dependente de edição válida.').waitFor();
   assert.equal(await page.getByText('Referência: MARKET_ROUTE',{exact:true}).count(),0);
   await page.getByText('Excedente regulatório exige revisão independente.').waitFor();
+  await page.getByText('A declaração do guia não é o parecer.').waitFor();
+  await page.getByText('Rota escrita no guia: Incidência a verificar. Não é o parecer.').waitFor();
+  await page.getByText('Esta etapa não conclui a adicionalidade.').first().waitFor();
   assert.equal(await page.getByText('Adicionalidade aprovada',{exact:true}).count(),0);
   await page.getByRole('button',{name:'5. Vínculo ao PD'}).click();
   await page.getByText('Conferir proveniência',{exact:true}).click();
@@ -187,6 +205,7 @@ test('UX-ADD/PD: restricted collaborator does not query private rights, calculat
   await page.getByRole('heading',{name:/3\. Direitos/}).waitFor();
   await page.getByText('Informações de direitos não acessíveis ou não declaradas.').waitFor();
   assert.equal(observed.includes('/open-applicability'),false);
+  assert.equal(observed.includes('/open-additionality'),false);
   assert.equal(observed.includes('/open-calculation-readiness'),false);
   assert.equal(observed.includes('/pd-sections'),false);
   await page.getByRole('button',{name:'5. Vínculo ao PD'}).click();

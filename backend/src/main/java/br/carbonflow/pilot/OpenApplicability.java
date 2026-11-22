@@ -81,6 +81,10 @@ class OpenApplicability {
     private final DynamicProjectScope scope;
     OpenApplicability(DynamicProjectScope scope){this.scope=scope;}
 
+    Readiness readinessOf(java.sql.Connection connection,String project)throws java.sql.SQLException {
+        return build(connection,project).readiness();
+    }
+
     View get(String token,String project) {
         return scope.read(token,project,"VIEW_OPEN_APPLICABILITY",
             (connection,context)->build(connection,context.id()));

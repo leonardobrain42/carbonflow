@@ -66,6 +66,17 @@ class OpenApplicabilityIntegrationTest {
         assertFalse(saved.at("/readiness/market/usableForE8").asBoolean());
         assertTrue(saved.at("/readiness/market/reason").asText().contains("não fecha o teste"));
         assertTrue(saved.at("/readiness/findings").toString().contains("VMD0049_ROUTE"));
+        var opinion=json(call("GET","/v1/projects/"+id+"/technical/open-additionality",
+            owner.cookie(),null,null,null));
+        assertEquals(404,call("GET","/v1/projects/"+id+"/technical/open-additionality",
+            outsider.cookie(),null,null,null).statusCode());
+        assertFalse(opinion.path("declarationIsOpinion").asBoolean());
+        assertFalse(opinion.path("marketTestClosesApplicability").asBoolean());
+        assertFalse(opinion.path("concludesAdditionality").asBoolean());
+        assertFalse(opinion.path("usableForE8").asBoolean());
+        assertEquals(3,opinion.path("criteria").size());
+        assertTrue(opinion.path("criteria").toString().contains("HUMAN_OPINION"));
+        assertFalse(opinion.path("criteria").toString().contains("MARKET_ROUTE"));
         assertEquals("EVIDENCE_PENDING",saved.at("/readiness/rights").asText());
         assertTrue(saved.at("/readiness/findings").toString().contains("nome digitado"));
         assertEquals("PENDING_NORMATIVE_REVIEW",saved.at("/readiness/norm").asText());
