@@ -289,6 +289,16 @@ test('CF-IMP-008: rascunho da conta cruza intake e prévia sem adquirir autorida
     await page.getByText('Energia entregue 1 kWh · energia consumida 2 kWh', {exact:false}).waitFor();
     await page.getByText('SHA-256 declarado', {exact:false}).waitFor();
     await page.getByText('não autoriza o cálculo.').waitFor();
+    await page.route('**/batch-admissions', route => route.fulfill({json:[{
+      id:null, snapshotId:'snap-1', batchId:'30000000-0000-4000-8000-000000000099',
+      lines:2, edKwh:'2700', ecKwh:'3000', version:0, outcome:null, reason:null,
+      state:'MISSING', stale:false, usableForE8:false,
+    }]}));
+    await page.getByRole('button', {name:'Ver lotes deste snapshot'}).click();
+    await page.getByRole('heading', {name:'Admissão independente do lote'}).waitFor();
+    await page.getByText('Energia entregue 2700 kWh · energia consumida 3000 kWh').waitFor();
+    await page.getByText('Ainda sem admissão independente').waitFor();
+    await page.getByText('A admissão não libera o cálculo.').waitFor();
     assert.equal(await page.getByRole('heading',{name:'Lotes de leituras recebidas (candidatos)'}).count(),0);
     await page.reload();
     await page.getByRole('heading',{name:'Reconciliação da energia por período'}).waitFor();

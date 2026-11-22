@@ -92,6 +92,7 @@ final class ProjectCollaboration {
                         if ("REV".equals(grant.role())) {
                             actions.add("REVIEW_OPEN_MEASUREMENTS");
                             actions.add("SNAPSHOT_OPEN_PERIOD");
+                            actions.add("ADMIT_OPEN_PERIOD_BATCH");
                             actions.add("REVIEW_OPEN_PERIOD_EVIDENCE");
                             actions.add("REVIEW_OPEN_MONITORING_EVENT");
                             actions.add("REVIEW_OPEN_METHOD_REVIEW");
