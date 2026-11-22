@@ -22,7 +22,8 @@ class PdSections {
     record Section(ProjectGuides.Guide guide, Version latest,
                    OpenMonitoringDossiers.PdDependency monitoringDependency,
                    OpenPdCalculationNote.Note calculation,
-                   OpenPdAdditionalityNote.Note additionality) {}
+                   OpenPdAdditionalityNote.Note additionality,
+                   OpenPdApplicabilityNote.Note applicability) {}
     record Artifact(String text, String sha256) {}
     private final DynamicProjectScope scopes;
     private final ProjectGuides guides;
@@ -51,7 +52,9 @@ class PdSections {
                         c,project,guide.id(),current.number()),
                     "quantification".equals(guide.id()) ? calculation : null,
                     "additionality".equals(guide.id())
-                        ? OpenPdAdditionalityNote.from(readiness, guide.answers()) : null));
+                        ? OpenPdAdditionalityNote.from(readiness, guide.answers()) : null,
+                    "applicability".equals(guide.id())
+                        ? OpenPdApplicabilityNote.from(readiness) : null));
             }
             return sections;
         });
