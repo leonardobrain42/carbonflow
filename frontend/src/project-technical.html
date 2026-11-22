@@ -313,7 +313,8 @@
 
               @if (saved.journey.candidate === 'VM0038' && can('VIEW_OPEN_APPLICABILITY')) {
                 <carbonflow-open-applicability [projectId]="projectId"
-                  [editable]="can('SAVE_OPEN_APPLICABILITY')">
+                  [editable]="can('SAVE_OPEN_APPLICABILITY')"
+                  (saved)="refreshRequirements()">
                 </carbonflow-open-applicability>
               } @else if (saved.journey.candidate !== 'VM0038') {
                 <p>A ficha de rede aberta vale para a VM0038. Nenhuma outra metodologia é tratada como equivalente.</p>
