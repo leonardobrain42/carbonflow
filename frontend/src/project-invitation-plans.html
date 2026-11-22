@@ -36,6 +36,7 @@
                 </div>
                 <fieldset class="cf-journey-fieldset">
                   <legend>Atividades planejadas</legend>
+                  <p>Quantificação concede à segunda conta o diagnóstico deste projeto. O aceite não a torna titular.</p>
                   @for (activity of activities; track activity) {
                     <label class="cf-plan-choice">
                       <input type="checkbox" #check [checked]="input.activities.includes(activity)"
@@ -109,6 +110,11 @@
                     <div>
                       <strong>{{ invitation.recipient }} · {{ invitation.role }}</strong>
                       <p>{{ inviteStatus[invitation.state] }}</p>
+                      <p>
+                        @for (activity of invitation.activities; track activity) {
+                          {{ label(activity) }}{{ $last ? '' : ' · ' }}
+                        }
+                      </p>
                       @if (invitation.state === 'ACCEPTED') {
                         <p>Vigência até {{ invitation.accessUntil | date:'dd/MM/yyyy HH:mm' }}</p>
                       }

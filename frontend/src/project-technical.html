@@ -173,7 +173,7 @@
               <p>Acompanhe as equações e a proveniência exigidas pela VM0038.
                 Nenhuma estimativa é apresentada como cálculo verificado.
                 BE, PE, LE e ER permanecem bloqueados até admissão normativa.</p>
-              @if (saved.journey.candidate === 'VM0038' && can('VIEW_OPEN_CALCULATION')) {
+              @if (can('VIEW_OPEN_CALCULATION') && (!saved.journey.candidate || saved.journey.candidate === 'VM0038')) {
                 <carbonflow-open-calculation-readiness [projectId]="projectId" />
               } @else {
                 <p>Não existe execução E8 habilitada para esta metodologia e perfil.</p>

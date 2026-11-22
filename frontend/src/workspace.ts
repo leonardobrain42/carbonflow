@@ -17,6 +17,7 @@ interface DraftProject {
   environment: string;
   state: string;
   version: number;
+  access?: 'OWNER' | 'CALCULATION';
 }
 
 interface DraftMetadata extends DraftProject {

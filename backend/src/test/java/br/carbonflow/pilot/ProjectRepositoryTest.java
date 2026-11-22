@@ -60,7 +60,7 @@ class ProjectRepositoryTest {
         assertTrue(projects.listDrafts(owner, organization).isEmpty());
         database.transaction(connection -> update(connection, INSERT_PROJECT, draft, organization, "SANDBOX", owner));
 
-        var expected = new ProjectContext.Draft(draft, organization, "SANDBOX", "DRAFT", 1);
+        var expected = new ProjectContext.Draft(draft, organization, "SANDBOX", "DRAFT", 1, "OWNER");
         assertEquals(List.of(expected), projects.listDrafts(owner, organization));
         assertEquals(expected, projects.findDraft(owner, organization, draft).orElseThrow());
         assertTrue(projects.findDraft(colleague, organization, draft).isEmpty());
@@ -113,6 +113,53 @@ class ProjectRepositoryTest {
         });
         assertTrue(projects.findDraft(owner, organization, draft).isEmpty());
         assertTrue(projects.listDrafts(owner, organization).isEmpty());
+    }
+
+    @Test
+    void listsCalculationGrantForTheSecondAccountUntilItIsRevoked() {
+        UUID owner = UUID.randomUUID();
+        UUID second = UUID.randomUUID();
+        UUID organization = UUID.randomUUID();
+        String draft = UUID.randomUUID().toString();
+        UUID calculation = UUID.randomUUID();
+        database.transaction(connection -> {
+            identity(connection, owner);
+            identity(connection, second);
+            organization(connection, organization);
+            membership(connection, organization, owner);
+            update(connection, INSERT_PROJECT, draft, organization, "SANDBOX", owner);
+            update(connection, """
+                    INSERT INTO app_project_collaborator_grant
+                      (id, project_id, organization_id, environment, identity_id, granted_by,
+                       role, activities, valid_until)
+                    VALUES (?, ?, ?, 'SANDBOX', ?, ?, 'PREP', ARRAY['MONITORING']::text[],
+                            statement_timestamp() + interval '3 days')
+                    """, UUID.randomUUID(), draft, organization, second, owner);
+            return null;
+        });
+        assertTrue(projects.listDrafts(second).isEmpty());
+        database.transaction(connection -> update(connection, """
+                INSERT INTO app_project_collaborator_grant
+                  (id, project_id, organization_id, environment, identity_id, granted_by,
+                   role, activities, valid_until)
+                VALUES (?, ?, ?, 'SANDBOX', ?, ?, 'PREP', ARRAY['CALCULATION']::text[],
+                        statement_timestamp() + interval '3 days')
+                """, calculation, draft, organization, second, owner));
+        var granted = new ProjectContext.Draft(draft, organization, "SANDBOX", "DRAFT", 1, "CALCULATION");
+        assertEquals(List.of(granted), projects.listDrafts(second));
+        assertEquals("OWNER", projects.listDrafts(owner).getFirst().access());
+        database.transaction(connection -> update(connection,
+                "UPDATE app_identity SET status = 'DISABLED' WHERE id = ?", second));
+        assertTrue(projects.listDrafts(second).isEmpty());
+        database.transaction(connection -> update(connection,
+                "UPDATE app_identity SET status = 'ACTIVE' WHERE id = ?", second));
+        assertEquals(List.of(granted), projects.listDrafts(second));
+        database.transaction(connection -> update(connection, """
+                UPDATE app_project_collaborator_grant
+                SET revoked_at = statement_timestamp(), revoked_by = ? WHERE id = ?
+                """, owner, calculation));
+        assertTrue(projects.listDrafts(second).isEmpty());
+        assertEquals("OWNER", projects.findDraft(owner, organization, draft).orElseThrow().access());
     }
 
     @Test

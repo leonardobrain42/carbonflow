@@ -28,6 +28,10 @@
               @if (invitation.state === 'SENT') {
                 <button type="button" class="cf-workspace-primary" [disabled]="busy()" (click)="accept(invitation)">Aceitar convite</button>
               } @else if (invitation.state === 'ACCEPTED') {
+                @if (invitation.activities.includes('CALCULATION')) {
+                  <p>O projeto entra em Meus projetos como grant de quantificação. Esta conta não é a titular.</p>
+                  <a class="cf-workspace-link" [routerLink]="['/workspace/projects',invitation.projectId,'technical']" [queryParams]="{secao:'quantificar'}">Abrir quantificação</a>
+                }
                 <a class="cf-workspace-link" [routerLink]="['/workspace/projects',invitation.projectId,'overview']">Visão geral do projeto</a>
                 <a class="cf-workspace-link" [routerLink]="['/workspace/projects',invitation.projectId,'technical']">Abrir preparação técnica</a>
               }

@@ -127,18 +127,23 @@
                 @if (selectedMetadata(); as details) {
                   <h3>{{ details.title }}</h3>
                   <p>{{ details.description ?? 'Nenhuma descrição cadastrada.' }}</p>
-                  <form (submit)="updateProject($event, editTitle.value, editDescription.value)">
-                    <label for="cf-edit-title">Nome de trabalho do projeto</label>
-                    <input #editTitle id="cf-edit-title" name="edit-title" [value]="details.title" maxlength="160" required />
-                    <label for="cf-edit-description">Descrição inicial</label>
-                    <textarea #editDescription id="cf-edit-description" name="edit-description" rows="4" maxlength="2000" [value]="details.description ?? ''"></textarea>
-                    <button type="submit" class="cf-workspace-primary" [disabled]="busy()">Salvar alterações</button>
-                  </form>
-                  <p class="cf-workspace-helper">Rascunho versão {{ details.version }}. Suas respostas de triagem ficam salvas neste projeto.</p>
-                  <a class="cf-workspace-primary cf-workspace-link" [routerLink]="['/workspace/projects', selected.projectId, 'overview']">Abrir visão geral</a>
-                  <a class="cf-workspace-primary cf-workspace-link" [routerLink]="['/workspace/projects',selected.projectId,'triage']">Iniciar ou retomar triagem</a>
-                  <a class="cf-workspace-primary cf-workspace-link" [routerLink]="['/workspace/projects', selected.projectId, 'technical']">Preparar informações técnicas</a>
-                  <a class="cf-workspace-link" [routerLink]="['/workspace/projects', selected.projectId, 'experience']">Preferências e equipe</a>
+                  @if (selected.access === 'CALCULATION') {
+                    <p>Grant de quantificação nesta conta. O rascunho continua com o titular e a revogação retira o projeto desta lista.</p>
+                    <a class="cf-workspace-primary cf-workspace-link" [routerLink]="['/workspace/projects', selected.projectId, 'technical']" [queryParams]="{secao: 'quantificar'}">Abrir quantificação</a>
+                  } @else {
+                    <form (submit)="updateProject($event, editTitle.value, editDescription.value)">
+                      <label for="cf-edit-title">Nome de trabalho do projeto</label>
+                      <input #editTitle id="cf-edit-title" name="edit-title" [value]="details.title" maxlength="160" required />
+                      <label for="cf-edit-description">Descrição inicial</label>
+                      <textarea #editDescription id="cf-edit-description" name="edit-description" rows="4" maxlength="2000" [value]="details.description ?? ''"></textarea>
+                      <button type="submit" class="cf-workspace-primary" [disabled]="busy()">Salvar alterações</button>
+                    </form>
+                    <p class="cf-workspace-helper">Rascunho versão {{ details.version }}. Suas respostas de triagem ficam salvas neste projeto.</p>
+                    <a class="cf-workspace-primary cf-workspace-link" [routerLink]="['/workspace/projects', selected.projectId, 'overview']">Abrir visão geral</a>
+                    <a class="cf-workspace-primary cf-workspace-link" [routerLink]="['/workspace/projects',selected.projectId,'triage']">Iniciar ou retomar triagem</a>
+                    <a class="cf-workspace-primary cf-workspace-link" [routerLink]="['/workspace/projects', selected.projectId, 'technical']">Preparar informações técnicas</a>
+                    <a class="cf-workspace-link" [routerLink]="['/workspace/projects', selected.projectId, 'experience']">Preferências e equipe</a>
+                  }
                 } @else {
                   <p role="status">Consultando metadados autorizados do rascunho…</p>
                 }
@@ -152,7 +157,7 @@
             <h2>Projetos visíveis</h2>
             <ul class="cf-workspace-project-list">
               @for (project of session()!.projects; track project.projectId) {
-                <li><strong>{{ project.projectId }}</strong><span>{{ project.state }} · {{ project.environment }}</span></li>
+                <li><strong>{{ project.projectId }}</strong><span>{{ project.access === 'CALCULATION' ? 'Grant de quantificação' : project.state }} · {{ project.environment }}</span></li>
               }
             </ul>
             <button type="button" class="cf-workspace-outline" [disabled]="busy() || loading()" (click)="refreshSession()">Atualizar lista</button>

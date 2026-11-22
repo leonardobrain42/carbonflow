@@ -88,6 +88,43 @@ test('shows the send command after approval and revokes a sent invitation', asyn
   }
 });
 
+test('accepted calculation grant opens quantification without claiming ownership', async () => {
+  const browser = await chromium.launch({executablePath});
+  try {
+    const page = await browser.newPage({viewport:{width:390,height:844}});
+    const calculation = {...invitation, role:'PREP', activities:['CALCULATION'], state:'ACCEPTED'};
+    await page.route('**/v1/projects/**', route => route.fulfill({status:404, json:{code:'RECURSO_NAO_VISIVEL'}}));
+    await page.route('**/v1/project-invitations', route => route.fulfill({json:[calculation]}));
+    await page.route('**/technical/capabilities', route => route.fulfill({json:{
+      projectId, environment:'SANDBOX', owner:false, modules:{},
+      actions:['VIEW_CAPABILITIES','VIEW_PROJECT_METADATA','VIEW_OPEN_CALCULATION'],
+    }}));
+    await page.route('**/metadata', route => route.fulfill({json:{
+      projectId, organizationId:'10000000-0000-4000-8000-000000000001', environment:'SANDBOX',
+      state:'DRAFT', version:1, title:'Recarga de veículos', description:null,
+    }}));
+    await page.route('**/open-calculation-readiness', route => route.fulfill({json:{
+      projectId, environment:'SANDBOX', methodology:null, scenario:'OPEN', workflowState:'DRAFT',
+      calculationState:'BLOCKED_NOT_ADMISSIBLE', canContinuePreparation:false,
+      canRunE8:false, canIssueVcu:false,
+      emissions:{beTco2e:null, peTco2e:null, leTco2e:null, erTco2e:null, erDisplay:null},
+      gates:[], equationPlan:[],
+    }}));
+    await page.goto(base + '/workspace/invitations');
+    await page.getByText('Quantificação', {exact: true}).waitFor();
+    await page.getByText('Esta conta não é a titular.').waitFor();
+    const link = page.getByRole('link', {name:'Abrir quantificação'});
+    assert.equal(await link.getAttribute('href'), '/workspace/projects/' + projectId + '/technical?secao=quantificar');
+    await link.click();
+    await page.getByRole('heading', {name:'Prontidão para quantificação · rede aberta'}).waitFor();
+    await page.getByText('Não habilitada').first().waitFor();
+    assert.equal(await page.getByRole('button', {name:'Monitorar energia'}).count(), 0);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth), false);
+  } finally {
+    await browser.close();
+  }
+});
+
 test('recipient sees scope before acceptance and can then open technical preparation', async () => {
   const browser = await chromium.launch({executablePath});
   try {

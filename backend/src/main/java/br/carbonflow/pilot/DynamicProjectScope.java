@@ -75,7 +75,7 @@ class DynamicProjectScope {
                                    boolean write) throws SQLException {
         Target target = first(connection, PROJECT + (write ? "FOR UPDATE" : "FOR SHARE"), row -> new Target(
                 new ProjectContext.Draft(row.getString("id"), row.getObject("organization_id", UUID.class),
-                        row.getString("environment"), row.getString("state"), row.getInt("version")),
+                        row.getString("environment"), row.getString("state"), row.getInt("version"), null),
                 row.getObject("created_by", UUID.class)), project);
         if (target != null) {
             Boolean owns = target.creator().equals(actor.id()) ? first(connection, """
