@@ -232,6 +232,16 @@ class OpenE8FleetSelections {
         });
     }
 
+    /** Latest published metadata for the document, never a licensed rating row. */
+    static View newest(Connection c, String project) throws SQLException {
+        Stored latest = first(c, SELECT + """
+            WHERE project_id=?
+            ORDER BY published_at DESC, version DESC
+            LIMIT 1
+            """, OpenE8FleetSelections::stored, project);
+        return latest == null ? null : view(c, latest);
+    }
+
     /** Read latest staff-published metadata only, never licensed source rows.
      * Historical selections remain queryable but do not imply E8 admission. */
     static String currentState(Connection c,String project,String period)

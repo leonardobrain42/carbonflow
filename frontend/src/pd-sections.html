@@ -88,6 +88,26 @@
       </dl>
       <p>O documento não fica pronto.</p>
     }
+    @if (item.baseline; as baseline) {
+      <h4>Linha de base nomeada nesta seção · {{baseline.period}}</h4>
+      <p>{{baseline.text}}</p>
+      @if (baseline.situation === 'REFERENCE' && !baseline.usableForE8 && !baseline.marksDocumentReady && !baseline.admitsBaseline) {
+        <dl class="cf-tech-capabilities">
+          <div><dt>Ano de observação</dt><dd>{{baseline.observationYear}}</dd></div>
+          <div><dt>Ciclo</dt><dd>{{baseline.cycle}}</dd></div>
+          <div><dt>Admite a linha de base</dt><dd>Não</dd></div>
+        </dl>
+        <p>Esta seção não copia AFEC nem MPG.</p>
+      } @else if (baseline.situation === 'ABSENT') {
+        <p>Não há seleção de frota. Ausência não é consumo zero.</p>
+      } @else {
+        <p>A seleção não entra como linha de base admitida.</p>
+      }
+      @if (baseline.declaredRating && !baseline.declarationIsRating) {
+        <p>Texto do guia: {{baseline.declaredRating}}. Não é o rating PBEV.</p>
+      }
+      <p>O documento não fica pronto.</p>
+    }
     <label for="pd-narrative">Narrativa da seção</label>
     <textarea id="pd-narrative" rows="6" maxlength="12000" #body [value]="text()" [readOnly]="!editable() || !item.guide.version || busy()"
       (input)="text.set(body.value)"></textarea>

@@ -520,6 +520,24 @@ class OpenPeriodSupportIntegrationTest {
         assertFalse(applicability.at("/applicability/closesApplicability").asBoolean());
         assertFalse(applicability.at("/applicability/usableForE8").asBoolean());
         assertFalse(applicability.at("/applicability/marksDocumentReady").asBoolean());
+        JsonNode baseline=null;
+        for (JsonNode section : sections) {
+            if ("baseline".equals(section.at("/guide/id").asText())) baseline=section;
+        }
+        assertNotNull(baseline);
+        assertEquals("REFERENCE",baseline.at("/baseline/situation").asText());
+        assertEquals(handoff.path("period").asText(),baseline.at("/baseline/period").asText());
+        assertEquals(handoff.path("observationYear").asInt(),
+            baseline.at("/baseline/observationYear").asInt());
+        assertEquals(handoff.path("cycle").asText(),baseline.at("/baseline/cycle").asText());
+        assertFalse(baseline.at("/baseline/declarationIsRating").asBoolean());
+        assertFalse(baseline.at("/baseline/admitsBaseline").asBoolean());
+        assertFalse(baseline.at("/baseline/copiesLicensedRatings").asBoolean());
+        assertFalse(baseline.at("/baseline/usableForE8").asBoolean());
+        assertFalse(baseline.at("/baseline/marksDocumentReady").asBoolean());
+        assertFalse(baseline.at("/baseline").toString().toLowerCase().contains("afec"));
+        assertFalse(baseline.at("/baseline").toString().toLowerCase().contains("mpg"));
+        assertFalse(baseline.at("/baseline").toString().contains("denominator"));
 
         String vtUrl=efelUrl+"/"+efel.path("id").asText()+"/vt0011-workbooks";
         assertEquals(0,json(call("GET",vtUrl,owner.cookie(),null,null)).size());

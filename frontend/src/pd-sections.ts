@@ -16,6 +16,9 @@ interface OpinionCriterion {code:string;title:string;stateLabel:string;text:stri
 interface AdditionalityNote {declarationRoute:string|null;declarationIsOpinion:boolean;
   concludesAdditionality:boolean;usableForE8:boolean;marksDocumentReady:boolean;text:string;
   criteria:OpinionCriterion[]}
+interface BaselineNote {period:string;situation:string;observationYear:number|null;cycle:string|null;
+  declaredRating:string|null;declarationIsRating:boolean;admitsBaseline:boolean;
+  copiesLicensedRatings:boolean;usableForE8:boolean;marksDocumentReady:boolean;text:string}
 interface ApplicabilityNote {situation:string;citation:string;citedStockPercent:string;
   citedVintageYear:number;stockLimitPercent:string;salesLimitPercent:string;
   citationBelowStockLimit:boolean;stockSeriesLabel:string;salesSeriesLabel:string;
@@ -24,7 +27,7 @@ interface Section {guide:Guide;latest:Version | null;
   monitoringDependency:{state:string;outdated:boolean;
     gates:{code:string;detail:string}[]} | null;
   calculation?:CalculationNote|null;additionality?:AdditionalityNote|null;
-  applicability?:ApplicabilityNote|null}
+  applicability?:ApplicabilityNote|null;baseline?:BaselineNote|null}
 
 @Component({selector:'carbonflow-pd-sections',templateUrl:'./pd-sections.html'})
 export class PdSectionsComponent implements OnInit {
