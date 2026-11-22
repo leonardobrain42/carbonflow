@@ -99,8 +99,9 @@
     </ul>
     <h4>Última tentativa de cálculo · {{runPeriod()}}</h4>
     <p>Registrar a tentativa grava o diagnóstico deste período.
-      Nenhum número é enviado pelo navegador e nenhum BE, PE, LE ou ER é calculado
-      enquanto o conjunto estiver incompleto.</p>
+      Nenhum número é enviado pelo navegador. Com o conjunto incompleto, BE, PE, LE e ER
+      permanecem sem cálculo. Outro ator, que não seja o autor dos vínculos, pode registrar
+      o ensaio interno quando o conjunto armazenado está completo. Esse ensaio não habilita crédito.</p>
     @if (runError()) {
       <p role="alert" class="cf-workspace-alert">{{runError()}}</p>
     }
