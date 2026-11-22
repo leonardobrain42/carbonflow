@@ -44,6 +44,22 @@
       <button class="cf-workspace-outline" type="button" [disabled]="busy()" (click)="review.emit(item.guide.id)">Consultar revisão desta seção</button>
       <details><summary>Autoria e integridade</summary><p>Autor · {{ saved.author }}</p><p>SHA-256 · {{ saved.sha256 }}</p></details>
     }
+    @if (item.calculation; as calculation) {
+      <h4>Cálculo nomeado nesta seção · {{calculation.period}}</h4>
+      <p>{{calculation.text}}</p>
+      @if (calculation.situation === 'MEMORY' && !calculation.usableForE8 && !calculation.marksDocumentReady) {
+        <p>Estes números vieram da memória do servidor. Esta seção não recalcula.</p>
+        <dl class="cf-tech-capabilities">
+          <div><dt>Linha de base</dt><dd>{{calculation.beTco2e}} tCO2e</dd></div>
+          <div><dt>Emissões do projeto</dt><dd>{{calculation.peTco2e}} tCO2e</dd></div>
+          <div><dt>Fuga</dt><dd>{{calculation.leTco2e}} tCO2e</dd></div>
+          <div><dt>Redução de emissões</dt><dd>{{calculation.erDisplay}} tCO2e</dd></div>
+        </dl>
+      } @else if (calculation.causeCode) {
+        <p><strong>Bloqueio: {{calculationTitle(calculation.causeCode)}}.</strong> {{calculation.cause}}</p>
+      }
+      <p>O documento não fica pronto.</p>
+    }
     <label for="pd-narrative">Narrativa da seção</label>
     <textarea id="pd-narrative" rows="6" maxlength="12000" #body [value]="text()" [readOnly]="!editable() || !item.guide.version || busy()"
       (input)="text.set(body.value)"></textarea>
