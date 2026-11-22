@@ -74,6 +74,20 @@
         </section>
       }
     }
+    @if (item.applicability; as applicability) {
+      <h4>Aplicabilidade nomeada nesta seção</h4>
+      <p>{{applicability.text}}</p>
+      <dl class="cf-tech-capabilities">
+        <div><dt>Citação</dt>
+          <dd>{{applicability.citedStockPercent}}% de estoque em {{applicability.citedVintageYear}} · {{applicability.citation}}</dd></div>
+        <div><dt>Limiar de estoque do teste</dt><dd>{{applicability.stockLimitPercent}}%</dd></div>
+        <div><dt>Limiar de vendas do teste</dt><dd>{{applicability.salesLimitPercent}}% na média trienal</dd></div>
+        <div><dt>Série de estoque</dt><dd>{{applicability.stockSeriesLabel}}</dd></div>
+        <div><dt>Série de vendas</dt><dd>{{applicability.salesSeriesLabel}}</dd></div>
+        <div><dt>Fecha a aplicabilidade</dt><dd>{{applicability.closesApplicability ? 'Sim' : 'Não'}}</dd></div>
+      </dl>
+      <p>O documento não fica pronto.</p>
+    }
     <label for="pd-narrative">Narrativa da seção</label>
     <textarea id="pd-narrative" rows="6" maxlength="12000" #body [value]="text()" [readOnly]="!editable() || !item.guide.version || busy()"
       (input)="text.set(body.value)"></textarea>

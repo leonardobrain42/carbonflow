@@ -508,6 +508,18 @@ class OpenPeriodSupportIntegrationTest {
         assertFalse(additionality.at("/additionality/marksDocumentReady").asBoolean());
         assertEquals(3,additionality.at("/additionality/criteria").size());
         assertFalse(additionality.at("/additionality/criteria").toString().contains("MARKET_ROUTE"));
+        JsonNode applicability=null;
+        for (JsonNode section : sections) {
+            if ("applicability".equals(section.at("/guide/id").asText())) applicability=section;
+        }
+        assertNotNull(applicability);
+        assertEquals("0,7",applicability.at("/applicability/citedStockPercent").asText());
+        assertEquals("7,5",applicability.at("/applicability/stockLimitPercent").asText());
+        assertEquals("30",applicability.at("/applicability/salesLimitPercent").asText());
+        assertTrue(applicability.at("/applicability/citationBelowStockLimit").asBoolean());
+        assertFalse(applicability.at("/applicability/closesApplicability").asBoolean());
+        assertFalse(applicability.at("/applicability/usableForE8").asBoolean());
+        assertFalse(applicability.at("/applicability/marksDocumentReady").asBoolean());
 
         String vtUrl=efelUrl+"/"+efel.path("id").asText()+"/vt0011-workbooks";
         assertEquals(0,json(call("GET",vtUrl,owner.cookie(),null,null)).size());
