@@ -1,4 +1,4 @@
-import {Component, Input, OnChanges, SimpleChanges, inject, signal} from '@angular/core';
+import {Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject, signal} from '@angular/core';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {firstValueFrom} from 'rxjs';
 import {plainTerm} from './calculation-language';
@@ -48,6 +48,8 @@ const EMPTY:Declaration={
 export class OpenApplicabilityComponent implements OnChanges {
   @Input({required:true}) projectId='';
   @Input() editable=false;
+  /** Notify the host only after a successful persisted declaration revision. */
+  @Output() readonly saved = new EventEmitter<void>();
   private readonly http=inject(HttpClient);
   readonly view=signal<View|null>(null);
   readonly form=signal<Declaration>({...EMPTY});
@@ -174,6 +176,7 @@ export class OpenApplicabilityComponent implements OnChanges {
       this.form.set({...EMPTY,...updated.latest?.answers});
       this.retryKey='';
       this.notice.set('Declaração versionada salva. A jornada pode continuar, mas nenhuma decisão técnica foi aprovada.');
+      this.saved.emit();
     }catch(problem){
       this.error.set(this.message(problem));
       if(problem instanceof HttpErrorResponse && problem.status>=400 && problem.status<500)this.retryKey='';
