@@ -9,17 +9,38 @@
     <p role="alert" class="cf-workspace-alert">{{ error() }}</p>
     <button type="button" class="cf-workspace-outline" (click)="load()">Tentar novamente</button>
   } @else if (readiness(); as state) {
+    @if (rehearsal(); as memory) {
+      <h4>Memória do ensaio interno · {{runPeriod()}}</h4>
+      <p>Estes números vieram da memória do servidor. Esta tela não aplica fórmula.
+        O ensaio não admite o cálculo nem habilita crédito.</p>
+      <dl class="cf-tech-capabilities">
+        <div><dt>{{inputName('BE')}}</dt><dd>{{memory.beTco2e}} tCO2e <small>Referência: BE</small></dd></div>
+        <div><dt>{{inputName('PE')}}</dt><dd>{{memory.peTco2e}} tCO2e <small>Referência: PE</small></dd></div>
+        <div><dt>{{inputName('LE')}}</dt><dd>{{memory.leTco2e}} tCO2e <small>Referência: LE</small></dd></div>
+        <div><dt>{{inputName('ER')}}</dt><dd>{{memory.erDisplay}} tCO2e <small>Referência: ER</small></dd></div>
+      </dl>
+    } @else if (blockingCause(); as cause) {
+      <h4>O que falta para haver resultado</h4>
+      <p><strong>Falta {{gateTitle(cause)}}.</strong>
+        Não há BE, PE, LE nem ER. Ausência não é zero.</p>
+    }
     <dl class="cf-tech-capabilities">
       <div><dt>Situação</dt><dd>{{ stateLabel(state.calculationState) }}</dd></div>
       <div><dt>Recorte</dt><dd>VM0038 · OPEN / BR / LDV / DCFC / SIN</dd></div>
-      <div><dt>BE, PE e ER</dt><dd>Indisponíveis — nenhum resultado foi calculado</dd></div>
+      <div><dt>BE, PE e ER</dt>
+        <dd>{{ rehearsal() ? 'Ensaio interno registrado' : 'Indisponíveis — nenhum resultado foi calculado' }}</dd></div>
       <div><dt>Emissão de créditos</dt><dd>Não habilitada</dd></div>
     </dl>
     <p>É possível continuar organizando a preparação, mas o cálculo ainda não está liberado.
       Valores ausentes não são emissões iguais a zero.</p>
     <h4>Como os resultados serão obtidos</h4>
     <p>Estas são as operações previstas na VM0038 v1.1.
-      <strong>Não há execução de BE, PE, LE ou ER neste projeto.</strong>
+      @if (rehearsal()) {
+        <strong>A memória acima é o ensaio interno.</strong>
+        As operações continuam sem admissão normativa.
+      } @else {
+        <strong>Não há execução de BE, PE, LE ou ER neste projeto.</strong>
+      }
       Nenhum número é presumido e nenhuma fonte preparatória é automaticamente
       considerada admitida. Consulte a
       <a href="https://verra.org/methodologies/vm0038-electric-vehicle-charging-systems-v1-1/"
@@ -49,8 +70,12 @@
                 <li><span>{{inputName(block)}}</span> <small>Referência: {{block}}</small></li>
               }
             </ul>
-            <p>O detalhamento numérico e as fontes exatas aparecerão somente
-              depois da execução E8 com parâmetros e medições admissíveis.</p>
+            @if (rehearsal()) {
+              <p>O valor apresentado está na memória do servidor. Esta lista não recalcula a etapa.</p>
+            } @else {
+              <p>O detalhamento numérico e as fontes exatas aparecerão somente
+                depois da execução E8 com parâmetros e medições admissíveis.</p>
+            }
           </details>
         </li>
       }
@@ -114,15 +139,9 @@
             : 'Não calculados'}}</dd></div>
         <div><dt>Emissão de créditos</dt><dd>{{run.canIssueVcu?'Habilitada':'Não habilitada'}}</dd></div>
       </dl>
-      @if (run.state==='REVIEWED_INTERNAL' && run.memory && !run.memory.usableForE8) {
-        <p>Ensaio interno da memória recebida do servidor.
+      @if (rehearsal()) {
+        <p>Os números estão na memória do ensaio interno, no topo desta página.
           Não é admissão normativa nem emissão de crédito.</p>
-        <dl class="cf-tech-capabilities">
-          <div><dt>{{inputName('BE')}}</dt><dd>{{run.memory.beTco2e}} tCO2e <small>Referência: BE</small></dd></div>
-          <div><dt>{{inputName('PE')}}</dt><dd>{{run.memory.peTco2e}} tCO2e <small>Referência: PE</small></dd></div>
-          <div><dt>{{inputName('LE')}}</dt><dd>{{run.memory.leTco2e}} tCO2e <small>Referência: LE</small></dd></div>
-          <div><dt>{{inputName('ER')}}</dt><dd>{{run.memory.erDisplay}} tCO2e <small>Referência: ER</small></dd></div>
-        </dl>
       }
       <ul class="cf-tech-gates">
         @for (gate of run.gates; track gate.code) {

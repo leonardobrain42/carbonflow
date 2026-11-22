@@ -219,6 +219,24 @@ export class OpenCalculationReadinessComponent implements OnChanges {
       +'/technical/open-monitoring/dossiers/'+encodeURIComponent(period)+'/e8-runs';
   }
 
+  rehearsal() {
+    const run=this.latestRun();
+    if(!run || run.state!=='REVIEWED_INTERNAL' || !run.memory || run.memory.usableForE8 || run.canIssueVcu)
+      return null;
+    return run.memory;
+  }
+
+  /** The quantity that explains why there is no result. Names come from the server gate. */
+  blockingCause():CalculationGate|null {
+    if(this.rehearsal())return null;
+    const gates=this.latestRun()?.gates?.length
+      ? this.latestRun()!.gates
+      : (this.readiness()?.gates??[]);
+    const rank=(state:string)=>state==='MISSING'||state==='MISSING_BINDING'?0
+      :state==='REVIEW_REQUIRED'?1:2;
+    return [...gates].sort((left,right)=>rank(left.state)-rank(right.state))[0]??null;
+  }
+
   pinLabel(pin:ParameterPin) {
     const names:Record<string,string>={
       EF_FUEL:'Fator fóssil', EF_GRID:'Fator elétrico',
