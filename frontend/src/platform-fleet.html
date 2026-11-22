@@ -217,6 +217,41 @@
             <p><strong>EVR total das linhas:</strong> {{selected.snapshot.denominator}}
               · <strong>cobertura oficial:</strong> não verificada
               · <strong>ratings:</strong> não vinculados.</p>
+            <h4>Decisão de cobertura do estoque BEV nacional</h4>
+            @if (selected.coverageDecision; as decision) {
+              <p>{{decision.viewState==='STALE'
+                ? 'A decisão ficou desatualizada porque há um retrato posterior.'
+                : coverageLabel(decision.outcome)}}</p>
+              <p>{{decision.reason}}</p>
+              @if (decision.citedTotal !== null) {
+                <p>Total oficial citado: {{decision.citedTotal}} veículos.
+                  Diferença inteira: {{decision.gapVehicles}}. Não é um percentual nacional.</p>
+              }
+              <p>Esta decisão não admite a série nacional nem libera o cálculo.</p>
+            } @else {
+              <p>Ainda sem decisão de cobertura. Ausência não significa estoque zero.</p>
+              @if (boardData.canReviewCoverage && selected.snapshot.state==='PREPARATORY') {
+                <form (submit)="decideCoverage($event)">
+                  <label for="cf-fleet-coverage">Resultado da comparação</label>
+                  <select id="cf-fleet-coverage" #outcome [value]="coverageOutcome"
+                    (change)="coverageOutcome=outcome.value==='NO_OFFICIAL_TOTAL'?'NO_OFFICIAL_TOTAL':'NOT_COVERED'">
+                    <option value="NOT_COVERED">Não cobre o estoque BEV nacional</option>
+                    <option value="NO_OFFICIAL_TOTAL">Sem total oficial para comparar</option>
+                  </select>
+                  <label for="cf-fleet-coverage-reason">Justificativa</label>
+                  <textarea id="cf-fleet-coverage-reason" #reason rows="3" maxlength="500" required
+                    [value]="coverageReason" (input)="coverageReason=reason.value"></textarea>
+                  @if (coverageOutcome==='NOT_COVERED') {
+                    <label for="cf-fleet-cited-total">Total oficial citado, em veículos inteiros</label>
+                    <input id="cf-fleet-cited-total" #cited inputmode="numeric" [value]="coverageCited"
+                      (input)="coverageCited=cited.value">
+                  }
+                  <button type="submit" class="cf-workspace-primary" [disabled]="busy()">
+                    Registrar decisão de cobertura
+                  </button>
+                </form>
+              }
+            }
             <div class="cf-platform-sample-scroll">
               <table class="cf-platform-sample-table">
                 <thead><tr><th>Modelo</th><th>EVR (veículos)</th><th>Peso (fração)</th><th>Localizador</th></tr></thead>

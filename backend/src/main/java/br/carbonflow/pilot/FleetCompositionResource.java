@@ -74,6 +74,20 @@ public class FleetCompositionResource {
         return ok(service.get(token,id));
     }
 
+    @POST
+    @Path("/imports/{id}/coverage")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response coverage(@CookieParam(AccountAccess.COOKIE) String token,
+                             @PathParam("id") UUID id,
+                             @HeaderParam("Idempotency-Key") String commandKey,
+                             @HeaderParam("If-Match") String version,
+                             FleetCompositionService.CoverageInput input){
+        var result=service.decide(token,commandKey,version,id,input);
+        return Response.status(result.created()?201:200).entity(result.detail())
+            .header("Cache-Control","private, no-store")
+            .tag(Integer.toString(result.detail().coverageDecision().version())).build();
+    }
+
     private static Response ok(Object value){
         return Response.ok(value).header("Cache-Control","private, no-store").build();
     }

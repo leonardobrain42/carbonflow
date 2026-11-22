@@ -139,6 +139,29 @@ class FleetCompositionIntegrationTest {
         assertEquals(0L,count("app_fleet_sales_observation"));
         String imported=first.at("/snapshot/ingestionId").asText();
         assertEquals(404,request("GET",ROOT+"/imports/"+imported,outsider,null,null).statusCode());
+        assertTrue(first.at("/coverageDecision").isNull());
+        String coverage=ROOT+"/imports/"+imported+"/coverage";
+        String coverageReason="O retrato fictício não alcança o total nacional citado.";
+        String coverageBody="{\"outcome\":\"NOT_COVERED\",\"reason\":\""+coverageReason+"\",\"citedTotal\":180}";
+        assertEquals(403,command("POST",coverage,manager,key(),"\"0\"",coverageBody).statusCode());
+        assertEquals(404,command("POST",coverage,outsider,key(),"\"0\"",coverageBody).statusCode());
+        assertEquals(422,command("POST",coverage,reviewer,key(),"\"0\"",
+            coverageBody.replace("180","80")).statusCode());
+        assertEquals(422,command("POST",coverage,reviewer,key(),"\"0\"",
+            "{\"outcome\":\"NO_OFFICIAL_TOTAL\",\"reason\":\""+coverageReason+"\",\"citedTotal\":180}").statusCode());
+        String coverageKey=key();
+        JsonNode decided=read(command("POST",coverage,reviewer,coverageKey,"\"0\"",coverageBody),201);
+        assertEquals(decided.at("/coverageDecision"),
+            read(command("POST",coverage,reviewer,coverageKey,"\"0\"",coverageBody),200).at("/coverageDecision"));
+        assertEquals("NOT_COVERED",decided.at("/coverageDecision/outcome").asText());
+        assertEquals(180,decided.at("/coverageDecision/citedTotal").asInt());
+        assertEquals(80,decided.at("/coverageDecision/gapVehicles").asInt());
+        assertEquals("CURRENT",decided.at("/coverageDecision/viewState").asText());
+        assertFalse(decided.at("/coverageDecision/usableForE8").asBoolean());
+        assertEquals("OFFICIAL_TOTAL_NOT_VERIFIED",decided.at("/snapshot/coverageState").asText());
+        assertFalse(decided.toString().contains("percent"));
+        assertEquals(412,command("POST",coverage,reviewer,key(),"\"0\"",
+            coverageBody.replace("citado.","citado outra vez.")).statusCode());
 
         // An independently approved later edition creates another immutable snapshot.
         seedSecondEdition();
@@ -155,6 +178,10 @@ class FleetCompositionIntegrationTest {
             manager,null,null),200).path("weights").valueStream()
                 .anyMatch(item->item.path("evr").asInt()==25));
         assertEquals("PREPARATORY",newer.at("/snapshot/state").asText());
+        JsonNode staleCoverage=read(request("GET",ROOT+"/imports/"+imported,manager,null,null),200);
+        assertEquals("STALE",staleCoverage.at("/coverageDecision/viewState").asText());
+        assertEquals(409,command("POST",coverage,reviewer,key(),"\"1\"",
+            "{\"outcome\":\"NO_OFFICIAL_TOTAL\",\"reason\":\"O retrato posterior impede nova decisão aqui.\"}").statusCode());
 
         // Source rights revocation must purge snapshots AND observations, not only the original.
         db.transaction(c->{
@@ -189,6 +216,13 @@ class FleetCompositionIntegrationTest {
         assertTrue(oldStatus.path("denominator").isNull());
         assertEquals(404,request("GET",ROOT+"/sources/"+SOURCE_OBJECT+"/preview?year="+YEAR,
             manager,null,null).statusCode());
+        long purgedDecisions=db.read(c->first(c,"""
+            SELECT count(*) FROM app_fleet_national_coverage_decision d
+            JOIN app_fleet_composition_snapshot s ON s.id=d.snapshot_id
+            JOIN app_fleet_ingestion i ON i.id=s.ingestion_id
+            WHERE i.source_license_id=?
+            """,r->r.getLong(1),LICENSE));
+        assertEquals(0L,purgedDecisions);
     }
 
     @AfterEach
@@ -198,6 +232,9 @@ class FleetCompositionIntegrationTest {
         db.transaction(c->{
             update(c,"DELETE FROM app_fleet_command WHERE actor_id IN (?,?,?)",
                 MANAGER,REVIEWER,OUTSIDER);
+            update(c,"""
+                DELETE FROM app_fleet_national_coverage_decision WHERE organization_id=?
+                """,ORG);
             update(c,"""
                 DELETE FROM app_fleet_composition_weight WHERE organization_id=?
                 """,ORG);
@@ -228,6 +265,7 @@ class FleetCompositionIntegrationTest {
                 WHERE source_id='BR-LDV-BEV-STOCK-BY-MODEL'
                   AND edition IN ('2081','2081-R2')
                 """);
+            update(c,"DELETE FROM app_organization WHERE id IN (?,?)",ORG,OTHER);
             return null;
         });
     }
@@ -380,6 +418,17 @@ class FleetCompositionIntegrationTest {
         assertEquals(200,request("POST","/v1/compliance/session",token,null,code).statusCode());
     }
     private static String key(){return UUID.randomUUID().toString();}
+    private HttpResponse<String> command(String method,String path,String token,String key,
+            String version,String payload)throws Exception{
+        var builder=HttpRequest.newBuilder(URI.create(base.toExternalForm()).resolve(path));
+        if(token!=null)builder.header("Cookie",AccountAccess.COOKIE+"="+token);
+        if(key!=null)builder.header("Idempotency-Key",key);
+        if(version!=null)builder.header("If-Match",version);
+        if(payload!=null)builder.header("Content-Type","application/json");
+        builder.method(method,payload==null?HttpRequest.BodyPublishers.noBody():
+            HttpRequest.BodyPublishers.ofString(payload));
+        return http.send(builder.build(),HttpResponse.BodyHandlers.ofString());
+    }
     private HttpResponse<String> request(String method,String path,String token,String key,
             String payload)throws Exception{
         var builder=HttpRequest.newBuilder(URI.create(base.toExternalForm()).resolve(path));
@@ -405,6 +454,8 @@ class FleetCompositionIntegrationTest {
             values.put("carbonflow.platform.source-readiness.viewers",
                 MANAGER+","+REVIEWER+","+OUTSIDER);
             values.put("carbonflow.platform.source-work.managers",MANAGER.toString());
+            values.put("carbonflow.platform.fleet-coverage.reviewers",
+                REVIEWER+","+MANAGER+","+OUTSIDER);
             return values;
         }
     }

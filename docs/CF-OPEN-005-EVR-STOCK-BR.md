@@ -86,7 +86,8 @@ A API não aceita inserção arbitrária de quantidades em objeto de projeto, n�
 
 - [ ] Adquirir amostra real da Senatran e demonstrar granularidade por modelo/ano de observação/propulsão.
 - [ ] Identificar todos os modelos LDV BEV comparáveis e documentar aliases/categorias/versões com prova.
-- [ ] Reconciliar valores nacionais, séries históricas e totais oficiais; implementar cobertura auditável.
+- [x] Registrar a decisão de cobertura do estoque BEV nacional sem admitir a série. A ausência continua sem linha, o total citado maior que o retrato guarda só a diferença inteira, e `usableForE8` permanece falso. Ver [decisão de cobertura](CF-OPEN-005-NATIONAL-COVERAGE-DECISION.md).
+- [ ] Reconciliar a série nacional real, o histórico e o total oficial admissível. A decisão desta fatia não substitui essa prova.
 - [ ] Registrar resolução de lacunas, modelos com ratings ausentes e incertezas por linha.
 - [ ] Reavaliar referências afetadas e propagação STALE no `RequirementGraph` e snapshots de projeto.
 - [ ] Integrar AFEC/MPG da #95 e `ProjectSelection` da #92 / E8 real da #97.
