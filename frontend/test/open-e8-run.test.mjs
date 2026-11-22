@@ -65,6 +65,7 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
     }}));
     await page.route('**/v1/projects/*/technical/preliminary-dossier', route => route.fulfill({status:204}));
     await page.route('**/v1/projects/*/technical/open-applicability', route => route.fulfill({status:404}));
+    await page.route('**/v1/projects/*/technical/open-parameter-bindings', route => route.fulfill({json:[]}));
     await page.route('**/v1/projects/*/technical/open-calculation-readiness', route => route.fulfill({json:{
       projectId:project, environment:'SANDBOX', methodology:'VM0038', scenario:'OPEN',
       workflowState:'PREPARATION', calculationState:'BLOCKED_MISSING_DATA',
@@ -103,6 +104,7 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
     });
     await page.goto(base + '/workspace/projects/' + project + '/technical?secao=quantificar');
     await page.getByRole('heading', {name:'Última tentativa de cálculo · M1'}).waitFor();
+    await page.getByText('Ainda não há pino de fator fóssil, fator elétrico, IR ou Dy neste projeto.').waitFor();
     await page.getByText('fator elétrico, estoque nacional EVR e ratings PBEV').waitFor();
     await page.getByText('Estoque nacional EVR · Fonte ainda não vinculada').waitFor();
     await page.getByText('Próxima ação: Selecionar fonte EVR e avaliar cobertura').waitFor();

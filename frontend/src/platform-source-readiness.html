@@ -98,6 +98,13 @@
               [edition]="view.edition" [scenario]="view.scenario">
             </carbonflow-platform-fossil-factors>
           </section>
+        } @else if (tab() === 'parameters') {
+          <section class="cf-workspace-card">
+            <carbonflow-platform-parameter-pins
+              [methodology]="view.methodology"
+              [edition]="view.edition" [scenario]="view.scenario">
+            </carbonflow-platform-parameter-pins>
+          </section>
         } @else if (tab() === 'fleet') {
           <section class="cf-workspace-card">
             <carbonflow-platform-fleet [methodology]="view.methodology"

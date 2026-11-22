@@ -1,0 +1,66 @@
+<section aria-labelledby="cf-parameter-pin-title">
+  <h2 id="cf-parameter-pin-title">Pino de parâmetros do projeto</h2>
+  <p>Vincule um fator fóssil revisado, um fator elétrico anual revisado, ou
+    declare IR e Dy com regra e prova. Ausência, zero e 1 são registros
+    diferentes. <strong>Nenhum pino admite o cálculo nem emite crédito.</strong>
+    O número licenciado do fator não é copiado para o projeto.</p>
+  @if (!validContext()) {
+    <p>Disponível somente em VM0038 v1.1, rede aberta LDV/DCFC/SIN no Brasil.</p>
+  } @else {
+    @if (error()) {<p role="alert" class="cf-workspace-alert">{{error()}}</p>}
+    @if (message()) {<p role="status" class="cf-platform-success">{{message()}}</p>}
+    @if (busy()) {<p role="status">Conferindo projetos e fatores revisados…</p>}
+    <button type="button" class="cf-workspace-outline" [disabled]="busy()" (click)="load()">
+      Atualizar
+    </button>
+    @if (!options().length) {
+      <p role="status">Nenhum rascunho VM0038 desta organização está disponível para o pino.</p>
+    }
+    <form (submit)="pin($event)">
+      <label for="cf-pin-project">Projeto</label>
+      <select id="cf-pin-project" [value]="projectId"
+        (change)="projectId=$any($event.target).value">
+        <option value="">Selecione o rascunho</option>
+        @for (option of options(); track option.projectId) {
+          <option [value]="option.projectId">{{option.title}}</option>
+        }
+      </select>
+      <label for="cf-pin-kind">Parâmetro</label>
+      <select id="cf-pin-kind" [value]="kind" (change)="kind=$any($event.target).value">
+        <option value="EF_FUEL">Fator fóssil (linha de base)</option>
+        <option value="EF_GRID">Fator elétrico anual (emissão do projeto)</option>
+        <option value="IR">Melhoria tecnológica (IR)</option>
+        <option value="DY">Desconto por outro crédito (Dy)</option>
+      </select>
+      <label for="cf-pin-year">Ano</label>
+      <input id="cf-pin-year" [value]="year" (input)="year=$any($event.target).value"
+        inputmode="numeric" required>
+      @if (kind==='IR' || kind==='DY') {
+        <label for="cf-pin-value">Valor declarado</label>
+        <input id="cf-pin-value" [value]="declaredValue"
+          (input)="declaredValue=$any($event.target).value" inputmode="decimal" required>
+        <p>Deixe o campo vazio para não gravar. Não há botão de default.
+          Zero precisa ser digitado. O número 1 também, com a regra ao lado.</p>
+        <label for="cf-pin-rule">Regra</label>
+        <input id="cf-pin-rule" [value]="ruleReference"
+          (input)="ruleReference=$any($event.target).value" required>
+        <label for="cf-pin-evidence">Prova</label>
+        <input id="cf-pin-evidence" [value]="evidenceLocator"
+          (input)="evidenceLocator=$any($event.target).value" required>
+      } @else {
+        <label for="cf-pin-candidate">Fator revisado internamente</label>
+        <select id="cf-pin-candidate" [value]="candidateId"
+          (change)="candidateId=$any($event.target).value">
+          <option value="">Selecione a referência</option>
+          @for (item of candidates(); track item.id) {
+            <option [value]="item.id">{{item.periodYear}} · {{item.normalizedUnit}}</option>
+          }
+        </select>
+        @if (!candidates().length) {
+          <p role="status">Não há fator deste tipo com parecer interno vigente.</p>
+        }
+      }
+      <button type="submit" class="cf-workspace-primary" [disabled]="busy()">Gravar pino</button>
+    </form>
+  }
+</section>

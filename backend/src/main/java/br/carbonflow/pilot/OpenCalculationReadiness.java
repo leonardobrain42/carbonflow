@@ -137,11 +137,60 @@ class OpenCalculationReadiness {
                     "PREP/REV"));
             }
         }
+        applyParameterPins(connection, project, gates);
         return new OpenCalculationPreflight.Result(base.projectId(),base.environment(),
             base.engine(),base.methodology(),base.scenario(),base.workflowState(),
             base.calculationState(),base.canContinuePreparation(),false,false,
             new OpenCalculationPreflight.Emissions(null,null,null,null,null),List.copyOf(gates),
             OpenCalculationTransparency.plan(gates));
+    }
+
+    private static void applyParameterPins(Connection connection, String project,
+            List<OpenCalculationPreflight.Gate> gates) throws SQLException {
+        for (String kind : List.of("EF_FUEL", "EF_GRID", "IR", "DY")) {
+            var pin = OpenProjectParameterBindings.latest(connection, project, kind);
+            if (pin == null) continue;
+            gates.removeIf(gate -> kind.equals(gate.code()));
+            gates.add(parameterGate(pin));
+        }
+    }
+
+    private static OpenCalculationPreflight.Gate parameterGate(
+            OpenProjectParameterBindings.StoredPin pin) {
+        String name = switch (pin.kind()) {
+            case "EF_FUEL" -> "O fator fóssil";
+            case "EF_GRID" -> "O fator elétrico";
+            case "IR" -> "A melhoria tecnológica";
+            default -> "O desconto por outro crédito";
+        };
+        if (pin.stale()) {
+            return new OpenCalculationPreflight.Gate(pin.kind(), "STALE",
+                name + " do ano " + pin.year()
+                    + " ficou desatualizado porque a fonte, a licença ou a triagem mudou. O pino antigo permanece no histórico.",
+                "Registrar uma nova versão do pino depois da rechecagem", "PREP/REV");
+        }
+        if ("DECLARED_ZERO".equals(pin.valueKind())) {
+            return new OpenCalculationPreflight.Gate(pin.kind(), "NOT_ADMITTED",
+                name + " foi declarado como zero no ano " + pin.year()
+                    + ", com regra e prova. Zero declarado não é ausência e não admite o cálculo.",
+                "Manter a declaração explícita até a revisão normativa", "REV");
+        }
+        if ("1".equals(pin.declaredCanonical())) {
+            return new OpenCalculationPreflight.Gate(pin.kind(), "NOT_ADMITTED",
+                name + " foi informado como 1 no ano " + pin.year()
+                    + ", com regra e prova. Esse 1 não é um default da plataforma e não admite o cálculo.",
+                "Conservar a regra e a prova até a revisão normativa", "REV");
+        }
+        if (pin.declaredCanonical() != null) {
+            return new OpenCalculationPreflight.Gate(pin.kind(), "NOT_ADMITTED",
+                name + " tem um valor explícito no ano " + pin.year()
+                    + ", com regra e prova. A plataforma não preenche 1 quando o campo vem vazio, e o valor não admite o cálculo.",
+                "Conservar a regra e a prova até a revisão normativa", "REV");
+        }
+        return new OpenCalculationPreflight.Gate(pin.kind(), "NOT_ADMITTED",
+            name + " do ano " + pin.year()
+                + " está vinculado por referência de fonte. O número licenciado não é copiado para o projeto e o vínculo não admite o cálculo.",
+            "Aguardar a admissão normativa do fator e da finalidade", "PREP/REV");
     }
 
     static String methodology(Connection connection, String project) throws SQLException {
@@ -172,7 +221,7 @@ class OpenCalculationReadiness {
                 """, row -> row.getString(1), project);
     }
 
-    private static int triageRevision(Connection connection, String project) throws SQLException {
+    static int triageRevision(Connection connection, String project) throws SQLException {
         Integer revision = first(connection, """
                 SELECT coalesce(max(version),0)
                 FROM app_project_triage_revision WHERE project_id = ?
