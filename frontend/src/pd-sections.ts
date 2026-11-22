@@ -11,10 +11,15 @@ interface Version {number:number;guideVersion:number;author:string;narrative:str
 interface CalculationNote {period:string;situation:string;causeCode:string|null;cause:string|null;
   beTco2e:string|null;peTco2e:string|null;leTco2e:string|null;erDisplay:string|null;
   usableForE8:boolean;marksDocumentReady:boolean;text:string}
+interface OpinionCriterion {code:string;title:string;stateLabel:string;text:string;
+  humanOpinion:boolean;concludes:boolean}
+interface AdditionalityNote {declarationRoute:string|null;declarationIsOpinion:boolean;
+  concludesAdditionality:boolean;usableForE8:boolean;marksDocumentReady:boolean;text:string;
+  criteria:OpinionCriterion[]}
 interface Section {guide:Guide;latest:Version | null;
   monitoringDependency:{state:string;outdated:boolean;
     gates:{code:string;detail:string}[]} | null;
-  calculation?:CalculationNote|null}
+  calculation?:CalculationNote|null;additionality?:AdditionalityNote|null}
 
 @Component({selector:'carbonflow-pd-sections',templateUrl:'./pd-sections.html'})
 export class PdSectionsComponent implements OnInit {

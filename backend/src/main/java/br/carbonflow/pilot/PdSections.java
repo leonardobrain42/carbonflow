@@ -21,18 +21,21 @@ class PdSections {
     record Version(int number, int guideVersion, UUID author, String narrative, String sha256) {}
     record Section(ProjectGuides.Guide guide, Version latest,
                    OpenMonitoringDossiers.PdDependency monitoringDependency,
-                   OpenPdCalculationNote.Note calculation) {}
+                   OpenPdCalculationNote.Note calculation,
+                   OpenPdAdditionalityNote.Note additionality) {}
     record Artifact(String text, String sha256) {}
     private final DynamicProjectScope scopes;
     private final ProjectGuides guides;
     private final OpenE8ProjectRuns runs;
+    private final OpenApplicability applicability;
     private final ObjectMapper mapper;
 
     PdSections(DynamicProjectScope scopes, ProjectGuides guides, OpenE8ProjectRuns runs,
-               ObjectMapper mapper) {
+               OpenApplicability applicability, ObjectMapper mapper) {
         this.scopes = scopes;
         this.guides = guides;
         this.runs = runs;
+        this.applicability = applicability;
         this.mapper = mapper;
     }
 
@@ -40,12 +43,15 @@ class PdSections {
         return scopes.read(token, project, "VIEW_DOSSIER", (c, scope) -> {
             var sections = new ArrayList<Section>();
             OpenPdCalculationNote.Note calculation = OpenPdCalculationNote.from(runs.newest(c, project));
+            OpenApplicability.Readiness readiness = applicability.readinessOf(c, project);
             for (var guide : guides.catalog(c, scope).guides()) {
                 Version current=latest(c,project,guide.id());
                 sections.add(new Section(guide,current,
                     current==null?null:OpenMonitoringDossiers.pdDependency(
                         c,project,guide.id(),current.number()),
-                    "quantification".equals(guide.id()) ? calculation : null));
+                    "quantification".equals(guide.id()) ? calculation : null,
+                    "additionality".equals(guide.id())
+                        ? OpenPdAdditionalityNote.from(readiness, guide.answers()) : null));
             }
             return sections;
         });

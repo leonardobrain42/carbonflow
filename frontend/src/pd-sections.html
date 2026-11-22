@@ -60,6 +60,20 @@
       }
       <p>O documento não fica pronto.</p>
     }
+    @if (item.additionality; as additionality) {
+      <h4>Adicionalidade nomeada nesta seção</h4>
+      <p>{{additionality.text}}</p>
+      @if (additionality.declarationRoute && !additionality.declarationIsOpinion) {
+        <p>Rota escrita no guia: {{additionality.declarationRoute}}. Não é o parecer do documento.</p>
+      }
+      @for (criterion of additionality.criteria; track criterion.code) {
+        <section class="cf-journey-context">
+          <strong>{{criterion.title}}</strong>
+          <p>{{criterion.text}}</p>
+          <p>{{criterion.stateLabel}}. Esta seção não conclui a adicionalidade.</p>
+        </section>
+      }
+    }
     <label for="pd-narrative">Narrativa da seção</label>
     <textarea id="pd-narrative" rows="6" maxlength="12000" #body [value]="text()" [readOnly]="!editable() || !item.guide.version || busy()"
       (input)="text.set(body.value)"></textarea>

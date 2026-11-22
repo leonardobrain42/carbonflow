@@ -497,6 +497,17 @@ class OpenPeriodSupportIntegrationTest {
         assertFalse(quantification.at("/calculation/marksDocumentReady").asBoolean());
         assertTrue(quantification.at("/calculation/text").asText().contains("O PD não fica pronto"));
         assertFalse(quantification.at("/calculation").toString().contains("EF-SYN"));
+        JsonNode additionality=null;
+        for (JsonNode section : sections) {
+            if ("additionality".equals(section.at("/guide/id").asText())) additionality=section;
+        }
+        assertNotNull(additionality);
+        assertFalse(additionality.at("/additionality/declarationIsOpinion").asBoolean());
+        assertFalse(additionality.at("/additionality/concludesAdditionality").asBoolean());
+        assertFalse(additionality.at("/additionality/usableForE8").asBoolean());
+        assertFalse(additionality.at("/additionality/marksDocumentReady").asBoolean());
+        assertEquals(3,additionality.at("/additionality/criteria").size());
+        assertFalse(additionality.at("/additionality/criteria").toString().contains("MARKET_ROUTE"));
 
         String vtUrl=efelUrl+"/"+efel.path("id").asText()+"/vt0011-workbooks";
         assertEquals(0,json(call("GET",vtUrl,owner.cookie(),null,null)).size());
