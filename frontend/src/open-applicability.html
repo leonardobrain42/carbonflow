@@ -235,6 +235,20 @@
         </button>
       </form>
     }
+    @if (state.readiness.market; as market) {
+      <h4>Teste de mercado §4 e citação da lista positiva</h4>
+      <p>{{market.reason}}</p>
+      <dl class="cf-tech-capabilities">
+        <div><dt>Citação</dt>
+          <dd>{{market.citedStockPercent}}% de estoque em {{market.citedVintageYear}} · {{market.citation}}</dd></div>
+        <div><dt>Limiar de estoque do teste</dt><dd>{{market.stockLimitPercent}}%</dd></div>
+        <div><dt>Limiar de vendas do teste</dt><dd>{{market.salesLimitPercent}}% na média trienal</dd></div>
+        <div><dt>Série de estoque</dt><dd>{{market.stockSeriesLabel}}</dd></div>
+        <div><dt>Série de vendas</dt><dd>{{market.salesSeriesLabel}}</dd></div>
+        <div><dt>Fecha a aplicabilidade</dt><dd>{{market.closesApplicability ? 'Sim' : 'Não'}}</dd></div>
+        <div><dt>Cálculo</dt><dd>{{market.usableForE8 ? 'Liberado' : 'Não liberado'}}</dd></div>
+      </dl>
+    }
     <details class="cf-journey-context" open>
       <summary>O que ainda precisa ser comprovado?</summary>
       <ul class="cf-tech-gates">

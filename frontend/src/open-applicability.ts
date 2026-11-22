@@ -21,9 +21,13 @@ type RightsEvent={code:string;version:number;kind:string;eventOn:string;document
 type RightsCatalog={parties:Party[];contracts:Contract[];events?:RightsEvent[];
   createsLegalPower:boolean;admitsRights:boolean};
 type Finding={code:string;state:string;text:string};
+type MarketTest={citation:string;citedStockPercent:string;citedVintageYear:number;
+  stockLimitPercent:string;salesLimitPercent:string;citationBelowStockLimit:boolean;
+  stockSeries:string;salesSeries:string;stockSeriesLabel:string;salesSeriesLabel:string;
+  outcome:string;closesApplicability:boolean;usableForE8:boolean;reason:string};
 type Readiness={category:string;network:string;rights:string;norm:string;
   canContinuePreparation:boolean;canUseForE8:boolean;stale:boolean;
-  findings:Finding[];sourceDependencies:string[]};
+  findings:Finding[];sourceDependencies:string[];market?:MarketTest|null};
 type Origin={field:string;version:string;situation:string;rule:string;role:string;concludes:boolean};
 type PdField={key:string;section:string;gap:string;copiedIntoDocument:boolean;marksReady:boolean};
 type View={projectId:string;version:number;latestTriageVersion:number;

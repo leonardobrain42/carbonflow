@@ -93,6 +93,15 @@ test('a ficha OPEN permite preparar direitos sem fonte admitida nem cálculo E8'
           rights:answers?.driverDisclosureEvidenceRef?'DECLARED_REVIEW_PENDING':'EVIDENCE_PENDING',
           norm:'PENDING_NORMATIVE_REVIEW',canContinuePreparation:true,
           canUseForE8:false,stale:false,findings,
+          market:{
+            citation:'VMD0049 v1.1 Tabela 1',citedStockPercent:'0,7',citedVintageYear:2024,
+            stockLimitPercent:'7,5',salesLimitPercent:'30',citationBelowStockLimit:true,
+            stockSeries:'CITATION_NOT_SERIES',salesSeries:'ABSENT',
+            stockSeriesLabel:'Citação da lista positiva. Não é a série oficial do teste.',
+            salesSeriesLabel:'Ausente. Ausência não é zero.',
+            outcome:'PENDING_OFFICIAL_DATA',closesApplicability:false,usableForE8:false,
+            reason:'A citação de 0,7% de estoque em 2024 na VMD0049 v1.1 não fecha o teste de aplicabilidade da VM0038 §4 (1)(b).',
+          },
           sourceDependencies:['OPEN-METHOD','OPEN-EV-PENETRATION','OPEN-EV-SALES','OPEN-RIGHTS'],
         },
         origins:[{field:'rightsParty',version:'v1',situation:'Registro do projeto, não admitido',
@@ -178,9 +187,20 @@ test('a ficha OPEN permite preparar direitos sem fonte admitida nem cálculo E8'
     await ficha.getByText('Referência: OPEN_CANDIDATE',{exact:true}).waitFor();
     await ficha.getByText('Divulgação aos motoristas',{exact:true}).waitFor();
     await ficha.getByText('Referência: DRIVER_DISCLOSURE',{exact:false}).waitFor();
+    await ficha.getByRole('heading',{name:'Teste de mercado §4 e citação da lista positiva'}).waitFor();
+    await ficha.getByText('0,7% de estoque em 2024 · VMD0049 v1.1 Tabela 1').waitFor();
+    await ficha.getByText('7,5%',{exact:true}).waitFor();
+    await ficha.getByText('30% na média trienal').waitFor();
+    await ficha.getByText('não fecha o teste').waitFor();
+    await ficha.getByText('Ausente. Ausência não é zero.').waitFor();
+    const closes=ficha.locator('dt',{hasText:'Fecha a aplicabilidade'}).locator('xpath=..');
+    assert.equal((await closes.locator('dd').innerText()).trim(),'Não');
     await ficha.getByText('Dados oficiais pendentes',{exact:false}).waitFor();
     await page.getByText('Nenhuma linha está liberada para o E8.',{exact:false}).count().then(_=>{});
     await page.getByText('Não liberado enquanto faltarem fontes',{exact:false}).waitFor();
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+    await page.setViewportSize({width:1440,height:900});
+    await ficha.getByRole('heading',{name:'Teste de mercado §4 e citação da lista positiva'}).waitFor();
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
   }finally{await browser.close();}
 });
