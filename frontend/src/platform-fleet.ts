@@ -18,8 +18,13 @@ type Snapshot = {
   state:string;coverageState:string;ratingState:string;createdAt:string;usableForE8:boolean;
 };
 type Board = {
-  canManage:boolean;organizations:string[];models:Model[];aliases:Alias[];
+  canManage:boolean;canReviewCoverage?:boolean;organizations:string[];models:Model[];aliases:Alias[];
   sources:Source[];snapshots:Snapshot[];missingNeed:string;guidance:string;
+};
+type CoverageDecision = {
+  id:string;snapshotId:string;version:number;outcome:string;
+  citedTotal:number|null;gapVehicles:number|null;reason:string;
+  viewState:string;usableForE8:boolean;
 };
 type Line = {
   sourceRow:number;recordKey:string;quantity:string|number;year:number;metric:string;
@@ -34,7 +39,7 @@ type Preview = {
 };
 type Detail = {snapshot:Snapshot;weights:{
   modelId:string;modelName:string;evr:number;weight:string|number;locator:string;
-}[]};
+}[];coverageDecision?:CoverageDecision|null};
 
 @Component({
   selector:'carbonflow-platform-fleet',
@@ -73,6 +78,11 @@ export class PlatformFleetComponent implements OnChanges {
   aliasYear='';
   sourceId='';
   year='2024';
+  coverageOutcome:'NOT_COVERED'|'NO_OFFICIAL_TOTAL'='NOT_COVERED';
+  coverageReason='';
+  coverageCited='';
+  private coverageKey='';
+  private coveragePayload='';
   readonly nil='';
 
   ngOnChanges(changes:SimpleChanges){
@@ -174,6 +184,40 @@ export class PlatformFleetComponent implements OnChanges {
     finally{this.busy.set(false);}
   }
 
+  coverageLabel(outcome:string){
+    return outcome==='NO_OFFICIAL_TOTAL'
+      ? 'Sem total oficial admissível para comparar'
+      : 'O retrato não cobre o estoque BEV nacional';
+  }
+
+  async decideCoverage(event:Event){
+    event.preventDefault();
+    const selected=this.detail();
+    if(!selected?.snapshot.ingestionId || !this.board()?.canReviewCoverage || this.busy())return;
+    const cited=this.coverageCited.trim();
+    const body={
+      outcome:this.coverageOutcome,
+      reason:this.coverageReason.trim(),
+      citedTotal:this.coverageOutcome==='NOT_COVERED' && cited ? Number(cited) : null,
+    };
+    const payload=JSON.stringify(body);
+    if(!this.coverageKey || this.coveragePayload!==payload){
+      this.coverageKey=crypto.randomUUID();
+      this.coveragePayload=payload;
+    }
+    this.busy.set(true);this.error.set('');
+    try{
+      const saved=await firstValueFrom(this.http.post<Detail>(
+        '/v1/platform/fleet/imports/'+encodeURIComponent(selected.snapshot.ingestionId)+'/coverage',
+        body,{headers:{'Idempotency-Key':this.coverageKey,'If-Match':'"0"'}}));
+      this.detail.set(saved);
+      this.coverageKey='';
+      this.coveragePayload='';
+      this.message.set('Decisão de cobertura registrada. A série nacional continua não admitida.');
+    }catch(cause){this.error.set(this.problem(cause));}
+    finally{this.busy.set(false);}
+  }
+
   async inspect(ingestionId:string){
     if(this.busy())return;
     this.busy.set(true);this.error.set('');
@@ -189,6 +233,7 @@ export class PlatformFleetComponent implements OnChanges {
 
   private problem(cause:unknown):string{
     if(cause instanceof HttpErrorResponse){
+      if(typeof cause.error?.message==='string')return cause.error.message;
       if(cause.status===401)return 'Entre na conta para acessar o inventário.';
       if(cause.status===403||cause.status===404)return 'Fonte indisponível, licença inativa ou organização sem permissão.';
       if(cause.status===409)return 'Conflito de alias, versão ou importação. Confira a série.';

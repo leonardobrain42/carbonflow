@@ -9,13 +9,17 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 /**
  * Platform-only national fleet EVR workbench. An imported snapshot is immutable
@@ -51,24 +55,38 @@ class FleetCompositionService {
                     String state,String coverageState,String ratingState,
                     OffsetDateTime createdAt,boolean usableForE8) {}
     record Weight(UUID modelId,String modelName,long evr,BigDecimal weight,String locator) {}
-    record Detail(Snapshot snapshot,List<Weight> weights) {}
-    record Board(boolean canManage,List<UUID> organizations,List<Model> models,
+    record CoverageDecision(UUID id,UUID snapshotId,int version,String outcome,
+                            Long citedTotal,Long gapVehicles,String reason,
+                            String viewState,boolean usableForE8) {}
+    record Detail(Snapshot snapshot,List<Weight> weights,CoverageDecision coverageDecision) {}
+    record DecisionResult(Detail detail,boolean created) {}
+    record Board(boolean canManage,boolean canReviewCoverage,List<UUID> organizations,List<Model> models,
                  List<Alias> aliases,List<SourceView> sources,List<Snapshot> snapshots,
                  String missingNeed,String guidance) {}
     record Create(UUID sourceObjectId,Integer year) {}
+    record CoverageInput(String outcome,String reason,Long citedTotal) {}
     private record CommandReceipt(String action,byte[] fingerprint,UUID recordId) {}
 
     private final PilotDatabase database;
     private final PlatformSourceReadiness readiness;
     private final PlatformSourceWork staffManagers;
     private final PlatformSourceFiles rights;
+    private final Set<UUID> coverageReviewers;
 
     FleetCompositionService(PilotDatabase database,PlatformSourceReadiness readiness,
-            PlatformSourceWork staffManagers,PlatformSourceFiles rights){
+            PlatformSourceWork staffManagers,PlatformSourceFiles rights,
+            @ConfigProperty(name="carbonflow.platform.fleet-coverage.reviewers") Optional<String> reviewers){
         this.database=database;
         this.readiness=readiness;
         this.staffManagers=staffManagers;
         this.rights=rights;
+        try {
+            this.coverageReviewers=reviewers.map(value->Arrays.stream(value.split(","))
+                .map(String::strip).filter(item->!item.isEmpty()).map(UUID::fromString)
+                .collect(Collectors.toUnmodifiableSet())).orElse(Set.of());
+        } catch (IllegalArgumentException error) {
+            throw new IllegalStateException("Lista de revisores da cobertura EVR inválida.", error);
+        }
     }
 
     Board board(String token){
@@ -151,6 +169,7 @@ class FleetCompositionService {
                     },orgArray);
                 ComplianceStaff.audit(c,actor.id(),null,"VIEW_PLATFORM_FLEET");
                 return new Board(staffManagers.canManage(actor.id()),
+                    coverageReviewers.contains(actor.id()),
                     actor.organizations().stream().sorted().toList(),
                     List.copyOf(models),List.copyOf(aliases),List.copyOf(visible),
                     List.copyOf(snapshots),"OPEN-EVR",
@@ -330,6 +349,102 @@ class FleetCompositionService {
         });
     }
 
+    DecisionResult decide(String token,String key,String ifMatch,UUID ingestion,CoverageInput input){
+        return database.transaction(c->{
+            var actor=readiness.requireViewer(c,token);
+            if(!coverageReviewers.contains(actor.id()))
+                throw new PilotProblem(403,"COBERTURA_NAO_INDEPENDENTE","actor",RULE,
+                    "Somente um revisor que não importou o retrato registra a cobertura.");
+            int expected=PilotCommands.expected(ifMatch);
+            String command=PilotCommands.key(key);
+            if(input==null)throw invalid("outcome","Informe o resultado da cobertura.");
+            String outcome=input.outcome();
+            if(!"NOT_COVERED".equals(outcome) && !"NO_OFFICIAL_TOTAL".equals(outcome))
+                throw invalid("outcome","A cobertura só pode ser recusada ou ficar sem total oficial.");
+            String reason=reason(input.reason());
+            Long cited="NO_OFFICIAL_TOTAL".equals(outcome)?null:input.citedTotal();
+            if("NO_OFFICIAL_TOTAL".equals(outcome) && input.citedTotal()!=null)
+                throw invalid("citedTotal","Sem total oficial não há número a citar.");
+            if(cited!=null && (cited<1 || cited>1_000_000_000_000L))
+                throw invalid("citedTotal","O total citado precisa ser um inteiro positivo.");
+            byte[] fingerprint=AccessSecrets.digest("DECIDE_NATIONAL_COVERAGE|"+ingestion+"|"
+                +outcome+"|"+reason+"|"+cited);
+            var replay=receipt(c,actor.id(),command,"DECIDE_NATIONAL_COVERAGE",fingerprint);
+            var array=c.createArrayOf("uuid",actor.organizations().toArray(UUID[]::new));
+            try{
+                var row=first(c,"""
+                    SELECT i.organization_id,i.imported_by,i.data_kind,i.observation_year,i.geography,
+                           i.imported_at,i.purged_at,i.source_object_id,s.id,s.denominator,s.purged_at
+                    FROM app_fleet_ingestion i
+                    LEFT JOIN app_fleet_composition_snapshot s ON s.ingestion_id=i.id
+                    WHERE i.id=? AND i.organization_id=ANY(?)
+                    """,r->new Object[]{r.getObject(1,UUID.class),r.getObject(2,UUID.class),
+                    r.getString(3),r.getInt(4),r.getString(5),r.getObject(6,OffsetDateTime.class),
+                    r.getObject(7,OffsetDateTime.class),r.getObject(8,UUID.class),
+                    r.getObject(9,UUID.class),(Long)r.getObject(10),
+                    r.getObject(11,OffsetDateTime.class)},ingestion,array);
+                if(row==null || row[6]!=null)throw invisible();
+                Source source=source(c,actor.organizations(),(UUID)row[7]);
+                if(source.purgedAt()!=null)throw invisible();
+                rights.requireGrant(c,Set.of(source.organizationId()),source.sourceId(),
+                    source.edition(),source.licenseId(),"SHOW_EXCERPTS");
+                if(replay!=null){
+                    CoverageDecision saved=coverageById(c,replay.recordId());
+                    Detail current=detail(c,ingestion,source,actor.organizations());
+                    if(saved==null || current.snapshot().id()==null
+                        || !current.snapshot().id().equals(saved.snapshotId()))
+                        throw new PilotProblem(409,"CHAVE_REUTILIZADA","Idempotency-Key",RULE,
+                            "Esta chave já identifica outro comando de frota.");
+                    boolean older=current.coverageDecision()!=null
+                        && current.coverageDecision().version()>saved.version();
+                    return new DecisionResult(new Detail(current.snapshot(),current.weights(),
+                        new CoverageDecision(saved.id(),saved.snapshotId(),saved.version(),
+                            saved.outcome(),saved.citedTotal(),saved.gapVehicles(),saved.reason(),
+                            older || "STALE_REFERENCE".equals(current.snapshot().state())?"STALE":"CURRENT",
+                            false)),false);
+                }
+                if(!"STOCK_IN_CIRCULATION".equals(row[2]) || !"BR".equals(row[4]) || row[8]==null)
+                    throw invalid("ingestion","A cobertura nacional vale só para estoque BEV em circulação.");
+                if(actor.id().equals(row[1]))
+                    throw new PilotProblem(403,"COBERTURA_NAO_INDEPENDENTE","actor",RULE,
+                        "Quem importou o retrato não registra a cobertura.");
+                if(row[9]==null || row[10]!=null)throw invisible();
+                boolean stale=first(c,"""
+                    SELECT true FROM app_fleet_ingestion later
+                    WHERE later.organization_id=? AND later.observation_year=?
+                      AND later.geography=? AND later.data_kind=?
+                      AND later.imported_at>? AND later.status='PREPARATORY'
+                    LIMIT 1
+                    """,r->true,row[0],row[3],row[4],row[2],row[5])!=null;
+                if(stale)throw new PilotProblem(409,"COBERTURA_CONFLITO","snapshot",RULE,
+                    "Há um retrato posterior deste ano. A cobertura antiga não é reescrita.");
+                long denominator=(Long)row[9];
+                Long gap=null;
+                if(cited!=null){
+                    if(cited<=denominator)throw invalid("citedTotal",
+                        "O total citado precisa ser maior que o estoque deste retrato.");
+                    gap=cited-denominator;
+                }
+                CoverageDecision current=coverage(c,(UUID)row[8],false);
+                int version=current==null?0:current.version();
+                if(current!=null && expected+1==version && actor.id().equals(decider(c,current.id()))
+                    && outcome.equals(current.outcome()) && reason.equals(current.reason())
+                    && java.util.Objects.equals(cited,current.citedTotal()))
+                    return new DecisionResult(detail(c,ingestion,source,actor.organizations()),false);
+                PilotCommands.requireVersion(expected,version);
+                UUID id=UUID.randomUUID();
+                update(c,"""
+                    INSERT INTO app_fleet_national_coverage_decision
+                    (id,snapshot_id,organization_id,version,outcome,cited_total,gap_vehicles,reason,decided_by)
+                    VALUES (?,?,?,?,?,?,?,?,?)
+                    """,id,row[8],row[0],version+1,outcome,cited,gap,reason,actor.id());
+                remember(c,actor.id(),command,"DECIDE_NATIONAL_COVERAGE",fingerprint,id);
+                ComplianceStaff.audit(c,actor.id(),null,"DECIDE_PLATFORM_FLEET_COVERAGE");
+                return new DecisionResult(detail(c,ingestion,source,actor.organizations()),true);
+            }finally{array.free();}
+        });
+    }
+
     private Detail detail(Connection c,UUID ingestion,Source source,Set<UUID> orgs)
         throws SQLException{
         var row=first(c,"""
@@ -370,7 +485,41 @@ class FleetCompositionService {
             LIMIT 2000
             """,r->new Weight(r.getObject(1,UUID.class),r.getString(2),
             r.getLong(3),r.getBigDecimal(4),r.getString(5)),row[8]);
-        return new Detail(snapshot,List.copyOf(weights));
+        return new Detail(snapshot,List.copyOf(weights),
+            row[8]==null?null:coverage(c,(UUID)row[8],stale));
+    }
+
+    private static CoverageDecision coverageById(Connection c,UUID id)throws SQLException{
+        return first(c,"""
+            SELECT id,snapshot_id,version,outcome,cited_total,gap_vehicles,reason
+            FROM app_fleet_national_coverage_decision WHERE id=?
+            """,r->new CoverageDecision(r.getObject(1,UUID.class),r.getObject(2,UUID.class),
+            r.getInt(3),r.getString(4),(Long)r.getObject(5),(Long)r.getObject(6),
+            r.getString(7),"CURRENT",false),id);
+    }
+
+    private static CoverageDecision coverage(Connection c,UUID snapshot,boolean stale)throws SQLException{
+        return first(c,"""
+            SELECT id,snapshot_id,version,outcome,cited_total,gap_vehicles,reason
+            FROM app_fleet_national_coverage_decision
+            WHERE snapshot_id=? ORDER BY version DESC LIMIT 1
+            """,r->new CoverageDecision(r.getObject(1,UUID.class),r.getObject(2,UUID.class),
+            r.getInt(3),r.getString(4),(Long)r.getObject(5),(Long)r.getObject(6),
+            r.getString(7),stale?"STALE":"CURRENT",false),snapshot);
+    }
+
+    private static UUID decider(Connection c,UUID decision)throws SQLException{
+        return first(c,"SELECT decided_by FROM app_fleet_national_coverage_decision WHERE id=?",
+            r->r.getObject(1,UUID.class),decision);
+    }
+
+    private static String reason(String value){
+        if(value==null)throw invalid("reason","Descreva a comparação com o estoque nacional.");
+        String normalized=value.strip();
+        if(normalized.length()<20 || normalized.length()>500
+            || normalized.codePoints().anyMatch(Character::isISOControl))
+            throw invalid("reason","A justificativa precisa ter entre 20 e 500 caracteres.");
+        return normalized;
     }
 
     private Preview analyze(Connection c,Set<UUID> orgs,UUID object,int year,boolean forImport)
