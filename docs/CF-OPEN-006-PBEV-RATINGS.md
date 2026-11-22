@@ -39,7 +39,7 @@ Todos os resultados normalizados têm 12 casas decimais, arredondamento `HALF_EV
 
 ## Pareamento e segregação
 
-1. Equipe com staff MFA + `MANAGE_SOURCE_WORK` seleciona um BEV do snapshot EVR e dois registros avaliados de eficiência, um elétrico e um fóssil. Anexa justificativa de categoria, uso e capacidade.
+1. Equipe com staff MFA + `MANAGE_SOURCE_WORK` escolhe a linha PBEV. O rating usa o `model_id` já gravado em `app_fleet_model_alias` para a mesma organização, o ano da linha e a chave da fonte. Não há outra identidade de modelo, nem escolha livre de um cadastro paralelo. Sem alias, o registro é recusado. Um `modelId` diferente do alias devolve `409 MODELO_DIVERGENTE`. O par continua exigindo um BEV do vetor EVR e um fóssil distinto, com justificativa de categoria, uso e capacidade.
 2. O par começa `PROPOSED` com versão 1. A revisão é feita **por outra identidade** no roster `carbonflow.platform.vehicle-ratings.reviewers`, também com staff MFA e leitura habilitada. A própria pessoa que cadastrou os ratings ou propôs o par **não pode aprovar**. A revisão usa `If-Match: "1"`.
 3. A aprovação interna valida LDV x LDV, BEV x veículo a combustão, o mesmo ano, mesmo ciclo, assentos com diferença máxima de um lugar e combustível **GASOLINE** neste primeiro ramo. Combustíveis misturados/flex/etanol/diesel ficam pendentes de avaliação metodológica e fatores específicos.
 4. Uma nova proposta aprovada pode substituir a referência corrente, marcando os snapshots dependentes do mesmo vetor `STALE_REFERENCE`. As decisões e versões anteriores permanecem auditáveis. `ACCEPTED` é **aceite interno de comparabilidade**; não equivale a emissão Verra/VVB.

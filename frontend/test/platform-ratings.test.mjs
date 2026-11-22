@@ -20,10 +20,14 @@ const models=[
    vehicleClass:'LDV',propulsion:'OTHER'},
 ];
 const candidates=[
-  {row:2,key:'A',metric:'ev_energy',value:18,unit:'kWh/100mi',year:2024,geography:'BR',locator:'PBEV tab 2'},
-  {row:3,key:'B',metric:'ev_energy',value:23,unit:'kWh/100mi',year:2024,geography:'BR',locator:'PBEV tab 3'},
-  {row:4,key:'C',metric:'fuel_economy',value:32,unit:'mi/USgal',year:2024,geography:'BR',locator:'PBEV tab 4'},
-  {row:5,key:'D',metric:'fuel_economy',value:27,unit:'mi/USgal',year:2024,geography:'BR',locator:'PBEV tab 5'},
+  {row:2,key:'A',metric:'ev_energy',value:18,unit:'kWh/100mi',year:2024,geography:'BR',locator:'PBEV tab 2',
+    fleetModelId:models[0].id,fleetModelTitle:models[0].title},
+  {row:3,key:'B',metric:'ev_energy',value:23,unit:'kWh/100mi',year:2024,geography:'BR',locator:'PBEV tab 3',
+    fleetModelId:models[1].id,fleetModelTitle:models[1].title},
+  {row:4,key:'C',metric:'fuel_economy',value:32,unit:'mi/USgal',year:2024,geography:'BR',locator:'PBEV tab 4',
+    fleetModelId:models[2].id,fleetModelTitle:models[2].title},
+  {row:5,key:'D',metric:'fuel_economy',value:27,unit:'mi/USgal',year:2024,geography:'BR',locator:'PBEV tab 5',
+    fleetModelId:models[3].id,fleetModelTitle:models[3].title},
 ];
 
 test('PBEV navegação mobile, revisão segregada e AFEC/MPG sem E8',async()=>{
@@ -69,6 +73,7 @@ test('PBEV navegação mobile, revisão segregada e AFEC/MPG sem E8',async()=>{
         const input=request.postDataJSON();
         const c=candidates.find(row=>row.row===input.sourceRow);
         assert.ok(c);
+        assert.equal(input.modelId,c.fleetModelId);
         const rating={...input,id:'aaa95000-0000-4000-8000-'+String(ratings.length+100).padStart(12,'0'),
           sourceLicenseId:'aaa95000-0000-4000-8000-000000000020',
           year:2024,originalValue:c.value,originalUnit:c.unit,
@@ -135,8 +140,8 @@ test('PBEV navegação mobile, revisão segregada e AFEC/MPG sem E8',async()=>{
     await page.getByText('PBEV tab 2').first().waitFor();
     for(let i=0;i<4;i++){
       await page.getByLabel('Tipo de veículo no PBEV').selectOption(i<2?'BEV':'FOSSIL');
-      await page.getByLabel('Identidade canônica do veículo').selectOption(models[i].id);
       await page.getByLabel('Linha exata da tabela autorizada').selectOption(String(i+2));
+      await page.getByText('Identificador da frota: '+models[i].title).waitFor();
       await page.getByLabel('Referência verificável do ciclo e capacidade')
         .fill('PBEV test combined cycle reference '+(i+2));
       // The prior success notice remains visible; waiting for it again does

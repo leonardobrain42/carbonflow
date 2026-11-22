@@ -6,7 +6,8 @@ type Model={id:string;organizationId:string;title:string;vehicleClass:string;pro
 type Source={id:string;organizationId:string;edition:string;sha256:string;state:string};
 type Fleet={id:string;organizationId:string;year:number;denominator:number;coverageState:string};
 type Candidate={row:number;key:string;metric:string;value:number|string;
-    unit:string;year:number;geography:string;locator:string};
+    unit:string;year:number;geography:string;locator:string;
+    fleetModelId:string|null;fleetModelTitle:string|null};
 type Rating={id:string;organizationId:string;modelId:string;sourceObjectId:string;
   sourceRow:number;year:number;role:'BEV'|'FOSSIL';fuel:string;cycle:string;seats:number;
   originalValue:string|number;originalUnit:string;normalizedValue:string|number;
@@ -103,7 +104,17 @@ export class PlatformRatingsComponent implements OnChanges {
     finally{if(epoch===this.epoch)this.busy.set(false);}
   }
 
-  sourceChanged(value:string){this.sourceId=value;this.candidates.set([]);this.rowIndex='';}
+  sourceChanged(value:string){
+    this.sourceId=value;this.candidates.set([]);this.rowIndex='';this.modelId='';
+  }
+  rowChanged(value:string){
+    this.rowIndex=value;
+    const row=this.candidates().find(item=>String(item.row)===value);
+    this.modelId=row?.fleetModelId??'';
+  }
+  selectedFleetModel(){
+    return this.candidates().find(item=>String(item.row)===this.rowIndex)?.fleetModelTitle??'';
+  }
   async loadCandidates(){
     if(!this.sourceId||this.busy())return;
     this.busy.set(true);this.error.set('');
@@ -135,6 +146,7 @@ export class PlatformRatingsComponent implements OnChanges {
   roleChanged(value:string){
     this.ratingRole=value==='FOSSIL'?'FOSSIL':'BEV';
     this.fuel=this.ratingRole==='BEV'?'ELECTRICITY':'GASOLINE';
+    this.rowIndex='';
     this.modelId='';
   }
 
@@ -244,10 +256,6 @@ export class PlatformRatingsComponent implements OnChanges {
 
   modelTitle(modelId:string){
     return this.board()?.models.find(m=>m.id===modelId)?.title??'Modelo sem associação';
-  }
-  eligibleModels(){return (this.board()?.models??[]).filter(m=>
-    m.organizationId===this.board()?.sources.find(s=>s.id===this.sourceId)?.organizationId &&
-    m.vehicleClass==='LDV' && (this.ratingRole==='BEV'?m.propulsion==='BEV':m.propulsion==='OTHER'));
   }
   ratingsFor(role:'BEV'|'FOSSIL'){return (this.board()?.ratings??[]).filter(r=>
     r.role===role && this.board()?.fleets.find(f=>f.id===this.fleetId)?.organizationId===r.organizationId);}
