@@ -103,6 +103,8 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
       }
     });
     await page.goto(base + '/workspace/projects/' + project + '/technical?secao=quantificar');
+    await page.getByText('Falta Estoque nacional EVR.').waitFor();
+    await page.getByText('Não há BE, PE, LE nem ER. Ausência não é zero.').waitFor();
     await page.getByRole('heading', {name:'Última tentativa de cálculo · M1'}).waitFor();
     await page.getByText('Outro ator, que não seja o autor dos vínculos').waitFor();
     await page.getByText('Ainda não há pino de fator fóssil, fator elétrico, IR ou Dy neste projeto.').waitFor();
@@ -126,6 +128,7 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
     await page.getByText('Referência: ED', {exact:true}).first().waitFor();
     await page.getByText('Nenhuma tentativa registrada neste período.').waitFor();
     await page.getByRole('button', {name:'Registrar tentativa de cálculo'}).click();
+    await page.getByText('Falta Melhoria tecnológica.').waitFor();
     await page.getByText('Bloqueado · v1').waitFor();
     await page.getByText('Não calculados').waitFor();
     await page.getByText('Melhoria tecnológica · Não informado').waitFor();
@@ -146,6 +149,9 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
     assert.ok(await page.getByText('Não habilitada').count() >= 1);
     showRehearsal = true;
     await page.getByRole('button', {name:'Atualizar diagnóstico'}).click();
+    await page.getByRole('heading', {name:'Memória do ensaio interno · M1'}).waitFor();
+    await page.getByText('Esta tela não aplica fórmula.').waitFor();
+    assert.equal(await page.getByText('Não há execução de BE, PE, LE ou ER neste projeto.').count(), 0);
     await page.getByText('Ensaio interno — crédito não habilitado').waitFor();
     await page.getByText('Emissões do projeto', {exact:true}).waitFor();
     await page.getByText('Fuga', {exact:true}).waitFor();

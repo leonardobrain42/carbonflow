@@ -170,9 +170,8 @@
             }
 
             @case ('quantificar') {
-              <p>Acompanhe as equações e a proveniência exigidas pela VM0038.
-                Nenhuma estimativa é apresentada como cálculo verificado.
-                BE, PE, LE e ER permanecem bloqueados até admissão normativa.</p>
+              <p>A quantificação mostra a grandeza que falta ou a memória recebida do servidor.
+                O navegador não calcula. Nenhuma estimativa é apresentada como cálculo verificado.</p>
               @if (can('VIEW_OPEN_CALCULATION') && (!saved.journey.candidate || saved.journey.candidate === 'VM0038')) {
                 <carbonflow-open-calculation-readiness [projectId]="projectId" />
               } @else {
