@@ -27,6 +27,11 @@ type Selection={id:string;projectId:string;period:string;version:number;observat
 export type PdSection={guide:{id:string;title:string;version:number;missing:string[]};
   latest:{number:number;guideVersion:number;sha256:string}|null;
   monitoringDependency:{state:string;outdated:boolean}|null};
+type OpinionCriterion={code:string;title:string;state:string;stateLabel:string;text:string;
+  humanOpinion:boolean;concludes:boolean};
+type Opinion={declarationRoute:string|null;declarationIsOpinion:boolean;
+  marketTestClosesApplicability:boolean;concludesAdditionality:boolean;usableForE8:boolean;
+  criteria:OpinionCriterion[]};
 type SourceStatus='not_requested'|'loading'|'ready'|'restricted'|'error';
 type SourceName='typed'|'applicability'|'calculation'|'monitoring'|'fleet'|'pd';
 
@@ -84,6 +89,7 @@ export class DecisionWorkbenchComponent implements OnChanges {
   readonly dossiers=signal<Dossier[]>([]);
   readonly fleet=signal<Selection[]>([]);
   readonly pdSections=signal<PdSection[]>([]);
+  readonly opinion=signal<Opinion|null>(null);
   readonly status=signal<Record<SourceName,SourceStatus>>({
     typed:'not_requested',applicability:'not_requested',calculation:'not_requested',
     monitoring:'not_requested',fleet:'not_requested',pd:'not_requested'
@@ -147,7 +153,7 @@ export class DecisionWorkbenchComponent implements OnChanges {
     if(!project)return;
     this.loading.set(true);
     this.typed.set(null);this.applicability.set(null);this.calculation.set(null);
-    this.dossiers.set([]);this.fleet.set([]);this.pdSections.set([]);
+    this.dossiers.set([]);this.fleet.set([]);this.pdSections.set([]);this.opinion.set(null);
     this.failures.set({});
     const active:Record<SourceName,boolean>={
       typed:true,applicability:this.canViewApplicability,
@@ -185,6 +191,17 @@ export class DecisionWorkbenchComponent implements OnChanges {
     ];
     if(active.applicability)actions.push(get<AppView>('applicability',base+'/open-applicability',
       value=>this.applicability.set(value)));
+    if(this.kind==='additionality'&&active.applicability)actions.push((async()=>{
+      try{
+        const value=await firstValueFrom(this.http.get<Opinion>(base+'/open-additionality'));
+        if(id!==this.sequence)return;
+        if(value.concludesAdditionality||value.usableForE8||value.declarationIsOpinion)
+          throw new Error('Parecer inconsistente');
+        this.opinion.set(value);
+      }catch{
+        if(id===this.sequence)this.opinion.set(null);
+      }
+    })());
     if(active.calculation)actions.push(get<Calc>('calculation',base+'/open-calculation-readiness',
       value=>{if(value.projectId!==project||value.environment!=='SANDBOX')
         throw new Error('Contexto de projeto incorreto');this.calculation.set(value);}));
@@ -215,6 +232,7 @@ export class DecisionWorkbenchComponent implements OnChanges {
     await Promise.all(actions);
     if(id===this.sequence)this.loading.set(false);
   }
+  criterion(code:string){return this.opinion()?.criteria.find(item=>item.code===code)??null;}
   summary(value:unknown):string{
     if(Array.isArray(value))return value.join(', ');
     if(value===true)return 'Sim (declarado)';

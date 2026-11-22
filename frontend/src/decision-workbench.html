@@ -162,6 +162,21 @@
         }
         <p>Lista positiva candidata (VMD0049) é distinta de excedente regulatório,
           aplicabilidade do mercado e demonstração de adicionalidade. Sem parecer humano, não há conclusão.</p>
+        @if (opinion(); as opinion) {
+          <h4>Pareceres humanos</h4>
+          <p>A declaração do guia não é o parecer. Lista positiva, excedente regulatório
+            e cronologia continuam com revisão humana.</p>
+          @if (opinion.declarationRoute) {
+            <p>Rota escrita no guia: {{opinion.declarationRoute}}. Não é o parecer.</p>
+          }
+          @for (item of opinion.criteria; track item.code) {
+            <section class="cf-journey-context">
+              <strong>{{item.title}}</strong>
+              <p>{{item.text}}</p>
+              <p>{{item.stateLabel}}. Esta etapa não conclui a adicionalidade.</p>
+            </section>
+          }
+        }
         <button class="cf-workspace-outline" type="button" (click)="selectStep('cronologia')">Analisar a cronologia</button>
       }
       @case ('cronologia'){
@@ -181,6 +196,9 @@
             <p role="alert" class="cf-workspace-note">Compromisso anterior à consideração da receita de carbono.
               Exige análise de cronologia e prova; não é reprovação automática.</p>
           }
+        }
+        @if (criterion('CHRONOLOGY'); as item) {
+          <p>{{item.text}}</p>
         }
         <h4>Datas e justificativas tipadas</h4>
         @if (guide(); as g) {
