@@ -23,7 +23,8 @@ class PdSections {
                    OpenMonitoringDossiers.PdDependency monitoringDependency,
                    OpenPdCalculationNote.Note calculation,
                    OpenPdAdditionalityNote.Note additionality,
-                   OpenPdApplicabilityNote.Note applicability) {}
+                   OpenPdApplicabilityNote.Note applicability,
+                   OpenPdBaselineNote.Note baseline) {}
     record Artifact(String text, String sha256) {}
     private final DynamicProjectScope scopes;
     private final ProjectGuides guides;
@@ -45,6 +46,7 @@ class PdSections {
             var sections = new ArrayList<Section>();
             OpenPdCalculationNote.Note calculation = OpenPdCalculationNote.from(runs.newest(c, project));
             OpenApplicability.Readiness readiness = applicability.readinessOf(c, project);
+            OpenE8FleetSelections.View fleet = OpenE8FleetSelections.newest(c, project);
             for (var guide : guides.catalog(c, scope).guides()) {
                 Version current=latest(c,project,guide.id());
                 sections.add(new Section(guide,current,
@@ -54,7 +56,9 @@ class PdSections {
                     "additionality".equals(guide.id())
                         ? OpenPdAdditionalityNote.from(readiness, guide.answers()) : null,
                     "applicability".equals(guide.id())
-                        ? OpenPdApplicabilityNote.from(readiness) : null));
+                        ? OpenPdApplicabilityNote.from(readiness) : null,
+                    "baseline".equals(guide.id())
+                        ? OpenPdBaselineNote.from(fleet, guide.answers()) : null));
             }
             return sections;
         });
