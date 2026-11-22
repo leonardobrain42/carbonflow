@@ -6,7 +6,7 @@
 
 `OpenGridCalculationMath` continua sendo aritmética pura, com `usableForE8=false`. O servidor só a chama quando o leitor entrega ED, EC, um único EFel, frota, EFfuel, IR e Dy, e o ator da tentativa não é o autor desses vínculos. No PostgreSQL atual, IR e Dy não têm valor normalizado (`V50`) e não há pino de EFfuel de projeto. O leitor de produção devolve conjunto incompleto. O POST grava `BLOCKED`, com os códigos de gate e o `equationPlan` já montado por `OpenCalculationTransparency`. BE, PE, LE e ER ficam nulos. `canIssueVcu` permanece falso por `CHECK`.
 
-`usable_for_e8=false` nas tabelas `V59`–`V64` não é o motivo do bloqueio e não muda. O bloqueio é a ausência do conjunto. Um ensaio `REVIEWED_INTERNAL` só existe quando outro ator autoriza um conjunto completo; esse ramo é coberto por teste de unidade com leitor falso e não é alcançável pela API hoje.
+`usable_for_e8=false` nas tabelas `V59`–`V64` não é o motivo do bloqueio e não muda. O bloqueio é a ausência do conjunto. Quando o período tem ED, EC, um único EFel, linhas de frota, fator fóssil vigente, IR positivo declarado e Dy declarado como 1 com prova de ausência de créditos de frota, outro ator — que não publicou esses vínculos — grava `REVIEWED_INTERNAL`. O autor dos vínculos recebe `BLOCKED` com `ACTOR_SEGREGATION`. O ensaio guarda a memória e os pinos usados. `canIssueVcu` e `usableForE8` permanecem falsos. Um pino posterior deixa a leitura `STALE` sem reescrever a linha.
 
 ## API
 

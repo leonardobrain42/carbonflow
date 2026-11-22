@@ -104,6 +104,7 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
     });
     await page.goto(base + '/workspace/projects/' + project + '/technical?secao=quantificar');
     await page.getByRole('heading', {name:'Última tentativa de cálculo · M1'}).waitFor();
+    await page.getByText('Outro ator, que não seja o autor dos vínculos').waitFor();
     await page.getByText('Ainda não há pino de fator fóssil, fator elétrico, IR ou Dy neste projeto.').waitFor();
     await page.getByText('fator elétrico, estoque nacional EVR e ratings PBEV').waitFor();
     await page.getByText('Estoque nacional EVR · Fonte ainda não vinculada').waitFor();

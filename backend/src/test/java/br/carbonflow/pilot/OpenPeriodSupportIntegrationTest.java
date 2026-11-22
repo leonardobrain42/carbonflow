@@ -456,6 +456,34 @@ class OpenPeriodSupportIntegrationTest {
         assertFalse(preparedFleet.toString().contains(handoff.path("fleetSourceSha256").asText()));
         assertFalse(preparedFleet.toString().contains(preparedCatalog[0].toString()));
 
+        Actor preparer=actor();
+        grant(project,org,owner.id(),preparer.id(),"PREP");
+        pinCompleteSet(project,org,staffManager.id(),staffReviewer.id());
+        String runs=dossierUrl+"/M1/e8-runs";
+        var authorRun=postMethod(runs,owner.cookie(),key(),"\"0\"","{}");
+        assertEquals(201,authorRun.statusCode(),authorRun.body());
+        assertEquals("BLOCKED",json(authorRun).path("state").asText());
+        assertTrue(json(authorRun).path("memory").isNull());
+        assertTrue(json(authorRun).path("gates").toString().contains("ACTOR_SEGREGATION"));
+        assertFalse(json(authorRun).path("canIssueVcu").asBoolean());
+        var rehearsed=postMethod(runs,preparer.cookie(),key(),"\"1\"","{}");
+        assertEquals(201,rehearsed.statusCode(),rehearsed.body());
+        JsonNode rehearsal=json(rehearsed);
+        assertEquals("REVIEWED_INTERNAL",rehearsal.path("state").asText());
+        assertEquals(2,rehearsal.path("version").asInt());
+        assertFalse(rehearsal.path("canIssueVcu").asBoolean());
+        assertFalse(rehearsal.at("/memory/usableForE8").asBoolean());
+        assertEquals("PURE_MATH_TEST_ONLY_NOT_ADMITTED",rehearsal.at("/memory/kernelState").asText());
+        assertEquals("4.05",rehearsal.at("/memory/beTco2e").asText(),rehearsal.path("memory").toString());
+        assertEquals("1.5",rehearsal.at("/memory/peTco2e").asText(),rehearsal.path("memory").toString());
+        assertEquals("2.55",rehearsal.at("/memory/erTco2e").asText(),rehearsal.path("memory").toString());
+        assertFalse(rehearsal.toString().contains("EF-SYN"));
+        assertFalse(rehearsal.toString().contains("SIM-DY"));
+        JsonNode stillBlocked=json(call("GET",technical+"/open-calculation-readiness",
+            owner.cookie(),null,null));
+        assertFalse(stillBlocked.path("canRunE8").asBoolean());
+        assertTrue(stillBlocked.at("/emissions/erTco2e").isNull());
+
         String vtUrl=efelUrl+"/"+efel.path("id").asText()+"/vt0011-workbooks";
         assertEquals(0,json(call("GET",vtUrl,owner.cookie(),null,null)).size());
         assertEquals(404,call("GET",vtUrl,op.cookie(),null,null).statusCode());
@@ -1050,12 +1078,13 @@ class OpenPeriodSupportIntegrationTest {
         String edition="E8-2027-"+UUID.randomUUID().toString().substring(0,8);
         database.transaction(c->{
             UUID[] models={bevA,bevB,iceA,iceB};
+            String suffix=UUID.randomUUID().toString().substring(0,8);
             for(int i=0;i<models.length;i++)update(c,"""
                 INSERT INTO app_fleet_model
                 (id,organization_id,manufacturer,model_name,variant,
                  vehicle_class,propulsion,created_by)
                 VALUES (?,?,'Ficticia',?,'Base','LDV',?,?)
-                """,models[i],org,i<2?"Synthetic BEV "+i:"Synthetic ICE "+i,
+                """,models[i],org,(i<2?"Synthetic BEV ":"Synthetic ICE ")+suffix+" "+i,
                 i<2?"BEV":"OTHER",manager);
             // Project-integration-only identifiers: do not mutate the global
             // official-source catalogue used by PlatformSourceReadiness tests.
@@ -1211,6 +1240,100 @@ class OpenPeriodSupportIntegrationTest {
                 E8_STAFF_MANAGER.toString());
             return properties;
         }
+    }
+
+    /** Synthetic fossil reference plus explicit IR and Dy. Not an official factor. */
+    private void pinCompleteSet(String project,UUID org,UUID author,UUID reviewer) {
+        database.transaction(c->{
+            String edition="E8-FUEL-"+UUID.randomUUID().toString().substring(0,8);
+            String source=first(c,"""
+                SELECT source_id FROM app_methodology_source_need
+                WHERE code='OPEN-FOSSIL-EF' AND methodology='VM0038'
+                  AND methodology_edition='1.1'
+                """,r->r.getString(1));
+            UUID submission=UUID.randomUUID(),license=UUID.randomUUID(),object=UUID.randomUUID();
+            UUID candidate=UUID.randomUUID(),assessment=UUID.randomUUID();
+            byte[] sha=AccessSecrets.digest(edition);
+            update(c,"""
+                INSERT INTO app_source_version
+                 (source_id,edition,category,title,rights_holder,official_uri,origin)
+                VALUES (? ,?,'EXTERNAL_SOURCE','Fator fossil ficticio','Autor sintetico',
+                        'https://example.org/factor','EXTERNAL')
+                """,source,edition);
+            update(c,"""
+                INSERT INTO app_platform_source_submission
+                 (id,need_code,source_id,edition,category,title,rights_holder,publisher,
+                  official_uri,reference_year,locator,metadata_fingerprint,state,
+                  submitted_by,reviewed_by)
+                VALUES (?, 'OPEN-FOSSIL-EF', ?, ?,'EXTERNAL_SOURCE','Fator fossil ficticio',
+                        'Autor sintetico','Editor sintetico','https://example.org/factor',
+                        2027,'CSV registro 1',?,'METADATA_ACCEPTED',?,?)
+                """,submission,source,edition,sha,author,reviewer);
+            update(c,"""
+                INSERT INTO app_content_license
+                 (id,source_id,edition,organization_id,submitted_by,environment,purpose,
+                  authorization_ref,proof_sha256,starts_at,ends_at)
+                VALUES (?, ?, ?, ? ,?,'SANDBOX','AUTHORIZED_PROCESSING','Somente teste',
+                        ?,'2024-01-01',statement_timestamp()+interval '1 hour')
+                """,license,source,edition,org,author,"d".repeat(64));
+            update(c,"""
+                INSERT INTO app_content_license_decision
+                 (license_id,version,outcome,decided_by,reason)
+                VALUES (?,1,'APPROVED',?,'Autorizacao sintetica independente')
+                """,license,reviewer);
+            update(c,"""
+                INSERT INTO app_content_license_capability
+                 (license_id,decision_version,operation)
+                VALUES (?,1,'STORE_ORIGINAL'),(?,1,'EXTRACT_TEXT'),
+                       (?,1,'SHOW_EXCERPTS'),(?,1,'EXPORT_DERIVATIVES')
+                """,license,license,license,license);
+            update(c,"""
+                INSERT INTO app_platform_source_object
+                 (id,submission_id,organization_id,uploaded_by,license_id,license_version,
+                  file_name,file_format,sha256,bytes_count,nonce,encrypted,state,
+                  parsed_rows,parser_version)
+                VALUES (?,?,?,?,?,1,'fator.csv','CSV',?,16,?,?,'APPROVED_FOR_SCOPE',1,'TABULAR-1')
+                """,object,submission,org,author,license,sha,new byte[12],new byte[32]);
+            update(c,"""
+                INSERT INTO app_open_parameter_candidate
+                 (id,organization_id,source_object_id,source_license_id,source_row,
+                  source_sha256,source_locator,created_by,methodology,methodology_edition,
+                  scenario,geography,period_year,parameter_kind,gas,fuel,
+                  original_unit,original_value,normalized_unit,normalized_value,
+                  conversion_formula,technical_rule_ref,technical_evidence)
+                VALUES (?,?,?,?,2,?, 'CSV registro 1',?,'VM0038','1.1',
+                        'OPEN_LDV_DCFC_SIN_BR','BR',2027,'EF_FUEL','CO2e','GASOLINE',
+                        'tCO2e/USgal',0.009,'tCO2e/USgal',0.009,
+                        'identity','VM0038-1.1-EQ1-EF_FUEL','CSV registro 1')
+                """,candidate,org,object,license,sha,author);
+            update(c,"""
+                INSERT INTO app_open_parameter_assessment
+                 (id,candidate_id,methodology,methodology_edition,scenario,blocked_capability,
+                  outcome,rule_reference,evidence_locator,reason,reviewed_by)
+                VALUES (?,?,'VM0038','1.1','OPEN_LDV_DCFC_SIN_BR','BASELINE_BE',
+                        'APPROVED_FOR_SCOPE','VM0038-1.1-EQ1','CSV registro 1',
+                        'Checagem interna ficticia da fonte',?)
+                """,assessment,candidate,reviewer);
+            update(c,"""
+                INSERT INTO app_open_project_parameter_binding
+                 (id,project_id,organization_id,environment,parameter_kind,vintage_year,
+                  version,candidate_id,source_sha256,normalized_unit,conversion_formula,
+                  value_kind,triage_version,binding_sha256,published_by)
+                VALUES (?, ?, ?,'SANDBOX','EF_FUEL',2027,1,?,?, 'tCO2e/USgal','identity',
+                        'REFERENCE',1,?,?)
+                """,UUID.randomUUID(),project,org,candidate,sha,AccessSecrets.digest("fuel-pin"),author);
+            for (String kind : new String[]{"IR","DY"}) {
+                update(c,"""
+                    INSERT INTO app_open_project_parameter_binding
+                     (id,project_id,organization_id,environment,parameter_kind,vintage_year,
+                      version,declared_value,rule_reference,evidence_locator,value_kind,
+                      triage_version,binding_sha256,published_by)
+                    VALUES (?, ?, ?,'SANDBOX',?,2027,1,1,
+                            'VM0038 explicit declaration','DOC-1','DECLARED_EXPLICIT',1,?,?)
+                    """,UUID.randomUUID(),project,org,kind,AccessSecrets.digest(kind+"-pin"),author);
+            }
+            return null;
+        });
     }
 
     private void grant(String project,UUID org,UUID owner,UUID actor,String role) {

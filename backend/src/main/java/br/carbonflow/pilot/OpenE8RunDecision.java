@@ -120,12 +120,29 @@ final class OpenE8RunDecision {
             case "AFEC_MPG" -> "MISSING".equals(state)
                 ? "Não há ratings de projeto vinculados neste período."
                 : "Os ratings vinculados não estão admitidos. O catálogo licenciado não é copiado para o run.";
-            case "EF_FUEL" ->
-                "Não há fator fóssil do projeto com valor armazenado.";
-            case "IR" ->
-                "A melhoria tecnológica não tem valor normalizado armazenado. A tentativa não inventa 1.";
-            case "DY" ->
-                "O desconto por outro crédito não tem valor nem prova armazenados. A tentativa não presume desconto.";
+            case "EF_FUEL" -> switch (state) {
+                case "NOT_ADMITTED" ->
+                    "O fator fóssil está vinculado por referência e permanece não admitido.";
+                case "REVIEW_REQUIRED" ->
+                    "O fator fóssil vinculado não tem valor utilizável neste ensaio.";
+                default -> "Não há fator fóssil do projeto com valor armazenado.";
+            };
+            case "IR" -> switch (state) {
+                case "NOT_ADMITTED" ->
+                    "A melhoria tecnológica foi declarada com regra e prova e permanece não admitida.";
+                case "REVIEW_REQUIRED" ->
+                    "A melhoria declarada como zero não entra no ensaio. A tentativa não troca zero por 1.";
+                default ->
+                    "A melhoria tecnológica não tem valor normalizado armazenado. A tentativa não inventa 1.";
+            };
+            case "DY" -> switch (state) {
+                case "NOT_ADMITTED" ->
+                    "O desconto foi declarado como ausência comprovada de créditos de frota e permanece não admitido.";
+                case "REVIEW_REQUIRED" ->
+                    "O valor declarado de Dy não é a prova de ausência de créditos de frota. O ensaio não inventa a divisão entre créditos.";
+                default ->
+                    "O desconto por outro crédito não tem valor nem prova armazenados. A tentativa não presume desconto.";
+            };
             case "NORMATIVE_PACK" ->
                 "O pacote normativo do projeto não está admitido para execução.";
             case "CARBON_RIGHTS" ->
