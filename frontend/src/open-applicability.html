@@ -30,23 +30,23 @@
           <div class="cf-journey-fields">
             <div>
               <label for="cf-open-access">Qualquer BEV compatível pode utilizar?</label>
-              <select id="cf-open-access" [value]="bool(form().unrestrictedBevAccess)"
+              <select id="cf-open-access" 
                 (change)="update('unrestrictedBevAccess',$any($event.target).value)">
-                @for (o of yesNo;track o.value){<option [value]="o.value">{{o.label}}</option>}
+                @for (o of yesNo;track o.value){<option [value]="o.value" [selected]="o.value === bool(form().unrestrictedBevAccess)">{{o.label}}</option>}
               </select>
             </div>
             <div>
               <label for="cf-open-fleet">Restringe o uso a veículos identificados?</label>
-              <select id="cf-open-fleet" [value]="bool(form().restrictedToIdentifiedVehicles)"
+              <select id="cf-open-fleet" 
                 (change)="update('restrictedToIdentifiedVehicles',$any($event.target).value)">
-                @for (o of yesNo;track o.value){<option [value]="o.value">{{o.label}}</option>}
+                @for (o of yesNo;track o.value){<option [value]="o.value" [selected]="o.value === bool(form().restrictedToIdentifiedVehicles)">{{o.label}}</option>}
               </select>
             </div>
             <div>
               <label for="cf-open-land">O ponto fica em terreno particular?</label>
-              <select id="cf-open-land" [value]="bool(form().privateLand)"
+              <select id="cf-open-land" 
                 (change)="update('privateLand',$any($event.target).value)">
-                @for (o of yesNo;track o.value){<option [value]="o.value">{{o.label}}</option>}
+                @for (o of yesNo;track o.value){<option [value]="o.value" [selected]="o.value === bool(form().privateLand)">{{o.label}}</option>}
               </select>
             </div>
             <div>
@@ -80,16 +80,16 @@
             </div>
             <div>
               <label for="cf-open-associated">Existe armazenamento/geração associada?</label>
-              <select id="cf-open-associated" [value]="bool(form().associatedInfrastructure)"
+              <select id="cf-open-associated" 
                 (change)="update('associatedInfrastructure',$any($event.target).value)">
-                @for (o of yesNo;track o.value){<option [value]="o.value">{{o.label}}</option>}
+                @for (o of yesNo;track o.value){<option [value]="o.value" [selected]="o.value === bool(form().associatedInfrastructure)">{{o.label}}</option>}
               </select>
             </div>
             <div>
               <label for="cf-open-v2g">O carregador devolve energia à rede (V2G)?</label>
-              <select id="cf-open-v2g" [value]="bool(form().v2g)"
+              <select id="cf-open-v2g" 
                 (change)="update('v2g',$any($event.target).value)">
-                @for (o of yesNo;track o.value){<option [value]="o.value">{{o.label}}</option>}
+                @for (o of yesNo;track o.value){<option [value]="o.value" [selected]="o.value === bool(form().v2g)">{{o.label}}</option>}
               </select>
             </div>
           </div>
@@ -127,7 +127,7 @@
             (change)="chooseParty($any($event.target).value)">
             <option value="">Ainda não escolhido</option>
             @for (party of parties(); track party.code){
-              <option [value]="party.code">{{party.displayName}}</option>
+              <option [value]="party.code" [selected]="party.code === form().rightsPartyCode">{{party.displayName}}</option>
             }
           </select>
           <label for="cf-rights-label">Rótulo do contrato</label>
@@ -139,7 +139,7 @@
             (change)="update('rightsContractCode',$any($event.target).value)">
             <option value="">Ainda não escolhido</option>
             @for (contract of contractsForParty(); track contract.code){
-              <option [value]="contract.code">{{contract.label}}</option>
+              <option [value]="contract.code" [selected]="contract.code === form().rightsContractCode">{{contract.label}}</option>
             }
           </select>
           <label for="cf-contract-file">Arquivo do contrato</label>
@@ -183,7 +183,7 @@
             (change)="update('operationalEventCode',$any($event.target).value)">
             <option value="">Ainda não escolhido</option>
             @for (event of eventsOf('OPERATIONAL_START'); track event.code){
-              <option [value]="event.code">{{event.eventOn}} · referência não admitida</option>
+              <option [value]="event.code" [selected]="event.code === form().operationalEventCode">{{event.eventOn}} · referência não admitida</option>
             }
           </select>
           <label for="cf-vcs-date">Data do início de crédito VCS</label>
@@ -199,7 +199,7 @@
             (change)="update('vcsEventCode',$any($event.target).value)">
             <option value="">Ainda não escolhido</option>
             @for (event of eventsOf('VCS_START'); track event.code){
-              <option [value]="event.code">{{event.eventOn}} · referência não admitida</option>
+              <option [value]="event.code" [selected]="event.code === form().vcsEventCode">{{event.eventOn}} · referência não admitida</option>
             }
           </select>
           <label for="cf-open-overlap">Risco de dupla reivindicação de créditos</label>
