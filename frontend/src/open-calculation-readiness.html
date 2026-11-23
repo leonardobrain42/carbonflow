@@ -123,6 +123,15 @@
       }
     </ul>
     <h4>Última tentativa de cálculo · {{runPeriod()}}</h4>
+    @if (runPeriods().length > 1) {
+      <label for="cf-open-e8-run-period">Período de monitoramento</label>
+      <select id="cf-open-e8-run-period" #periodSelect [disabled]="recording()"
+              (change)="loadRun(periodSelect.value)">
+        @for (period of runPeriods(); track period) {
+          <option [value]="period" [selected]="period===runPeriod()">{{period}}</option>
+        }
+      </select>
+    }
     <p>Registrar a tentativa grava o diagnóstico deste período.
       Nenhum número é enviado pelo navegador. Com o conjunto incompleto, BE, PE, LE e ER
       permanecem sem cálculo. Outro ator, que não seja o autor dos vínculos, pode registrar
@@ -154,6 +163,8 @@
           </li>
         }
       </ul>
+    } @else if (runLoading()) {
+      <p role="status">Consultando a tentativa do período {{runPeriod()}}…</p>
     } @else {
       <p>Nenhuma tentativa registrada neste período.</p>
     }
@@ -161,7 +172,7 @@
       <button type="button" class="cf-workspace-outline" (click)="record()" [disabled]="recording()">
         Registrar tentativa de cálculo</button>
     }
-    <button type="button" class="cf-workspace-outline" (click)="load()">Atualizar diagnóstico</button>
+    <button type="button" class="cf-workspace-outline" [disabled]="recording()" (click)="load()">Atualizar diagnóstico</button>
   }
   <ng-template #gateDetail let-gate="gate" let-title="title">
     <strong>{{title}} · {{stateLabel(gate.state)}}</strong>

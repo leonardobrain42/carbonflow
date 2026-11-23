@@ -12,6 +12,7 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
   try {
     const page = await browser.newPage({viewport:{width:1440, height:900}});
     let posted = null;
+    let secondPeriodMatch = null;
     let showRehearsal = false;
     const rehearsal = {
       id:'30000000-0000-4000-8000-000000000098',
@@ -86,7 +87,21 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
         whyNotCalculated:'Não calculado. Não há energia entregue admitida por carregador e período.',
       }],
     }}));
-    await page.route('**/v1/projects/*/technical/open-monitoring/dossiers', route => route.fulfill({json:[]}));
+    await page.route('**/v1/projects/*/technical/open-monitoring/dossiers', route => route.fulfill({json:[
+      {reference:{code:'M1'}}, {reference:{code:'M2'}},
+    ]}));
+    const secondPeriod = {
+      ...blocked, period:'M2', version:4, gates:[],
+      timing:{projectYear:2, sourceYear:2029},
+    };
+    await page.route('**/v1/projects/*/technical/open-monitoring/dossiers/M2/e8-runs', async route => {
+      if (route.request().method() === 'POST') {
+        secondPeriodMatch = route.request().headers()['if-match'];
+        await route.fulfill({status:201, json:{...secondPeriod, version:5}});
+      } else {
+        await route.fulfill({json:{projectId:project, period:'M2', canRecord:true, runs:[secondPeriod]}});
+      }
+    });
     await page.route('**/v1/projects/*/technical/open-monitoring/dossiers/M1/e8-runs', async route => {
       if (route.request().method() === 'POST') {
         posted = {
@@ -162,6 +177,22 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
     await page.getByText('Referência: ER', {exact:true}).waitFor();
     await page.getByText('4.05 tCO2e').waitFor();
     assert.equal(await page.getByText('Habilitada', {exact:true}).count(), 0);
+
+    const period = page.getByLabel('Período de monitoramento', {exact:true});
+    await period.selectOption('M2');
+    await page.getByRole('heading', {name:'Última tentativa de cálculo · M2'}).waitFor();
+    await page.getByText('Bloqueado · v4').waitFor();
+    await page.getByText('2029', {exact:true}).waitFor();
+    assert.equal(await page.getByRole('heading', {name:'Memória do ensaio interno · M1'}).count(), 0);
+    await page.getByRole('button', {name:'Registrar tentativa de cálculo'}).click();
+    await page.getByText('Bloqueado · v5').waitFor();
+    assert.equal(secondPeriodMatch, '"4"');
+
+    await page.getByRole('button', {name:'Atualizar diagnóstico'}).click();
+    await page.getByText('Bloqueado · v4').waitFor();
+    assert.equal(await period.inputValue(), 'M2');
+    await period.selectOption('M1');
+    await page.getByRole('heading', {name:'Memória do ensaio interno · M1'}).waitFor();
   } finally {
     await browser.close();
   }

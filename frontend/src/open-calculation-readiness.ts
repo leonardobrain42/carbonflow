@@ -96,16 +96,25 @@ export class OpenCalculationReadinessComponent implements OnChanges {
   readonly readiness=signal<OpenCalculationReadiness|null>(null);
   readonly pins=signal<ParameterPin[]>([]);
   readonly runPeriod=signal('M1');
+  readonly runPeriods=signal<string[]>([]);
+  readonly runLoading=signal(false);
   readonly canRecord=signal(false);
   readonly latestRun=signal<CalculationRun|null>(null);
   readonly recording=signal(false);
   readonly runError=signal('');
   private requestId=0;
+  private runRequestId=0;
   private runKey='';
 
   ngOnChanges(changes:SimpleChanges) {
     if(changes['projectId']) {
       this.runKey='';
+      this.runRequestId++;
+      this.runPeriod.set('M1');
+      this.runPeriods.set([]);
+      this.latestRun.set(null);
+      this.canRecord.set(false);
+      this.recording.set(false);
       void this.load();
     }
   }
@@ -136,7 +145,7 @@ export class OpenCalculationReadinessComponent implements OnChanges {
     } finally {
       if(current===this.requestId)this.loading.set(false);
     }
-    if(current===this.requestId)void this.loadRun();
+    if(current===this.requestId)void this.loadRunPeriods(project,current);
   }
 
   private async loadPins(project:string, current:number) {
@@ -149,24 +158,26 @@ export class OpenCalculationReadinessComponent implements OnChanges {
     }
   }
 
-  async loadRun() {
+  async loadRun(period=this.runPeriod()) {
     const project=this.projectId;
-    const period=await this.period();
-    if(project!==this.projectId)return;
+    const current=++this.runRequestId;
     this.runPeriod.set(period);
+    this.runLoading.set(true);
+    this.latestRun.set(null);
+    this.canRecord.set(false);
+    this.runError.set('');
     try {
       const listing=await firstValueFrom(this.http.get<RunListing>(this.runUrl(project,period)));
-      if(project!==this.projectId)return;
+      if(project!==this.projectId || current!==this.runRequestId)return;
       if(listing.period!==period)throw new Error('Inconsistent period');
       this.canRecord.set(listing.canRecord);
       this.latestRun.set(listing.runs[0]??null);
-      this.runError.set('');
     } catch (problem) {
-      if(project!==this.projectId)return;
-      this.canRecord.set(false);
-      this.latestRun.set(null);
+      if(project!==this.projectId || current!==this.runRequestId)return;
       this.runError.set(problem instanceof HttpErrorResponse && [401,403,404].includes(problem.status)
         ? '' : 'Não foi possível consultar a última tentativa.');
+    } finally {
+      if(current===this.runRequestId)this.runLoading.set(false);
     }
   }
 
@@ -204,16 +215,19 @@ export class OpenCalculationReadinessComponent implements OnChanges {
     }
   }
 
-  private async period() {
+  private async loadRunPeriods(project:string, current:number) {
+    let periods:string[]=[];
     try {
       const dossiers=await firstValueFrom(this.http.get<{reference?:{code?:string}}[]>(
-        '/v1/projects/'+encodeURIComponent(this.projectId)+'/technical/open-monitoring/dossiers'));
-      const code=dossiers.find(item=>item.reference?.code)?.reference?.code;
-      if(code)return code;
+        '/v1/projects/'+encodeURIComponent(project)+'/technical/open-monitoring/dossiers'));
+      periods=dossiers.map(item=>item.reference?.code).filter((code):code is string=>!!code);
     } catch {
       // Quem vê o cálculo e não o monitoramento registra a tentativa em M1.
     }
-    return 'M1';
+    if(project!==this.projectId || current!==this.requestId)return;
+    this.runPeriods.set(periods);
+    const selected=this.runPeriod();
+    await this.loadRun(periods.includes(selected)?selected:periods[0]??'M1');
   }
 
   private runUrl(project:string, period:string) {
