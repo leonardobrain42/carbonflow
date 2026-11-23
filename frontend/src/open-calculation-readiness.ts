@@ -46,6 +46,11 @@ interface RunMemory {
   leTco2e:string;
   erTco2e:string;
   erDisplay:string;
+  hourlyPe?:{
+    windowStart:string;windowEndExclusive:string;region:string;
+    edKwh:string;ecKwh:string;peTco2e:string;
+    hours:{hourStart:string;edKwh:string;ecKwh:string;factorTco2ePerKwh:string;peTco2e:string}[];
+  }|null;
 }
 interface CalculationRun {
   id:string;

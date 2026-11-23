@@ -21,7 +21,7 @@ import br.carbonflow.pilot.OpenProjectParameterBindings.ExecutionPin;
 /**
  * Records an immutable calculation attempt for one dynamic project period.
  * The HTTP body carries version identifiers only. The kernel runs only when
- * the stored ED, EC, single EFel, fleet lines, fossil pin, IR and Dy form one
+ * the stored hourly ED, EC and EFel, fleet lines, fossil pin, IR and Dy form one
  * set and the actor did not author those links. The result stays a rehearsal:
  * usableForE8 and canIssueVcu remain false.
  */
@@ -162,7 +162,7 @@ class OpenE8ProjectRuns {
                           OpenE8Timing.Context timing) {}
 
     /**
-     * Reads the project set. A rehearsal needs ED, EC, one EFel, fleet lines,
+     * Reads the project set. A rehearsal needs paired hourly ED/EC/EFel, fleet lines,
      * a current fossil reference, a positive declared IR and Dy proved as the
      * absence of fleet credits. Anything else stays incomplete.
      */
@@ -175,8 +175,9 @@ class OpenE8ProjectRuns {
         }
         Integer sourceYear = timing.year().sourceYear();
         boolean stale = false;
-        boolean uniform = false;
-        BigDecimal ed = null, ec = null, grid = null;
+        OpenHourlyProjectEmissions.Series hourly = null;
+        OpenHourlyProjectEmissions.Memory energy = null;
+        BigDecimal ed = null, ec = null;
         if (binding == null) {
             gates.add(OpenE8RunDecision.gate("ED", "MISSING"));
             gates.add(OpenE8RunDecision.gate("EC", "MISSING"));
@@ -184,21 +185,13 @@ class OpenE8ProjectRuns {
         } else {
             if (OpenE8InputBindings.state(c, project, period, binding).contains("STALE"))
                 stale = true;
-            Object[] totals = first(c, """
-                SELECT sum(ed_kwh), sum(ec_kwh), min(efel_tco2e_per_kwh),
-                       count(DISTINCT efel_tco2e_per_kwh)::int
-                FROM app_open_e8_input_binding_hour
-                WHERE project_id=? AND binding_id=?
-                """, r -> new Object[]{r.getBigDecimal(1), r.getBigDecimal(2),
-                    r.getBigDecimal(3), r.getInt(4)}, project, binding);
-            int factors = totals == null || totals[3] == null ? 0 : (Integer) totals[3];
-            uniform = factors == 1;
-            if (!uniform)
-                gates.add(OpenE8RunDecision.gate("HOURLY_EFEL_NOT_UNIFORM", "REVIEW_REQUIRED"));
-            else {
-                ed = (BigDecimal) totals[0];
-                ec = (BigDecimal) totals[1];
-                grid = (BigDecimal) totals[2];
+            try {
+                hourly = hourlyEnergy(c, project, binding, timing.window());
+                energy = OpenHourlyProjectEmissions.calculate(hourly);
+                ed = new BigDecimal(energy.edKwh());
+                ec = new BigDecimal(energy.ecKwh());
+            } catch (IllegalArgumentException invalid) {
+                gates.add(OpenE8RunDecision.gate("HOURLY_COVERAGE_INVALID", "REVIEW_REQUIRED"));
             }
             gates.add(OpenE8RunDecision.gate("ED", "NOT_ADMITTED"));
             gates.add(OpenE8RunDecision.gate("EC", "NOT_ADMITTED"));
@@ -239,17 +232,17 @@ class OpenE8ProjectRuns {
         if (fuel != null && fuel.stale() || ir != null && ir.stale() || dy != null && dy.stale())
             stale = true;
         Integer year = timing.year().projectYear();
-        boolean numbers = uniform && usable(ed, false) && usable(ec, false)
-            && usable(grid, false) && fuelValue != null && irValue != null
+        boolean numbers = energy != null && usable(ed, false) && usable(ec, false)
+            && fuelValue != null && irValue != null
             && discount != null && !rows.isEmpty() && year != null && !stale;
         OpenGridCalculationMath.Input input = numbers
             ? new OpenGridCalculationMath.Input(OpenGridCalculationMath.BRANCH, year, rows,
-                ed, ec, fuelValue, grid, irValue, discount)
+                ed, ec, fuelValue, null, irValue, discount)
             : null;
         boolean author = authored(c, project, binding, fleet, actor)
             || publishedBy(fuel, actor) || publishedBy(ir, actor) || publishedBy(dy, actor);
         return new Loaded(new OpenE8RunDecision.OperandSet(input != null, stale, author,
-            List.copyOf(gates), input),
+            List.copyOf(gates), input, hourly),
             fuel == null ? null : fuel.id(), ir == null ? null : ir.id(),
             dy == null ? null : dy.id(), timing);
     }
@@ -273,9 +266,10 @@ class OpenE8ProjectRuns {
 
     private static OpenE8RunDecision.Memory memory(Stored row) {
         if (!"REVIEWED_INTERNAL".equals(row.state()) || row.trace() == null) return null;
+        var trace = OpenE8RunDecision.readTrace(row.trace());
         return new OpenE8RunDecision.Memory(row.engine(), "PURE_MATH_TEST_ONLY_NOT_ADMITTED",
             false, row.afec(), row.mpg(), row.be(), row.pe(), row.le(), row.dy(),
-            row.er(), row.erDisplay(), OpenE8RunDecision.parseTrace(row.trace()));
+            row.er(), row.erDisplay(), trace.steps(), trace.hourlyPe());
     }
 
     private static List<OpenCalculationPreflight.Gate> decode(String stored) {
@@ -397,6 +391,45 @@ class OpenE8ProjectRuns {
         return !positive || normalized.signum() > 0;
     }
 
+    private record EnergyContext(int hours, BigDecimal ed, BigDecimal ec, String region,
+                                 OffsetDateTime from, OffsetDateTime until, String unit, String gas) {}
+
+    private static OpenHourlyProjectEmissions.Series hourlyEnergy(Connection c, String project,
+            UUID binding, OpenE8Timing.Window window) throws SQLException {
+        EnergyContext context = first(c, """
+            SELECT b.hour_count,q.ed_kwh,q.ec_kwh,f.region,f.period_from,f.period_until,
+                   f.normalized_unit,f.gas
+            FROM app_open_e8_input_binding_candidate b
+            JOIN app_open_e8_energy_candidate e ON e.project_id=b.project_id AND e.id=b.energy_candidate_id
+            JOIN app_open_period_qa_snapshot q ON q.project_id=e.project_id AND q.id=e.snapshot_id
+            JOIN app_open_efel_hourly_candidate f ON f.project_id=b.project_id AND f.id=b.efel_candidate_id
+              AND f.energy_candidate_id=e.id
+            WHERE b.project_id=? AND b.id=?
+            """, r -> new EnergyContext(r.getInt(1), r.getBigDecimal(2), r.getBigDecimal(3),
+                r.getString(4), r.getObject(5, OffsetDateTime.class),
+                r.getObject(6, OffsetDateTime.class), r.getString(7), r.getString(8)), project, binding);
+        if (window == null || context == null || !"tCO2e/kWh".equals(context.unit())
+                || !"CO2e".equals(context.gas())
+                || !window.from().toInstant().equals(context.from().toInstant())
+                || !window.until().toInstant().equals(context.until().toInstant()))
+            throw new IllegalArgumentException("Janela ou unidade do fator incompatível.");
+        var hours = query(c, """
+            SELECT hour_start,ed_kwh,ec_kwh,efel_tco2e_per_kwh
+            FROM app_open_e8_input_binding_hour WHERE project_id=? AND binding_id=?
+            ORDER BY hour_start
+            """, r -> new OpenHourlyProjectEmissions.Hour(
+                r.getObject(1, OffsetDateTime.class).toInstant(), r.getBigDecimal(2),
+                r.getBigDecimal(3), r.getBigDecimal(4)), project, binding);
+        var series = new OpenHourlyProjectEmissions.Series(window.from().toInstant(),
+            window.until().toInstant(), context.region(), List.copyOf(hours));
+        var memory = OpenHourlyProjectEmissions.calculate(series);
+        if (hours.size() != context.hours()
+                || context.ed().compareTo(new BigDecimal(memory.edKwh())) != 0
+                || context.ec().compareTo(new BigDecimal(memory.ecKwh())) != 0)
+            throw new IllegalArgumentException("Cobertura ou totais divergem do snapshot de QA.");
+        return series;
+    }
+
     private static boolean authored(Connection c, String project, UUID binding, UUID fleet,
                                     UUID actor) throws SQLException {
         if (binding != null) {
@@ -502,7 +535,7 @@ class OpenE8ProjectRuns {
 
     private static String material(String project, String period, UUID binding, UUID fleet,
                                    Loaded loaded) {
-        return "E8-RUN-SET-V3|" + project + "|" + period + "|"
+        return "E8-RUN-SET-V4-HOURLY|" + project + "|" + period + "|"
             + id(binding) + "|" + id(fleet) + "|"
             + id(loaded.fuelPin()) + "|" + id(loaded.irPin()) + "|" + id(loaded.dyPin())
             + "|" + loaded.timing().fingerprint() + "|" + loaded.set().stale()

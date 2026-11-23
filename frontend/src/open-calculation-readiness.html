@@ -19,6 +19,26 @@
         <div><dt>{{inputName('LE')}}</dt><dd>{{memory.leTco2e}} tCO2e <small>Referência: LE</small></dd></div>
         <div><dt>{{inputName('ER')}}</dt><dd>{{memory.erDisplay}} tCO2e <small>Referência: ER</small></dd></div>
       </dl>
+      @if (memory.hourlyPe; as hourly) {
+        <details>
+          <summary>Emissões por hora · {{hourly.hours.length}} horas · {{hourly.region}}</summary>
+          <p>Janela UTC de {{hourly.windowStart}} até {{hourly.windowEndExclusive}}, com fim exclusivo.</p>
+          <div class="table-scroll">
+            <table>
+              <caption>Memória do PE horário</caption>
+              <thead><tr><th scope="col">Início da hora UTC</th><th scope="col">EC (kWh)</th>
+                <th scope="col">EFel (tCO2e/kWh)</th><th scope="col">PE (tCO2e)</th></tr></thead>
+              <tbody>
+                @for (hour of hourly.hours; track hour.hourStart) {
+                  <tr><td>{{hour.hourStart}}</td><td>{{hour.ecKwh}}</td>
+                    <td>{{hour.factorTco2ePerKwh}}</td><td>{{hour.peTco2e}}</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <p>EC total {{hourly.ecKwh}} kWh · PE total {{hourly.peTco2e}} tCO2e.</p>
+        </details>
+      }
     } @else if (blockingCause(); as cause) {
       <h4>O que falta para haver resultado</h4>
       <p><strong>Falta {{gateTitle(cause)}}.</strong>

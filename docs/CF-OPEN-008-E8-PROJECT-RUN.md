@@ -1,6 +1,6 @@
 # CF-OPEN-008 / #97 — Tentativa de cálculo do projeto aberto
 
-O projeto grava tentativas imutáveis. Um conjunto incompleto gera `BLOCKED` com pendências e o plano das equações. ED, EC, um único EFel, frota, EFfuel, IR e Dy precisam estar vinculados para outro ator registrar um ensaio `REVIEWED_INTERNAL`. A seleção temporal faz parte desse conjunto. O ensaio permanece com `usableForE8=false` e `canIssueVcu=false`.
+O projeto grava tentativas imutáveis. Um conjunto incompleto gera `BLOCKED` com pendências e o plano das equações. Pares horários ED/EC/EFel, frota, EFfuel, IR e Dy precisam estar vinculados para outro ator registrar um ensaio `REVIEWED_INTERNAL`. A seleção temporal faz parte desse conjunto. O ensaio permanece com `usableForE8=false` e `canIssueVcu=false`.
 
 ## Ano do projeto e vigência no recorte inicial
 
@@ -24,8 +24,18 @@ Autorização por `DynamicProjectScope`: `VIEW_OPEN_E8_RUN` para o dono do rascu
 
 ## Interface
 
-Preparação técnica mostra a última tentativa do período e, para quem pode registrar, o botão correspondente. O navegador não envia número e não contém fórmula. O botão de reexecução do piloto não é reutilizado. O motivo da tentativa nomeia a grandeza em português. O código estável fica na referência, inclusive quando as horas não compartilham um único fator elétrico, quando quem registra é autor dos vínculos, ou quando as versões deixaram de ser as vigentes.
+Preparação técnica mostra a última tentativa do período e, para quem pode registrar, o botão correspondente. O navegador não envia número e não contém fórmula. O botão de reexecução do piloto não é reutilizado. O motivo da tentativa nomeia a grandeza em português. O código estável acompanha cada motivo de bloqueio, incluindo cobertura horária incompleta, autoria dos vínculos e versões que exigem rechecagem.
 
 ## O que continua pendente para encerrar #97
 
 Seleção admitida de EVR, ratings, EFfuel, IR e Dy; medição ED/EC admitida; execução normativa com `canIssueVcu` ainda falso até decisão própria de crédito; memória no PD (`#43`, `#122`, `#128`). Nenhuma fonte oficial brasileira foi admitida por esta fatia.
+
+## PE por hora
+
+O ensaio usa o pacote horário de energia e fator já vinculado ao período. Para cada hora calcula EC_h × EFel_h e soma os produtos decimais exatos. O resultado do exemplo com 1.000 kWh × 0,0005 tCO2e/kWh e 2.000 kWh × 0,0004 tCO2e/kWh é 1,3 tCO2e. O núcleo também aceita a rota uniforme usada por seus chamadores existentes.
+
+A janela tem início e fim exclusivo em horas UTC inteiras, até 744 horas conforme o contrato atual de staging. A série precisa cobrir cada hora uma única vez. Região SIN, unidade tCO2e/kWh, base CO2e, contagem de horas e totais ED/EC precisam coincidir com as referências do pacote e do QA. Cobertura inválida grava tentativa bloqueada com a causa HOURLY_COVERAGE_INVALID.
+
+A memória contém hourlyPe com janela, região, totais e os operandos e o resultado de cada hora. O motor identifica essa rota como vm0038-open-grid-arithmetic@2-hourly. O JSON congelado continua legível após troca de versões. O leitor aceita também o formato de lista das sete etapas gravado pelos motores anteriores. A tela apresenta a tabela horária dentro da memória da tentativa selecionada.
+
+Esta entrega cobre o cálculo horário do ensaio interno. Admissão normativa das entradas, Dy com avaliação ERC/ERF e fechamento anual entre janelas continuam no backlog #96, #97 e #98.

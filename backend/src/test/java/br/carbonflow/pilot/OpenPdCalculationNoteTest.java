@@ -47,7 +47,7 @@ class OpenPdCalculationNoteTest {
 
     private static OpenE8RunDecision.Memory memory(boolean usable) {
         return new OpenE8RunDecision.Memory("engine", "PURE_MATH_TEST_ONLY_NOT_ADMITTED", usable,
-            "20", "30", "4.05", "1.5", "0", "1", "2.55", "2.55", List.of());
+            "20", "30", "4.05", "1.5", "0", "1", "2.55", "2.55", List.of(), null);
     }
 
     private static OpenE8ProjectRuns.Attempt run(String state, boolean stale,
