@@ -243,7 +243,7 @@ class OpenPeriodSupportIntegrationTest {
             .compareTo(new java.math.BigDecimal("3000")));
         assertEquals(2,energy.path("hourCount").asInt());
         assertEquals(2,energy.path("slotCount").asInt());
-        assertEquals(1,energy.path("hours").size());
+        assertEquals(2,energy.path("hours").size());
         assertEquals("DCFC-1",energy.at("/hours/0/chargerCode").asText());
         assertEquals(64,energy.path("sourceSha256").asText().length());
         assertEquals(packageCreated.body(),postMethod(energyUrl,owner.cookie(),prepareKey,
