@@ -112,22 +112,27 @@ test('a ficha OPEN permite preparar direitos sem fonte admitida nem cálculo E8'
           copiedIntoDocument:false,marksReady:false}],
       }});
     });
-    await page.route('**/v1/projects/*/technical/requirements',r=>r.fulfill({json:{
+    let requirementReads=0;
+    await page.route('**/v1/projects/*/technical/requirements',r=>{
+      requirementReads++;
+      return r.fulfill({json:{
       projectId:project,methodology:'VM0038',openBranch:true,diagnosticVisible:true,
       canRunE8:false,canIssueVcu:false,exAnteRequiresMeasuredEnergy:false,
       limits:'Nenhum BE, PE, LE ou ER foi calculado.',
       summary:{mine:1,awaitingSource:0,awaitingReview:1,outOfScope:1},
       requirements:[{
-        requirementId:'DRIVER_DISCLOSURE',state:'NEEDS_EVIDENCE',situation:'Falta comprovante',
+        requirementId:'DRIVER_DISCLOSURE',state:'NEEDS_EVIDENCE',situation:revision>0?'Atualizado após salvar declaração':'Falta comprovante',
         reason:'É necessária prova datada de divulgação aos motoristas.',ownerRole:'PREP',
         nextAction:'Indicar a referência do comprovante.',actionLabel:'Abrir a declaração',
         destination:{area:'technical',screen:'analisar',step:null},group:'MINE',
         clientAction:true,blocksExAntePd:false,admitsE8:false,affectedOutputs:['direitos'],
       }],
-    }}));
+    }});
+    });
     await page.route('**/v1/projects/*/journey/resume',r=>r.fulfill({status:204}));
     await page.goto(base+'/workspace/projects/'+project+'/technical?secao=analisar');
     await page.getByRole('heading',{name:'Rede aberta — aplicabilidade VM0038 v1.1 (preparação)'}).waitFor();
+    await page.getByText('Falta comprovante',{exact:true}).waitFor();
     await page.getByLabel('Qualquer BEV compatível pode utilizar?').selectOption('true');
     await page.getByLabel('Restringe o uso a veículos identificados?').selectOption('false');
     await page.getByLabel('O ponto fica em terreno particular?').selectOption('true');
@@ -166,6 +171,8 @@ test('a ficha OPEN permite preparar direitos sem fonte admitida nem cálculo E8'
     await vcsEvent;
     await page.getByRole('button',{name:'Salvar declaração sem aprovação automática'}).click();
     await page.getByText('Declaração versionada salva. A jornada pode continuar',{exact:false}).waitFor();
+    await page.getByText('Atualizado após salvar declaração',{exact:true}).waitFor();
+    assert.ok(requirementReads>=2,'A projeção de requisitos deve ser relida após o PUT persistido');
     await page.getByText('Como estes campos entrariam no PD',{exact:true}).click();
     await page.getByText('não é copiada',{exact:false}).waitFor();
     await page.getByText('O PD não fica pronto.',{exact:false}).waitFor();

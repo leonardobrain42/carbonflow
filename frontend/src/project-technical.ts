@@ -139,6 +139,7 @@ export class ProjectTechnicalComponent {
   private readonly checkpoints = inject(JourneyCheckpointService);
   private readonly injector = inject(Injector);
   private readonly guideEditor = viewChild(ProjectGuidesComponent);
+  private readonly requirementsPanel = viewChild(ProjectRequirementsComponent);
   private readonly stationsEditor = viewChild(ProjectStationsComponent);
   private readonly decisionEditor = viewChild(DecisionWorkbenchComponent);
   private readonly pdEditor = viewChild(PdSectionsComponent);
@@ -311,6 +312,11 @@ export class ProjectTechnicalComponent {
     } finally {
       this.loading.set(false);
     }
+  }
+
+  /** Refresh the same backend-owned requirement projection after a canonical save. */
+  refreshRequirements() {
+    void this.requirementsPanel()?.load();
   }
 
   updateGuide(guide: {id:string; version:number; answers:Record<string,string>}) {
