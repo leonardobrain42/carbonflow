@@ -62,3 +62,35 @@ A pesquisa exploratória anterior não deve ser usada para declarar o E8 inexist
 - Encerrar #124, #93, #99, #98 ou #97 só porque a navegação ou a projeção funcionou.
 
 **Critério de pronto P0:** não é “quatro abas com dados”. É **mesma origem canônica + incidência normativa versionada + ações autorizadas + prova/revisão + monitoramento por período + cálculo E8 admissível + teste E2E real**, com bloqueio explícito quando qualquer requisito ainda faltar.
+
+## Verificação integrada de R0 — PR #202
+
+`frontend/test/requirements-journey.integration.mjs` verifica a atualização após salvar com
+requisições reais ao Quarkus e persistência PostgreSQL. Não intercepta APIs nem insere
+identidades, permissões ou diagnósticos no banco. Usa as contas de teste provisionadas
+por `scripts/demo_sandbox.py` e cria rascunhos identificados como `TEST_ONLY`.
+
+Em 390×844 e 1440×900, o roteiro cobre:
+
+- declaração ausente → salvar na interface → reler a projeção → mostrar as pendências atuais;
+- igualdade integral entre `/technical/requirements` e `journey.diagnosis`;
+- retorno à visão geral, retomada de Analisar e abertura de Estações pelo teclado;
+- escrita concorrente real: `If-Match` antigo retorna 412, preserva a revisão gravada e não emite sucesso;
+- outra conta sem grant recebe 404 nas leituras, na declaração e no checkpoint, sem formulário privado;
+- cálculo e crédito continuam desabilitados e medições futuras não se tornam requisito universal do PD ex ante.
+
+Com o sandbox isolado e as duas contas preparados:
+
+```sh
+python3 scripts/demo_sandbox.py start --quiet
+python3 scripts/demo_sandbox.py add-user --email segunda@carbonflow.test --name "Segunda conta demo" --quiet
+cd frontend
+CARBONFLOW_TEST_URL=http://127.0.0.1:18088 CARBONFLOW_CHROME=/caminho/do/chromium \
+  node --test test/requirements-journey.integration.mjs
+```
+
+A CI executa esse roteiro no job `demo-sandbox`, após provisionamento e smoke das
+contas. O sufixo `.integration.mjs` separa o roteiro, que exige sandbox de contas,
+da suíte de navegador executada no Compose padrão. Senhas ficam nos arquivos locais
+privados já geridos pelo provisionador; não são argumentos, fixtures versionadas ou logs.
+Este aceite é de R0 e não encerra #124, #93, #99, #98 ou #97 nem substitui ensaio humano.

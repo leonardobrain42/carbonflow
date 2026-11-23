@@ -151,6 +151,18 @@ jobs:
       CARBONFLOW_DEMO_PROJECT: carbonflow-demo-ci-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --no-audit --no-fund
+        working-directory: frontend
+      - name: Install browser matching locked playwright-core
+        working-directory: frontend
+        run: |
+          npx --no-install playwright-core install --with-deps chromium
+          echo "CARBONFLOW_CHROME=$(node -e "process.stdout.write(require('playwright-core').chromium.executablePath())")" >> "$GITHUB_ENV"
       - name: Validate local credential and admin MFA safety without Docker
         run: |
           python3 -m unittest discover -s scripts -p 'test_demo_sandbox.py' -v
@@ -165,6 +177,11 @@ jobs:
         run: python3 scripts/admin_sandbox.py setup
       - name: Verify accounts and distinct sessions
         run: python3 scripts/demo_sandbox.py smoke
+      - name: Verify UX-08 against real Quarkus and PostgreSQL
+        working-directory: frontend
+        env:
+          CARBONFLOW_TEST_URL: http://127.0.0.1:18088
+        run: node --test test/requirements-journey.integration.mjs
       - name: Rerun provisioning to prove repeatability without resetting passwords
         run: |
           python3 scripts/demo_sandbox.py start --quiet
