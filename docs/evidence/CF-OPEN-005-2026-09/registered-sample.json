@@ -1,0 +1,609 @@
+{
+  "inspection_version": 1,
+  "observation_period": "2026-09",
+  "metric": "REGISTERED_VEHICLES",
+  "source_sha256": "005963d4c677c50354bcdb094bf55119beacc25dc644f1d7bfe3611c26fe40a8",
+  "source_bytes": 136926215,
+  "archive_member": "I_Frota_por_UF_Municipio_Marca_e_Modelo_Ano_Setembro_2026.TXT",
+  "headers": [
+    "UF",
+    "Município",
+    "Marca Modelo",
+    "Ano Fabricação Veículo CRV",
+    "Qtd. Veículos"
+  ],
+  "source_rows": 22849046,
+  "all_registered_count": 136424856,
+  "uf_labels": [
+    "ACRE",
+    "ALAGOAS",
+    "AMAPA",
+    "AMAZONAS",
+    "BAHIA",
+    "CEARA",
+    "DISTRITO FEDERAL",
+    "ESPIRITO SANTO",
+    "GOIAS",
+    "MARANHAO",
+    "MATO GROSSO",
+    "MATO GROSSO DO SUL",
+    "MINAS GERAIS",
+    "Não Identificado",
+    "Não se Aplica",
+    "PARA",
+    "PARAIBA",
+    "PARANA",
+    "PERNAMBUCO",
+    "PIAUI",
+    "RIO DE JANEIRO",
+    "RIO GRANDE DO NORTE",
+    "RIO GRANDE DO SUL",
+    "RONDONIA",
+    "RORAIMA",
+    "SANTA CATARINA",
+    "SAO PAULO",
+    "SERGIPE",
+    "Sem Informação",
+    "TOCANTINS"
+  ],
+  "selected_literal_models": {
+    "I/BYD DOLPHIN GS 180EV": {
+      "registered_count": 69235,
+      "source_rows": 3790,
+      "by_manufacture_year": {
+        "2022": 2,
+        "2023": 15113,
+        "2024": 6980,
+        "2025": 10526,
+        "2026": 29493,
+        "Sem Informação": 7121
+      },
+      "uf_labels": [
+        "ACRE",
+        "ALAGOAS",
+        "AMAPA",
+        "AMAZONAS",
+        "BAHIA",
+        "CEARA",
+        "DISTRITO FEDERAL",
+        "ESPIRITO SANTO",
+        "GOIAS",
+        "MARANHAO",
+        "MATO GROSSO",
+        "MATO GROSSO DO SUL",
+        "MINAS GERAIS",
+        "PARA",
+        "PARAIBA",
+        "PARANA",
+        "PERNAMBUCO",
+        "PIAUI",
+        "RIO DE JANEIRO",
+        "RIO GRANDE DO NORTE",
+        "RIO GRANDE DO SUL",
+        "RONDONIA",
+        "RORAIMA",
+        "SANTA CATARINA",
+        "SAO PAULO",
+        "SERGIPE",
+        "Sem Informação",
+        "TOCANTINS"
+      ],
+      "examples": [
+        {
+          "line": 9254,
+          "record": {
+            "UF": "ACRE",
+            "Município": "BUJARI",
+            "Marca Modelo": "I/BYD DOLPHIN GS 180EV",
+            "Ano Fabricação Veículo CRV": "2024",
+            "Qtd. Veículos": " 1.0"
+          }
+        },
+        {
+          "line": 15055,
+          "record": {
+            "UF": "ACRE",
+            "Município": "CRUZEIRO DO SUL",
+            "Marca Modelo": "I/BYD DOLPHIN GS 180EV",
+            "Ano Fabricação Veículo CRV": "2026",
+            "Qtd. Veículos": " 3.0"
+          }
+        },
+        {
+          "line": 31289,
+          "record": {
+            "UF": "ACRE",
+            "Município": "PORTO ACRE",
+            "Marca Modelo": "I/BYD DOLPHIN GS 180EV",
+            "Ano Fabricação Veículo CRV": "2025",
+            "Qtd. Veículos": " 1.0"
+          }
+        }
+      ]
+    },
+    "I/BYD DOLPHIN MINI GS5EV": {
+      "registered_count": 43839,
+      "source_rows": 3226,
+      "by_manufacture_year": {
+        "2024": 19505,
+        "2025": 16914,
+        "2026": 7149,
+        "Sem Informação": 271
+      },
+      "uf_labels": [
+        "ACRE",
+        "ALAGOAS",
+        "AMAPA",
+        "AMAZONAS",
+        "BAHIA",
+        "CEARA",
+        "DISTRITO FEDERAL",
+        "ESPIRITO SANTO",
+        "GOIAS",
+        "MARANHAO",
+        "MATO GROSSO",
+        "MATO GROSSO DO SUL",
+        "MINAS GERAIS",
+        "PARA",
+        "PARAIBA",
+        "PARANA",
+        "PERNAMBUCO",
+        "PIAUI",
+        "RIO DE JANEIRO",
+        "RIO GRANDE DO NORTE",
+        "RIO GRANDE DO SUL",
+        "RONDONIA",
+        "RORAIMA",
+        "SANTA CATARINA",
+        "SAO PAULO",
+        "SERGIPE",
+        "Sem Informação",
+        "TOCANTINS"
+      ],
+      "examples": [
+        {
+          "line": 15057,
+          "record": {
+            "UF": "ACRE",
+            "Município": "CRUZEIRO DO SUL",
+            "Marca Modelo": "I/BYD DOLPHIN MINI GS5EV",
+            "Ano Fabricação Veículo CRV": "2024",
+            "Qtd. Veículos": " 2.0"
+          }
+        },
+        {
+          "line": 15058,
+          "record": {
+            "UF": "ACRE",
+            "Município": "CRUZEIRO DO SUL",
+            "Marca Modelo": "I/BYD DOLPHIN MINI GS5EV",
+            "Ano Fabricação Veículo CRV": "2026",
+            "Qtd. Veículos": " 4.0"
+          }
+        },
+        {
+          "line": 20370,
+          "record": {
+            "UF": "ACRE",
+            "Município": "EPITACIOLANDIA",
+            "Marca Modelo": "I/BYD DOLPHIN MINI GS5EV",
+            "Ano Fabricação Veículo CRV": "2024",
+            "Qtd. Veículos": " 3.0"
+          }
+        }
+      ]
+    },
+    "BYD/DOLPHIN MINI GS5EV": {
+      "registered_count": 47994,
+      "source_rows": 2451,
+      "by_manufacture_year": {
+        "2025": 5454,
+        "2026": 37548,
+        "Sem Informação": 4992
+      },
+      "uf_labels": [
+        "ACRE",
+        "ALAGOAS",
+        "AMAPA",
+        "AMAZONAS",
+        "BAHIA",
+        "CEARA",
+        "DISTRITO FEDERAL",
+        "ESPIRITO SANTO",
+        "GOIAS",
+        "MARANHAO",
+        "MATO GROSSO",
+        "MATO GROSSO DO SUL",
+        "MINAS GERAIS",
+        "PARA",
+        "PARAIBA",
+        "PARANA",
+        "PERNAMBUCO",
+        "PIAUI",
+        "RIO DE JANEIRO",
+        "RIO GRANDE DO NORTE",
+        "RIO GRANDE DO SUL",
+        "RONDONIA",
+        "RORAIMA",
+        "SANTA CATARINA",
+        "SAO PAULO",
+        "SERGIPE",
+        "Sem Informação",
+        "TOCANTINS"
+      ],
+      "examples": [
+        {
+          "line": 10225,
+          "record": {
+            "UF": "ACRE",
+            "Município": "CAPIXABA",
+            "Marca Modelo": "BYD/DOLPHIN MINI GS5EV",
+            "Ano Fabricação Veículo CRV": "2026",
+            "Qtd. Veículos": " 1.0"
+          }
+        },
+        {
+          "line": 12021,
+          "record": {
+            "UF": "ACRE",
+            "Município": "CRUZEIRO DO SUL",
+            "Marca Modelo": "BYD/DOLPHIN MINI GS5EV",
+            "Ano Fabricação Veículo CRV": "2025",
+            "Qtd. Veículos": " 1.0"
+          }
+        },
+        {
+          "line": 12022,
+          "record": {
+            "UF": "ACRE",
+            "Município": "CRUZEIRO DO SUL",
+            "Marca Modelo": "BYD/DOLPHIN MINI GS5EV",
+            "Ano Fabricação Veículo CRV": "2026",
+            "Qtd. Veículos": " 5.0"
+          }
+        }
+      ]
+    },
+    "I/GWM ORA 03 BEV58 C": {
+      "registered_count": 1494,
+      "source_rows": 314,
+      "by_manufacture_year": {
+        "2026": 1444,
+        "Sem Informação": 50
+      },
+      "uf_labels": [
+        "ALAGOAS",
+        "AMAPA",
+        "AMAZONAS",
+        "BAHIA",
+        "CEARA",
+        "DISTRITO FEDERAL",
+        "ESPIRITO SANTO",
+        "GOIAS",
+        "MARANHAO",
+        "MATO GROSSO",
+        "MATO GROSSO DO SUL",
+        "MINAS GERAIS",
+        "PARA",
+        "PARAIBA",
+        "PARANA",
+        "PERNAMBUCO",
+        "PIAUI",
+        "RIO DE JANEIRO",
+        "RIO GRANDE DO NORTE",
+        "RIO GRANDE DO SUL",
+        "RONDONIA",
+        "SANTA CATARINA",
+        "SAO PAULO",
+        "SERGIPE",
+        "Sem Informação",
+        "TOCANTINS"
+      ],
+      "examples": [
+        {
+          "line": 72618,
+          "record": {
+            "UF": "ALAGOAS",
+            "Município": "ARAPIRACA",
+            "Marca Modelo": "I/GWM ORA 03 BEV58 C",
+            "Ano Fabricação Veículo CRV": "2026",
+            "Qtd. Veículos": " 1.0"
+          }
+        },
+        {
+          "line": 86764,
+          "record": {
+            "UF": "ALAGOAS",
+            "Município": "BARRA DE SAO MIGUEL",
+            "Marca Modelo": "I/GWM ORA 03 BEV58 C",
+            "Ano Fabricação Veículo CRV": "2026",
+            "Qtd. Veículos": " 1.0"
+          }
+        },
+        {
+          "line": 168679,
+          "record": {
+            "UF": "ALAGOAS",
+            "Município": "MACEIO",
+            "Marca Modelo": "I/GWM ORA 03 BEV58 C",
+            "Ano Fabricação Veículo CRV": "2026",
+            "Qtd. Veículos": " 26.0"
+          }
+        }
+      ]
+    },
+    "I/NISSAN LEAF TEKNA": {
+      "registered_count": 1359,
+      "source_rows": 423,
+      "by_manufacture_year": {
+        "2019": 174,
+        "2021": 583,
+        "2022": 571,
+        "2023": 28,
+        "2024": 3
+      },
+      "uf_labels": [
+        "ALAGOAS",
+        "AMAPA",
+        "AMAZONAS",
+        "BAHIA",
+        "CEARA",
+        "DISTRITO FEDERAL",
+        "ESPIRITO SANTO",
+        "GOIAS",
+        "MARANHAO",
+        "MATO GROSSO",
+        "MATO GROSSO DO SUL",
+        "MINAS GERAIS",
+        "PARA",
+        "PARAIBA",
+        "PARANA",
+        "PERNAMBUCO",
+        "PIAUI",
+        "RIO DE JANEIRO",
+        "RIO GRANDE DO NORTE",
+        "RIO GRANDE DO SUL",
+        "SANTA CATARINA",
+        "SAO PAULO",
+        "SERGIPE"
+      ],
+      "examples": [
+        {
+          "line": 170216,
+          "record": {
+            "UF": "ALAGOAS",
+            "Município": "MACEIO",
+            "Marca Modelo": "I/NISSAN LEAF TEKNA",
+            "Ano Fabricação Veículo CRV": "2021",
+            "Qtd. Veículos": " 3.0"
+          }
+        },
+        {
+          "line": 170217,
+          "record": {
+            "UF": "ALAGOAS",
+            "Município": "MACEIO",
+            "Marca Modelo": "I/NISSAN LEAF TEKNA",
+            "Ano Fabricação Veículo CRV": "2022",
+            "Qtd. Veículos": " 1.0"
+          }
+        },
+        {
+          "line": 265477,
+          "record": {
+            "UF": "ALAGOAS",
+            "Município": "ROTEIRO",
+            "Marca Modelo": "I/NISSAN LEAF TEKNA",
+            "Ano Fabricação Veículo CRV": "2021",
+            "Qtd. Veículos": " 1.0"
+          }
+        }
+      ]
+    },
+    "I/RENAULT E-KWID TECHNO": {
+      "registered_count": 836,
+      "source_rows": 291,
+      "by_manufacture_year": {
+        "2024": 25,
+        "2025": 809,
+        "Sem Informação": 2
+      },
+      "uf_labels": [
+        "ACRE",
+        "ALAGOAS",
+        "AMAZONAS",
+        "BAHIA",
+        "CEARA",
+        "DISTRITO FEDERAL",
+        "ESPIRITO SANTO",
+        "GOIAS",
+        "MARANHAO",
+        "MATO GROSSO",
+        "MATO GROSSO DO SUL",
+        "MINAS GERAIS",
+        "PARA",
+        "PARAIBA",
+        "PARANA",
+        "PERNAMBUCO",
+        "PIAUI",
+        "RIO DE JANEIRO",
+        "RIO GRANDE DO NORTE",
+        "RIO GRANDE DO SUL",
+        "RONDONIA",
+        "SANTA CATARINA",
+        "SAO PAULO",
+        "Sem Informação"
+      ],
+      "examples": [
+        {
+          "line": 41253,
+          "record": {
+            "UF": "ACRE",
+            "Município": "RIO BRANCO",
+            "Marca Modelo": "I/RENAULT E-KWID TECHNO",
+            "Ano Fabricação Veículo CRV": "2025",
+            "Qtd. Veículos": " 1.0"
+          }
+        },
+        {
+          "line": 73339,
+          "record": {
+            "UF": "ALAGOAS",
+            "Município": "ARAPIRACA",
+            "Marca Modelo": "I/RENAULT E-KWID TECHNO",
+            "Ano Fabricação Veículo CRV": "2025",
+            "Qtd. Veículos": " 2.0"
+          }
+        },
+        {
+          "line": 170759,
+          "record": {
+            "UF": "ALAGOAS",
+            "Município": "MACEIO",
+            "Marca Modelo": "I/RENAULT E-KWID TECHNO",
+            "Ano Fabricação Veículo CRV": "2025",
+            "Qtd. Veículos": " 3.0"
+          }
+        }
+      ]
+    },
+    "AGRALE/MAXIBUS DOLPHIN": {
+      "registered_count": 128,
+      "source_rows": 52,
+      "by_manufacture_year": {
+        "2011": 23,
+        "2012": 77,
+        "2013": 26,
+        "2014": 1,
+        "2020": 1
+      },
+      "uf_labels": [
+        "ACRE",
+        "BAHIA",
+        "ESPIRITO SANTO",
+        "GOIAS",
+        "MATO GROSSO",
+        "MINAS GERAIS",
+        "PARANA",
+        "PERNAMBUCO",
+        "PIAUI",
+        "RIO DE JANEIRO",
+        "RIO GRANDE DO SUL",
+        "SANTA CATARINA",
+        "SAO PAULO",
+        "SERGIPE",
+        "TOCANTINS"
+      ],
+      "examples": [
+        {
+          "line": 58342,
+          "record": {
+            "UF": "ACRE",
+            "Município": "TARAUACA",
+            "Marca Modelo": "AGRALE/MAXIBUS DOLPHIN",
+            "Ano Fabricação Veículo CRV": "2013",
+            "Qtd. Veículos": " 1.0"
+          }
+        },
+        {
+          "line": 1036585,
+          "record": {
+            "UF": "BAHIA",
+            "Município": "JACOBINA",
+            "Marca Modelo": "AGRALE/MAXIBUS DOLPHIN",
+            "Ano Fabricação Veículo CRV": "2011",
+            "Qtd. Veículos": " 1.0"
+          }
+        },
+        {
+          "line": 1135051,
+          "record": {
+            "UF": "BAHIA",
+            "Município": "LUIS EDUARDO MAGALHAES",
+            "Marca Modelo": "AGRALE/MAXIBUS DOLPHIN",
+            "Ano Fabricação Veículo CRV": "2011",
+            "Qtd. Veículos": " 3.0"
+          }
+        }
+      ]
+    },
+    "RENAULT/KWID EVOLUTION": {
+      "registered_count": 6827,
+      "source_rows": 164,
+      "by_manufacture_year": {
+        "2026": 3609,
+        "Sem Informação": 3218
+      },
+      "uf_labels": [
+        "AMAPA",
+        "AMAZONAS",
+        "BAHIA",
+        "CEARA",
+        "DISTRITO FEDERAL",
+        "ESPIRITO SANTO",
+        "GOIAS",
+        "MARANHAO",
+        "MATO GROSSO",
+        "MATO GROSSO DO SUL",
+        "MINAS GERAIS",
+        "PARA",
+        "PARAIBA",
+        "PARANA",
+        "PERNAMBUCO",
+        "PIAUI",
+        "RIO DE JANEIRO",
+        "RIO GRANDE DO NORTE",
+        "RIO GRANDE DO SUL",
+        "RONDONIA",
+        "SANTA CATARINA",
+        "SAO PAULO",
+        "SERGIPE",
+        "Sem Informação"
+      ],
+      "examples": [
+        {
+          "line": 331201,
+          "record": {
+            "UF": "AMAPA",
+            "Município": "MACAPA",
+            "Marca Modelo": "RENAULT/KWID EVOLUTION",
+            "Ano Fabricação Veículo CRV": "2026",
+            "Qtd. Veículos": " 2.0"
+          }
+        },
+        {
+          "line": 413275,
+          "record": {
+            "UF": "AMAZONAS",
+            "Município": "MANAUS",
+            "Marca Modelo": "RENAULT/KWID EVOLUTION",
+            "Ano Fabricação Veículo CRV": "2026",
+            "Qtd. Veículos": " 2.0"
+          }
+        },
+        {
+          "line": 625594,
+          "record": {
+            "UF": "BAHIA",
+            "Município": "CAMACARI",
+            "Marca Modelo": "RENAULT/KWID EVOLUTION",
+            "Ano Fabricação Veículo CRV": "2026",
+            "Qtd. Veículos": " 3.0"
+          }
+        }
+      ]
+    }
+  },
+  "evr_total": null,
+  "weights": null,
+  "usableForE8": false,
+  "coverageState": "OFFICIAL_TOTAL_NOT_VERIFIED",
+  "ratingState": "RATINGS_NOT_LINKED",
+  "limitations": [
+    "Ano Fabricação Veículo CRV não é o período de observação nem o ano do rating.",
+    "Veículos registrados não comprovam circulação ativa, propulsão BEV, LDV ou compatibilidade DCFC.",
+    "Nomes literais selecionados não demonstram cobertura nacional de todos os BEVs.",
+    "Modelos sem linha continuam ausentes; nomes e anos desconhecidos são preservados.",
+    "Alias, rating, capacidade, ciclo e comparável exigem prova e revisão nos módulos canônicos."
+  ]
+}

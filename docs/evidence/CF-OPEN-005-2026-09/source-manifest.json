@@ -1,0 +1,159 @@
+{
+  "captured_on": "2026-11-23",
+  "catalogue": {
+    "url": "https://dados.transportes.gov.br/dataset/registro-nacional-de-veiculos-automotores-renavam",
+    "api_url": "https://dados.transportes.gov.br/api/3/action/package_show?id=registro-nacional-de-veiculos-automotores-renavam",
+    "id": "12686da0-3d71-4499-b432-d270f785c907",
+    "sha256": "1b1ef29785bb045baac9b00bae908bbdc756078f28a6829775c394e8eccbe6f6",
+    "license_id": "other-pd",
+    "license_title": "Outra (Domínio Público)",
+    "metadata_modified": "2026-10-09T18:27:20.015655"
+  },
+  "downloads": [
+    {
+      "file": "renavam-2026-09.zip",
+      "url": "https://dados.transportes.gov.br/dataset/12686da0-3d71-4499-b432-d270f785c907/resource/4408da67-7821-4abf-96db-58acdf1497da/download/i_frota_por_uf_municipio_marca_e_modelo_ano_setembro_2026.zip",
+      "resolved_url": "https://dados.transportes.gov.br/dataset/12686da0-3d71-4499-b432-d270f785c907/resource/4408da67-7821-4abf-96db-58acdf1497da/download/i_frota_por_uf_municipio_marca_e_modelo_ano_setembro_2026.zip",
+      "status": 200,
+      "bytes": 136926215,
+      "sha256": "005963d4c677c50354bcdb094bf55119beacc25dc644f1d7bfe3611c26fe40a8",
+      "mime": "application/zip",
+      "last_modified": "Fri, 09 Oct 2026 18:13:01 GMT",
+      "captured_at": "2026-11-23T03:36:06.653172+00:00"
+    },
+    {
+      "file": "combustivel-2026-09.xlsx",
+      "url": "https://www.gov.br/transportes/pt-br/assuntos/transito/conteudo-Senatran/frota-de-veiculos-2026-2/D_Frota_por_UF_Municipio_COMBUSTIVEL_Setembro_2026.xlsx/@@download/file",
+      "resolved_url": "https://www.gov.br/transportes/pt-br/assuntos/transito/conteudo-Senatran/frota-de-veiculos-2026-2/D_Frota_por_UF_Municipio_COMBUSTIVEL_Setembro_2026.xlsx/@@download/file",
+      "status": 200,
+      "bytes": 1327325,
+      "sha256": "a2990092b9740312f3ad6de0ebe867ec6a657f5c487876160a4ff6cfd8112733",
+      "mime": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "last_modified": null,
+      "captured_at": "2026-11-23T03:35:09.215150+00:00"
+    },
+    {
+      "file": "fabricacao-modelo-2026-09.xlsx",
+      "url": "https://www.gov.br/transportes/pt-br/assuntos/transito/conteudo-Senatran/frota-de-veiculos-2026-2/F_Frota_por_UF_Municipio_ANO_FAB_MOD_Setembro_2026.xlsx/@@download/file",
+      "resolved_url": "https://www.gov.br/transportes/pt-br/assuntos/transito/conteudo-Senatran/frota-de-veiculos-2026-2/F_Frota_por_UF_Municipio_ANO_FAB_MOD_Setembro_2026.xlsx/@@download/file",
+      "status": 200,
+      "bytes": 17545633,
+      "sha256": "fb589a13ecb92d5e0d3f05ca1037e9bd44a1c1a806bf02be67ad598be1a95e5f",
+      "mime": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "last_modified": null,
+      "captured_at": "2026-11-23T03:35:15.360752+00:00"
+    },
+    {
+      "file": "pbev-2026.pdf",
+      "url": "https://www.gov.br/inmetro/pt-br/assuntos/regulamentacao/avaliacao-da-conformidade/programa-brasileiro-de-etiquetagem/tabelas-de-eficiencia-energetica/veiculos-automotivos-pbe-veicular/mascara-pbev-2026_19_jan-rev01.pdf/@@download/file",
+      "resolved_url": "https://www.gov.br/inmetro/pt-br/assuntos/regulamentacao/avaliacao-da-conformidade/programa-brasileiro-de-etiquetagem/tabelas-de-eficiencia-energetica/veiculos-automotivos-pbe-veicular/mascara-pbev-2026_19_jan-rev01.pdf/@@download/file",
+      "status": 200,
+      "bytes": 3387564,
+      "sha256": "43e928f89a526f7b59013faca3501b2b0716e5a8cdc2e097b8653638aa688ba0",
+      "mime": "application/pdf",
+      "last_modified": null,
+      "captured_at": "2026-11-23T03:35:10.824503+00:00"
+    }
+  ],
+  "fuel_cross_check": {
+    "headers": [
+      "1",
+      {
+        "A": "UF",
+        "B": "Município",
+        "C": "Combustível Veículo",
+        "D": "Qtd. Veículos"
+      }
+    ],
+    "rows": 59504,
+    "ufs": [
+      "ACRE",
+      "ALAGOAS",
+      "AMAPA",
+      "AMAZONAS",
+      "BAHIA",
+      "CEARA",
+      "DISTRITO FEDERAL",
+      "ESPIRITO SANTO",
+      "GOIAS",
+      "MARANHAO",
+      "MATO GROSSO",
+      "MATO GROSSO DO SUL",
+      "MINAS GERAIS",
+      "Não Identificado",
+      "Não se Aplica",
+      "PARA",
+      "PARAIBA",
+      "PARANA",
+      "PERNAMBUCO",
+      "PIAUI",
+      "RIO DE JANEIRO",
+      "RIO GRANDE DO NORTE",
+      "RIO GRANDE DO SUL",
+      "RONDONIA",
+      "RORAIMA",
+      "SANTA CATARINA",
+      "SAO PAULO",
+      "SERGIPE",
+      "Sem Informação",
+      "TOCANTINS"
+    ],
+    "total_all_fuels": 136424856,
+    "categories": {
+      "ALCOOL": 4466773,
+      "ALCOOL/GAS NATURAL COMBUSTIVEL": 2050,
+      "ALCOOL/GAS NATURAL VEICULAR": 91136,
+      "ALCOOL/GASOLINA": 58756383,
+      "CELULA COMBUSTIVEL": 13,
+      "DIESEL": 10626153,
+      "DIESEL/ELETRICO": 13710,
+      "DIESEL/GAS NATURAL COMBUSTIVEL": 41,
+      "DIESEL/GAS NATURAL VEICULAR": 528,
+      "ELETRICO": 40219,
+      "ELETRICO/FONTE EXTERNA": 391095,
+      "ELETRICO/FONTE INTERNA": 53093,
+      "ETANOL/ELETRICO": 3,
+      "GAS METANO": 4387,
+      "GAS NATURAL VEICULAR": 2573,
+      "GAS/NATURAL/LIQUEFEITO": 57,
+      "GASOGENIO": 378,
+      "GASOL/GAS NATURAL COMBUSTIVEL": 9176,
+      "GASOLINA": 53731038,
+      "GASOLINA/ALCOOL/ELETRICO": 299481,
+      "GASOLINA/ALCOOL/GAS NATURAL": 1276558,
+      "GASOLINA/ELETRICO": 408068,
+      "GASOLINA/GAS NATURAL VEICULAR": 1163627,
+      "HIBRIDO": 41033,
+      "HIBRIDO PLUG-IN": 83987,
+      "HIBRIDO/GAS NATURAL VEICULAR": 1,
+      "Não Identificado": 7,
+      "Não se Aplica": 1,
+      "Sem Informação": 4963120,
+      "VIDE/CAMPO/OBSERVACAO": 167
+    }
+  },
+  "manufacturing_sheet_headers": [
+    "UF",
+    "Município",
+    "Ano Modelo",
+    "Ano Fabricação CRV",
+    "Qtd. Veículos"
+  ],
+  "pbev_reference": {
+    "index_url": "https://www.gov.br/inmetro/pt-br/assuntos/regulamentacao/avaliacao-da-conformidade/programa-brasileiro-de-etiquetagem/tabelas-de-eficiencia-energetica/veiculos-automotivos-pbe-veicular",
+    "index_updated_at": "2026-08-31T10:16",
+    "printed_revision_date": "2026-08-14",
+    "pdf_created_at": "2026-08-25T10:56:37-03:00",
+    "pages": 9,
+    "site_license": "CC BY-ND 3.0",
+    "license_url": "https://creativecommons.org/licenses/by-nd/3.0/",
+    "processing_grant_recorded": false,
+    "independent_rating_assessment_recorded": false
+  },
+  "application_state": {
+    "source_admitted": false,
+    "license_grant_created": false,
+    "project_selection_created": false,
+    "usableForE8": false
+  }
+}

@@ -4,6 +4,13 @@
 
 ## Fontes públicas verificadas e lacuna real
 
+**Atualização de 23/11/2026.** A amostra real do RENAVAM de setembro de 2026 foi
+obtida e conferida com a publicação por combustível. O relatório de
+[viabilidade e ligação aos ratings](CF-OPEN-005-BR-DATA-FEASIBILITY.md) registra
+hashes, cabeçalhos, quantidades por chave literal e ano de fabricação, candidatos
+PBEV e as lacunas que impedem admissão. As notas abaixo descrevem o diagnóstico
+anterior à leitura dessa amostra.
+
 O índice da **Senatran, Frota de Veículos — 2026** (<https://www.gov.br/transportes/pt-br/assuntos/transito/conteudo-Senatran/frota-de-veiculos-2026>, consultado em 19/11/2026) lista recursos por **UF, município, ano de fabricação e modelo** e recursos separados por **marca/modelo** e por **combustível**. O portal de dados abertos **RENAVAM** (<https://dados.transportes.gov.br/dataset/registro-nacional-de-veiculos-automotores-renavam>) descreve dados agregados por localidade, marca/modelo, ano e quantidade.
 
 Isso **não demonstra** que já existe uma publicação que identifique, numa única série reconciliável, os BEVs leves DCFC por **modelo, ano de observação e estoque em circulação no Brasil**, com aliases e correção temporal. Em particular:
