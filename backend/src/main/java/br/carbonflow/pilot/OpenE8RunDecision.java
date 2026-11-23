@@ -6,9 +6,8 @@ import java.util.UUID;
 
 /**
  * Decides whether a project calculation attempt may call the pure kernel.
- * The production reader never supplies a complete operand set: IR, Dy and
- * EFfuel have no stored project value. A unit test supplies that set.
- * The kernel result stays a rehearsal: canIssueVcu is false.
+ * The caller resolves the dated monitoring window and matching parameter versions.
+ * A complete operand set still produces an internal rehearsal.
  */
 final class OpenE8RunDecision {
     record OperandSet(boolean complete, boolean stale, boolean actorIsAuthor,
@@ -120,7 +119,23 @@ final class OpenE8RunDecision {
             case "AFEC_MPG" -> "MISSING".equals(state)
                 ? "Não há ratings de projeto vinculados neste período."
                 : "Os ratings vinculados não estão admitidos. O catálogo licenciado não é copiado para o run.";
+            case "RUN_WINDOW_MISSING" -> "A tentativa precisa da janela de QA vinculada a ED, EC e EFel.";
+            case "CREDIT_START_MISSING" ->
+                "A declaração precisa vincular o início operacional e o início do período de crédito.";
+            case "CREDIT_START_RECHECK" ->
+                "As datas da declaração precisam ser reconfirmadas com os eventos e a triagem vigentes.";
+            case "CREDIT_START_MISMATCH" ->
+                "O início de crédito informado diverge do início operacional do primeiro sistema de recarga.";
+            case "WINDOW_BEFORE_CREDIT_START" -> "A janela começa antes da data de início de crédito declarada.";
+            case "WINDOW_PROJECT_YEAR_BOUNDARY" ->
+                "A vigência da janela não cabe em um único ano do projeto suportado pelo ensaio.";
+            case "WINDOW_SOURCE_YEAR_BOUNDARY" ->
+                "A janela cruza a fronteira UTC do ano das fontes de frota e fatores.";
+            case "FLEET_WINDOW_MISMATCH" -> "A seleção de frota precisa corresponder ao vínculo e ao ano das fontes da janela.";
+            case "RUN_TIMING_LEGACY" -> "Esta tentativa antecede o registro da janela e da vigência.";
             case "EF_FUEL" -> switch (state) {
+                case "MISSING_FOR_SOURCE_YEAR" -> "Falta um fator fóssil vinculado para o ano das fontes da janela.";
+                case "STALE" -> "O fator fóssil do ano das fontes precisa de rechecagem.";
                 case "NOT_ADMITTED" ->
                     "O fator fóssil está vinculado por referência e permanece não admitido.";
                 case "REVIEW_REQUIRED" ->
@@ -128,6 +143,8 @@ final class OpenE8RunDecision {
                 default -> "Não há fator fóssil do projeto com valor armazenado.";
             };
             case "IR" -> switch (state) {
+                case "MISSING_FOR_SOURCE_YEAR" -> "Falta a declaração de IR para o ano das fontes da janela.";
+                case "STALE" -> "A declaração de IR precisa de rechecagem.";
                 case "NOT_ADMITTED" ->
                     "A melhoria tecnológica foi declarada com regra e prova e permanece não admitida.";
                 case "REVIEW_REQUIRED" ->
@@ -136,6 +153,8 @@ final class OpenE8RunDecision {
                     "A melhoria tecnológica não tem valor normalizado armazenado. A tentativa não inventa 1.";
             };
             case "DY" -> switch (state) {
+                case "MISSING_FOR_SOURCE_YEAR" -> "Falta a declaração de Dy aplicável ao ano das fontes da janela.";
+                case "STALE" -> "A declaração de Dy precisa de rechecagem.";
                 case "NOT_ADMITTED" ->
                     "O desconto foi declarado como ausência comprovada de créditos de frota e permanece não admitido.";
                 case "REVIEW_REQUIRED" ->
@@ -157,13 +176,20 @@ final class OpenE8RunDecision {
         };
         String action = switch (code) {
             case "ACTOR_SEGREGATION" -> "Outro ator precisa registrar a execução interna";
-            case "RUN_REFERENCES" -> "Registrar uma nova tentativa com as versões atuais";
+            case "RUN_REFERENCES", "RUN_TIMING_LEGACY" -> "Registrar uma nova tentativa com as versões atuais";
+            case "RUN_WINDOW_MISSING" -> "Vincular o snapshot de QA e o fator elétrico à janela";
+            case "CREDIT_START_MISSING", "CREDIT_START_RECHECK", "CREDIT_START_MISMATCH" ->
+                "Conferir os eventos de início e salvar a declaração de rede aberta";
+            case "WINDOW_BEFORE_CREDIT_START" -> "Revisar a janela e a data documentada de início de crédito";
+            case "WINDOW_PROJECT_YEAR_BOUNDARY", "WINDOW_SOURCE_YEAR_BOUNDARY" ->
+                "Preparar janelas separadas na mudança de ano";
+            case "FLEET_WINDOW_MISMATCH" -> "Vincular a frota do ano das fontes ao pacote horário vigente";
             case "HOURLY_EFEL_NOT_UNIFORM" -> "Manter um único fator elétrico horário ou esperar o cálculo por hora";
             default -> "Completar o vínculo e a admissão antes de executar";
         };
         String owner = switch (code) {
             case "ACTOR_SEGREGATION", "CARBON_RIGHTS", "NORMATIVE_PACK" -> "REV";
-            case "RUN_REFERENCES" -> "PREP";
+            case "RUN_REFERENCES", "RUN_TIMING_LEGACY" -> "PREP";
             default -> "PREP/REV";
         };
         return new OpenCalculationPreflight.Gate(code, state, reason, action, owner);

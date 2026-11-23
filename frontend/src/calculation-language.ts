@@ -19,6 +19,15 @@ const GATE_NAMES: Record<string, string> = {
   HOURLY_EFEL_NOT_UNIFORM: 'Fator elétrico das horas',
   ACTOR_SEGREGATION: 'Separação de quem registra',
   RUN_REFERENCES: 'Versões da tentativa',
+  RUN_TIMING_LEGACY: 'Vigência da tentativa histórica',
+  RUN_WINDOW_MISSING: 'Janela de monitoramento',
+  CREDIT_START_MISSING: 'Datas de início',
+  CREDIT_START_RECHECK: 'Rechecagem das datas de início',
+  CREDIT_START_MISMATCH: 'Início operacional e de crédito',
+  WINDOW_BEFORE_CREDIT_START: 'Janela anterior ao início de crédito',
+  WINDOW_PROJECT_YEAR_BOUNDARY: 'Ano do projeto',
+  WINDOW_SOURCE_YEAR_BOUNDARY: 'Ano de referência das fontes',
+  FLEET_WINDOW_MISMATCH: 'Frota aplicável à janela',
 };
 
 const GATE_PREFIXES: [string, string][] = [

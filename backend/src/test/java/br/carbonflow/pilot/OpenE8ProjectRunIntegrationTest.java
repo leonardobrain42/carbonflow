@@ -59,7 +59,8 @@ class OpenE8ProjectRunIntegrationTest {
         assertEquals("NOT_CALCULATED", run.at("/equationPlan/6/status").asText());
         assertTrue(run.path("gates").toString().contains("IR"));
         assertTrue(run.path("gates").toString().contains("EF_FUEL"));
-        assertTrue(run.path("gates").toString().contains("ED"));
+        assertTrue(run.path("gates").toString().contains("RUN_WINDOW_MISSING"));
+        assertTrue(run.at("/timing/projectYear").isNull());
         assertFalse(run.toString().contains("EF-SYN"));
         assertFalse(run.toString().contains("SIM-DY"));
         assertNull(run.path("beTco2e").textValue());
@@ -117,6 +118,43 @@ class OpenE8ProjectRunIntegrationTest {
         assertEquals(0L, database.read(c -> first(c, """
             SELECT count(*) FROM app_open_e8_run WHERE can_issue_vcu
             """, r -> r.getLong(1))).longValue());
+    }
+
+    @Test
+    void legacyAttemptKeepsItsIdentityAndRequiresTimingRecheck() throws Exception {
+        Actor owner = actor();
+        UUID org = organization(owner.id());
+        String project = project(owner, org);
+        UUID id = UUID.randomUUID();
+        String key = key();
+        database.transaction(c -> {
+            byte[] digest = AccessSecrets.digest("legacy attempt");
+            update(c, """
+                INSERT INTO app_open_e8_run (id,project_id,organization_id,environment,
+                    period_code,version,input_sha256,state,gate_codes,created_by)
+                VALUES (?,?,?,'SANDBOX','M1',1,?,'BLOCKED',ARRAY['ED=MISSING'],?)
+                """, id, project, org, digest, owner.id());
+            update(c, """
+                INSERT INTO app_open_e8_run_command (actor_id,command_key,project_id,run_id,fingerprint)
+                VALUES (?,?,?,?,?)
+                """, owner.id(), key, project, id, digest);
+            return null;
+        });
+
+        String path = "/v1/projects/" + project + "/technical/open-monitoring/dossiers/M1/e8-runs";
+        var replay = call("POST", path, owner.cookie(), key, "\"0\"", "{}");
+        assertEquals(200, replay.statusCode(), replay.body());
+        JsonNode historical = json(replay);
+        assertEquals(id.toString(), historical.path("id").asText());
+        assertEquals("STALE", historical.path("state").asText());
+        assertTrue(historical.path("timing").isNull());
+        assertTrue(historical.path("gates").toString().contains("RUN_TIMING_LEGACY"));
+
+        var renewed = call("POST", path, owner.cookie(), key(), "\"1\"", "{}");
+        assertEquals(201, renewed.statusCode(), renewed.body());
+        assertEquals(2, json(renewed).path("version").asInt());
+        assertEquals("BLOCKED", json(renewed).path("state").asText());
+        assertEquals(historical, json(call("GET", path + "/" + id, owner.cookie(), null, null, null)));
     }
 
     private UUID grant(String project, UUID org, UUID actor, UUID owner, String role) {

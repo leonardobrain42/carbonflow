@@ -92,6 +92,20 @@ class OpenPeriodSupportIntegrationTest {
                 """,UUID.randomUUID(),project,org,docsReviewer.id(),owner.id());
             return null;
         });
+        String projectTechnical="/v1/projects/"+project+"/technical";
+        assertEquals(200,call("PUT",projectTechnical+"/open-rights/events/OP-START",owner.cookie(),null,"""
+            {"kind":"OPERATIONAL_START","eventOn":"2027-01-15","documentRef":"DOC-OP-1"}
+            """).statusCode());
+        assertEquals(200,call("PUT",projectTechnical+"/open-rights/events/VCS-START",owner.cookie(),null,"""
+            {"kind":"VCS_START","eventOn":"2027-01-15","documentRef":"DOC-VCS-1"}
+            """).statusCode());
+        assertEquals(200,call("PUT",projectTechnical+"/open-applicability",owner.cookie(),null,"""
+            {"unrestrictedBevAccess":true,"restrictedToIdentifiedVehicles":false,
+             "chargerType":"DCFC","propulsion":"BEV","electricitySource":"SIN",
+             "associatedInfrastructure":false,"v2g":false,
+             "operationalEventCode":"OP-START","vcsEventCode":"VCS-START"}
+            """).statusCode());
+
         String root="/v1/projects/"+project+"/technical/open-monitoring";
         JsonNode batch=uploadCsv(root+"/batches",op,DATA);
         String id=batch.path("id").asText();
@@ -462,15 +476,26 @@ class OpenPeriodSupportIntegrationTest {
         String runs=dossierUrl+"/M1/e8-runs";
         var authorRun=postMethod(runs,owner.cookie(),key(),"\"0\"","{}");
         assertEquals(201,authorRun.statusCode(),authorRun.body());
-        assertEquals("BLOCKED",json(authorRun).path("state").asText());
+        assertEquals("BLOCKED",json(authorRun).path("state").asText(),authorRun.body());
         assertTrue(json(authorRun).path("memory").isNull());
-        assertTrue(json(authorRun).path("gates").toString().contains("ACTOR_SEGREGATION"));
+        calcGate(json(authorRun),"ACTOR_SEGREGATION");
         assertFalse(json(authorRun).path("canIssueVcu").asBoolean());
-        var rehearsed=postMethod(runs,preparer.cookie(),key(),"\"1\"","{}");
+
+        // A newer IR with a larger version for another year must not replace 2027.
+        addIrPin(project,org,staffManager.id(),2028,1);
+        addIrPin(project,org,staffManager.id(),2028,2);
+        String rehearsalKey=key();
+        var rehearsed=postMethod(runs,preparer.cookie(),rehearsalKey,"\"1\"","{}");
         assertEquals(201,rehearsed.statusCode(),rehearsed.body());
         JsonNode rehearsal=json(rehearsed);
         assertEquals("REVIEWED_INTERNAL",rehearsal.path("state").asText());
         assertEquals(2,rehearsal.path("version").asInt());
+        assertEquals(1,rehearsal.at("/timing/projectYear").asInt());
+        assertEquals(2027,rehearsal.at("/timing/sourceYear").asInt());
+        assertEquals(java.time.Instant.parse(FROM),
+            java.time.OffsetDateTime.parse(rehearsal.at("/timing/windowStart").asText()).toInstant());
+        assertEquals(java.time.Instant.parse(TO),
+            java.time.OffsetDateTime.parse(rehearsal.at("/timing/windowEndExclusive").asText()).toInstant());
         assertFalse(rehearsal.path("canIssueVcu").asBoolean());
         assertFalse(rehearsal.at("/memory/usableForE8").asBoolean());
         assertEquals("PURE_MATH_TEST_ONLY_NOT_ADMITTED",rehearsal.at("/memory/kernelState").asText());
@@ -538,6 +563,19 @@ class OpenPeriodSupportIntegrationTest {
         assertFalse(baseline.at("/baseline").toString().toLowerCase().contains("afec"));
         assertFalse(baseline.at("/baseline").toString().toLowerCase().contains("mpg"));
         assertFalse(baseline.at("/baseline").toString().contains("denominator"));
+
+        String runDetail=runs+"/"+rehearsal.path("id").asText();
+        addIrPin(project,org,staffManager.id(),2028,3);
+        assertEquals(rehearsal,json(call("GET",runDetail,owner.cookie(),null,null)),
+            "Publishing an IR for a different year must not stale the run");
+        addIrPin(project,org,staffManager.id(),2027,2);
+        JsonNode old=json(call("GET",runDetail,owner.cookie(),null,null));
+        assertEquals("STALE",old.path("state").asText());
+        assertEquals(rehearsal.path("timing"),old.path("timing"));
+        assertEquals(rehearsal.path("memory"),old.path("memory"));
+        var replay=postMethod(runs,preparer.cookie(),rehearsalKey,"\"1\"","{}");
+        assertEquals(200,replay.statusCode(),replay.body());
+        assertEquals(old,json(replay));
 
         String vtUrl=efelUrl+"/"+efel.path("id").asText()+"/vt0011-workbooks";
         assertEquals(0,json(call("GET",vtUrl,owner.cookie(),null,null)).size());
@@ -1298,6 +1336,20 @@ class OpenPeriodSupportIntegrationTest {
     }
 
     /** Synthetic fossil reference plus explicit IR and Dy. Not an official factor. */
+    private void addIrPin(String project,UUID org,UUID author,int year,int version) {
+        database.transaction(c->{
+            update(c,"""
+                INSERT INTO app_open_project_parameter_binding
+                 (id,project_id,organization_id,environment,parameter_kind,vintage_year,
+                  version,declared_value,rule_reference,evidence_locator,value_kind,
+                  triage_version,binding_sha256,published_by)
+                VALUES (?, ?, ?,'SANDBOX','IR',?,?,0,'VM0038 explicit declaration',
+                        'DOC-IR','DECLARED_ZERO',1,?,?)
+                """,UUID.randomUUID(),project,org,year,version,AccessSecrets.digest("ir-"+year+"-"+version),author);
+            return null;
+        });
+    }
+
     private void pinCompleteSet(String project,UUID org,UUID author,UUID reviewer) {
         database.transaction(c->{
             String edition="E8-FUEL-"+UUID.randomUUID().toString().substring(0,8);
