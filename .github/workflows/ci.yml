@@ -299,9 +299,10 @@ jobs:
           docker compose -p "$CARBONFLOW_DEMO_PROJECT" -f compose.yaml -f compose.demo.yaml exec -T db \
             psql -U carbonflow -d carbonflow -v ON_ERROR_STOP=1 -c "
               BEGIN;
+              DROP TABLE app_open_e8_run_timing;
               DROP TABLE app_open_e8_run_command;
               DROP TABLE app_open_e8_run;
-              DELETE FROM flyway_schema_history WHERE version='69.1';
+              DELETE FROM flyway_schema_history WHERE version IN ('69.1', '78', '79');
               UPDATE flyway_schema_history SET
                 description='asset evidence submitted filename backfill',
                 script='db/migration/V71__asset_evidence_submitted_filename_backfill.sql',
@@ -332,6 +333,9 @@ jobs:
                              WHERE version='71' AND checksum=-1979807539 AND success)
                  AND to_regclass('public.app_open_e8_run') IS NOT NULL
                  AND to_regclass('public.app_open_e8_run_command') IS NOT NULL
+                 AND to_regclass('public.app_open_e8_run_timing') IS NOT NULL
+                 AND (SELECT count(*) FROM flyway_schema_history
+                      WHERE version IN ('78', '79') AND success)=2
                  AND (SELECT count(*) FROM app_identity i
                       JOIN app_account_credential c ON c.identity_id=i.id
                       WHERE i.status='ACTIVE' AND i.email_verified_at IS NOT NULL

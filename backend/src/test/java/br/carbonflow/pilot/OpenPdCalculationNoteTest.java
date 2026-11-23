@@ -54,6 +54,6 @@ class OpenPdCalculationNoteTest {
             OpenE8RunDecision.Memory memory, List<OpenCalculationPreflight.Gate> gates) {
         return new OpenE8ProjectRuns.Attempt(UUID.randomUUID(), "project", "M1", 2,
             state, stale, false, "PURE_MATH_TEST_ONLY_NOT_ADMITTED",
-            null, null, "abc", gates, List.of(), memory, OffsetDateTime.parse("2026-11-22T12:00:00Z"));
+            null, null, "abc", gates, List.of(), memory, OffsetDateTime.parse("2026-11-22T12:00:00Z"), null);
     }
 }

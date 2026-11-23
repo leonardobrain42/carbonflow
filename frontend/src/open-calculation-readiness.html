@@ -133,6 +133,10 @@
     @if (latestRun(); as run) {
       <dl class="cf-tech-capabilities">
         <div><dt>Situação</dt><dd>{{stateLabel(run.state)}} · v{{run.version}}</dd></div>
+        @if (run.timing?.projectYear; as projectYear) {
+          <div><dt>Ano do projeto</dt><dd>{{projectYear}}</dd></div>
+          <div><dt>Ano de referência das fontes</dt><dd>{{run.timing?.sourceYear}}</dd></div>
+        }
         <div><dt>BE, PE, LE e ER</dt>
           <dd>{{run.state==='REVIEWED_INTERNAL' && run.memory && !run.memory.usableForE8
             ? 'Ensaio interno — crédito não habilitado'

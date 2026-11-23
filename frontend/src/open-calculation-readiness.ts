@@ -56,6 +56,8 @@ interface CalculationRun {
   canIssueVcu:boolean;
   gates:RunGate[];
   memory:RunMemory|null;
+  timing?:{windowStart:string|null;windowEndExclusive:string|null;
+    projectYear:number|null;sourceYear:number|null}|null;
 }
 interface RunListing {
   period:string;
@@ -287,6 +289,7 @@ export class OpenCalculationReadinessComponent implements OnChanges {
       BLOCKED_MISSING_DATA:'Aguardando dados e vínculos',
       BLOCKED_NOT_ADMISSIBLE:'Fora do recorte ou precisa de reavaliação',
       MISSING:'Não informado',
+      MISSING_FOR_SOURCE_YEAR:'Ausente no ano das fontes',
       STALE:'Exige rechecagem',
       OUT_OF_SCOPE:'Fora do recorte inicial',
       NOT_ADMITTED:'Sem admissão normativa',
