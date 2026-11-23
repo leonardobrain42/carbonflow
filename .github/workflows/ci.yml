@@ -181,7 +181,7 @@ jobs:
         working-directory: frontend
         env:
           CARBONFLOW_TEST_URL: http://127.0.0.1:18088
-        run: node --test test/requirements-journey.integration.mjs
+        run: node --test --test-concurrency=1 test/requirements-journey*.integration.mjs
       - name: Rerun provisioning to prove repeatability without resetting passwords
         run: |
           python3 scripts/demo_sandbox.py start --quiet

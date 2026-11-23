@@ -1,4 +1,4 @@
-import {Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject, signal} from '@angular/core';
+import {Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, inject, signal} from '@angular/core';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {firstValueFrom} from 'rxjs';
 import {plainTerm, plannedRole} from './calculation-language';
@@ -29,7 +29,7 @@ const GROUPS = [
   standalone:true,
   templateUrl:'./project-requirements.html',
 })
-export class ProjectRequirementsComponent implements OnChanges {
+export class ProjectRequirementsComponent implements OnChanges, OnDestroy {
   @Input({required:true}) projectId = '';
   @Input() canQuantify = false;
   @Output() readonly openSection = new EventEmitter<string>();
@@ -50,9 +50,14 @@ export class ProjectRequirementsComponent implements OnChanges {
   readonly loading = signal(true);
   readonly error = signal('');
   readonly view = signal<View|null>(null);
+  private loadVersion = 0;
 
   ngOnChanges(changes:SimpleChanges) {
     if (changes['projectId']) void this.load();
+  }
+
+  ngOnDestroy() {
+    this.loadVersion++;
   }
 
   items(group:string) {
@@ -60,23 +65,26 @@ export class ProjectRequirementsComponent implements OnChanges {
   }
 
   async load() {
+    const version = ++this.loadVersion;
     this.loading.set(true);
     this.error.set('');
     try {
       const view = await firstValueFrom(this.http.get<View>(
         '/v1/projects/' + encodeURIComponent(this.projectId) + '/technical/requirements'));
+      if (version !== this.loadVersion) return;
       if (view.projectId !== this.projectId || view.canRunE8 || view.canIssueVcu
           || view.exAnteRequiresMeasuredEnergy || view.requirements.some(item => item.admitsE8)) {
         throw new Error('Diagnóstico inconsistente');
       }
       this.view.set(view);
     } catch (cause:unknown) {
+      if (version !== this.loadVersion) return;
       this.view.set(null);
       this.error.set(cause instanceof HttpErrorResponse && cause.status === 404
         ? 'O diagnóstico não está disponível para esta conta.'
         : 'Não foi possível ler o diagnóstico do projeto.');
     } finally {
-      this.loading.set(false);
+      if (version === this.loadVersion) this.loading.set(false);
     }
   }
 }

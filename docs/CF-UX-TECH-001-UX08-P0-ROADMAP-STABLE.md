@@ -94,3 +94,47 @@ contas. O sufixo `.integration.mjs` separa o roteiro, que exige sandbox de conta
 da suíte de navegador executada no Compose padrão. Senhas ficam nos arquivos locais
 privados já geridos pelo provisionador; não são argumentos, fixtures versionadas ou logs.
 Este aceite é de R0 e não encerra #124, #93, #99, #98 ou #97 nem substitui ensaio humano.
+
+### Regressões de concorrência e retomada
+
+A revisão da integração #202, após o merge de #209, identificou dois defeitos
+reproduzíveis com o Quarkus e PostgreSQL reais.
+
+- Uma leitura de requisitos iniciada antes do PUT podia chegar depois da releitura
+  e substituir o diagnóstico atualizado. O componente passa a aceitar apenas a
+  leitura mais recente e ignora respostas após sua destruição.
+- As opções dinâmicas dos seletores podiam aparecer sem seleção após recarregar,
+  mesmo com respostas persistidas. As opções booleanas, de titular, contrato e
+  eventos passam a refletir explicitamente o valor salvo.
+
+`frontend/test/requirements-journey-races.integration.mjs` complementa o roteiro
+de #209 no mesmo job sandbox. Ele atrasa uma resposta real anterior ao salvamento
+e verifica o estado novo na tela, a igualdade entre o diagnóstico e a jornada,
+revisões no PostgreSQL, seleção restaurada de valores booleanos e de entidades,
+conflito 412 com preservação do rascunho, retomada pela visão geral, isolamento
+entre organizações e revogação de grant e membership. Também compara o conteúdo
+de `synthetic_run` antes e depois e exige ausência de chamadas do navegador ao piloto.
+
+A fixture usa identidades e sessões efêmeras inseridas no PostgreSQL isolado,
+como os testes de integração Quarkus. Organizações, projetos, declaração,
+catálogo de direitos, diagnóstico e checkpoint usam as APIs reais. Grants e
+revogações são preparados diretamente no banco exclusivamente para os cenários
+de ACL. A fixture não testa cadastro, confirmação de e-mail ou autenticação por
+senha; esses fluxos continuam cobertos pelo provisionador e pelo roteiro de #209.
+As sessões efêmeras são removidas ao fim, preservando a capacidade do smoke.
+
+Para executar somente este complemento em um Compose descartável com mailbox
+sandbox habilitada:
+
+```sh
+cd frontend
+COMPOSE_PROJECT_NAME=cf-ux08-test-nome CARBONFLOW_TEST_URL=http://127.0.0.1:PORTA \
+  CARBONFLOW_CHROME=/caminho/do/chromium \
+  node --test test/requirements-journey-races.integration.mjs
+```
+
+A CI executa ambos os arquivos `requirements-journey*.integration.mjs`
+sequencialmente. A execução local exige nome de Compose de teste autorizado e
+HTTP em loopback. `CARBONFLOW_TEST_SCREENSHOTS` opcional registra capturas locais
+em 390×844 e 1440×900. A validação comprova o recorte de salvar e retomar de R0;
+a homologação com PP/PREP/REV/OP representativos permanece em #101/#45.
