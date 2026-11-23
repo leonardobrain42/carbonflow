@@ -43,7 +43,7 @@ final class OpenCalculationTransparency {
             List.of("NORMATIVE_PACK","CARBON_RIGHTS","EVR","AFEC_MPG",
                 "EF_FUEL","IR","ED"),gates,state));
         all.add(stage("PE","VM0038-1.1-EQ4","tCO2e",
-            "EC × EFel para o ramo exclusivo SIN sem infraestrutura associada.",
+            "Soma de EC × EFel por hora para o ramo exclusivo SIN.",
             List.of("EC","EF_GRID"),
             List.of("NORMATIVE_PACK","EC","EF_GRID"),gates,state));
         all.add(stage("LE","VM0038-1.1-SECTION-9.3","tCO2e",

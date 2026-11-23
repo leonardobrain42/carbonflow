@@ -20,8 +20,13 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
       canIssueVcu:false, engine:'PURE_MATH_TEST_ONLY_NOT_ADMITTED',
       energyBindingId:null, fleetSelectionId:null, inputSha256:'def', gates:[],
       equationPlan:[], memory:{
-        usableForE8:false, beTco2e:'4.05', peTco2e:'0.9', leTco2e:'0',
-        erTco2e:'3.15', erDisplay:'3.15',
+        usableForE8:false, beTco2e:'4.05', peTco2e:'1.3', leTco2e:'0',
+        erTco2e:'2.75', erDisplay:'2.75',
+        hourlyPe:{windowStart:'2027-02-01T00:00:00Z',windowEndExclusive:'2027-02-01T02:00:00Z',
+          region:'SIN',edKwh:'2700',ecKwh:'3000',peTco2e:'1.3',hours:[
+            {hourStart:'2027-02-01T00:00:00Z',edKwh:'900',ecKwh:'1000',factorTco2ePerKwh:'0.0005',peTco2e:'0.5'},
+            {hourStart:'2027-02-01T01:00:00Z',edKwh:'1800',ecKwh:'2000',factorTco2ePerKwh:'0.0004',peTco2e:'0.8'},
+          ]},
       }, createdAt:'2026-11-21T00:00:00Z',
     };
     const blocked = {
@@ -177,6 +182,15 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
     await page.getByText('Referência: ER', {exact:true}).waitFor();
     await page.getByText('4.05 tCO2e').waitFor();
     assert.equal(await page.getByText('Habilitada', {exact:true}).count(), 0);
+
+    await page.getByText('Emissões por hora · 2 horas · SIN', {exact:true}).click();
+    const hourlyTable = page.getByRole('table', {name:'Memória do PE horário'});
+    await hourlyTable.getByText('0.0004', {exact:true}).waitFor();
+    assert.equal(await hourlyTable.locator('tbody tr').count(), 2);
+    await page.getByText('EC total 3000 kWh · PE total 1.3 tCO2e.', {exact:true}).waitFor();
+    await page.setViewportSize({width:390,height:844});
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
+    await page.setViewportSize({width:1440,height:900});
 
     const period = page.getByLabel('Período de monitoramento', {exact:true});
     await period.selectOption('M2');

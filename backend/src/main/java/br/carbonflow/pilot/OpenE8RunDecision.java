@@ -1,5 +1,8 @@
 package br.carbonflow.pilot;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -12,14 +15,20 @@ import java.util.UUID;
 final class OpenE8RunDecision {
     record OperandSet(boolean complete, boolean stale, boolean actorIsAuthor,
                       List<OpenCalculationPreflight.Gate> gates,
-                      OpenGridCalculationMath.Input input) {}
+                      OpenGridCalculationMath.Input input, OpenHourlyProjectEmissions.Series hourly) {
+        OperandSet(boolean complete, boolean stale, boolean actorIsAuthor,
+                   List<OpenCalculationPreflight.Gate> gates, OpenGridCalculationMath.Input input) {
+            this(complete, stale, actorIsAuthor, gates, input, null);
+        }
+    }
 
     record Step(String code, String reference, String unit, String result) {}
 
     record Memory(String engine, String kernelState, boolean usableForE8,
                   String afecKwhPer100Miles, String mpgUs,
                   String beTco2e, String peTco2e, String leTco2e, String dy,
-                  String erTco2e, String erDisplay, List<Step> trace) {}
+                  String erTco2e, String erDisplay, List<Step> trace,
+                  OpenHourlyProjectEmissions.Memory hourlyPe) {}
 
     record Decision(String state, boolean canIssueVcu,
                     List<OpenCalculationPreflight.Gate> gates,
@@ -44,7 +53,7 @@ final class OpenE8RunDecision {
         boolean rehearsal = set.complete() && !set.stale() && !set.actorIsAuthor()
             && set.input() != null;
         if (rehearsal) {
-            var kernel = OpenGridCalculationMath.calculate(set.input());
+            var kernel = OpenGridCalculationMath.calculate(set.input(), set.hourly());
             if (kernel.usableForE8())
                 throw new IllegalStateException("O kernel marcou o ensaio como admitido.");
             if (gates.isEmpty()) gates.add(gate("NORMATIVE_PACK", "NOT_ADMITTED"));
@@ -63,32 +72,31 @@ final class OpenE8RunDecision {
         return stale ? "STALE" : stored;
     }
 
-    static List<Step> parseTrace(String json) {
-        if (json == null || json.isBlank()) return List.of();
-        var steps = new ArrayList<Step>();
-        for (String object : json.split("\\},\\{")) {
-            String code = field(object, "code");
-            String reference = field(object, "reference");
-            String unit = field(object, "unit");
-            String result = field(object, "result");
-            if (code != null && reference != null && unit != null && result != null)
-                steps.add(new Step(code, reference, unit, result));
+    record StoredTrace(List<Step> steps, OpenHourlyProjectEmissions.Memory hourlyPe) {}
+    private static final ObjectMapper JSON = new ObjectMapper();
+
+    static StoredTrace readTrace(String json) {
+        if (json == null || json.isBlank()) return new StoredTrace(List.of(), null);
+        try {
+            // Previous engines stored a JSON array with the seven equation steps.
+            if (JSON.readTree(json).isArray())
+                return new StoredTrace(List.of(JSON.readValue(json, Step[].class)), null);
+            return JSON.readValue(json, StoredTrace.class);
+        } catch (JsonProcessingException error) {
+            throw new IllegalStateException("Memória E8 armazenada inválida.", error);
         }
-        return List.copyOf(steps);
+    }
+
+    static List<Step> parseTrace(String json) {
+        return readTrace(json).steps();
     }
 
     static String traceJson(Memory memory) {
-        var json = new StringBuilder("[");
-        for (int i = 0; i < memory.trace().size(); i++) {
-            if (i > 0) json.append(',');
-            Step step = memory.trace().get(i);
-            json.append("{\"code\":\"").append(escape(step.code()))
-                .append("\",\"reference\":\"").append(escape(step.reference()))
-                .append("\",\"unit\":\"").append(escape(step.unit()))
-                .append("\",\"result\":\"").append(escape(step.result()))
-                .append("\"}");
+        try {
+            return JSON.writeValueAsString(new StoredTrace(memory.trace(), memory.hourlyPe()));
+        } catch (JsonProcessingException error) {
+            throw new IllegalStateException("Falha ao gravar a memória E8.", error);
         }
-        return json.append(']').toString();
     }
 
     static String encode(List<OpenCalculationPreflight.Gate> gates) {
@@ -111,6 +119,8 @@ final class OpenE8RunDecision {
             case "EF_GRID" -> "MISSING".equals(state)
                 ? "Não há fator elétrico vinculado neste período."
                 : "O fator elétrico vinculado não é parâmetro admitido do E8.";
+            case "HOURLY_COVERAGE_INVALID" ->
+                "A série de energia e fatores exige todas as horas da janela, com a mesma região e versão.";
             case "HOURLY_EFEL_NOT_UNIFORM" ->
                 "As horas do vínculo não compartilham um único fator elétrico. O motor não calcula média.";
             case "EVR" -> "MISSING".equals(state)
@@ -184,6 +194,7 @@ final class OpenE8RunDecision {
             case "WINDOW_PROJECT_YEAR_BOUNDARY", "WINDOW_SOURCE_YEAR_BOUNDARY" ->
                 "Preparar janelas separadas na mudança de ano";
             case "FLEET_WINDOW_MISMATCH" -> "Vincular a frota do ano das fontes ao pacote horário vigente";
+            case "HOURLY_COVERAGE_INVALID" -> "Conferir as horas e os totais do pacote de energia";
             case "HOURLY_EFEL_NOT_UNIFORM" -> "Manter um único fator elétrico horário ou esperar o cálculo por hora";
             default -> "Completar o vínculo e a admissão antes de executar";
         };
@@ -203,27 +214,7 @@ final class OpenE8RunDecision {
         return new Memory(kernel.engine(), kernel.state(), kernel.usableForE8(),
             kernel.afecKwhPer100Miles(), kernel.mpgUs(), kernel.beTco2e(),
             kernel.peTco2e(), kernel.leTco2e(), kernel.dy(), kernel.erTco2e(),
-            kernel.erDisplay(), List.copyOf(trace));
+            kernel.erDisplay(), List.copyOf(trace), kernel.hourlyPe());
     }
 
-    private static String field(String object, String name) {
-        String mark = "\"" + name + "\":\"";
-        int start = object.indexOf(mark);
-        if (start < 0) return null;
-        int from = start + mark.length();
-        var value = new StringBuilder();
-        for (int i = from; i < object.length(); i++) {
-            char current = object.charAt(i);
-            if (current == '\\' && i + 1 < object.length()) {
-                value.append(object.charAt(i + 1));
-                i++;
-            } else if (current == '"') return value.toString();
-            else value.append(current);
-        }
-        return null;
-    }
-
-    private static String escape(String value) {
-        return value.replace("\\", "\\\\").replace("\"", "\\\"");
-    }
 }

@@ -12,14 +12,12 @@ import java.util.List;
  * Pure VM0038 v1.1 §9 (Eq. 1–4, 7–8) arithmetic for the single
  * OPEN/BR/LDV/BEV/DCFC/SIN, grid-only, one-fleet/one-fuel branch.
  *
- * IMPORTANT: this is NOT a project calculation endpoint or an admission
- * resolver. No project bindings, source authentication, QA, legal rights or
- * Verra decisions are performed here. The only call sites should be tests
- * until #94–#99 provide approved, immutable, project-scoped inputs.
- * Existing closed-network PIL-SYN engine and hashes are untouched.
+ * The project runner calls this kernel with versioned inputs for internal
+ * rehearsals. Parameter admission and project permissions belong to the caller.
  */
 final class OpenGridCalculationMath {
     static final String ENGINE = "vm0038-open-grid-arithmetic@1";
+    static final String HOURLY_ENGINE = "vm0038-open-grid-arithmetic@2-hourly";
     static final String METHOD = "VM0038@1.1";
     static final String BRANCH = "OPEN_LDV_BEV_DCFC_SIN_GRID_ONLY";
     private static final MathContext MC = MathContext.DECIMAL128;
@@ -47,11 +45,16 @@ final class OpenGridCalculationMath {
                   String gridTco2ePerKwh, String ir, String dy,
                   String beTco2e, String peTco2e, String leTco2e,
                   String erTco2e, String erDisplay,
-                  List<ModelWeight> fleetTrace, List<Step> equationTrace) {}
+                  List<ModelWeight> fleetTrace, List<Step> equationTrace,
+                  OpenHourlyProjectEmissions.Memory hourlyPe) {}
 
     private OpenGridCalculationMath() {}
 
     static Memory calculate(Input input) {
+        return calculate(input, null);
+    }
+
+    static Memory calculate(Input input, OpenHourlyProjectEmissions.Series hourly) {
         if (input == null || !BRANCH.equals(input.branch()))
             throw invalid("Somente rede OPEN DCFC/SIN sem infraestrutura associada.");
         if (input.projectYear() < 1 || input.projectYear() > 100)
@@ -94,8 +97,14 @@ final class OpenGridCalculationMath {
         BigDecimal ec = nonnegative(input.ecKwh(), "EC kWh");
         BigDecimal fossil = nonnegative(input.fuelTco2ePerUsGallon(),
             "EFfuel tCO2e/US gal");
-        BigDecimal grid = nonnegative(input.gridTco2ePerKwh(),
-            "EFel tCO2e/kWh");
+        OpenHourlyProjectEmissions.Memory hourlyPe = hourly == null ? null
+            : OpenHourlyProjectEmissions.calculate(hourly);
+        BigDecimal grid = hourlyPe == null
+            ? nonnegative(input.gridTco2ePerKwh(), "EFel tCO2e/kWh") : null;
+        if (hourlyPe != null && (input.gridTco2ePerKwh() != null
+                || ed.compareTo(new BigDecimal(hourlyPe.edKwh())) != 0
+                || ec.compareTo(new BigDecimal(hourlyPe.ecKwh())) != 0))
+            throw invalid("Totais ou rota de fator incompatíveis com a série horária.");
         BigDecimal ir = positive(input.ir(), "IR");
         BigDecimal discount = factor(input.discount());
         BigDecimal irExponent = ir.pow(input.projectYear() - 1, MC);
@@ -103,7 +112,7 @@ final class OpenGridCalculationMath {
         BigDecimal be = ed.multiply(fossil, MC)
             .multiply(ONE_HUNDRED, MC).multiply(irExponent, MC)
             .divide(mileage, MC);
-        BigDecimal pe = ec.multiply(grid, MC);
+        BigDecimal pe = hourlyPe == null ? ec.multiply(grid, MC) : new BigDecimal(hourlyPe.peTco2e());
         BigDecimal le = BigDecimal.ZERO; // VM0038 v1.1 §9.3, not a configurable default.
         BigDecimal er = be.subtract(pe, MC).multiply(discount, MC);
 
@@ -122,9 +131,12 @@ final class OpenGridCalculationMath {
                 op("DISTANCE_FACTOR",ONE_HUNDRED,"mi/100 mi"),
                 op("IR_POWER",irExponent,"adimensional"),
                 op("AFEC",afec,"kWh/100 mi"),op("MPG",mpg,"mi/US gal")),
-            step("PE","VM0038-1.1-EQ4","Emissões da eletricidade consumida",
-                "tCO2e",number(pe),
-                op("EC",ec,"kWh"),op("EF_GRID",grid,"tCO2e/kWh")),
+            hourlyPe == null
+                ? step("PE","VM0038-1.1-EQ4","Emissões da eletricidade consumida",
+                    "tCO2e",number(pe),op("EC",ec,"kWh"),op("EF_GRID",grid,"tCO2e/kWh"))
+                : step("PE","VM0038-1.1-EQ4","Soma horária de EC × EFel",
+                    "tCO2e",number(pe),op("EC",ec,"kWh"),
+                    op("HOUR_COUNT",BigDecimal.valueOf(hourlyPe.hours().size()),"horas")),
             step("LE","VM0038-1.1-SECTION-9.3",
                 "Fuga de minimis conforme ramo VM0038","tCO2e",number(le)),
             step("DY",input.discount().noFleetCreditsVerified()?
@@ -137,12 +149,12 @@ final class OpenGridCalculationMath {
                 "Reduções líquidas após desconto Dy","tCO2e",number(er),
                 op("BE",be,"tCO2e"),op("PE",pe,"tCO2e"),
                 op("DY",discount,"adimensional")));
-        return new Memory(ENGINE,METHOD,BRANCH,
+        return new Memory(hourlyPe == null ? ENGINE : HOURLY_ENGINE,METHOD,BRANCH,
             "PURE_MATH_TEST_ONLY_NOT_ADMITTED",false,input.projectYear(),total,
             number(afec),number(mpg),number(ed),number(ec),number(fossil),
-            number(grid),number(ir),number(discount),number(be),number(pe),
+            grid == null ? null : number(grid),number(ir),number(discount),number(be),number(pe),
             number(le),number(er),er.setScale(2,RoundingMode.HALF_EVEN)
-                .toPlainString(),List.copyOf(rows),steps);
+                .toPlainString(),List.copyOf(rows),steps,hourlyPe);
     }
 
     /**

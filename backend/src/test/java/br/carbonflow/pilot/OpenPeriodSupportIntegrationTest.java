@@ -58,6 +58,12 @@ class OpenPeriodSupportIntegrationTest {
 
     @Test
     void proofFilesAreEncryptedReviewedIndependentlyAndSnapshotTurnsStale() throws Exception {
+        String data="meterCode,sequence,kind,start,endExclusive,zone,quantity,unit\n"
+            +"ED-1,SEQ-1,ED,2027-02-01T00:00:00Z,2027-02-01T01:00:00Z,UTC,900,kWh\n"
+            +"EC-1,SEQ-1,EC,2027-02-01T00:00:00Z,2027-02-01T01:00:00Z,UTC,1000,kWh\n"
+            +"ED-1,SEQ-2,ED,2027-02-01T01:00:00Z,2027-02-01T02:00:00Z,UTC,1800,kWh\n"
+            +"EC-1,SEQ-2,EC,2027-02-01T01:00:00Z,2027-02-01T02:00:00Z,UTC,2000,kWh\n";
+        String until="2027-02-01T02:00:00Z";
         Actor owner=actor(),op=actor(),qaReviewer=actor(),docsReviewer=actor(),outside=actor();
         Actor staffManager=actorWithId(E8_STAFF_MANAGER);
         Actor staffReviewer=actorWithId(E8_STAFF_REVIEWER);
@@ -107,9 +113,9 @@ class OpenPeriodSupportIntegrationTest {
             """).statusCode());
 
         String root="/v1/projects/"+project+"/technical/open-monitoring";
-        JsonNode batch=uploadCsv(root+"/batches",op,DATA);
+        JsonNode batch=uploadCsv(root+"/batches",op,data);
         String id=batch.path("id").asText();
-        for(int line: new int[]{2,3}) {
+        for(int line: new int[]{2,3,4,5}) {
             var response=call("POST",root+"/batches/"+id+"/rows/"+line+"/reviews",
                 qaReviewer.cookie(),"\"0\"", """
                 {"outcome":"ACCEPTED_FOR_QA",
@@ -118,7 +124,7 @@ class OpenPeriodSupportIntegrationTest {
             assertEquals(200,response.statusCode(),response.body());
         }
         String snapshots=root+"/period-qa/snapshots";
-        String period="{\"from\":\""+FROM+"\",\"until\":\""+TO+"\"}";
+        String period="{\"from\":\""+FROM+"\",\"until\":\""+until+"\"}";
         var created=call("POST",snapshots,qaReviewer.cookie(),null,period);
         assertEquals(201,created.statusCode(),created.body());
         String snapshot=json(created).path("id").asText();
@@ -235,8 +241,8 @@ class OpenPeriodSupportIntegrationTest {
             .compareTo(new java.math.BigDecimal("2700")));
         assertEquals(0,new java.math.BigDecimal(energy.path("ecKwh").asText())
             .compareTo(new java.math.BigDecimal("3000")));
-        assertEquals(1,energy.path("hourCount").asInt());
-        assertEquals(1,energy.path("slotCount").asInt());
+        assertEquals(2,energy.path("hourCount").asInt());
+        assertEquals(2,energy.path("slotCount").asInt());
         assertEquals(1,energy.path("hours").size());
         assertEquals("DCFC-1",energy.at("/hours/0/chargerCode").asText());
         assertEquals(64,energy.path("sourceSha256").asText().length());
@@ -264,7 +270,10 @@ class OpenPeriodSupportIntegrationTest {
         assertEquals(0,json(call("GET",efelUrl,owner.cookie(),null,null)).size());
         assertEquals(404,call("GET",efelUrl,op.cookie(),null,null).statusCode());
         assertEquals(404,call("GET",efelUrl,outside.cookie(),null,null).statusCode());
-        String efelBody=efelFixture(energy.path("id").asText(),"2027-02-01T00:00:00Z","0.5");
+        var efelPayload=mapper.readTree(efelFixture(energy.path("id").asText(),FROM,"0.5"));
+        ((com.fasterxml.jackson.databind.node.ArrayNode)efelPayload.path("hours"))
+            .add(mapper.createObjectNode().put("hour","2027-02-01T01:00:00Z").put("value",0.4));
+        String efelBody=mapper.writeValueAsString(efelPayload);
         assertEquals(404,postMethod(efelUrl,docsReviewer.cookie(),key(),"\"0\"",
             efelBody).statusCode());
         assertEquals(412,postMethod(efelUrl,owner.cookie(),key(),"\"1\"",
@@ -281,7 +290,7 @@ class OpenPeriodSupportIntegrationTest {
         assertEquals("tCO2e/kWh",efel.path("normalizedUnit").asText());
         assertEquals(0,new java.math.BigDecimal("0.0005").compareTo(
             new java.math.BigDecimal(efel.at("/hours/0/normalizedValue").asText())));
-        assertEquals(1,efel.path("hourCount").asInt());
+        assertEquals(2,efel.path("hourCount").asInt());
         assertEquals(64,efel.path("contentSha256").asText().length());
         assertFalse(efel.path("usableForE8").asBoolean());
         assertEquals(efelCreated.body(),postMethod(efelUrl,owner.cookie(),efelKey,
@@ -339,16 +348,16 @@ class OpenPeriodSupportIntegrationTest {
         assertEquals("CANDIDATE_NOT_ADMITTED",boundE8.path("state").asText());
         assertFalse(boundE8.path("usableForE8").asBoolean());
         assertEquals(1,boundE8.path("version").asInt());
-        assertEquals(1,boundE8.path("hourCount").asInt());
-        assertEquals(1,boundE8.path("slotCount").asInt());
+        assertEquals(2,boundE8.path("hourCount").asInt());
+        assertEquals(2,boundE8.path("slotCount").asInt());
         assertEquals(64,boundE8.path("inputSha256").asText().length());
         assertEquals(energy.path("sourceSha256").asText(),
             boundE8.path("energySha256").asText());
         assertEquals(efel.path("contentSha256").asText(),
             boundE8.path("efelSha256").asText());
         assertEquals("0.0005",boundE8.at("/hours/0/gridFactorTco2ePerKwh").asText());
-        assertEquals("2700",boundE8.at("/hours/0/edKwh").asText());
-        assertEquals("3000",boundE8.at("/hours/0/ecKwh").asText());
+        assertEquals("900",boundE8.at("/hours/0/edKwh").asText());
+        assertEquals("1000",boundE8.at("/hours/0/ecKwh").asText());
         assertTrue(boundE8.path("gates").toString().contains("EVR_AND_COMPARABLES_NOT_ADMITTED"));
         assertEquals(boundE8Response.body(),postMethod(bindingUrl,owner.cookie(),
             bindKey,"\"0\"",bindingBody).body());
@@ -494,14 +503,22 @@ class OpenPeriodSupportIntegrationTest {
         assertEquals(2027,rehearsal.at("/timing/sourceYear").asInt());
         assertEquals(java.time.Instant.parse(FROM),
             java.time.OffsetDateTime.parse(rehearsal.at("/timing/windowStart").asText()).toInstant());
-        assertEquals(java.time.Instant.parse(TO),
+        assertEquals(java.time.Instant.parse(until),
             java.time.OffsetDateTime.parse(rehearsal.at("/timing/windowEndExclusive").asText()).toInstant());
         assertFalse(rehearsal.path("canIssueVcu").asBoolean());
         assertFalse(rehearsal.at("/memory/usableForE8").asBoolean());
         assertEquals("PURE_MATH_TEST_ONLY_NOT_ADMITTED",rehearsal.at("/memory/kernelState").asText());
         assertEquals("4.05",rehearsal.at("/memory/beTco2e").asText(),rehearsal.path("memory").toString());
-        assertEquals("1.5",rehearsal.at("/memory/peTco2e").asText(),rehearsal.path("memory").toString());
-        assertEquals("2.55",rehearsal.at("/memory/erTco2e").asText(),rehearsal.path("memory").toString());
+        assertEquals("1.3",rehearsal.at("/memory/peTco2e").asText(),rehearsal.path("memory").toString());
+        assertEquals("2.75",rehearsal.at("/memory/erTco2e").asText(),rehearsal.path("memory").toString());
+        assertEquals("vm0038-open-grid-arithmetic@2-hourly",rehearsal.path("engine").asText());
+        assertEquals(2,rehearsal.at("/memory/hourlyPe/hours").size());
+        assertEquals("0.5",rehearsal.at("/memory/hourlyPe/hours/0/peTco2e").asText());
+        assertEquals("0.8",rehearsal.at("/memory/hourlyPe/hours/1/peTco2e").asText());
+        var historic=json(call("GET",runs+"/"+rehearsal.path("id").asText(),
+            preparer.cookie(),null,null));
+        assertEquals(rehearsal.path("memory"),historic.path("memory"));
+        assertEquals(200,postMethod(runs,preparer.cookie(),rehearsalKey,"\"1\"","{}").statusCode());
         assertFalse(rehearsal.toString().contains("EF-SYN"));
         assertFalse(rehearsal.toString().contains("SIM-DY"));
         JsonNode stillBlocked=json(call("GET",technical+"/open-calculation-readiness",
@@ -516,8 +533,8 @@ class OpenPeriodSupportIntegrationTest {
         assertNotNull(quantification);
         assertEquals("MEMORY",quantification.at("/calculation/situation").asText());
         assertEquals("4.05",quantification.at("/calculation/beTco2e").asText());
-        assertEquals("1.5",quantification.at("/calculation/peTco2e").asText());
-        assertEquals("2.55",quantification.at("/calculation/erDisplay").asText());
+        assertEquals("1.3",quantification.at("/calculation/peTco2e").asText());
+        assertEquals("2.75",quantification.at("/calculation/erDisplay").asText());
         assertFalse(quantification.at("/calculation/usableForE8").asBoolean());
         assertFalse(quantification.at("/calculation/marksDocumentReady").asBoolean());
         assertTrue(quantification.at("/calculation/text").asText().contains("O PD não fica pronto"));
