@@ -34,7 +34,10 @@
               <button type="button" class="cf-triage-step" [disabled]="saving()"
                 [class.cf-triage-step-active]="isCurrent(item.id)"
                 [attr.aria-current]="isCurrent(item.id) ? 'page' : null"
-                (click)="open(item.id)">{{ item.title }}</button>
+                (click)="open(item.id)">{{ item.title }}@if (menuCount(item.id); as count) {
+                  <span class="cf-tech-count" aria-hidden="true">{{ count }}</span>
+                  <span class="cf-sr-only">, {{ count }} {{ count === 1 ? 'ação sua' : 'ações suas' }}</span>
+                }</button>
             }
           </nav>
           <div class="cf-tech-module-panel">
@@ -83,9 +86,6 @@
                   </button>
                   <button type="button" (click)="openMonitoring('inventario')">
                     <strong>Monitoramento</strong><span>Inventário, leituras, QA, MR e fatores elétricos.</span>
-                  </button>
-                  <button type="button" (click)="open('evidencias')">
-                    <strong>Evidências</strong><span>Comprovação e vigência dos snapshots de QA.</span>
                   </button>
                 }
                 @if (can('VIEW_OPEN_CALCULATION')) {

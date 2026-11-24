@@ -214,6 +214,10 @@
 @media(max-width:780px){.cf-entry-grid {grid-template-columns:1fr;} .cf-entry-header {align-items:flex-start;flex-wrap:wrap;} .cf-entry-main {padding-top:2rem;} }
 @media(max-width:420px){.cf-entry-actions > a {width:100%;text-align:center;justify-content:center;} .cf-workspace-login {margin:1rem auto;} }
 
+.cf-tech-count { display: inline-block; margin-left: .4rem; min-width: 1.4rem; padding: 0 .4rem; border-radius: 999px;
+  background: #83d99f; color: #0e1f18; font-size: .8rem; font-weight: 700; text-align: center; line-height: 1.4rem; }
+.cf-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 /* Save bar: stays at the bottom of the viewport while a long form scrolls. */
 .cf-save-bar { position: sticky; bottom: 0; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: .6rem 1rem;
   margin-top: 1rem; padding: .75rem 1rem; background: #0e1f18; border-top: 1px solid #2f4a3d;
