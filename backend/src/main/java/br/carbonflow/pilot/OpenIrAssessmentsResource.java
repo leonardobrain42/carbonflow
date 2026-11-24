@@ -10,6 +10,26 @@ public class OpenIrAssessmentsResource {
     private final OpenIrAssessments service;
     OpenIrAssessmentsResource(OpenIrAssessments service) { this.service=service; }
 
+    @GET
+    @Path("/options")
+    public Response options(@CookieParam(AccountAccess.COOKIE) String cookie) {
+        return secure(service.options(cookie)).build();
+    }
+
+    @GET
+    @Path("/{project}/period-options")
+    public Response periods(@CookieParam(AccountAccess.COOKIE) String cookie,
+                            @PathParam("project") String project) {
+        return secure(service.periodOptions(cookie,project)).build();
+    }
+
+    @GET
+    @Path("/{project}")
+    public Response recent(@CookieParam(AccountAccess.COOKIE) String cookie,
+                           @PathParam("project") String project) {
+        return secure(service.recent(cookie,project,true)).build();
+    }
+
     @POST
     @Path("/{project}")
     @Consumes(MediaType.APPLICATION_JSON)
@@ -56,6 +76,12 @@ public class OpenIrAssessmentsResource {
 class OpenIrAssessmentsProjectResource {
     private final OpenIrAssessments service;
     OpenIrAssessmentsProjectResource(OpenIrAssessments service) { this.service=service; }
+
+    @GET
+    public Response recent(@CookieParam(AccountAccess.COOKIE) String cookie,
+                           @PathParam("project") String project) {
+        return OpenIrAssessmentsResource.secure(service.recent(cookie,project,false)).build();
+    }
 
     @GET
     @Path("/{year}/{sourceYear}")

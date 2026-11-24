@@ -1,3 +1,4 @@
+import {OpenIrAssessmentsComponent} from './open-ir-assessments';
 import {Component, Input, OnChanges, OnDestroy, SimpleChanges, inject, signal} from '@angular/core';
 import {HttpClient, HttpErrorResponse, HttpHeaders} from '@angular/common/http';
 import {firstValueFrom} from 'rxjs';
@@ -38,7 +39,7 @@ type DyHistory = {projectId:string;projectYear:number;latestVersion:number;
 
 /** Staff pin of a reviewed factor or an explicit IR/Dy. Not an E8 admission. */
 @Component({selector:'carbonflow-platform-parameter-pins', standalone:true,
-  templateUrl:'./platform-parameter-pins.html'})
+  imports:[OpenIrAssessmentsComponent],templateUrl:'./platform-parameter-pins.html'})
 export class PlatformParameterPinsComponent implements OnChanges, OnDestroy {
   @Input({required:true}) methodology='';
   @Input({required:true}) edition='';

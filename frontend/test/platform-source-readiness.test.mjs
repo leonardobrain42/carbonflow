@@ -96,6 +96,35 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
       canRecord:dyCanRecord,canReview:dyCanReview,
       projects:[{projectId:'20000000-0000-4000-8000-000000000097',title:'Rede aberta'}],
     }}));
+    const irProject='20000000-0000-4000-8000-000000000097';
+    const irRoot='/v1/platform/open-ir-assessments/'+irProject;
+    let irPost=null;
+    let irRows=[{id:'ir-prior',projectId:irProject,projectYear:1,sourceYear:2035,version:1,
+      period:'M1',fleetSelectionId:'fleet-prior',fuelPinId:'fuel-prior',frequency:'ANNUAL',
+      basis:'PROJECT_SPECIFIC',rationale:'Referência anual anterior',state:'PENDING_REVIEW',
+      assessmentSha256:'a'.repeat(64),candidate:'1',stale:false,usableForE8:false,
+      recordedAt:'2035-01-01T00:00:00Z',review:null,annualEvidence:null}];
+    await page.route('**/v1/platform/open-ir-assessments/options',r=>r.fulfill({json:{
+      canRecord:true,canReview:true,projects:[{projectId:irProject,title:'Rede aberta'}]}}));
+    await page.route('**'+irRoot+'/period-options',r=>r.fulfill({json:[{
+      period:'M2',projectYear:2,sourceYear:2036,latestVersion:irRows[0].projectYear===2?1:0,
+      fleetSelectionId:'fleet-current',fuelPinId:'fuel-current'}]}));
+    await page.route('**'+irRoot,async r=>{
+      if(r.request().method()==='GET')return r.fulfill({json:irRows});
+      irPost={body:r.request().postDataJSON(),match:r.request().headers()['if-match']};
+      const saved={...irRows[0],...irPost.body,id:'ir-current',projectYear:2,sourceYear:2036,
+        fleetSelectionId:'fleet-current',fuelPinId:'fuel-current',assessmentSha256:'b'.repeat(64)};
+      irRows=[saved,...irRows];return r.fulfill({status:201,json:saved});
+    });
+    let irReview=null;
+    await page.route('**'+irRoot+'/ir-current/review',async r=>{
+      irReview={body:r.request().postDataJSON(),match:r.request().headers()['if-match']};
+      const saved={...irRows[0],state:'CHECKED_INTERNAL_NOT_ADMITTED',
+        review:{...irReview.body,reviewedAt:'2036-01-01T00:00:00Z'},
+        annualEvidence:{priorAssessmentId:'ir-prior',evidenceSha256:'c'.repeat(64),
+          state:'CONSECUTIVE_REFERENCES_NOT_ADMITTED',policy:'OPEN-IR-ANNUAL-EVIDENCE@1'}};
+      irRows=[saved,...irRows.slice(1)];return r.fulfill({status:201,json:saved});
+    });
     await page.getByRole('button', {name:'Pinos do projeto'}).click();
     await page.getByRole('heading', {name:'Pino de parâmetros do projeto'}).waitFor();
     await page.getByLabel('Projeto', {exact:true}).selectOption({label:'Rede aberta'});
@@ -112,6 +141,30 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
     assert.equal(posted.body.useDefault, undefined);
     assert.equal(posted.match, '"0"');
     await page.getByText('Nenhum pino admite o cálculo nem emite crédito.').waitFor();
+    const irPanel=page.getByRole('region',{name:'Avaliações de melhoria tecnológica (IR)'});
+    await irPanel.getByLabel('Projeto da avaliação de IR').selectOption(irProject);
+    await irPanel.getByLabel('Período com referências disponíveis').selectOption('M2');
+    await irPanel.getByLabel('Frequência de atualização da linha de base').selectOption('ANNUAL');
+    await irPanel.getByLabel('Fundamentação dos parâmetros').selectOption('PROJECT_SPECIFIC');
+    await irPanel.getByLabel('Justificativa metodológica').fill('Atualização anual das referências canônicas.');
+    await irPanel.getByRole('button',{name:'Registrar avaliação de IR'}).click();
+    await irPanel.getByText('Avaliação registrada. Nenhum parâmetro foi admitido.').waitFor();
+    assert.equal(irPost.match,'"0"');
+    assert.deepEqual(irPost.body,{period:'M2',frequency:'ANNUAL',basis:'PROJECT_SPECIFIC',
+      rationale:'Atualização anual das referências canônicas.'});
+    const current=irPanel.locator('details').filter({hasText:'Ano 2 · fonte 2036'});
+    await current.getByRole('button',{name:'Preparar parecer de IR'}).click();
+    await current.getByLabel('Decisão técnica').selectOption('CHECKED_INTERNAL');
+    await current.getByLabel('Tipo de evidência anual').selectOption('OBSERVED_UPDATE');
+    await current.getByLabel('Localizador da evidência').fill('TEST_ONLY');
+    await current.getByLabel('Fundamentação do parecer').fill('Conferência de dois conjuntos anuais consecutivos.');
+    assert.equal(await current.getByRole('button',{name:'Registrar parecer de IR'}).isDisabled(),true);
+    await current.getByLabel('Avaliação do ano anterior').selectOption('ir-prior');
+    await current.getByRole('button',{name:'Registrar parecer de IR'}).click();
+    await irPanel.getByText('Continuidade anual: Referências consecutivas — não admitidas.').waitFor();
+    assert.equal(irReview.match,'"1"');
+    assert.equal(irReview.body.priorAssessmentId,'ir-prior');
+    assert.equal(irReview.body.assessmentSha256,'b'.repeat(64));
     const dyProject='20000000-0000-4000-8000-000000000097';
     let dyRows=[];
     let dyPost=null;

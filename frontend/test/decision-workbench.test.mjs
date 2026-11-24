@@ -270,3 +270,32 @@ test('UX-RES-01: a premissa tipada permanece na etapa e a recusa conserva o rasc
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
  }finally{await browser.close();}
 });
+
+test('UX-IR-01: authorized project sees IR history without staff mutation controls',async()=>{
+ const browser=await chromium.launch({executablePath});
+ try{
+  const page=await browser.newPage({viewport:{width:390,height:844}});
+  const observed=[];
+  await mock(page,['VIEW_INTAKE','VIEW_GUIDES','VIEW_OPEN_PARAMETER_BINDING'],observed);
+  let reads=0;
+  await page.route('**'+root+'/technical/open-ir-assessments',r=>{
+    reads++;
+    assert.equal(r.request().method(),'GET');
+    return r.fulfill({json:[{id:'ir-current',projectId:project,projectYear:2,sourceYear:2028,
+      version:1,period:'P-2028',fleetSelectionId:'fleet-current',fuelPinId:'fuel-current',
+      frequency:'ANNUAL',basis:'PROJECT_SPECIFIC',rationale:null,
+      state:'ANNUAL_EVIDENCE_RECHECK_REQUIRED',assessmentSha256:'a'.repeat(64),candidate:null,
+      stale:true,usableForE8:false,recordedAt:'2028-07-01T00:00:00Z',review:null,
+      annualEvidence:{priorAssessmentId:'ir-prior',evidenceSha256:'b'.repeat(64),
+        state:'STALE_EVIDENCE_NOT_ADMITTED',policy:'OPEN-IR-ANNUAL-EVIDENCE@1'}}]});
+  });
+  await page.goto(base+'/workspace/projects/'+project+'/technical?secao=linha-base&etapa=fatores');
+  const panel=page.getByRole('region',{name:'Avaliações de melhoria tecnológica (IR)'});
+  await panel.getByText('Prova anual requer rechecagem',{exact:false}).waitFor();
+  await panel.getByText('Continuidade anual: Prova anual obsoleta.').waitFor();
+  await panel.getByText('Indisponível',{exact:true}).waitFor();
+  assert.equal(await panel.getByRole('button',{name:'Registrar avaliação de IR'}).count(),0);
+  assert.equal(await panel.getByRole('button',{name:'Preparar parecer de IR'}).count(),0);
+  assert.equal(reads,1);
+ }finally{await browser.close();}
+});

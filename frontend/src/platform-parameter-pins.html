@@ -29,7 +29,7 @@
       <select id="cf-pin-kind" [value]="kind" (change)="kind=$any($event.target).value">
         <option value="EF_FUEL">Fator fóssil (linha de base)</option>
         <option value="EF_GRID">Fator elétrico anual (emissão do projeto)</option>
-        <option value="IR">Melhoria tecnológica (IR)</option>
+        <option value="IR">Melhoria tecnológica (IR) — pino legado</option>
         <option value="DY">Desconto por outro crédito (Dy) — declaração legada</option>
       </select>
       <label for="cf-pin-year">Ano</label>
@@ -63,6 +63,7 @@
       <button type="submit" class="cf-workspace-primary" [disabled]="busy()">Gravar pino</button>
     </form>
 
+    <carbonflow-open-ir-assessments [staff]="true"/>
     <section aria-labelledby="cf-dy-title" class="cf-journey-context">
       <h3 id="cf-dy-title">Avaliação de créditos concorrentes (Dy)</h3>
       <button type="button" class="cf-workspace-outline" (click)="loadDyOptions()">Atualizar projetos de Dy</button>
