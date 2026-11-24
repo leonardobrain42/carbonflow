@@ -151,6 +151,24 @@
             }
             <button type="button" class="cf-workspace-outline" [disabled]="dyBusy()||dyIssuances.length>=100"
               (click)="addDyIssuance()">Adicionar emissão declarada</button>
+            @if (dyIssuances.length) {
+              <label>
+                <input type="checkbox" [checked]="dyBindLicenses"
+                  (change)="dyBindLicenses=$any($event.target).checked">
+                Vincular licenças das fontes
+              </label>
+              <p>Sem vínculo, os itens continuam declarações manuais. Com vínculo, informe a licença
+                organizacional aprovada de cada edição; o servidor verifica a decisão vigente e os direitos
+                de extração, visualização e derivados. Não há admissão de E8.</p>
+              @if (dyBindLicenses) {
+                @for (source of dySources(); track source.key; let i=$index) {
+                  <label [for]="'cf-dy-license-'+i">ID da licença · {{source.sourceId}} / {{source.sourceEdition}}</label>
+                  <input [id]="'cf-dy-license-'+i" required maxlength="36"
+                    [value]="dyLicenseIds[source.key]??''"
+                    (input)="dyLicenseIds[source.key]=$any($event.target).value">
+                }
+              }
+            }
           }
           <label for="cf-dy-programs">Programas pesquisados</label>
           <textarea id="cf-dy-programs" rows="2" maxlength="1000" required [value]="dyPrograms"
@@ -164,7 +182,7 @@
           <label for="cf-dy-note">Cobertura, fontes e limitações da pesquisa</label>
           <textarea id="cf-dy-note" rows="3" maxlength="2000" required [value]="dyNote"
             (input)="dyNote=$any($event.target).value"></textarea>
-          <button type="submit" class="cf-workspace-primary" [disabled]="dyBusy()||!dyOutcome
+          <button type="submit" class="cf-workspace-primary" [disabled]="dyBusy()||!dyOutcome||!dyRightsReady()
             ||(!!history.calendarGate&&dyOutcome!=='INCONCLUSIVE')">Registrar avaliação de Dy</button>
         </form>
         }
@@ -172,11 +190,21 @@
         @for (item of history.assessments; track item.id) {
           <details>
             <summary>Versão {{item.version}} · {{item.outcome}} · {{item.stale?'Requer rechecagem':'Sem admissão'}}</summary>
+            @if (item.sourceRightsState==='LICENSE_RECHECK_REQUIRED') {
+              <p role="status">Direitos da fonte exigem rechecagem. Números e referências protegidos estão ocultos. Registre uma nova versão com licença vigente.</p>
+            } @else if (item.sourceRightsState==='LICENSE_DECISIONS_CURRENT') {
+              <p>Decisões de licença vigentes na consulta, sem admissão normativa.</p>
+            } @else {
+              <p>Sem licença vinculada: pesquisa declaratória, sem autorização de processamento comprovada.</p>
+            }
+            @for (pin of item.sourceLicenses ?? []; track $index) {
+              <p class="energy-hash">{{pin.sourceId}} / {{pin.sourceEdition}} · licença {{pin.licenseId}} · decisão {{pin.decisionVersion}}</p>
+            }
             <dl>
               <dt>Janela original</dt><dd>{{item.priorStart ?? 'Não resolvida'}} até {{item.priorEndExclusive ?? 'Não resolvida'}}</dd>
               <dt>ERC declarados</dt><dd>{{item.erc ?? 'Não determinados'}}</dd>
               <dt>ERF declarados</dt><dd>{{item.erf ?? 'Não determinados'}}</dd>
-              <dt>Prévia histórica de Dy</dt><dd>{{item.dyPreview ?? 'Indisponível — ausência não é zero'}}</dd>
+              <dt>Prévia histórica de Dy</dt><dd>{{item.sourceRightsState==='LICENSE_RECHECK_REQUIRED'?'Oculta por direitos de uso':(item.dyPreview ?? 'Indisponível — ausência não é zero')}}</dd>
               <dt>Programas</dt><dd>{{item.programs}}</dd>
               <dt>Projetos e categorias</dt><dd>{{item.projectReferences}}</dd>
               <dt>Referência de evidência</dt><dd>{{item.evidenceLocator}}</dd>
@@ -185,7 +213,9 @@
             </dl>
             @if (item.issuanceCount) {
               <h5>Emissões declaradas · {{item.issuanceCount}}</h5>
-              <p>Totais conciliados pelo servidor, sem verificação oficial ou admissão normativa.</p>
+              @if (item.sourceRightsState!=='LICENSE_RECHECK_REQUIRED') {
+                <p>Totais conciliados pelo servidor, sem verificação oficial ou admissão normativa.</p>
+              }
               @for (issuance of item.issuances ?? []; track $index) {
                 <dl>
                   <dt>Programa / projeto</dt><dd>{{issuance.program}} / {{issuance.registryProject}}</dd>

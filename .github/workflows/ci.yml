@@ -373,17 +373,18 @@ jobs:
           set -euo pipefail
           # Only CI's isolated demo: model the legacy schema with the exact
           # Calendar SQL already applied by V81, retaining its actual checksum.
-          # Revert V82/V83/V84 as well: the original V79 must be the last migration.
+          # Revert V82/V83/V84/V85 as well: the original V79 must be the last migration.
           # The real demo compatibility guard must continue to reject newer history.
           python3 -c 'import sys; sys.path.insert(0,"scripts"); import demo_sandbox as d; d.compose("stop","app")'
           dc=(docker compose -p "$CARBONFLOW_DEMO_PROJECT" -f compose.yaml -f compose.demo.yaml)
           "${dc[@]}" exec -T db psql -U carbonflow -d carbonflow -v ON_ERROR_STOP=1 -c "
             BEGIN;
+            DROP TABLE app_open_dy_source_license;
             DROP TABLE app_open_dy_issuance;
             DROP TABLE app_open_dy_review;
             DROP TABLE app_open_dy_assessment;
             DROP TABLE app_open_e8_run_timing;
-            DELETE FROM flyway_schema_history WHERE version IN ('79','80','82','83','84');
+            DELETE FROM flyway_schema_history WHERE version IN ('79','80','82','83','84','85');
             UPDATE flyway_schema_history SET version='79',
               script='db/migration/V79__open_e8_run_calendar.sql'
               WHERE version='81' AND checksum=-898586753 AND success;
@@ -441,7 +442,8 @@ jobs:
               AND to_regclass('public.app_open_dy_assessment') IS NOT NULL
               AND to_regclass('public.app_open_dy_review') IS NOT NULL
               AND to_regclass('public.app_open_dy_issuance') IS NOT NULL
-              AND (SELECT count(*) FROM flyway_schema_history WHERE version IN ('82','83','84') AND success)=3
+              AND to_regclass('public.app_open_dy_source_license') IS NOT NULL
+              AND (SELECT count(*) FROM flyway_schema_history WHERE version IN ('82','83','84','85') AND success)=4
               AND (SELECT count(*) FROM app_identity i JOIN app_account_credential c ON c.identity_id=i.id
                    WHERE i.status='ACTIVE' AND i.email_normalized IN
                    ('demo@carbonflow.test','segunda@carbonflow.test','admin@carbonflow.test'))=3

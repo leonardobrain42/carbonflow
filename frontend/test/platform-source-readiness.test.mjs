@@ -143,7 +143,9 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
         programs:dyPost.body.programs,projectReferences:dyPost.body.projectReferences,
         evidenceLocator:dyPost.body.evidenceLocator,coverageNote:dyPost.body.coverageNote,
         assessmentSha256:'a'.repeat(64),state:'DECLARED_NOT_ADMITTED',stale:false,usableForE8:false,
-        issuanceCount:dyPost.body.issuances?.length??0,issuances:dyPost.body.issuances??[]};
+        issuanceCount:dyPost.body.issuances?.length??0,issuances:dyPost.body.issuances??[],
+        sourceRightsState:dyPost.body.sourceLicenses?.length?'LICENSE_DECISIONS_CURRENT':'NO_LICENSE_PIN',
+        sourceLicenses:(dyPost.body.sourceLicenses??[]).map(pin=>({...pin,decisionVersion:1}))};
       dyRows=[saved,...dyRows];
       return route.fulfill({status:201,json:saved});
     });
@@ -167,6 +169,8 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
       await page.getByLabel('Edição da fonte '+i,{exact:true}).fill('1');
       await page.getByLabel('Localizador da emissão '+i,{exact:true}).fill('TEST_ONLY item '+i);
     }
+    await page.getByLabel('Vincular licenças das fontes').check();
+    await page.getByLabel('ID da licença · TEST-REGISTRY / 1',{exact:true}).fill('10000000-0000-4000-8000-000000000085');
     await page.getByLabel('Programas pesquisados').fill('Programa fictício');
     await page.getByLabel('Projetos e categorias pesquisados').fill('Projeto fictício da frota');
     await page.getByLabel('Localizador da evidência').fill('TEST_ONLY página 1');
@@ -183,6 +187,8 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
     assert.equal(dyPost.body.dyPreview,undefined);
     assert.equal(dyPost.body.issuances.length,2);
     assert.equal(dyPost.body.issuances[1].creditKind,'ERF');
+    assert.deepEqual(dyPost.body.sourceLicenses,[{sourceId:'TEST-REGISTRY',sourceEdition:'1',licenseId:'10000000-0000-4000-8000-000000000085'}]);
+    await page.getByText('Decisões de licença vigentes na consulta, sem admissão normativa.',{exact:true}).waitFor();
     await page.getByText('Emissões declaradas · 2',{exact:true}).waitFor();
     await outcome.selectOption('INCONCLUSIVE');
     await page.getByLabel('ERC emitidos · tCO2e').waitFor({state:'detached'});
@@ -193,6 +199,7 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
     assert.equal(dyPost.body.erc,null);
     assert.equal(dyPost.body.erf,null);
     assert.deepEqual(dyPost.body.issuances,[]);
+    assert.deepEqual(dyPost.body.sourceLicenses,[]);
     dyCanRecord=false;dyCanReview=true;
     await page.getByRole('button',{name:'Atualizar projetos de Dy'}).click();
     await outcome.waitFor({state:'detached'});

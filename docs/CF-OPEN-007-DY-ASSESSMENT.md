@@ -83,3 +83,22 @@ Ainda não há comprovação de cobertura, ingestão oficial, decisão de direit
 por emissão, rateio nem integração ao executor. Uma avaliação sem itens
 permanece UNITEMIZED; zero não comprova ausência. Não há migração de dados
 históricos. V84 aditiva; CI reconstitui banco histórico apenas no fixture.
+
+## V85 — direitos de fontes individualizadas
+
+Opcionalmente, o gestor vincula uma licença exata por edição de fonte presente
+nas emissões. Lista vazia mantém o modo declaratório legado, explicitamente
+NO_LICENSE_PIN; lista não vazia exige cobertura integral e sem duplicatas.
+Reutiliza o gate organizacional de PlatformSourceFiles para AUTHORIZED_PROCESSING,
+EXTRACT_TEXT, SHOW_EXCERPTS e EXPORT_DERIVATIVES na mesma decisão aprovada,
+independente, vigente e com prova. A decisão exata integra o hash da avaliação;
+o replay do comando mantém sua identidade. Não escolhe licença substituta.
+A leitura reavalia os direitos: expiração, revogação, mudança de versão ou perda
+de capacidade tornam a avaliação stale, ocultam números e referências e impedem
+novo parecer. A conta do projeto recebe apenas status e metadados de integridade
+para avaliações licenciadas, sem números ou conteúdo de staff. Os registros
+originais e pareceres permanecem imutáveis. Nova decisão exige nova avaliação.
+
+A licença vigente não verifica a emissão, a cobertura nacional, rateio ou a
+admissibilidade metodológica. Não há acesso automático a fonte externa, nem
+habilitação de E8. A V85 é aditiva; o CI de upgrade histórico é atualizado.
