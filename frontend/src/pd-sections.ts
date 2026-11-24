@@ -21,6 +21,11 @@ interface ParameterDetail {
   methodology:string;methodologyEdition:string;normalizedUnit:string|null;
   conversionFormula:string|null;valueKind:string;state:string;stale:boolean;usableForE8:boolean;
 }
+interface EnergyDetail {
+  id:string;projectId:string;period:string;version:number;state:string;stale:boolean;usableForE8:boolean;
+  hourCount:number;slotCount:number;createdAt:string;
+  hours:{hour:string|null;edKwh:string|null;ecKwh:string|null}[];
+}
 interface CalculationNote {period:string;situation:string;causeCode:string|null;cause:string|null;
   beTco2e:string|null;peTco2e:string|null;leTco2e:string|null;erDisplay:string|null;
   usableForE8:boolean;marksDocumentReady:boolean;text:string;provenance?:CalculationProvenance|null}
@@ -59,41 +64,77 @@ export class PdSectionsComponent implements OnInit, OnDestroy {
   readonly pinDetail = signal<ParameterDetail|null>(null);
   readonly pinLoading = signal(false);
   readonly pinError = signal('');
-  private pinRequest = 0;
-  ngOnDestroy() { this.clearPin(); }
+  readonly energyDetail = signal<EnergyDetail|null>(null);
+  readonly energyLoading = signal(false);
+  readonly energyError = signal('');
+  private sourceRequest = 0;
+  ngOnDestroy() { this.clearDetails(); }
 
-  private clearPin() {
-    ++this.pinRequest;
+  private clearDetails() {
+    ++this.sourceRequest;
     this.pinDetail.set(null);
     this.pinLoading.set(false);
     this.pinError.set('');
+    this.energyDetail.set(null);
+    this.energyLoading.set(false);
+    this.energyError.set('');
   }
 
   async loadPin(symbol:string, id:string|null) {
     const source=this.current()?.calculation?.provenance?.inputs.find(item =>
       item.symbol===symbol && item.referenceId===id && item.access==='PROJECT_METADATA_ONLY');
     if (!source || !id || !['EF_FUEL','IR','DY'].includes(symbol) || this.busy()) return;
-    this.clearPin();
-    const request=this.pinRequest;
+    this.clearDetails();
+    const request=this.sourceRequest;
     const project=this.projectId();
     this.pinLoading.set(true);
     try {
       const detail=await firstValueFrom(this.http.get<ParameterDetail>(
         '/v1/projects/'+encodeURIComponent(project)+'/technical/open-parameter-bindings/'+encodeURIComponent(id)));
-      if (request!==this.pinRequest || project!==this.projectId()) return;
+      if (request!==this.sourceRequest || project!==this.projectId()) return;
       if (detail.id!==id || detail.projectId!==project || detail.parameterKind!==symbol
           || detail.version!==source.version || detail.usableForE8)
         throw new Error('Referência inconsistente');
       this.pinDetail.set(detail);
     } catch (cause) {
-      if (request===this.pinRequest) {
+      if (request===this.sourceRequest) {
         this.pinDetail.set(null);
         this.pinError.set(cause instanceof HttpErrorResponse && [401,403,404].includes(cause.status)
           ? 'Detalhe protegido ou indisponível para esta conta.'
           : 'Não foi possível conferir o pino. Tente novamente.');
       }
     } finally {
-      if (request===this.pinRequest) this.pinLoading.set(false);
+      if (request===this.sourceRequest) this.pinLoading.set(false);
+    }
+  }
+  async loadEnergy(id:string|null) {
+    const calculation=this.current()?.calculation;
+    const source=calculation?.provenance?.inputs.find(item => item.symbol==='ED'
+      && item.referenceId===id && item.access==='PROJECT_METADATA_ONLY');
+    if (!source || !id || !calculation || this.busy()) return;
+    this.clearDetails();
+    const request=this.sourceRequest;
+    const project=this.projectId();
+    const period=calculation.period;
+    this.energyLoading.set(true);
+    try {
+      const detail=await firstValueFrom(this.http.get<EnergyDetail>(
+        '/v1/projects/'+encodeURIComponent(project)+'/technical/open-monitoring/dossiers/'
+        +encodeURIComponent(period)+'/e8-input-bindings/'+encodeURIComponent(id)));
+      if (request!==this.sourceRequest || project!==this.projectId()) return;
+      if (detail.id!==id || detail.projectId!==project || detail.period!==period
+          || detail.version!==source.version || detail.usableForE8 || !Array.isArray(detail.hours))
+        throw new Error('Referência inconsistente');
+      this.energyDetail.set(detail);
+    } catch (cause) {
+      if (request===this.sourceRequest) {
+        this.energyDetail.set(null);
+        this.energyError.set(cause instanceof HttpErrorResponse && [401,403,404].includes(cause.status)
+          ? 'Energia protegida ou indisponível para esta conta.'
+          : 'Não foi possível conferir o vínculo de energia. Tente novamente.');
+      }
+    } finally {
+      if (request===this.sourceRequest) this.energyLoading.set(false);
     }
   }
   readonly term = plainTerm;
@@ -109,7 +150,7 @@ export class PdSectionsComponent implements OnInit, OnDestroy {
   async load() {
     if (!this.canLeave()) return;
     this.busy.set(true);
-    this.clearPin();
+    this.clearDetails();
     this.message.set('');
     try {
       const items = await firstValueFrom(this.http.get<Section[]>(this.url, {params:{
@@ -127,7 +168,7 @@ export class PdSectionsComponent implements OnInit, OnDestroy {
   }
 
   private show(item:Section | null) {
-    this.clearPin();
+    this.clearDetails();
     this.current.set(item);
     this.text.set(item?.latest?.narrative ?? '');
     this.message.set('');

@@ -96,6 +96,10 @@
                     <p class="energy-hash">Referência {{source.referenceId}} · v{{source.version}}</p>
                     @if (source.href) {
                       <a class="cf-workspace-link" [href]="source.href">Consultar origem de {{source.symbol}}</a>
+                      @if (source.symbol === 'ED') {
+                        <button type="button" class="cf-workspace-outline" (click)="loadEnergy(source.referenceId)">
+                          Conferir energia ED/EC nesta seção</button>
+                      }
                       @if (source.symbol === 'EF_FUEL' || source.symbol === 'IR' || source.symbol === 'DY') {
                         <button type="button" class="cf-workspace-outline" (click)="loadPin(source.symbol, source.referenceId)">
                           Conferir pino {{source.symbol}} nesta seção</button>
@@ -120,6 +124,36 @@
                 </dl>
                 <p>Metadados da versão consultada. Não é parecer de aprovação nem fonte admitida.
                   Nenhum fator licenciado é apresentado aqui. O documento não fica pronto.</p>
+              </section>
+            }
+            @if (energyLoading()) { <p role="status">Conferindo o vínculo de energia autorizado…</p> }
+            @if (energyError()) { <p role="alert">{{energyError()}}</p> }
+            @if (energyDetail(); as energy) {
+              <section aria-label="Energia do vínculo consultado" class="cf-journey-context">
+                <h5>Energia entregue e consumida · {{energy.period}}</h5>
+                <p class="energy-hash">{{energy.id}} · versão {{energy.version}}</p>
+                <p>{{energy.stale ? 'Histórico desatualizado — requer rechecagem' : 'Vínculo candidato, sem admissão normativa'}} · {{energy.state}}</p>
+                <p>Horas registradas: {{energy.hourCount}} · posições registradas: {{energy.slotCount}}.</p>
+                <p>ED é a energia entregue; EC é a energia consumida. As duas leituras vêm do vínculo
+                  canônico desta tentativa. Uma não é deduzida da outra. Não há soma nem cálculo nesta seção.</p>
+                <div class="table-scroll" tabindex="0" aria-label="Leituras ED e EC por hora">
+                  <table>
+                    <caption>Leituras históricas normalizadas em kWh · até 24 primeiras horas</caption>
+                    <thead><tr><th scope="col">Hora registrada</th><th scope="col">ED · kWh</th><th scope="col">EC · kWh</th></tr></thead>
+                    <tbody>
+                      @for (hour of energy.hours.slice(0,24); track $index) {
+                        <tr><td>{{hour.hour ?? 'Não registrada'}}</td><td>{{hour.edKwh ?? 'Não registrada'}}</td><td>{{hour.ecKwh ?? 'Não registrada'}}</td></tr>
+                      } @empty {
+                        <tr><td colspan="3">Sem leituras nesta resposta. Ausência não é zero.</td></tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+                @if (energy.hourCount > 24) {
+                  <p>Esta prévia limita a tabela a 24 horas. O vínculo canônico completo permanece no link da origem ED.</p>
+                }
+                <p>O fator elétrico não é apresentado neste painel. Leituras e vínculo candidato não
+                  comprovam admissão, resultado do PD ou crédito. O documento não fica pronto.</p>
               </section>
             }
             <h5>Referências registradas pelo motor</h5>

@@ -14,6 +14,29 @@ test('a seção de quantificação nomeia a memória ou o bloqueio', async () =>
     let situation = 'MEMORY';
     let mutations = 0;
     const selectedRequests=[];
+    let energyMode='OK';
+    let releaseEnergy;
+    let energyArrived;
+    await page.route('**/technical/open-monitoring/dossiers/*/e8-input-bindings/*', async route => {
+      if (energyMode==='DELAY') await new Promise(resolve => {
+        releaseEnergy=resolve;
+        if (energyArrived) energyArrived();
+      });
+      if (energyMode==='DENIED') return route.fulfill({status:404,json:{message:'Indisponível'}});
+      const hours=energyMode==='EMPTY' ? [] : [
+        {hour:'2027-02-01T00:00:00Z',edKwh:'2700',ecKwh:'3000',gridFactorTco2ePerKwh:'0.999999'},
+        {hour:'2027-02-01T01:00:00Z',edKwh:'0',ecKwh:null,gridFactorTco2ePerKwh:'0.999999'},
+      ];
+      if (energyMode==='LARGE') {
+        while (hours.length<25) hours.push({...hours[0]});
+      }
+      return route.fulfill({json:{
+        id:'40000000-0000-4000-8000-000000000122',projectId:project,
+        period:energyMode==='INVALID' ? 'M2' : 'M1',version:3,
+        stale:energyMode==='STALE',state:energyMode==='STALE' ? 'STALE_NOT_ADMITTED' : 'CANDIDATE_NOT_ADMITTED',
+        usableForE8:false,hourCount:hours.length,slotCount:hours.length,createdAt:'2026-11-23T12:00:00Z',hours,
+      }});
+    });
     let pinMode='OK';
     let releasePin;
     let pinCompleted;
@@ -121,6 +144,46 @@ test('a seção de quantificação nomeia a memória ou o bloqueio', async () =>
     assert.equal(await page.getByRole('link', {name:'Consultar origem de ED'}).getAttribute('href'),
       memory.provenance.inputs[0].href);
     assert.equal(await page.getByRole('link', {name:'Consultar origem de EVR'}).count(), 0);
+    const energyButton=page.getByRole('button', {name:'Conferir energia ED/EC nesta seção'});
+    const energyPanel=page.getByRole('region', {name:'Energia do vínculo consultado'});
+    await energyButton.focus();
+    await page.keyboard.press('Enter');
+    await energyPanel.getByRole('heading', {name:'Energia entregue e consumida · M1'}).waitFor();
+    await energyPanel.getByRole('cell', {name:'2700',exact:true}).waitFor();
+    await energyPanel.getByRole('cell', {name:'3000',exact:true}).waitFor();
+    await energyPanel.getByRole('cell', {name:'0',exact:true}).waitFor();
+    await energyPanel.getByRole('cell', {name:'Não registrada',exact:true}).waitFor();
+    assert.equal(await energyPanel.getByText('0.999999', {exact:false}).count(),0);
+    await page.setViewportSize({width:390,height:844});
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1),false);
+    energyMode='STALE';
+    await energyButton.click();
+    await energyPanel.getByText('Histórico desatualizado — requer rechecagem', {exact:false}).waitFor();
+    energyMode='EMPTY';
+    await energyButton.click();
+    await energyPanel.getByText('Sem leituras nesta resposta. Ausência não é zero.', {exact:true}).waitFor();
+    energyMode='LARGE';
+    await energyButton.click();
+    await energyPanel.getByText('Esta prévia limita a tabela a 24 horas.', {exact:false}).waitFor();
+    assert.equal(await energyPanel.locator('tbody tr').count(),24);
+    energyMode='DENIED';
+    await energyButton.click();
+    await page.getByRole('alert').filter({hasText:'Energia protegida ou indisponível'}).waitFor();
+    assert.equal(await energyPanel.count(),0);
+    energyMode='INVALID';
+    await energyButton.click();
+    await page.getByRole('alert').filter({hasText:'Não foi possível conferir o vínculo de energia'}).waitFor();
+    assert.equal(await energyPanel.count(),0);
+    energyMode='DELAY';
+    const arrived=new Promise(resolve => {energyArrived=resolve;});
+    await energyButton.click();
+    await arrived;
+    const energyResponse=page.waitForResponse(response => response.url().includes('/e8-input-bindings/'));
+    await page.getByRole('button', {name:'Conferir pino EF_FUEL nesta seção'}).click();
+    await page.getByRole('heading', {name:'Pino consultado · EF_FUEL'}).waitFor();
+    releaseEnergy();
+    await energyResponse;
+    assert.equal(await energyPanel.count(),0);
     const pinLink=page.getByRole('link', {name:'Consultar origem de EF_FUEL'});
     assert.equal(await pinLink.getAttribute('href'),memory.provenance.inputs[1].href);
     await pinLink.focus();
