@@ -8,6 +8,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.OffsetDateTime;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
@@ -28,9 +29,18 @@ import jakarta.enterprise.context.ApplicationScoped;
 class OpenIrAssessments {
     record Input(String period, String frequency, String basis, String rationale) {}
     record ReviewInput(String assessmentSha256, String outcome, String annualUpdateBasis,
-                       String evidenceLocator, String reason, UUID priorAssessmentId) {}
+                       String evidenceLocator, String reason, UUID priorAssessmentId, InitialPlan initialPlan) {}
+    record InitialPlan(String evr, String afec, String mpg, String fuel) {
+        InitialPlan validated() {
+            return new InitialPlan(OpenDyAssessmentRules.text(evr,15,2000),
+                OpenDyAssessmentRules.text(afec,15,2000),OpenDyAssessmentRules.text(mpg,15,2000),
+                OpenDyAssessmentRules.text(fuel,15,2000));
+        }
+    }
+    record InitialContext(LocalDate followupOn,String planSha256,InitialPlan plan) {}
     record Review(UUID reviewerId, String outcome, String assessmentSha256, String ruleReference,
-                  String annualUpdateBasis, String evidenceLocator, String reason, OffsetDateTime reviewedAt) {}
+                  String annualUpdateBasis, String evidenceLocator, String reason, OffsetDateTime reviewedAt,
+                  InitialContext initialContext) {}
     record AnnualEvidence(UUID priorAssessmentId, String evidenceSha256, String state, String policy) {}
     record View(UUID id, String projectId, int projectYear, int sourceYear, int version,
                 String period, UUID fleetSelectionId, UUID fuelPinId, String frequency,
@@ -247,8 +257,15 @@ class OpenIrAssessments {
             if(input==null || !row.sha().equals(input.assessmentSha256()))
                 throw invalid("Informe o hash exato da avaliação.");
             String locator,reason;
+            boolean initial="INITIAL_BASELINE_CHECKED".equals(input.outcome());
+            InitialPlan plan;
             try {
-                OpenIrReviewRules.validate(input.outcome(),input.annualUpdateBasis(),row.state());
+                OpenIrReviewRules.validate(input.outcome(),input.annualUpdateBasis(),row.state(),row.year());
+                if(initial && (input.initialPlan()==null || input.priorAssessmentId()!=null))
+                    throw new IllegalArgumentException("Informe os quatro planos de atualização, sem avaliação anterior.");
+                if(!initial && input.initialPlan()!=null)
+                    throw new IllegalArgumentException("Plano inicial reservado ao parecer de primeiro ano.");
+                plan=initial?input.initialPlan().validated():null;
                 locator=OpenDyAssessmentRules.text(input.evidenceLocator(),3,2000);
                 reason=OpenDyAssessmentRules.text(input.reason(),15,2500);
             } catch(IllegalArgumentException e) { throw invalid(e.getMessage()); }
@@ -256,6 +273,7 @@ class OpenIrAssessments {
                 input.outcome(),input.annualUpdateBasis(),locator,reason);
             if(input.priorAssessmentId()!=null)
                 fingerprint=digest("OPEN-IR-REVIEW-ANNUAL@1",fingerprint,input.priorAssessmentId());
+            if(plan!=null) fingerprint=digest("OPEN-IR-INITIAL-PLAN@1",fingerprint,plan.evr(),plan.afec(),plan.mpg(),plan.fuel());
             Object[] replay=first(c,"""
                 SELECT assessment_id,encode(command_sha256,'hex') FROM app_open_ir_review
                 WHERE reviewer_id=? AND command_key=?
@@ -285,14 +303,26 @@ class OpenIrAssessments {
             } else if(input.priorAssessmentId()!=null) {
                 throw invalid("Vínculo de atualização observada é reservado à checagem interna.");
             }
+            LocalDate followup=null;
+            String planSha=null;
+            if(initial) {
+                var calendar=OpenE8Timing.calendar(c,project,2);
+                if(calendar.gate()!=null || calendar.window()==null)
+                    throw conflict("Calendário inicial precisa de rechecagem.");
+                followup=calendar.window().from().atZoneSameInstant(VintageWindows.ZONE).toLocalDate();
+                planSha=digest("OPEN-IR-INITIAL-CONTEXT@1",row.sha(),row.timingSha(),followup,
+                    plan.evr(),plan.afec(),plan.mpg(),plan.fuel(),actor.id(),fingerprint);
+            }
             update(c,"""
                 INSERT INTO app_open_ir_review
                 (assessment_id,assessment_sha256,author_id,reviewer_id,outcome,rule_reference,
-                 annual_update_basis,evidence_locator,reason,command_key,command_sha256)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?)
+                 annual_update_basis,evidence_locator,reason,command_key,command_sha256,
+                 initial_evr_plan,initial_afec_plan,initial_mpg_plan,initial_fuel_plan,initial_followup_on,initial_plan_sha256)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 """,assessment,bytes(row.sha()),author,actor.id(),input.outcome(),
                 OpenIrAssessment.RULE_REFERENCE,input.annualUpdateBasis(),locator,reason,
-                command,bytes(fingerprint));
+                command,bytes(fingerprint),plan==null?null:plan.evr(),plan==null?null:plan.afec(),
+                plan==null?null:plan.mpg(),plan==null?null:plan.fuel(),followup,bytes(planSha));
             if(proof!=null) {
                 var prior=proof.previous();
                 update(c,"""
@@ -312,11 +342,14 @@ class OpenIrAssessments {
     private static Review readReview(Connection c,UUID id,boolean staff) throws SQLException {
         return first(c,"""
             SELECT reviewer_id,outcome,encode(assessment_sha256,'hex'),rule_reference,
-                annual_update_basis,evidence_locator,reason,reviewed_at
+                annual_update_basis,evidence_locator,reason,reviewed_at,initial_followup_on,
+                encode(initial_plan_sha256,'hex'),initial_evr_plan,initial_afec_plan,initial_mpg_plan,initial_fuel_plan
             FROM app_open_ir_review WHERE assessment_id=?
             """,r->new Review(staff?r.getObject(1,UUID.class):null,r.getString(2),r.getString(3),
                 r.getString(4),r.getString(5),staff?r.getString(6):null,staff?r.getString(7):null,
-                r.getObject(8,OffsetDateTime.class)),id);
+                r.getObject(8,OffsetDateTime.class),r.getString(10)==null?null:
+                    new InitialContext(r.getObject(9,LocalDate.class),r.getString(10),staff?
+                        new InitialPlan(r.getString(11),r.getString(12),r.getString(13),r.getString(14)):null)),id);
     }
 
     private static List<View> historyRows(Connection c,String project,int year,int sourceYear,boolean staff)
@@ -418,7 +451,8 @@ class OpenIrAssessments {
 
     private static OpenIrAnnualEvidence.Snapshot annualSnapshot(Connection c,Stored row) throws SQLException {
         Review opinion=readReview(c,row.id(),false);
-        boolean current=!stale(c,row) && (opinion==null || "CHECKED_INTERNAL".equals(opinion.outcome()));
+        boolean current=!stale(c,row) && (opinion==null || "CHECKED_INTERNAL".equals(opinion.outcome())
+            || (row.year()==1 && "INITIAL_BASELINE_CHECKED".equals(opinion.outcome()) && opinion.initialContext()!=null));
         return first(c,"""
             SELECT f.fleet_snapshot_id,f.rating_snapshot_id,b.candidate_id,f.cycle
             FROM app_open_e8_fleet_selection f
