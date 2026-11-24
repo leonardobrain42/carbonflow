@@ -41,7 +41,11 @@ class OpenE8ProjectRuns {
                    List<OpenCalculationTransparency.Stage> equationPlan,
                    OpenE8RunDecision.Memory memory, OffsetDateTime createdAt, Timing timing) {}
 
-    record Listing(String projectId, String period, boolean canRecord, List<Attempt> runs) {}
+    record InputReference(String code,String basis,UUID id,Integer version,String sha256,String state) {}
+    record Selection(String policyVersion,String projectId,String period,Timing timing,String timingGate,
+                     List<InputReference> inputs,boolean usableForE8,boolean canIssueVcu) {}
+    record Listing(String projectId, String period, boolean canRecord, List<Attempt> runs,
+                   Selection currentSelection) {}
 
     record Outcome(Attempt view, boolean created) {}
 
@@ -66,8 +70,69 @@ class OpenE8ProjectRuns {
             var runs = new ArrayList<Attempt>();
             for (var row : rows) runs.add(view(c, row));
             return new Listing(project, code, ctx.actions().contains("RECORD_OPEN_E8_RUN"),
-                List.copyOf(runs));
+                List.copyOf(runs), selection(c,project,code));
         });
+    }
+
+    /**
+     * Current default selection, not a snapshot of any stored attempt.
+     * Reuses the executor's period and source-year selectors; exposes metadata only.
+     */
+    private static Selection selection(Connection c,String project,String period) throws SQLException {
+        UUID binding=latestBinding(c,project,period),fleet=latestFleet(c,project,period);
+        var context=OpenE8Timing.resolve(c,project,binding);
+        var window=context.window();
+        Integer year=context.year().sourceYear();
+        var timing=new Timing(window==null?null:window.from(),window==null?null:window.until(),
+            context.year().projectYear(),year);
+        var inputs=new ArrayList<InputReference>();
+        if (binding==null) {
+            inputs.add(new InputReference("ED_EC_EFEL","HOURLY_PERIOD_BINDING",null,null,null,"MISSING"));
+        } else {
+            String state=OpenE8InputBindings.state(c,project,period,binding);
+            String result=state.contains("STALE")?"STALE":year==null?"TIMING_UNRESOLVED":
+                "CANDIDATE_NOT_ADMITTED".equals(state)?"NOT_ADMITTED":"REVIEW_REQUIRED";
+            inputs.add(first(c,"""
+                SELECT id,version,encode(input_sha256,'hex') FROM app_open_e8_input_binding_candidate
+                WHERE project_id=? AND period_code=? AND id=?
+                """,r->new InputReference("ED_EC_EFEL","HOURLY_PERIOD_BINDING",r.getObject(1,UUID.class),
+                    r.getInt(2),r.getString(3),result),project,period,binding));
+        }
+        if (fleet==null) {
+            inputs.add(new InputReference("EVR_RATINGS","FLEET_PERIOD_SELECTION",null,null,null,"MISSING"));
+        } else {
+            String state=OpenE8FleetSelections.currentState(c,project,period);
+            inputs.add(first(c,"""
+                SELECT id,version,encode(selection_sha256,'hex'),energy_binding_id,observation_year
+                FROM app_open_e8_fleet_selection WHERE project_id=? AND period_code=? AND id=?
+                """,r->new InputReference("EVR_RATINGS","FLEET_PERIOD_SELECTION",r.getObject(1,UUID.class),
+                    r.getInt(2),r.getString(3),state.contains("STALE")?"STALE":year==null?"TIMING_UNRESOLVED":
+                    Objects.equals(binding,r.getObject(4,UUID.class))&&year==r.getInt(5)&&
+                    "PREPARATORY_NOT_ADMITTED".equals(state)?"NOT_ADMITTED":"REVIEW_REQUIRED"),project,period,fleet));
+        }
+        for (String kind:List.of("EF_FUEL","IR","DY")) inputs.add(sourcePinReference(c,project,kind,year));
+        return new Selection("OPEN-E8-INPUT-SELECTION@1",project,period,timing,context.year().gate(),
+            List.copyOf(inputs),false,false);
+    }
+
+    // Source-year pin is the exact same selector as load() and moved().
+    static InputReference sourcePinReference(Connection c,String project,String kind,Integer year) throws SQLException {
+        String basis="DY".equals(kind)?"LEGACY_SOURCE_YEAR_PIN":"SOURCE_YEAR_PIN";
+        if (year==null) return new InputReference(kind,basis,null,null,null,"TIMING_UNRESOLVED");
+        var selected=pin(c,project,kind,year);
+        if (selected==null) return new InputReference(kind,basis,null,null,null,"MISSING_FOR_SOURCE_YEAR");
+        boolean usable=!selected.stale() && switch(kind) {
+            case "EF_FUEL" -> fuelValue(c,selected)!=null;
+            case "IR" -> scalar(selected,true)!=null;
+            case "DY" -> discount(selected)!=null;
+            default -> false;
+        };
+        String state=pinState(selected,usable,year);
+        return first(c,"""
+            SELECT id,version,encode(binding_sha256,'hex') FROM app_open_project_parameter_binding
+            WHERE project_id=? AND parameter_kind=? AND vintage_year=? AND id=?
+            """,r->new InputReference(kind,basis,r.getObject(1,UUID.class),r.getInt(2),r.getString(3),state),
+            project,kind,year,selected.id());
     }
 
     /** One current attempt per period; historical revisions must not be summed twice. */

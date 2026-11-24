@@ -97,6 +97,19 @@ class OpenE8ProjectRunIntegrationTest {
         var listed = call("GET", path, owner.cookie(), null, null, null);
         assertEquals(200, listed.statusCode(), listed.body());
         assertTrue(json(listed).path("canRecord").asBoolean());
+        JsonNode selection=json(listed).path("currentSelection");
+        assertEquals("OPEN-E8-INPUT-SELECTION@1",selection.path("policyVersion").asText());
+        assertEquals(project,selection.path("projectId").asText());
+        assertEquals("M1",selection.path("period").asText());
+        assertEquals("RUN_WINDOW_MISSING",selection.path("timingGate").asText());
+        assertTrue(selection.at("/timing/sourceYear").isNull());
+        assertFalse(selection.path("usableForE8").asBoolean());
+        assertFalse(selection.path("canIssueVcu").asBoolean());
+        assertEquals(5,selection.path("inputs").size());
+        assertEquals("MISSING",selection.at("/inputs/0/state").asText());
+        assertEquals("TIMING_UNRESOLVED",selection.at("/inputs/2/state").asText());
+        assertTrue(selection.at("/inputs/2/id").isNull());
+        assertEquals("LEGACY_SOURCE_YEAR_PIN",selection.at("/inputs/4/basis").asText());
         assertEquals(id, json(listed).at("/runs/0/id").asText());
         assertEquals(200, call("GET", path + "/" + id, owner.cookie(), null, null, null).statusCode());
 
