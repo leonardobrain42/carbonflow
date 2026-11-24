@@ -1,4 +1,6 @@
 # Changelog da especificação viva
+## 0.3.0-rc.13 — 24/11/2026 (proposta)
+- UX (fatia 2 do backlog): respostas da triagem sugeridas em Preparar informações e Acesso à rede, aplicadas só a campos vazios e por ação explícita; nada é salvo automaticamente. Só interface.
 ## 0.3.0-rc.12 — 24/11/2026 (proposta)
 - Registra o backlog oficial de UX (CF-UX-TECH-001-BACKLOG) e as decisões D15 (desatualização da aplicabilidade só por resposta relevante da triagem, implementada) e D16 (triagem como hipótese inicial, a implementar). Telas de aplicabilidade passam a pedir confirmação antes de descartar respostas não salvas.
 ## 0.3.0-rc.11 — 24/11/2026 (proposta)

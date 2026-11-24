@@ -29,7 +29,7 @@ Mapa levantado em 24/11/2026 a partir do código (`frontend/src`, `ProjectTriage
 | # | Fatia | Tipo | Estado |
 |---|---|---|---|
 | 1 | Proteção contra perda de alterações em Acesso à rede, Direitos e Datas | Correção | **Feita** (este PR) |
-| 2 | Pré-preenchimento sugerido a partir da triagem ("Da triagem: X · Usar") | Duplicação | A fazer; nunca grava sozinho; conferir acesso de colaboradores |
+| 2 | Pré-preenchimento sugerido a partir da triagem | Duplicação | **Feita**: Preparar informações e Acesso à rede listam as respostas da triagem e oferecem "Usar respostas da triagem", que preenche só campos vazios e não salva. Só para o titular (a triagem é privada dele). Mapeamento apenas por equivalência exata; frota a combustão, quantidades, medição e direitos não são sugeridos |
 | 3 | Uma lista só em Situação do projeto; Visão geral mostra só o resumo | Duplicação | A fazer |
 | 4 | Contador de pendências no menu, substituindo os cartões do Painel | Melhoria | A fazer |
 | 5 | Desatualização só por resposta relevante (D15) | Regra | **Feita** (este PR) |

@@ -2,6 +2,7 @@ import {Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {firstValueFrom} from 'rxjs';
 import {plainTerm} from './calculation-language';
+import {TriageAnswers, networkSuggestions} from './triage-suggestions';
 
 type YesNo = boolean | null;
 type Declaration = {
@@ -54,6 +55,9 @@ export class OpenApplicabilityComponent implements OnChanges {
   @Input() editable=false;
   /** One declaration, several screens: the form parts always save the complete declaration. */
   @Input() part:'summary'|'network'|'rights'|'dates'='summary';
+  /** Owner only: offer the owner's own triage answers for empty network fields. */
+  @Input() suggestFromTriage=false;
+  readonly triage=signal<TriageAnswers|null>(null);
   /** Notify the host only after a successful persisted declaration revision. */
   @Output() readonly saved = new EventEmitter<void>();
   private readonly http=inject(HttpClient);
@@ -107,6 +111,7 @@ export class OpenApplicabilityComponent implements OnChanges {
       this.form.set({...EMPTY,...data.latest?.answers});
       this.persisted=JSON.stringify(this.form());
       await this.loadRights();
+      if(this.suggestFromTriage && this.part==='network' && this.editable) await this.loadTriage();
       this.retryKey='';
     }catch(problem){this.error.set(this.message(problem));}
     finally{this.loading.set(false);}
@@ -118,6 +123,20 @@ export class OpenApplicabilityComponent implements OnChanges {
       actual=value===''?null:value==='true';
     }else if(value===''){actual=null;}
     this.form.update(current=>({...current,[field]:actual}));
+  }
+  pendingSuggestions(){
+    const current=this.form() as unknown as Record<string,unknown>;
+    return networkSuggestions(this.triage()).filter(item=>current[item.field]==null);
+  }
+  applyTriage(){
+    for(const item of this.pendingSuggestions())this.update(item.field as keyof Declaration,item.value);
+  }
+  private async loadTriage(){
+    try{
+      const view=await firstValueFrom(this.http.get<{answers?:TriageAnswers}>(
+        '/v1/projects/'+encodeURIComponent(this.projectId)+'/triage'));
+      this.triage.set(view.answers??null);
+    }catch{this.triage.set(null);}
   }
   bool(value:YesNo){return value===null?'':String(value);}
   origin(field:string){return this.view()?.origins?.find(item=>item.field===field)??null;}
