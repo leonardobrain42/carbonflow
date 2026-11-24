@@ -16,9 +16,13 @@ final class OpenE8AnnualMath {
 
     record Totals(String beTco2e, String peTco2e, String leTco2e,
                   String erTco2e, String erDisplay) {}
+    /** Structured IR assessment behind one period run; the same assessment must serve the whole year. */
+    record IrReference(UUID assessmentId, Integer version, String assessmentSha256) {
+        boolean complete() { return assessmentId != null && version != null && assessmentSha256 != null; }
+    }
     record Member(String period, UUID runId, int version, String inputSha256,
                   Instant windowStart, Instant windowEndExclusive, Integer projectYear,
-                  String state, boolean stale, Totals totals) {}
+                  String state, boolean stale, Totals totals, IrReference ir) {}
     record Issue(String code, String period, Instant from, Instant until, String detail) {}
     record Result(String projectId, int projectYear, Instant windowStart, Instant windowEndExclusive,
                   String engine, String state, boolean usableForE8, boolean canIssueVcu,
@@ -71,6 +75,20 @@ final class OpenE8AnnualMath {
                 issues.add(issue("RUN_NOT_CALCULATED", member.period(), start, end,
                     "Esta janela ainda não tem memória calculada. Ausência não equivale a zero."));
         }
+
+        // Same project year => same IR exponent evidence for every calculated window (#97 P0.1/P0.4).
+        var calculated = members.stream().filter(m -> m.runId() != null && m.totals() != null
+            && "REVIEWED_INTERNAL".equals(m.state()) && !m.stale()).toList();
+        var references = new HashSet<IrReference>();
+        for (var member : calculated) {
+            if (member.ir() == null || !member.ir().complete())
+                issues.add(issue("IR_REFERENCE_MISSING", member.period(), member.windowStart(), member.windowEndExclusive(),
+                    "A memória desta janela não registra a avaliação estruturada de IR. Registre nova tentativa."));
+            else references.add(member.ir());
+        }
+        if (references.size() > 1)
+            issues.add(issue("IR_REFERENCE_MISMATCH", null, null, null,
+                "As janelas do ano usam avaliações de IR diferentes. O mesmo ano do projeto exige a mesma avaliação; registre novas tentativas."));
 
         if (calendarValid) {
             Instant cursor = from;

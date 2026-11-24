@@ -24,7 +24,8 @@ Uma consolidação numérica exige simultaneamente:
 - cobertura completa do intervalo anual, sem lacunas ou sobreposições;
 - janelas contidas no ano e memórias que registrem o mesmo ano do projeto;
 - tentativas atuais `REVIEWED_INTERNAL`, com resultados presentes;
-- nenhuma janela de período desconhecida que possa sobrepor o ano.
+- nenhuma janela de período desconhecida que possa sobrepor o ano;
+- **a mesma avaliação estruturada de IR em todas as janelas calculadas** (id, versão e hash), conforme #97 P0.1: dois períodos do mesmo ano usam o mesmo expoente. Memória sem IR registrado gera `IR_REFERENCE_MISSING`; avaliações diferentes geram `IR_REFERENCE_MISMATCH`. A referência faz parte de `members[]` e do `manifestSha256`. Apenas janelas calculadas e atuais entram na comparação; as demais já bloqueiam por `RUN_NOT_CALCULATED`/`RUN_STALE`. Combina com o reuso de [CF-OPEN-007-IR-INTRA-YEAR-REUSE](CF-OPEN-007-IR-INTRA-YEAR-REUSE.md); sem migração, API nova ou alteração de memória existente.
 
 Sem esses requisitos, `totals=null` e `issues[]` descreve o bloqueio e seus
 intervalos exatos. Os membros podem conservar números históricos, claramente
@@ -59,6 +60,7 @@ das entradas e a avaliação completa de ERC/ERF para Dy permanecem com #96/#97.
   inclusive janelas contidas, duplicatas, fronteiras exclusivas, ano incorreto,
   ausências, versões desatualizadas, decimais inválidos, ER negativa, precisão,
   Dy diferente por janela e manifesto determinístico/versionado.
+- `OpenE8AnnualMathTest` (IR): mesma avaliação em todas as janelas; versão, hash ou id diferentes bloqueiam; IR ausente/incompleto bloqueia; a referência altera o manifesto; janela não calculada não gera divergência artificial.
 - `OpenE8AnnualCalendarTest`: aniversário brasileiro, 365/366 dias e início
   em 29 de fevereiro, com limites de ano.
 - `OpenPeriodSupportIntegrationTest`: ensaio real em Quarkus/PostgreSQL de duas

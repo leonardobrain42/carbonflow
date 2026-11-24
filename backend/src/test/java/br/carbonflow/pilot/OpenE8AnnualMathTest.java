@@ -12,6 +12,8 @@ class OpenE8AnnualMathTest {
     private static final Instant START = Instant.parse("2027-02-01T03:00:00Z");
     private static final Instant MID = Instant.parse("2027-08-01T03:00:00Z");
     private static final Instant END = Instant.parse("2028-02-01T03:00:00Z");
+    private static final OpenE8AnnualMath.IrReference IR =
+        new OpenE8AnnualMath.IrReference(UUID.fromString("00000000-0000-0000-0000-0000000000a1"), 1, "a".repeat(64));
 
     @Test
     void sumsEachWindowErWithItsOwnDiscountAndStableReferences() {
@@ -83,19 +85,19 @@ class OpenE8AnnualMathTest {
     void blockedStaleUnknownAndWrongYearNeverBecomeAnAnnualZero() {
         var full = member("M1", START, END, "1", "0", "0", "1");
         var stale = new OpenE8AnnualMath.Member(full.period(), full.runId(), 1, "stale",
-            START, END, 1, "STALE", true, full.totals());
+            START, END, 1, "STALE", true, full.totals(), IR);
         assertTrue(has(annual(List.of(stale)), "RUN_STALE"));
         assertNull(annual(List.of(stale)).totals());
         var blocked = new OpenE8AnnualMath.Member("M1", UUID.randomUUID(), 2, "new",
-            START, END, 1, "BLOCKED", false, null);
+            START, END, 1, "BLOCKED", false, null, IR);
         assertTrue(has(annual(List.of(blocked)), "RUN_NOT_CALCULATED"));
         assertNull(annual(List.of(blocked)).totals());
         var unknown = new OpenE8AnnualMath.Member("M2", null, 0, null,
-            null, null, null, "MISSING", false, null);
+            null, null, null, "MISSING", false, null, null);
         assertTrue(has(annual(List.of(full, unknown)), "UNLOCATED_PERIOD"));
         assertNull(annual(List.of(full, unknown)).totals());
         var wrong = new OpenE8AnnualMath.Member("M1", full.runId(), 1, "wrong",
-            START, END, 2, "REVIEWED_INTERNAL", false, full.totals());
+            START, END, 2, "REVIEWED_INTERNAL", false, full.totals(), IR);
         assertTrue(has(annual(List.of(wrong)), "RUN_YEAR_MISMATCH"));
         assertNull(annual(List.of(wrong)).totals());
         assertTrue(has(annual(List.of()), "COVERAGE_GAP"));
@@ -104,7 +106,7 @@ class OpenE8AnnualMathTest {
     @Test
     void rejectsMissingAttemptBoundaryCrossingAndInvalidMemory() {
         var missing = new OpenE8AnnualMath.Member("M1", null, 0, null,
-            START, END, null, "MISSING", false, null);
+            START, END, null, "MISSING", false, null, null);
         assertTrue(has(annual(List.of(missing)), "RUN_MISSING"));
         var crossing = member("M1", START.minusSeconds(1), END, "1", "0", "0", "1");
         assertTrue(has(annual(List.of(crossing)), "WINDOW_OUTSIDE_YEAR"));
@@ -123,9 +125,54 @@ class OpenE8AnnualMathTest {
         var first = member("M1", START, END, "1", "0", "0", "1");
         var old = annual(List.of(first));
         var revised = new OpenE8AnnualMath.Member("M1", UUID.randomUUID(), 2, "new-source-hash",
-            START, END, 1, "REVIEWED_INTERNAL", false, first.totals());
+            START, END, 1, "REVIEWED_INTERNAL", false, first.totals(), IR);
         assertNotEquals(old.manifestSha256(), annual(List.of(revised)).manifestSha256());
         assertEquals(old, annual(List.of(first)));
+    }
+
+    @Test
+    void sameYearRequiresTheSameIrAssessmentInEveryCalculatedWindow() {
+        var first = member("M1", START, MID, "8", "3", "0", "2.5");
+        var second = member("M2", MID, END, "4", "1", "0", "3");
+        assertTrue(annual(List.of(first, second)).issues().isEmpty());
+        var otherVersion = withIr(second, new OpenE8AnnualMath.IrReference(IR.assessmentId(), 2, IR.assessmentSha256()));
+        var otherHash = withIr(second, new OpenE8AnnualMath.IrReference(IR.assessmentId(), 1, "b".repeat(64)));
+        var otherId = withIr(second, new OpenE8AnnualMath.IrReference(UUID.randomUUID(), 1, IR.assessmentSha256()));
+        for (var different : List.of(otherVersion, otherHash, otherId)) {
+            var result = annual(List.of(first, different));
+            assertTrue(has(result, "IR_REFERENCE_MISMATCH"));
+            assertNull(result.totals());
+            assertEquals("BLOCKED", result.state());
+        }
+    }
+
+    @Test
+    void calculatedWindowWithoutRecordedIrNeverBecomesAnAnnualTotal() {
+        var first = member("M1", START, MID, "8", "3", "0", "2.5");
+        for (var missing : List.of(withIr(member("M2", MID, END, "4", "1", "0", "3"), null),
+                withIr(member("M2", MID, END, "4", "1", "0", "3"),
+                    new OpenE8AnnualMath.IrReference(IR.assessmentId(), null, IR.assessmentSha256())))) {
+            var result = annual(List.of(first, missing));
+            assertTrue(has(result, "IR_REFERENCE_MISSING"));
+            assertNull(result.totals());
+        }
+    }
+
+    @Test
+    void irReferenceChangesTheManifestAndUncalculatedWindowsDoNotAddMismatch() {
+        var first = member("M1", START, END, "1", "0", "0", "1");
+        var other = withIr(first, new OpenE8AnnualMath.IrReference(IR.assessmentId(), 2, IR.assessmentSha256()));
+        assertNotEquals(annual(List.of(first)).manifestSha256(), annual(List.of(other)).manifestSha256());
+        var blocked = new OpenE8AnnualMath.Member("M1", UUID.randomUUID(), 1, "h", START, END, 1, "BLOCKED", false, null,
+            new OpenE8AnnualMath.IrReference(UUID.randomUUID(), 9, "c".repeat(64)));
+        var result = annual(List.of(blocked));
+        assertTrue(has(result, "RUN_NOT_CALCULATED"));
+        assertFalse(has(result, "IR_REFERENCE_MISMATCH"));
+    }
+
+    private static OpenE8AnnualMath.Member withIr(OpenE8AnnualMath.Member m, OpenE8AnnualMath.IrReference ir) {
+        return new OpenE8AnnualMath.Member(m.period(), m.runId(), m.version(), m.inputSha256(), m.windowStart(),
+            m.windowEndExclusive(), m.projectYear(), m.state(), m.stale(), m.totals(), ir);
     }
 
     private static OpenE8AnnualMath.Result annual(List<OpenE8AnnualMath.Member> members) {
@@ -136,7 +183,7 @@ class OpenE8AnnualMathTest {
                                                  String be, String pe, String le, String er) {
         return new OpenE8AnnualMath.Member(period, UUID.randomUUID(), 1, "hash-" + period,
             start, end, 1, "REVIEWED_INTERNAL", false,
-            new OpenE8AnnualMath.Totals(be, pe, le, er, "0.00"));
+            new OpenE8AnnualMath.Totals(be, pe, le, er, "0.00"), IR);
     }
 
     private static boolean has(OpenE8AnnualMath.Result result, String code) {

@@ -50,7 +50,9 @@ class OpenE8AnnualConsolidation {
                     timing == null ? null : timing.projectYear(), run.state(), run.stale(),
                     memory == null || memory.usableForE8() || run.canIssueVcu() ? null
                         : new OpenE8AnnualMath.Totals(memory.beTco2e(), memory.peTco2e(), memory.leTco2e(),
-                            memory.erTco2e(), memory.erDisplay())));
+                            memory.erTco2e(), memory.erDisplay()),
+                    run.irContext() == null ? null : new OpenE8AnnualMath.IrReference(run.irContext().assessmentId(),
+                        run.irContext().version(), run.irContext().assessmentSha256())));
             }
             for (var window : windows) if (!seen.contains(window.period()))
                 members.add(missing(window.period(), window.window()));
@@ -65,7 +67,7 @@ class OpenE8AnnualConsolidation {
 
     private static OpenE8AnnualMath.Member missing(String period, OpenE8Timing.Window window) {
         return new OpenE8AnnualMath.Member(period, null, 0, null,
-            window.from().toInstant(), window.until().toInstant(), null, "MISSING", false, null);
+            window.from().toInstant(), window.until().toInstant(), null, "MISSING", false, null, null);
     }
 
     private static boolean same(OpenE8Timing.Window left, OpenE8Timing.Window right) {
