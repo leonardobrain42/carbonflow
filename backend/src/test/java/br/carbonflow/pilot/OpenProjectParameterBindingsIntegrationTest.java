@@ -76,6 +76,10 @@ class OpenProjectParameterBindingsIntegrationTest {
             """;
         assertEquals(404,call("POST",dyPath,reviewer,key(),"\"0\"",inconclusive).statusCode());
         assertEquals(428,call("POST",dyPath,manager,key(),null,inconclusive).statusCode());
+        JsonNode emptyReadiness=json(call("GET",dyPath+"/2",manager,null,null,null),200).path("readiness");
+        assertEquals("BLOCKED",emptyReadiness.path("state").asText());
+        assertTrue(emptyReadiness.path("assessmentId").isNull());
+        assertFalse(emptyReadiness.path("usableForE8").asBoolean());
         String dyKey=key();
         JsonNode research=json(call("POST",dyPath,manager,dyKey,"\"0\"",inconclusive),201);
         assertEquals("CREDIT_START_MISSING",research.path("calendarGate").asText());
@@ -115,6 +119,8 @@ class OpenProjectParameterBindingsIntegrationTest {
         assertEquals("2033-07-01",firstYearHistory.at("/firstYearContext/exploratoryFrom").asText());
         assertTrue(firstYearHistory.at("/assessments/0/stale").asBoolean());
         assertTrue(firstYearHistory.path("priorStart").isNull());
+        assertEquals("BLOCKED",firstYearHistory.at("/readiness/gates/0/status").asText());
+        assertFalse(firstYearHistory.at("/readiness/internalChecksComplete").asBoolean());
         JsonNode firstYear=json(call("POST",dyPath,manager,key(),"\"1\"",firstYearBody),201);
         assertEquals("FIRST_YEAR_EXPLORATORY@1",firstYear.at("/firstYearContext/policyVersion").asText());
         assertEquals("2034-07-01",firstYear.at("/firstYearContext/exploratoryUntilExclusive").asText());
@@ -401,6 +407,20 @@ class OpenProjectParameterBindingsIntegrationTest {
         assertEquals(409,call("POST",dyPath,manager,allocationKey,"\"9\"",
             allocated.replace("TEST_ONLY split A","TEST_ONLY split changed")).statusCode());
         assertEquals(0,json(call("GET",dyRead,owner,null,null,null),200).at("/assessments/0/allocations").size());
+        JsonNode pendingReadiness=json(call("GET",dyPath+"/2",manager,null,null,null),200).path("readiness");
+        assertEquals(attributed.path("id"),pendingReadiness.path("assessmentId"));
+        assertEquals(attributed.path("assessmentSha256"),pendingReadiness.path("assessmentSha256"));
+        assertFalse(pendingReadiness.path("internalChecksComplete").asBoolean());
+        String attributionReview=reviewBody.replace(found.path("assessmentSha256").asText(),
+            attributed.path("assessmentSha256").asText());
+        json(call("POST",dyPath+"/"+attributed.path("id").asText()+"/review",reviewer,key(),"\"10\"",attributionReview),201);
+        JsonNode checkedReadiness=json(call("GET",dyPath+"/2",manager,null,null,null),200).path("readiness");
+        assertTrue(checkedReadiness.path("internalChecksComplete").asBoolean());
+        assertFalse(checkedReadiness.path("usableForE8").asBoolean());
+        assertEquals("BLOCKED",checkedReadiness.path("state").asText());
+        assertEquals(checkedReadiness,json(call("GET",dyRead,owner,null,null,null),200).path("readiness"));
+        assertFalse(checkedReadiness.toString().contains("TEST-DY-REGISTRY"));
+
 
         database.transaction(c->{
             update(c,"""
@@ -416,6 +436,11 @@ class OpenProjectParameterBindingsIntegrationTest {
         assertEquals("ALLOCATION_RIGHTS_RECHECK_REQUIRED",hiddenCoverage.path("allocationState").asText());
         assertEquals(0,hiddenCoverage.path("allocations").size());
         assertEquals(2,hiddenCoverage.path("allocationCount").asInt());
+        JsonNode revokedReadiness=json(call("GET",dyPath+"/2",manager,null,null,null),200).path("readiness");
+        assertFalse(revokedReadiness.path("internalChecksComplete").asBoolean());
+        assertEquals("BLOCKED",revokedReadiness.path("state").asText());
+        assertEquals("NOT_EVALUATED",revokedReadiness.at("/gates/4/status").asText());
+        assertFalse(revokedReadiness.path("usableForE8").asBoolean());
 
 
         assertEquals(0L,database.read(c->first(c,"SELECT count(*) FROM app_open_project_parameter_binding WHERE project_id=? AND parameter_kind='DY'",
