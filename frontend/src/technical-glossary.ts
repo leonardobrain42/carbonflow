@@ -1,4 +1,5 @@
 import {Component, computed, input} from '@angular/core';
+import {ACRONYM_CODES, acronym, acronymLabel} from './acronyms';
 
 interface Term {
   name: string;
@@ -33,12 +34,26 @@ const TERMS: readonly Term[] = [
           <dd>{{ term.definition }}</dd>
         }
       </dl>
+      @if (!section()) {
+        <h4>Siglas usadas nas telas</h4>
+        <dl aria-label="Siglas usadas nas telas">
+          @for (item of acronyms; track item.code) {
+            <dt><abbr [attr.title]="item.text">{{ item.code }}</abbr></dt>
+            <dd>{{ item.text }}</dd>
+          }
+        </dl>
+        <p>Apoio de leitura do CarbonFlow, não definição normativa. Consulte a metodologia e o programa VCS para o texto oficial.</p>
+      }
     </details>
   `,
   styles: ['dd { margin: .25rem 0 .8rem; color: #d1dfd7; }'],
 })
 export class TechnicalGlossaryComponent {
   readonly section = input<string | null>(null);
+  /** Acronyms already explained above as glossary terms are not repeated. */
+  readonly acronyms = ACRONYM_CODES
+    .filter(code => !TERMS.some(term => term.name.startsWith(acronymLabel(code) + ' ·')))
+    .map(code => ({code: acronymLabel(code), text: acronym(code) ?? code}));
   readonly terms = computed(() => {
     const section = this.section();
     return section ? TERMS.filter(term => term.sections.includes(section)) : TERMS;

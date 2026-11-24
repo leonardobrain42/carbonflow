@@ -35,6 +35,6 @@ Mapa levantado em 24/11/2026 a partir do código (`frontend/src`, `ProjectTriage
 | 5 | Desatualização só por resposta relevante (D15) | Regra | **Feita** (este PR) |
 | 6 | Triagem como hipótese inicial (D16) | Estrutura | Decidida; desenho a aprovar |
 | 7 | "Por que está bloqueado?" em Quantificação (IR, Dy, gates) | Linguagem | **Feita**: bloco no topo da Quantificação lista todos os gates do servidor que impedem o resultado (da última tentativa, se houver, senão do diagnóstico), na ordem falta de dado → revisão → demais, com estado, próxima ação e papel previsto; nada é recalculado na tela e o texto lembra que resolver tudo não emite crédito |
-| 8 | Siglas explicadas e glossário único | Linguagem | A fazer |
+| 8 | Siglas explicadas e glossário único | Linguagem | **Feita**: `acronyms.ts` é a lista única de siglas; códigos de cálculo (BE, PE, IR, Dy, EVR…) tomam o nome dos mesmos dicionários das telas, sem segundo nome. O glossário completo (Entender) ganha "Siglas usadas nas telas", sem repetir termos já definidos; o das guias continua filtrado e curto. `carbonflow-abbr` expande a sigla (title + texto para leitor de tela), já aplicado na linha de recorte da Quantificação. Apoio de leitura, não definição normativa. Aplicar `carbonflow-abbr` nas demais telas fica para quando cada tela for revisitada |
 | 9 | Barra de salvar fixa e botões curtos | Uso | A fazer |
 | 10 | Roteiro de validação com uso | Validação | Por último |

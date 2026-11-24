@@ -82,6 +82,7 @@ test('guia mostra a referência da regra, a edição consultada e o fallback ap�
     assert.equal(await page.getByRole('link',{name:'Localizar campo no guia'}).getAttribute('href'),'#guide-scenario');
     await page.getByText('Glossário técnico',{exact:true}).click();
     await page.getByText('Emissões estimadas no cenário de referência',{exact:false}).waitFor();
+    assert.equal(await page.getByText('Siglas usadas nas telas',{exact:true}).count(),0,'section glossary stays short');
 
     edition = 2;
     await check.click();

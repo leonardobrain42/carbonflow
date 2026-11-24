@@ -1,5 +1,6 @@
 import {NgTemplateOutlet} from '@angular/common';
 import {OpenE8AnnualComponent} from './open-e8-annual';
+import {AbbrComponent} from './acronyms';
 import {Component, Input, OnChanges, SimpleChanges, inject, signal} from '@angular/core';
 import {calculationGateTitle, equationTerm, plannedRole} from './calculation-language';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
@@ -101,7 +102,7 @@ interface OpenCalculationReadiness {
 @Component({
   selector:'carbonflow-open-calculation-readiness',
   standalone:true,
-  imports:[NgTemplateOutlet,OpenE8AnnualComponent],
+  imports:[NgTemplateOutlet,OpenE8AnnualComponent,AbbrComponent],
   templateUrl:'./open-calculation-readiness.html',
 })
 export class OpenCalculationReadinessComponent implements OnChanges {

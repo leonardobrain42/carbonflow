@@ -1,4 +1,6 @@
 # Changelog da especificação viva
+## 0.3.0-rc.17 — 24/11/2026 (proposta)
+- UX (fatia 8 do backlog): lista única de siglas, glossário com "Siglas usadas nas telas" e componente de expansão de siglas na Quantificação. Só interface; textos de apoio, sem definição normativa.
 ## 0.3.0-rc.16 — 24/11/2026 (proposta)
 - UX (fatia 7 do backlog): "Por que está bloqueado?" na Quantificação, com todas as pendências que impedem o resultado, próxima ação e papel previsto, lidas dos gates do servidor. Só interface; gates, estados e guardas E8 inalterados.
 ## 0.3.0-rc.15 — 24/11/2026 (proposta)
