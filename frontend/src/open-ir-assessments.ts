@@ -10,7 +10,8 @@ type Metric=keyof InitialPlan;
 type PlanLink={id:string;version:number;sha256:string};
 type PlannedMetric={source:string;responsible:string;procedure:string};
 type ExAnteOption=PlanLink&{plan:Record<Metric,PlannedMetric>&{rationale:string}};
-type ReviewReferences={fleetSnapshotId:string;ratingSnapshotId:string;fuelCandidateId:string};
+type SourceMetadata={sourceId:string;edition:string;title:string;referenceYear:number|null};
+type ReviewReferences={fleetSnapshotId:string;ratingSnapshotId:string;fuelCandidateId:string}&Record<Metric,SourceMetadata[]>;
 type Assessment={id:string;projectId:string;projectYear:number;sourceYear:number;version:number;
   period:string;fleetSelectionId:string;fuelPinId:string;frequency:string;basis:string;
   rationale:string|null;state:string;assessmentSha256:string;candidate:string|null;stale:boolean;
@@ -132,6 +133,7 @@ export class OpenIrAssessmentsComponent implements OnChanges,OnDestroy {
         this.priors(row).some(p=>p.id===this.priorId)))&&
       (this.outcome!=='INITIAL_BASELINE_CHECKED'||(row.projectYear===1&&row.state==='PENDING_REVIEW'&&this.annualBasis==='PLAN_ONLY'&&
         !!row.exAnteOption&&!!row.reviewReferences&&this.metrics.every(({key})=>
+          !!row.reviewReferences?.[key]?.length&&
           ['MATCH','JUSTIFIED_DEVIATION'].includes(this.initialDecision[key])&&this.initialPlan[key].trim().length>=15&&this.initialPlan[key].trim().length<=1950)));
   }
   private headers(path:string,version:number,body:object){
