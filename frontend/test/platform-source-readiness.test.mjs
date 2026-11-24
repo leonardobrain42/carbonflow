@@ -155,7 +155,7 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
     assert.equal(dyPost.body.erf,'25');
     assert.equal(dyPost.body.dyPreview,undefined);
     await outcome.selectOption('INCONCLUSIVE');
-    assert.equal(await page.getByLabel('ERC emitidos · tCO2e').count(),0);
+    await page.getByLabel('ERC emitidos · tCO2e').waitFor({state:'detached'});
     await page.getByRole('button',{name:'Registrar avaliação de Dy'}).click();
     await page.getByText('Versão 2 · INCONCLUSIVE · Sem admissão').click();
     await page.getByText('Indisponível — ausência não é zero',{exact:true}).waitFor();
@@ -164,14 +164,14 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
     assert.equal(dyPost.body.erf,null);
     dyRows=[];
     await page.getByLabel('Ano relativo do projeto',{exact:true}).fill('1');
-    assert.equal(await firstDy.count(),0);
+    await firstDy.waitFor({state:'detached'});
     await page.getByRole('button',{name:'Consultar avaliações de Dy'}).click();
     await page.getByText('Janela anterior não resolvida:',{exact:false}).waitFor();
     assert.equal(await outcome.locator('option[value="FLEET_CREDITS_FOUND"]').isDisabled(),true);
     dyMode='DENIED';
     await page.getByRole('button',{name:'Consultar avaliações de Dy'}).click();
     await page.getByRole('alert').filter({hasText:'Avaliação indisponível para esta conta.'}).waitFor();
-    assert.equal(await outcome.count(),0);
+    await outcome.waitFor({state:'detached'});
 
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth),false);
   } finally {
