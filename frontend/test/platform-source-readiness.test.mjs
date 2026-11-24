@@ -145,7 +145,9 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
         assessmentSha256:'a'.repeat(64),state:'DECLARED_NOT_ADMITTED',stale:false,usableForE8:false,
         issuanceCount:dyPost.body.issuances?.length??0,issuances:dyPost.body.issuances??[],
         sourceRightsState:dyPost.body.sourceLicenses?.length?'LICENSE_DECISIONS_CURRENT':'NO_LICENSE_PIN',
-        sourceLicenses:(dyPost.body.sourceLicenses??[]).map(pin=>({...pin,decisionVersion:1}))};
+        sourceLicenses:(dyPost.body.sourceLicenses??[]).map(pin=>({...pin,decisionVersion:1})),
+        coverageCount:dyPost.body.searchCoverage?.length??0,searchCoverage:dyPost.body.searchCoverage??[],
+        coverageState:dyPost.body.searchCoverage?.length?(dyPost.body.outcome==='INCONCLUSIVE'?'SEARCH_INCONCLUSIVE':'DECLARED_MATRIX_COMPLETE'):'NO_SEARCH_MATRIX'};
       dyRows=[saved,...dyRows];
       return route.fulfill({status:201,json:saved});
     });
@@ -169,7 +171,22 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
       await page.getByLabel('Edição da fonte '+i,{exact:true}).fill('1');
       await page.getByLabel('Localizador da emissão '+i,{exact:true}).fill('TEST_ONLY item '+i);
     }
-    await page.getByLabel('Vincular licenças das fontes').check();
+    for (const [i,kind] of [[1,'ERC'],[2,'ERF']]) {
+      await page.getByRole('button',{name:'Adicionar consulta de cobertura'}).click();
+      await page.getByLabel('Programa consultado '+i,{exact:true}).fill('TEST-PROGRAM');
+      await page.getByLabel('Categoria consultada '+i,{exact:true}).selectOption(kind);
+      await page.getByLabel('Abrangência da consulta '+i,{exact:true}).selectOption('NATIONAL_BR');
+      await page.getByLabel('Resultado da consulta '+i,{exact:true}).selectOption('FOUND');
+      await page.getByLabel('Início da janela consultada '+i,{exact:true}).fill('2034-07-01');
+      await page.getByLabel('Fim exclusivo da janela consultada '+i,{exact:true}).fill('2035-07-01');
+      await page.getByLabel('Data da consulta '+i,{exact:true}).fill('2035-07-02');
+      await page.getByLabel('ID da fonte da consulta '+i,{exact:true}).fill('TEST-REGISTRY');
+      await page.getByLabel('Edição da fonte da consulta '+i,{exact:true}).fill('1');
+      await page.getByLabel('Localizador da consulta '+i,{exact:true}).fill('TEST_ONLY query '+i);
+      await page.getByLabel('Limites e filtros da consulta '+i,{exact:true}).fill('Universo declarado fictício');
+    }
+    assert.equal(await page.getByLabel('Vincular licenças das fontes').isChecked(),true);
+    assert.equal(await page.getByLabel('Vincular licenças das fontes').isDisabled(),true);
     await page.getByLabel('ID da licença · TEST-REGISTRY / 1',{exact:true}).fill('10000000-0000-4000-8000-000000000085');
     await page.getByLabel('Programas pesquisados').fill('Programa fictício');
     await page.getByLabel('Projetos e categorias pesquisados').fill('Projeto fictício da frota');
@@ -190,6 +207,9 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
     assert.deepEqual(dyPost.body.sourceLicenses,[{sourceId:'TEST-REGISTRY',sourceEdition:'1',licenseId:'10000000-0000-4000-8000-000000000085'}]);
     await page.getByText('Decisões de licença vigentes na consulta, sem admissão normativa.',{exact:true}).waitFor();
     await page.getByText('Emissões declaradas · 2',{exact:true}).waitFor();
+    await page.getByText('Matriz de cobertura · 2 consultas',{exact:true}).waitFor();
+    assert.equal(dyPost.body.searchCoverage.length,2);
+    assert.equal(dyPost.body.searchCoverage[1].creditKind,'ERF');
     await outcome.selectOption('INCONCLUSIVE');
     await page.getByLabel('ERC emitidos · tCO2e').waitFor({state:'detached'});
     await page.getByRole('button',{name:'Registrar avaliação de Dy'}).click();
@@ -200,6 +220,7 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
     assert.equal(dyPost.body.erf,null);
     assert.deepEqual(dyPost.body.issuances,[]);
     assert.deepEqual(dyPost.body.sourceLicenses,[]);
+    assert.deepEqual(dyPost.body.searchCoverage,[]);
     dyCanRecord=false;dyCanReview=true;
     await page.getByRole('button',{name:'Atualizar projetos de Dy'}).click();
     await outcome.waitFor({state:'detached'});
