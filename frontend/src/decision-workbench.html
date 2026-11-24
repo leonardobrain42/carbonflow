@@ -117,6 +117,7 @@
           <p>Próximo passo: salvar a revisão estruturada nesta mesma etapa.
             As notas textuais antigas permanecem como histórico e não concluem a tarefa.</p>
         }
+        <carbonflow-open-ir-ex-ante-plan [projectId]="projectId" [editable]="canSaveGuide"/>
         <carbonflow-typed-guide [projectId]="projectId" guideId="baseline" [editable]="canSaveGuide"/>
       }
       @case ('revisao'){
