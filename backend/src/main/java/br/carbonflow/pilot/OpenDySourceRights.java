@@ -25,11 +25,15 @@ class OpenDySourceRights {
     private final PlatformSourceFiles rights;
     OpenDySourceRights(PlatformSourceFiles rights) { this.rights=rights; }
 
-    static List<Input> normalize(List<Input> requested,List<OpenDyIssuances.Row> rows) {
-        if (requested==null || requested.isEmpty()) return List.of();
+    static List<Input> normalize(List<Input> requested,List<OpenDyIssuances.Row> rows,List<OpenDySearchCoverage.Row> coverage) {
+        if (requested==null || requested.isEmpty()) {
+            if (!coverage.isEmpty()) throw invalid();
+            return List.of();
+        }
         if (requested.size()>100) throw invalid();
         var expected=new HashSet<Source>();
         for (var row:rows) expected.add(new Source(row.sourceId(),row.sourceEdition()));
+        for (var row:coverage) expected.add(new Source(row.sourceId(),row.sourceEdition()));
         var found=new HashSet<Source>();
         for (var input:requested) {
             if (input==null || input.licenseId()==null || input.sourceId()==null || input.sourceEdition()==null
@@ -87,6 +91,6 @@ class OpenDySourceRights {
     }
 
     private static IllegalArgumentException invalid() {
-        return new IllegalArgumentException("Vincule uma única licença por edição de fonte de todas as emissões, ou deixe a avaliação sem vínculos.");
+        return new IllegalArgumentException("Vincule uma licença por edição de todas as fontes das emissões e consultas. A matriz de cobertura exige vínculos.");
     }
 }

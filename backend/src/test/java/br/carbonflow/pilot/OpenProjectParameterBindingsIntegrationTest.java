@@ -293,6 +293,62 @@ class OpenProjectParameterBindingsIntegrationTest {
         assertEquals(3,reauthorized.at("/sourceLicenses/0/decisionVersion").asInt());
         assertEquals("LICENSE_DECISIONS_CURRENT",reauthorized.path("sourceRightsState").asText());
         assertFalse(reauthorized.path("usableForE8").asBoolean());
+        String matrix="""
+            [{"program":"TEST-PROGRAM","creditKind":"ERC","territory":"NATIONAL_BR","result":"FOUND",
+              "searchedFrom":"2034-07-01","searchedUntilExclusive":"2035-07-01","searchedOn":"2035-07-02",
+              "sourceId":"TEST-DY-REGISTRY","sourceEdition":"1","locator":"TEST_ONLY query A",
+              "limitations":"Universo declarado de teste"},
+             {"program":"TEST-PROGRAM","creditKind":"ERF","territory":"NATIONAL_BR","result":"FOUND",
+              "searchedFrom":"2034-07-01","searchedUntilExclusive":"2035-07-01","searchedOn":"2035-07-02",
+              "sourceId":"TEST-DY-REGISTRY","sourceEdition":"1","locator":"TEST_ONLY query B",
+              "limitations":"Universo declarado de teste"}]
+            """;
+        String covered=licensed.substring(0,licensed.length()-1)+",\"searchCoverage\":"+matrix+"}";
+        assertEquals(422,call("POST",dyPath,manager,key(),"\"6\"",
+            covered.replace("NATIONAL_BR","PARTIAL_BR")).statusCode());
+        assertEquals(422,call("POST",dyPath,manager,key(),"\"6\"",
+            covered.replace("\"result\":\"FOUND\"","\"result\":\"NO_RESULTS\"")).statusCode());
+        String matrixWithoutRights=itemized.substring(0,itemized.length()-1)+",\"searchCoverage\":"+matrix+"}";
+        assertEquals(422,call("POST",dyPath,manager,key(),"\"6\"",matrixWithoutRights).statusCode());
+        String coverageKey=key();
+        JsonNode complete=json(call("POST",dyPath,manager,coverageKey,"\"6\"",covered),201);
+        assertEquals("DECLARED_MATRIX_COMPLETE",complete.path("coverageState").asText());
+        assertEquals(2,complete.path("coverageCount").asInt());
+        assertFalse(complete.path("usableForE8").asBoolean());
+        assertEquals(complete,json(call("POST",dyPath,manager,coverageKey,"\"6\"",covered),200));
+        assertEquals(409,call("POST",dyPath,manager,coverageKey,"\"6\"",
+            covered.replace("TEST_ONLY query B","TEST_ONLY changed")).statusCode());
+        assertEquals(0,json(call("GET",dyRead,owner,null,null,null),200).at("/assessments/0/searchCoverage").size());
+        // No-results records can be licensed even without a positive issuance.
+        String negative=licensed.substring(0,licensed.indexOf(",\"issuances\":"))
+            .replace("FLEET_CREDITS_FOUND","NO_FLEET_CREDITS_DECLARED")
+            .replace("\"erc\":\"75\"","\"erc\":\"0\"").replace("\"erf\":\"25\"","\"erf\":\"0\"")
+            +",\"sourceLicenses\":[{\"sourceId\":\"TEST-DY-REGISTRY\",\"sourceEdition\":\"1\",\"licenseId\":\""+dyLicense+"\"}]"
+            +",\"searchCoverage\":"+matrix.replace("FOUND","NO_RESULTS")+"}";
+        JsonNode noResults=json(call("POST",dyPath,manager,key(),"\"7\"",negative),201);
+        assertEquals("DECLARED_MATRIX_COMPLETE",noResults.path("coverageState").asText());
+        assertEquals("1",noResults.path("dyPreview").asText());
+        assertEquals(0,noResults.path("issuanceCount").asInt());
+        assertFalse(noResults.path("usableForE8").asBoolean());
+        String partial=inconclusive.strip().substring(0,inconclusive.strip().length()-1)
+            +",\"sourceLicenses\":[{\"sourceId\":\"TEST-DY-REGISTRY\",\"sourceEdition\":\"1\",\"licenseId\":\""+dyLicense+"\"}]"
+            +",\"searchCoverage\":"+matrix.replace("NATIONAL_BR","PARTIAL_BR").replace("FOUND","INCOMPLETE")+"}";
+        JsonNode gap=json(call("POST",dyPath,manager,key(),"\"8\"",partial),201);
+        assertEquals("SEARCH_INCONCLUSIVE",gap.path("coverageState").asText());
+        assertTrue(gap.path("dyPreview").isNull());
+        assertFalse(gap.path("usableForE8").asBoolean());
+        database.transaction(c->{
+            update(c,"""
+                INSERT INTO app_content_license_decision(license_id,version,outcome,decided_by,reason)
+                VALUES (?,4,'REVOKED',?,'TEST_ONLY coverage revocation')
+                """,dyLicense,REVIEWER);
+            return null;
+        });
+        var hiddenCoverage=json(call("GET",dyPath+"/2",manager,null,null,null),200).at("/assessments/0");
+        assertEquals("SEARCH_RIGHTS_RECHECK_REQUIRED",hiddenCoverage.path("coverageState").asText());
+        assertEquals(0,hiddenCoverage.path("searchCoverage").size());
+        assertEquals(2,hiddenCoverage.path("coverageCount").asInt());
+
 
         assertEquals(0L,database.read(c->first(c,"SELECT count(*) FROM app_open_project_parameter_binding WHERE project_id=? AND parameter_kind='DY'",
             r->r.getLong(1),project)).longValue());
