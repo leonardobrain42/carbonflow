@@ -123,6 +123,41 @@ class OpenProjectParameterBindingsIntegrationTest {
         assertTrue(visible.contains("\"declaredValue\":\"0\""));
         assertTrue(listed.toString().contains("\"usableForE8\":false"));
 
+        String fuelDetail=projectPath+"/"+fuelPin.path("id").asText();
+        var detailResponse=call("GET",fuelDetail,owner,null,null,null);
+        JsonNode detail=json(detailResponse,200);
+        assertEquals(fuelPin,detail);
+        assertTrue(detailResponse.headers().firstValue("Cache-Control").orElse("").contains("no-store"));
+        assertEquals("nosniff",detailResponse.headers().firstValue("X-Content-Type-Options").orElse(""));
+        assertEquals(401,call("GET",fuelDetail,null,null,null,null).statusCode());
+        assertEquals(404,call("GET",fuelDetail,outsider,null,null,null).statusCode());
+        assertEquals(404,call("GET",projectPath+"/"+UUID.randomUUID(),owner,null,null,null).statusCode());
+        String otherProject=project(owner);
+        assertEquals(404,call("GET","/v1/projects/"+otherProject+"/technical/open-parameter-bindings/"
+            +fuelPin.path("id").asText(),owner,null,null,null).statusCode());
+        String irDetail=projectPath+"/"+one.path("id").asText();
+        JsonNode revised=json(call("POST",pins,manager,key(),"\"1\"",pin(project,"IR",null,"0.8")),201);
+        JsonNode historicIr=json(call("GET",irDetail,owner,null,null,null),200);
+        assertEquals(one,historicIr);
+        assertEquals(2,revised.path("version").asInt());
+        assertEquals("0.8",revised.path("declaredValue").asText());
+        // Losing derivative rights does not expose the licensed factor through detail.
+        UUID license=database.read(c->first(c,"SELECT source_license_id FROM app_open_parameter_candidate WHERE id=?",
+            row->row.getObject(1,UUID.class),UUID.fromString(fuel)));
+        database.transaction(c->{
+            update(c,"UPDATE app_content_license SET ends_at=statement_timestamp()-interval '1 second' WHERE id=?",license);
+            return null;
+        });
+        JsonNode expired=json(call("GET",fuelDetail,owner,null,null,null),200);
+        assertEquals("STALE_NOT_ADMITTED",expired.path("state").asText());
+        assertEquals(fuelPin.path("id"),expired.path("id"));
+        assertEquals(fuelPin.path("version"),expired.path("version"));
+        assertTrue(expired.path("declaredValue").isNull());
+        assertFalse(expired.toString().contains("0.007570823568"));
+        database.transaction(c->{
+            update(c,"UPDATE app_content_license SET ends_at=statement_timestamp()+interval '1 hour' WHERE id=?",license);
+            return null;
+        });
         JsonNode readiness = json(call("GET",
             "/v1/projects/" + project + "/technical/open-calculation-readiness",
             owner, null, null, null), 200);
@@ -132,7 +167,7 @@ class OpenProjectParameterBindingsIntegrationTest {
         assertEquals("NOT_ADMITTED", gate(readiness, "EF_GRID"));
         assertEquals("NOT_ADMITTED", gate(readiness, "IR"));
         assertEquals("NOT_ADMITTED", gate(readiness, "DY"));
-        assertTrue(reason(readiness, "IR").contains("não é um default"));
+        assertTrue(reason(readiness, "IR").contains("valor explícito"));
         assertTrue(reason(readiness, "DY").contains("Zero declarado"));
         assertFalse(reason(readiness, "EF_FUEL").contains("0.00757"));
         assertTrue(readiness.path("emissions").path("erTco2e").isNull());

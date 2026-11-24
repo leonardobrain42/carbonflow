@@ -85,10 +85,10 @@ final class OpenPdCalculationProvenance {
         String origin = ref == null ? null : "REFERENCE".equals(ref.kind())
             ? "Referência de catálogo · pino publicado no projeto"
             : "Declaração explícita com regra e prova · pino do projeto";
-        // The existing list API is not an immutable detail endpoint: do not link it as one.
         String unit = ref == null ? null : ref.unit() != null ? ref.unit()
             : "IR".equals(symbol) || "DY".equals(symbol) ? "adimensional" : null;
-        return input(symbol, origin, unit, ref, null);
+        return input(symbol, origin, unit, ref,
+            "/v1/projects/" + scope.id() + "/technical/open-parameter-bindings/");
     }
 
     private static Input input(String symbol, String origin, String unit, Ref ref, String prefix) {

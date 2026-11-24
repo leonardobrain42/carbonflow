@@ -110,6 +110,16 @@ class OpenProjectParameterBindings {
         });
     }
 
+    /** Exact historical project pin, with current grants and freshness checks. */
+    View detail(String token, String project, UUID id) {
+        return scope.read(token, project, "VIEW_OPEN_PARAMETER_BINDING", (connection, context) -> {
+            Stored row = first(connection, SELECT + " WHERE project_id=? AND id=?",
+                OpenProjectParameterBindings::stored, project, id);
+            if (row == null) throw hidden();
+            return view(connection, row, true);
+        });
+    }
+
     Result pin(String token, String key, String match, Input input) {
         return database.transaction(connection -> {
             var actor = managers.requireManager(connection, token);
