@@ -1,4 +1,6 @@
 # Changelog da especificação viva
+## 0.3.0-rc.19 — 24/11/2026 (proposta)
+- UX (fatia 6 do backlog): desenho proposto para D16 (triagem como hipótese inicial), com inventário de consumidores, regra de cópia das respostas antigas e perguntas Q1–Q7. Só documentação; nenhum comportamento alterado.
 ## 0.3.0-rc.18 — 24/11/2026 (proposta)
 - UX (fatia 9 do backlog): barra de salvar fixa com estado de alterações e rótulos curtos nos formulários de aplicabilidade e de dados iniciais. Só interface; versões, If-Match e Idempotency-Key inalterados.
 ## 0.3.0-rc.17 — 24/11/2026 (proposta)
