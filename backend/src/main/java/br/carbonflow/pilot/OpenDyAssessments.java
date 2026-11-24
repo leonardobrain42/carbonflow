@@ -47,7 +47,7 @@ class OpenDyAssessments {
     record Result(View view, boolean created) {}
     record History(String projectId, int projectYear, int latestVersion, OffsetDateTime priorStart,
                    OffsetDateTime priorEndExclusive, String calendarGate, List<View> assessments,
-                   OpenDyFirstYear.Context firstYearContext) {}
+                   OpenDyFirstYear.Context firstYearContext, OpenDyReadiness.Report readiness) {}
 
     private record Calendar(OffsetDateTime from, OffsetDateTime until, String gate) {}
     private record Stored(UUID id, String project, int year, int version, int triage,
@@ -366,7 +366,25 @@ class OpenDyAssessments {
         for (var row:rows) views.add(view(c,row,staff));
         return new History(project,year,rows.isEmpty()?0:rows.get(0).version(),
             calendar.from(),calendar.until(),calendar.gate(),List.copyOf(views),
-            year==1?OpenDyFirstYear.current(c,project):null);
+            year==1?OpenDyFirstYear.current(c,project):null,
+            OpenDyReadiness.evaluate(year,calendar.gate(),rows.isEmpty()?null:readinessFacts(rows.get(0),views.get(0))));
+    }
+
+    private static OpenDyReadiness.Facts readinessFacts(Stored row,View view) {
+        boolean conclusive=!"INCONCLUSIVE".equals(row.outcome());
+        boolean arithmetic=false,positive=false;
+        // Never derive or expose a new result from data whose rights require rechecking.
+        if (conclusive && !"LICENSE_RECHECK_REQUIRED".equals(view.sourceRightsState())) {
+            try {
+                var values=OpenDyAssessmentRules.values(row.outcome(),row.erc(),row.erf(),row.gate());
+                arithmetic=Objects.equals(OpenDyAssessmentRules.number(values.preview()),row.preview());
+                positive=values.erc().signum()>0 || values.erf().signum()>0;
+            } catch (IllegalArgumentException ignored) { /* inconsistent historical snapshot */ }
+        }
+        var review=view.review();
+        return new OpenDyReadiness.Facts(row.id(),row.version(),row.sha(),view.stale(),conclusive,arithmetic,positive,
+            view.issuanceCount(),view.coverageState(),view.allocationState(),view.sourceRightsState(),
+            review==null?null:review.outcome(),review!=null && Objects.equals(row.sha(),review.assessmentSha256()));
     }
 
     private static boolean stale(Connection c,Stored row) throws SQLException {

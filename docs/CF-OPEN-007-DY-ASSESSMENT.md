@@ -164,3 +164,20 @@ Não promove parecer positivo, não altera executor, não usa texto normativo
 integral no produto e não presume autorização de uso comercial do documento.
 V88 aditiva. A escolha entre janela pré-início, acumulada ou outra solução
 exige esclarecimento metodológico formal antes da admissão.
+
+## Prontidão consolidada (OPEN-DY-READINESS@1)
+
+A leitura autorizada do histórico por projeto/ano retorna readiness com ID,
+versão e SHA da avaliação vigente (ou ausência explícita). Não escolhe uma
+versão antiga revisada quando a atual está incompleta. Gates de calendário,
+existência, atualidade, direitos, aritmética, matriz, inventário, atribuição e
+parecer são derivados no servidor; a prévia é rechecagem aritmética, não
+admissão. As demais verificações aproveitam os registros imutáveis e as
+validações de entrada existentes; não são nova verificação externa.
+Zero com matriz negativa permite marcar inventário/atribuição não aplicáveis
+somente internamente. Revogação suspende rechecagem de conteúdo protegido.
+O diagnóstico agregado é idêntico para staff e conta autorizada do projeto,
+sem quantidades, nomes de fontes ou referências privadas. O estado é sempre
+BLOCKED e usableForE8=false: janela normativa, evidência externa e admissão
+permanecem bloqueios explícitos mesmo se internalChecksComplete=true.
+Não há nova persistência, migration, pino numérico ou alteração do executor.

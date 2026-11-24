@@ -29,9 +29,12 @@ type DyAssessment = {id:string;projectId:string;projectYear:number;version:numbe
   sourceRightsState?:string;sourceLicenses?:DyLicensePin[];
   coverageState?:string;coverageCount?:number;searchCoverage?:DyCoverage[];
   allocationState?:string;allocationCount?:number;allocations?:DyAllocationView[];firstYearContext?:DyFirstYearContext|null};
+type DyReadinessGate = {code:string;status:string;detail:string};
+type DyReadiness = {policyVersion:string;assessmentId:string|null;assessmentVersion:number;
+  assessmentSha256:string|null;state:string;internalChecksComplete:boolean;usableForE8:boolean;gates:DyReadinessGate[]};
 type DyHistory = {projectId:string;projectYear:number;latestVersion:number;
   priorStart:string|null;priorEndExclusive:string|null;calendarGate:string|null;
-  assessments:DyAssessment[];firstYearContext?:DyFirstYearContext|null};
+  assessments:DyAssessment[];firstYearContext?:DyFirstYearContext|null;readiness?:DyReadiness};
 
 /** Staff pin of a reviewed factor or an explicit IR/Dy. Not an E8 admission. */
 @Component({selector:'carbonflow-platform-parameter-pins', standalone:true,
@@ -242,13 +245,47 @@ export class PlatformParameterPinsComponent implements OnChanges, OnDestroy {
   private dyPath(project:string){
     return '/v1/platform/open-dy-assessments/'+encodeURIComponent(project);
   }
+  private readonly dyInternalGates=['CALENDAR','ASSESSMENT','FRESHNESS','SOURCE_RIGHTS','ARITHMETIC',
+    'SEARCH_COVERAGE','ISSUANCE_INVENTORY','GEOGRAPHIC_ALLOCATION','INDEPENDENT_REVIEW'];
+  private readonly dyExternalGates=['NORMATIVE_WINDOW','EXTERNAL_EVIDENCE','E8_ADMISSION'];
+  dyGateLabel(code:string){
+    const labels:Record<string,string>={CALENDAR:'Calendário',ASSESSMENT:'Avaliação vigente',FRESHNESS:'Atualidade',
+      SOURCE_RIGHTS:'Direitos das fontes',ARITHMETIC:'Aritmética de Dy',SEARCH_COVERAGE:'Matriz de cobertura',
+      ISSUANCE_INVENTORY:'Inventário de emissões',GEOGRAPHIC_ALLOCATION:'Atribuição geográfica',
+      INDEPENDENT_REVIEW:'Parecer independente',NORMATIVE_WINDOW:'Interpretação normativa',
+      EXTERNAL_EVIDENCE:'Comprovação externa',E8_ADMISSION:'Admissão E8'};
+    return labels[code]??code;
+  }
+  dyGateStatus(status:string){
+    const labels:Record<string,string>={SATISFIED_INTERNAL:'Satisfeito internamente',BLOCKED:'Pendente',
+      NOT_APPLICABLE:'Não aplicável nesta declaração',NOT_EVALUATED:'Não avaliado'};
+    return labels[status]??'Estado desconhecido';
+  }
+  private readinessMatches(history:DyHistory){
+    // Allow an older server to show history, never synthesize a readiness report.
+    const r=history.readiness;
+    if(r===undefined)return true;
+    if(!r||r.policyVersion!=='OPEN-DY-READINESS@1'||r.state!=='BLOCKED'||r.usableForE8!==false
+      ||typeof r.internalChecksComplete!=='boolean'||r.assessmentVersion!==history.latestVersion
+      ||r.assessmentId!==(history.assessments[0]?.id??null)
+      ||r.assessmentSha256!==(history.assessments[0]?.assessmentSha256??null)
+      ||!Array.isArray(r.gates))return false;
+    const expected=[...this.dyInternalGates,...this.dyExternalGates];
+    if(r.gates.length!==expected.length || r.gates.some((g,i)=>!g||g.code!==expected[i]
+      ||!['SATISFIED_INTERNAL','BLOCKED','NOT_APPLICABLE','NOT_EVALUATED'].includes(g.status)
+      ||typeof g.detail!=='string'||!g.detail.trim()))return false;
+    const internallyComplete=r.gates.slice(0,this.dyInternalGates.length)
+      .every(g=>g.status==='SATISFIED_INTERNAL'||g.status==='NOT_APPLICABLE');
+    return internallyComplete===r.internalChecksComplete
+      &&r.gates.slice(this.dyInternalGates.length).every(g=>g.status==='BLOCKED');
+  }
   private dyMatches(history:DyHistory,project:string,year:number){
     return history.projectId===project&&history.projectYear===year
       && Number.isInteger(history.latestVersion)&&history.latestVersion>=0
       && Array.isArray(history.assessments)
       && (history.assessments[0]?.version??0)===history.latestVersion
       && history.assessments.every(row=>row.projectId===project&&row.projectYear===year
-        &&row.usableForE8===false);
+        &&row.usableForE8===false) && this.readinessMatches(history);
   }
 
   async loadDy(){
