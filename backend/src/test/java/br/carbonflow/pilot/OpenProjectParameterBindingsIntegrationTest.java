@@ -208,6 +208,92 @@ class OpenProjectParameterBindingsIntegrationTest {
         assertEquals(2,projectItem.path("issuanceCount").asInt());
         assertEquals(0,projectItem.path("issuances").size());
         assertFalse(projectItem.toString().contains("TEST-DY-REGISTRY"));
+        assertEquals("NO_LICENSE_PIN",itemizedView.path("sourceRightsState").asText());
+        UUID dyLicense=UUID.randomUUID();
+        database.transaction(c->{
+            update(c,"""
+                INSERT INTO app_content_license
+                (id,source_id,edition,organization_id,submitted_by,environment,purpose,
+                 authorization_ref,proof_sha256,starts_at,ends_at)
+                VALUES (?,'TEST-DY-REGISTRY','1',?,?,'SANDBOX','AUTHORIZED_PROCESSING',
+                        'TEST_ONLY rights',repeat('a',64),statement_timestamp()-interval '1 day',
+                        statement_timestamp()+interval '1 day')
+                """,dyLicense,ORG,MANAGER);
+            update(c,"""
+                INSERT INTO app_content_license_decision(license_id,version,outcome,decided_by,reason)
+                VALUES (?,1,'APPROVED',?,'TEST_ONLY independent rights')
+                """,dyLicense,REVIEWER);
+            update(c,"""
+                INSERT INTO app_content_license_capability(license_id,decision_version,operation)
+                VALUES (?,1,'EXTRACT_TEXT'),(?,1,'SHOW_EXCERPTS')
+                """,dyLicense,dyLicense);
+            return null;
+        });
+        String licensed=itemized.substring(0,itemized.length()-1)
+            +",\"sourceLicenses\":[{\"sourceId\":\"TEST-DY-REGISTRY\",\"sourceEdition\":\"1\",\"licenseId\":\""+dyLicense+"\"}]}";
+        assertEquals(403,call("POST",dyPath,manager,key(),"\"4\"",licensed).statusCode());
+        database.transaction(c->{
+            update(c,"INSERT INTO app_content_license_capability VALUES (?,1,'EXPORT_DERIVATIVES')",dyLicense);
+            return null;
+        });
+        String rightsKey=key();
+        JsonNode licensedView=json(call("POST",dyPath,manager,rightsKey,"\"4\"",licensed),201);
+        assertEquals(5,licensedView.path("version").asInt());
+        assertEquals("LICENSE_DECISIONS_CURRENT",licensedView.path("sourceRightsState").asText());
+        assertEquals(1,licensedView.at("/sourceLicenses/0/decisionVersion").asInt());
+        assertEquals("0.75",licensedView.path("dyPreview").asText());
+        assertFalse(licensedView.path("usableForE8").asBoolean());
+        var licensedProject=json(call("GET",dyRead,owner,null,null,null),200).at("/assessments/0");
+        assertTrue(licensedProject.path("dyPreview").isNull());
+        assertEquals(0,licensedProject.path("sourceLicenses").size());
+        String licensedReviewPath=dyPath+"/"+licensedView.path("id").asText()+"/review";
+        String licensedReview=reviewBody.replace(found.path("assessmentSha256").asText(),
+            licensedView.path("assessmentSha256").asText());
+        database.transaction(c->{
+            update(c,"UPDATE app_content_license SET ends_at=statement_timestamp()-interval '1 second' WHERE id=?",dyLicense);
+            return null;
+        });
+        JsonNode expiredDy=json(call("GET",dyPath+"/2",manager,null,null,null),200).at("/assessments/0");
+        assertEquals("LICENSE_RECHECK_REQUIRED",expiredDy.path("sourceRightsState").asText());
+        assertTrue(expiredDy.path("stale").asBoolean());
+        assertTrue(expiredDy.path("erc").isNull());
+        assertTrue(expiredDy.path("dyPreview").isNull());
+        assertTrue(expiredDy.path("evidenceLocator").isNull());
+        assertEquals(0,expiredDy.path("issuances").size());
+        assertEquals(licensedView.path("assessmentSha256"),expiredDy.path("assessmentSha256"));
+        assertEquals(409,call("POST",licensedReviewPath,reviewer,key(),"\"5\"",licensedReview).statusCode());
+        database.transaction(c->{
+            update(c,"UPDATE app_content_license SET ends_at=statement_timestamp()+interval '1 day' WHERE id=?",dyLicense);
+            update(c,"""
+                INSERT INTO app_content_license_decision(license_id,version,outcome,decided_by,reason)
+                VALUES (?,2,'REVOKED',?,'TEST_ONLY revocation')
+                """,dyLicense,REVIEWER);
+            return null;
+        });
+        JsonNode revoked=json(call("POST",dyPath,manager,rightsKey,"\"4\"",licensed),200);
+        assertEquals("LICENSE_RECHECK_REQUIRED",revoked.path("sourceRightsState").asText());
+        assertEquals(licensedView.path("id"),revoked.path("id"));
+        assertTrue(revoked.path("dyPreview").isNull());
+        assertEquals(403,call("POST",dyPath,manager,key(),"\"5\"",licensed).statusCode());
+        database.transaction(c->{
+            update(c,"""
+                INSERT INTO app_content_license_decision(license_id,version,outcome,decided_by,reason)
+                VALUES (?,3,'APPROVED',?,'TEST_ONLY new decision')
+                """,dyLicense,REVIEWER);
+            update(c,"""
+                INSERT INTO app_content_license_capability VALUES
+                (?,3,'EXTRACT_TEXT'),(?,3,'SHOW_EXCERPTS'),(?,3,'EXPORT_DERIVATIVES')
+                """,dyLicense,dyLicense,dyLicense);
+            return null;
+        });
+        assertEquals("LICENSE_RECHECK_REQUIRED",json(call("GET",dyPath+"/2",manager,null,null,null),200)
+            .at("/assessments/0/sourceRightsState").asText());
+        JsonNode reauthorized=json(call("POST",dyPath,manager,key(),"\"5\"",licensed),201);
+        assertEquals(6,reauthorized.path("version").asInt());
+        assertEquals(3,reauthorized.at("/sourceLicenses/0/decisionVersion").asInt());
+        assertEquals("LICENSE_DECISIONS_CURRENT",reauthorized.path("sourceRightsState").asText());
+        assertFalse(reauthorized.path("usableForE8").asBoolean());
+
         assertEquals(0L,database.read(c->first(c,"SELECT count(*) FROM app_open_project_parameter_binding WHERE project_id=? AND parameter_kind='DY'",
             r->r.getLong(1),project)).longValue());
 

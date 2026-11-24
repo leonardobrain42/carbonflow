@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 class OpenDyAssessments {
     record Input(Integer projectYear, String outcome, String erc, String erf,
                  String programs, String projectReferences, String evidenceLocator, String coverageNote,
-                 List<OpenDyIssuances.Input> issuances) {}
+                 List<OpenDyIssuances.Input> issuances, List<OpenDySourceRights.Input> sourceLicenses) {}
     record ReviewInput(String assessmentSha256, String outcome, String ruleReference,
                        String evidenceReferences, String reason) {}
     record Review(UUID reviewerId, String outcome, String assessmentSha256, String ruleReference,
@@ -38,7 +38,8 @@ class OpenDyAssessments {
                 String erc, String erf, String dyPreview, String programs, String projectReferences,
                 String evidenceLocator, String coverageNote, String assessmentSha256,
                 OffsetDateTime recordedAt, String state, boolean stale, boolean usableForE8, Review review,
-                int issuanceCount, String issuanceState, List<OpenDyIssuances.Row> issuances) {}
+                int issuanceCount, String issuanceState, List<OpenDyIssuances.Row> issuances,
+                String sourceRightsState, List<OpenDySourceRights.Pin> sourceLicenses) {}
     record Result(View view, boolean created) {}
     record History(String projectId, int projectYear, int latestVersion, OffsetDateTime priorStart,
                    OffsetDateTime priorEndExclusive, String calendarGate, List<View> assessments) {}
@@ -53,14 +54,16 @@ class OpenDyAssessments {
     private final DynamicProjectScope scope;
     private final PlatformSourceReadiness readiness;
     private final Set<UUID> reviewers;
+    private final OpenDySourceRights sourceRights;
 
     OpenDyAssessments(PilotDatabase database, PlatformSourceWork managers, DynamicProjectScope scope,
-                      PlatformSourceReadiness readiness,
+                      PlatformSourceReadiness readiness, OpenDySourceRights sourceRights,
                       @ConfigProperty(name="carbonflow.platform.source-technical.reviewers") Optional<String> roster) {
         this.database=database;
         this.managers=managers;
         this.scope=scope;
         this.readiness=readiness;
+        this.sourceRights=sourceRights;
         reviewers=roster.map(s->Arrays.stream(s.split(",")).map(String::strip)
             .filter(v->!v.isBlank()).map(UUID::fromString).collect(Collectors.toUnmodifiableSet()))
             .orElse(Set.of());
@@ -124,6 +127,7 @@ class OpenDyAssessments {
             String programs, refs, locator, note;
             OpenDyAssessmentRules.Values values;
             List<OpenDyIssuances.Row> issuances;
+            List<OpenDySourceRights.Input> licenses;
             try {
                 programs=OpenDyAssessmentRules.text(input.programs(),3,1000);
                 refs=OpenDyAssessmentRules.text(input.projectReferences(),3,2000);
@@ -132,6 +136,7 @@ class OpenDyAssessments {
                 // Replay identity does not depend on the *current* calendar.
                 values=OpenDyAssessmentRules.values(input.outcome(),input.erc(),input.erf(),null);
                 issuances=OpenDyIssuances.normalize(input.issuances());
+                licenses=OpenDySourceRights.normalize(input.sourceLicenses(),issuances);
             } catch (IllegalArgumentException e) { throw invalid(e.getMessage()); }
             String erc=OpenDyAssessmentRules.number(values.erc());
             String erf=OpenDyAssessmentRules.number(values.erf());
@@ -146,6 +151,14 @@ class OpenDyAssessments {
                     parts.add(row.creditKind());parts.add(row.issuedOn());parts.add(row.geography());
                     parts.add(row.creditsTco2e());parts.add(row.sourceId());parts.add(row.sourceEdition());
                     parts.add(row.locator());
+                }
+                fingerprint=digest(parts.toArray());
+            }
+            if (!licenses.isEmpty()) {
+                var parts=new java.util.ArrayList<Object>();
+                parts.add("OPEN-DY-LICENSE-COMMAND@1");parts.add(fingerprint);
+                for (var pin:licenses) {
+                    parts.add(pin.sourceId());parts.add(pin.sourceEdition());parts.add(pin.licenseId());
                 }
                 fingerprint=digest(parts.toArray());
             }
@@ -167,12 +180,18 @@ class OpenDyAssessments {
                 """,r->r.getObject(1,Integer.class),project,year);
             PilotCommands.requireVersion(expected,current==null?0:current);
             if (expected>=100000000) throw conflict("Limite de versões atingido.");
+            var pins=sourceRights.capture(c,organization,licenses);
             int triage=OpenCalculationReadiness.triageRevision(c,project);
             UUID id=UUID.randomUUID();
             String hash=digest("OPEN-DY-ASSESSMENT@1",fingerprint,triage,calendar.gate(),
                 calendar.from()==null?null:calendar.from().toInstant(),
                 calendar.until()==null?null:calendar.until().toInstant(),
                 OpenDyAssessmentRules.number(values.preview()));
+            if (!pins.isEmpty()) {
+                var parts=new java.util.ArrayList<Object>();parts.add("OPEN-DY-LICENSE-ASSESSMENT@1");parts.add(hash);
+                for (var pin:pins) {parts.add(pin.sourceId());parts.add(pin.sourceEdition());parts.add(pin.licenseId());parts.add(pin.decisionVersion());}
+                hash=digest(parts.toArray());
+            }
             update(c,"""
                 INSERT INTO app_open_dy_assessment
                 (id,project_id,organization_id,environment,project_year,version,triage_version,
@@ -195,6 +214,7 @@ class OpenDyAssessments {
                     row.issuedOn(),row.geography(),new java.math.BigDecimal(row.creditsTco2e()),
                     row.sourceId(),row.sourceEdition(),row.locator());
             }
+            sourceRights.store(c,id,pins);
             return new Result(view(c,first(c,SELECT+" WHERE id=?",OpenDyAssessments::stored,id),true),true);
         });
     }
@@ -236,7 +256,7 @@ class OpenDyAssessments {
             Integer latest=first(c,"SELECT max(version) FROM app_open_dy_assessment WHERE project_id=? AND project_year=?",
                 r->r.getInt(1),project,row.year());
             PilotCommands.requireVersion(expected,latest);
-            if (row.version()!=latest || stale(c,row)) throw conflict("Avaliação superada ou desatualizada; registre nova versão.");
+            if (row.version()!=latest || stale(c,row) || sourceRights.check(c,row.id()).blocked()) throw conflict("Avaliação superada ou desatualizada; registre nova versão.");
             if (readReview(c,row.id(),true)!=null) throw conflict("Já existe parecer para esta versão. Registre nova avaliação.");
             if ("CHECKED_INTERNAL".equals(input.outcome()) && ("INCONCLUSIVE".equals(row.outcome()) || row.preview()==null))
                 throw invalid("Pesquisa inconclusiva não pode receber parecer de checagem dos totais.");
@@ -294,7 +314,7 @@ class OpenDyAssessments {
         return organization;
     }
 
-    private static History history(Connection c,String project,int year,boolean staff) throws SQLException {
+    private History history(Connection c,String project,int year,boolean staff) throws SQLException {
         checkYear(year);
         Calendar calendar=calendar(c,project,year);
         var rows=query(c,SELECT+" WHERE project_id=? AND project_year=? ORDER BY version DESC LIMIT 50",
@@ -311,17 +331,21 @@ class OpenDyAssessments {
             || !Objects.equals(now.gate(),row.gate()) || !same(now.from(),row.from()) || !same(now.until(),row.until());
     }
 
-    private static View view(Connection c,Stored row,boolean staff) throws SQLException {
-        boolean stale=stale(c,row);
-        Review review=readReview(c,row.id(),staff);
+    private View view(Connection c,Stored row,boolean staff) throws SQLException {
+        var check=sourceRights.check(c,row.id());
+        boolean stale=stale(c,row)||check.blocked();
+        boolean numbers=!check.blocked() && (!check.bound() || staff);
+        boolean details=staff && !check.blocked();
+        Review review=readReview(c,row.id(),details);
         var items=issuances(c,row.id());
         String state=stale?"STALE_NOT_ADMITTED":review==null?"DECLARED_NOT_ADMITTED":
             review.outcome()+"_NOT_ADMITTED";
         return new View(row.id(),row.project(),row.year(),row.version(),"VM0038","1.1","BR",
-            row.from(),row.until(),row.gate(),row.outcome(),row.erc(),row.erf(),row.preview(),
-            staff?row.programs():null,staff?row.references():null,staff?row.locator():null,staff?row.note():null,
+            row.from(),row.until(),row.gate(),row.outcome(),numbers?row.erc():null,numbers?row.erf():null,numbers?row.preview():null,
+            details?row.programs():null,details?row.references():null,details?row.locator():null,details?row.note():null,
             row.sha(),row.at(),state,stale,false,review,items.size(),
-            items.isEmpty()?"UNITEMIZED":"DECLARED_TOTALS_RECONCILED",staff?List.copyOf(items):List.of());
+            items.isEmpty()?"UNITEMIZED":"DECLARED_TOTALS_RECONCILED",details?List.copyOf(items):List.of(),
+            check.state(),staff?check.pins():List.of());
     }
 
     private static Calendar calendar(Connection c,String project,int year) throws SQLException {
