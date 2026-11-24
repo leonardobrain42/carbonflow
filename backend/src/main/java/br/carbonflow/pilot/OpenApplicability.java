@@ -192,9 +192,59 @@ class OpenApplicability {
                     r.getString(27),r.getString(28)),
                 r.getObject(20,OffsetDateTime.class)),project);
         Readiness ready=evaluate(revision==null?null:revision.answers(),
-            revision!=null && revision.triageVersion()!=triage);
+            revision!=null && revision.triageVersion()!=triage
+                && relevantTriageChanged(c,project,revision.triageVersion(),triage));
         return new View(project,revision==null?0:revision.version(),triage,revision,ready,
             origins(c,project,revision==null?null:revision.answers()),pdMap());
+    }
+
+    /**
+     * CF-SPEC-D15: the declaration only goes stale when a triage answer it depends on changed.
+     * Cursor moves and narrative edits create triage revisions but do not touch the scope.
+     */
+    static final List<String[]> RELEVANT_TRIAGE=List.of(
+        new String[]{"1","methodologyCandidate"},new String[]{"1","activityType"},
+        new String[]{"2","installsChargers"},
+        new String[]{"4","country"},new String[]{"4","rightsStatus"},new String[]{"4","rightsJustification"});
+
+    static String relevantTriage(com.fasterxml.jackson.databind.JsonNode answers) {
+        var out=new StringBuilder();
+        for (var key:RELEVANT_TRIAGE) {
+            var value=answers==null?null:answers.path(key[0]).get(key[1]);
+            out.append(key[0]).append('.').append(key[1]).append('=')
+                .append(value==null||value.isNull()?"":value.toString()).append('\n');
+        }
+        // Step 3 holds the methodology-specific scope (fleet, charging, network, supply, metering): all of it counts.
+        var details=answers==null?null:answers.get("3");
+        out.append("3=").append(details==null||details.isNull()?"":canonical(details));
+        return out.toString();
+    }
+
+    private static String canonical(com.fasterxml.jackson.databind.JsonNode node) {
+        if (!node.isObject()) return node.toString();
+        var names=new ArrayList<String>();
+        node.fieldNames().forEachRemaining(names::add);
+        java.util.Collections.sort(names);
+        var out=new StringBuilder("{");
+        for (String name:names) out.append(name).append(':').append(canonical(node.get(name))).append(',');
+        return out.append('}').toString();
+    }
+
+    private static boolean relevantTriageChanged(Connection c,String project,int declared,int current)throws SQLException {
+        var mapper=new com.fasterxml.jackson.databind.ObjectMapper();
+        String before=declared<=0?null:first(c,
+            "SELECT answers::text FROM app_project_triage_revision WHERE project_id=? AND version=?",
+            r->r.getString(1),project,declared);
+        String after=first(c,
+            "SELECT answers::text FROM app_project_triage_revision WHERE project_id=? AND version=?",
+            r->r.getString(1),project,current);
+        if (declared>0 && before==null) return true; // unknown history: stay conservative
+        try {
+            return !relevantTriage(before==null?null:mapper.readTree(before))
+                .equals(relevantTriage(after==null?null:mapper.readTree(after)));
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            return true;
+        }
     }
 
     static Readiness evaluate(Input data,boolean stale) {

@@ -1,4 +1,6 @@
 # Changelog da especificação viva
+## 0.3.0-rc.12 — 24/11/2026 (proposta)
+- Registra o backlog oficial de UX (CF-UX-TECH-001-BACKLOG) e as decisões D15 (desatualização da aplicabilidade só por resposta relevante da triagem, implementada) e D16 (triagem como hipótese inicial, a implementar). Telas de aplicabilidade passam a pedir confirmação antes de descartar respostas não salvas.
 ## 0.3.0-rc.11 — 24/11/2026 (proposta)
 - UX: menu da preparação técnica em cinco grupos (Começar, Aplicabilidade, Fundamentação, Medição, Documentação); Entender, Evidências e Fontes saem do menu e seguem acessíveis por URL e pela tela-mãe. Atualiza CF-UX-TECH-001-MODULE-NAVIGATION. Sem mudança de permissão, regra ou backend.
 ## 0.3.0-rc.10 — 24/11/2026 (proposta)
