@@ -64,6 +64,62 @@
           <p>Vínculo de leitura: memória → seção Quantificação do PD.
             Prévia da tentativa consultada; não integra a narrativa salva.</p>
           <a class="cf-workspace-link" [href]="provenance.memoryHref">Ver memória canônica desta tentativa</a>
+          <button type="button" class="cf-workspace-outline" (click)="loadMemory()">Conferir memória nesta seção</button>
+          @if (memoryLoading()) { <p role="status">Conferindo a memória canônica autorizada…</p> }
+          @if (memoryError()) { <p role="alert">{{memoryError()}}</p> }
+          @if (memoryDetail(); as run) {
+            @if (run.memory; as memory) {
+              <section aria-label="Memória canônica consultada" class="cf-journey-context">
+                <h5>Resultados registrados pelo motor · {{run.period}}</h5>
+                <p class="energy-hash">{{run.id}} · versão {{run.version}} · {{memory.engine}}</p>
+                <p>Ensaio interno, sem admissão normativa. Valores copiados da memória exata, sem recálculo nesta seção.</p>
+                <dl>
+                  <dt>ER bruto registrado</dt><dd>{{memory.erTco2e}} tCO2e</dd>
+                  <dt>ER apresentado pelo motor</dt><dd>{{memory.erDisplay}} tCO2e</dd>
+                </dl>
+                <div class="table-scroll" tabindex="0" aria-label="Etapas de emissões da memória">
+                  <table>
+                    <caption>Etapas BE, PE, LE e ER registradas na memória</caption>
+                    <thead><tr><th scope="col">Etapa</th><th scope="col">Referência</th><th scope="col">Resultado registrado</th></tr></thead>
+                    <tbody>
+                      @for (step of memory.trace; track $index) {
+                        @if (['BE','PE','LE','ER'].includes(step.code)) {
+                          <tr><th scope="row">{{inputTitle(step.code)}} · {{step.code}}</th><td>{{step.reference}}</td><td>{{step.result}} {{step.unit}}</td></tr>
+                        }
+                      } @empty {
+                        <tr><td colspan="3">Sem etapas registradas nesta resposta.</td></tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+                @if (memory.hourlyPe; as hourly) {
+                  <p>Memória horária de PE · {{hourly.region}} · {{hourly.windowStart}} até {{hourly.windowEndExclusive}} (fim exclusivo).</p>
+                  <p>PE total registrado: {{hourly.peTco2e}} tCO2e. Não é somado no navegador.</p>
+                  <div class="table-scroll" tabindex="0" aria-label="PE horário registrado">
+                    <table>
+                      <caption>Parcelas de PE armazenadas · até 24 primeiras horas</caption>
+                      <thead><tr><th scope="col">Hora registrada</th><th scope="col">PE · tCO2e</th></tr></thead>
+                      <tbody>
+                        @for (hour of hourly.hours.slice(0,24); track $index) {
+                          <tr><td>{{hour.hourStart}}</td><td>{{hour.peTco2e ?? 'Não registrada'}}</td></tr>
+                        } @empty {
+                          <tr><td colspan="2">Sem parcelas horárias nesta resposta. Ausência não é zero.</td></tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                  @if (hourly.hours.length > 24) {
+                    <p>Esta prévia limita PE a 24 horas. A memória completa permanece no link canônico.</p>
+                  }
+                } @else {
+                  <p>Sem memória horária registrada nesta tentativa. Não há reconstrução a partir dos totais.</p>
+                }
+                <p>Fatores, ratings e operandos licenciados não são apresentados neste painel.
+                  Esta consulta não fixa suporte na narrativa. O documento não fica pronto.</p>
+              </section>
+            }
+          }
+
           <details>
             <summary>Conferir origem, unidades e revisão da memória</summary>
             <dl>

@@ -30,6 +30,14 @@ interface FleetDetail {
   id:string;projectId:string;period:string;version:number;observationYear:number;
   cycle:string|null;state:string;stale:boolean;usableForE8:boolean;publishedAt:string;
 }
+interface MemoryDetail {
+  id:string;projectId:string;period:string;version:number;inputSha256:string;state:string;
+  stale:boolean;canIssueVcu:boolean;engine:string;
+  memory:{engine:string;usableForE8:boolean;beTco2e:string;peTco2e:string;leTco2e:string;
+    erTco2e:string;erDisplay:string;trace:{code:string;reference:string;unit:string;result:string}[];
+    hourlyPe:{windowStart:string;windowEndExclusive:string;region:string;peTco2e:string;
+      hours:{hourStart:string;peTco2e:string|null}[]}|null}|null;
+}
 interface CalculationNote {period:string;situation:string;causeCode:string|null;cause:string|null;
   beTco2e:string|null;peTco2e:string|null;leTco2e:string|null;erDisplay:string|null;
   usableForE8:boolean;marksDocumentReady:boolean;text:string;provenance?:CalculationProvenance|null}
@@ -74,6 +82,9 @@ export class PdSectionsComponent implements OnInit, OnDestroy {
   readonly fleetDetail = signal<FleetDetail|null>(null);
   readonly fleetLoading = signal(false);
   readonly fleetError = signal('');
+  readonly memoryDetail = signal<MemoryDetail|null>(null);
+  readonly memoryLoading = signal(false);
+  readonly memoryError = signal('');
   private sourceRequest = 0;
   ngOnDestroy() { this.clearDetails(); }
 
@@ -88,6 +99,9 @@ export class PdSectionsComponent implements OnInit, OnDestroy {
     this.fleetDetail.set(null);
     this.fleetLoading.set(false);
     this.fleetError.set('');
+    this.memoryDetail.set(null);
+    this.memoryLoading.set(false);
+    this.memoryError.set('');
   }
 
   async loadPin(symbol:string, id:string|null) {
@@ -176,6 +190,46 @@ export class PdSectionsComponent implements OnInit, OnDestroy {
       }
     } finally {
       if (request===this.sourceRequest) this.fleetLoading.set(false);
+    }
+  }
+  async loadMemory() {
+    const calculation=this.current()?.calculation;
+    const source=calculation?.provenance;
+    if (!source || calculation?.situation!=='MEMORY' || calculation.usableForE8
+        || calculation.marksDocumentReady || this.busy()) return;
+    this.clearDetails();
+    const request=this.sourceRequest;
+    const project=this.projectId();
+    const period=calculation.period;
+    this.memoryLoading.set(true);
+    try {
+      const detail=await firstValueFrom(this.http.get<MemoryDetail>(
+        '/v1/projects/'+encodeURIComponent(project)+'/technical/open-monitoring/dossiers/'
+        +encodeURIComponent(period)+'/e8-runs/'+encodeURIComponent(source.runId)));
+      if (request!==this.sourceRequest || project!==this.projectId()) return;
+      if (detail.id!==source.runId || detail.projectId!==project || detail.period!==period
+          || detail.version!==source.runVersion || detail.inputSha256!==source.inputSha256)
+        throw new Error('Snapshot inconsistente');
+      if (detail.stale || detail.state!=='REVIEWED_INTERNAL' || !detail.memory) {
+        this.memoryError.set('Memória indisponível ou desatualizada. Atualize as seções para revalidar a tentativa.');
+        return;
+      }
+      const memory=detail.memory;
+      if (detail.canIssueVcu || memory.usableForE8 || detail.engine!==source.engine
+          || memory.engine!==source.engine || memory.beTco2e!==calculation.beTco2e
+          || memory.peTco2e!==calculation.peTco2e || memory.leTco2e!==calculation.leTco2e
+          || memory.erDisplay!==calculation.erDisplay)
+        throw new Error('Memória inconsistente');
+      this.memoryDetail.set(detail);
+    } catch (cause) {
+      if (request===this.sourceRequest) {
+        this.memoryDetail.set(null);
+        this.memoryError.set(cause instanceof HttpErrorResponse && [401,403,404].includes(cause.status)
+          ? 'Memória protegida ou indisponível para esta conta.'
+          : 'Não foi possível conferir a memória desta tentativa. Atualize as seções e tente novamente.');
+      }
+    } finally {
+      if (request===this.sourceRequest) this.memoryLoading.set(false);
     }
   }
   readonly term = plainTerm;
