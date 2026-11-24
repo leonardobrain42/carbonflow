@@ -14,6 +14,23 @@ test('a seção de quantificação nomeia a memória ou o bloqueio', async () =>
     let situation = 'MEMORY';
     let mutations = 0;
     const selectedRequests=[];
+    let pinMode='OK';
+    let releasePin;
+    let pinCompleted;
+    await page.route('**/technical/open-parameter-bindings/*', async route => {
+      if (pinMode==='DELAY') {
+        await new Promise(resolve => {releasePin=resolve;});
+      }
+      if (pinMode==='DENIED') return route.fulfill({status:404,json:{message:'Indisponível'}});
+      await route.fulfill({json:{
+        id:'50000000-0000-4000-8000-000000000122',projectId:project,parameterKind:'EF_FUEL',
+        version:1,vintageYear:2027,methodology:'VM0038',methodologyEdition:'1.1',
+        normalizedUnit:'tCO2e/USgal',conversionFormula:'identity',valueKind:'REFERENCE',
+        state:pinMode==='STALE' ? 'STALE_NOT_ADMITTED' : 'PINNED_NOT_ADMITTED',
+        stale:pinMode==='STALE',usableForE8:pinMode==='INVALID',
+      }});
+      if (pinCompleted) pinCompleted();
+    });
     page.on('request', request => {
       if (request.url().includes('/technical/pd-sections') && request.method() !== 'GET') mutations++;
     });
@@ -108,6 +125,39 @@ test('a seção de quantificação nomeia a memória ou o bloqueio', async () =>
     assert.equal(await pinLink.getAttribute('href'),memory.provenance.inputs[1].href);
     await pinLink.focus();
     assert.equal(await pinLink.evaluate(element => document.activeElement === element),true);
+    const pinButton=page.getByRole('button', {name:'Conferir pino EF_FUEL nesta seção'});
+    await pinButton.focus();
+    await page.keyboard.press('Enter');
+    const panel=page.getByRole('region', {name:'Detalhe do pino consultado'});
+    await panel.getByRole('heading', {name:'Pino consultado · EF_FUEL'}).waitFor();
+    await panel.getByText('Vinculado, sem admissão normativa', {exact:false}).waitFor();
+    await panel.getByText('identity', {exact:true}).waitFor();
+    assert.equal(await panel.getByText('0.007570823568', {exact:false}).count(),0);
+    await page.setViewportSize({width:390,height:844});
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1),false);
+    pinMode='STALE';
+    await pinButton.click();
+    await panel.getByText('Desatualizado — requer rechecagem', {exact:false}).waitFor();
+    pinMode='DENIED';
+    await pinButton.click();
+    await page.getByRole('alert').filter({hasText:'Detalhe protegido ou indisponível'}).waitFor();
+    assert.equal(await panel.count(),0);
+    pinMode='INVALID';
+    await pinButton.click();
+    await page.getByRole('alert').filter({hasText:'Não foi possível conferir o pino'}).waitFor();
+    assert.equal(await panel.count(),0);
+    pinMode='DELAY';
+    await pinButton.click();
+    await page.getByText('Conferindo o pino autorizado…', {exact:true}).waitFor();
+    const completed=new Promise(resolve => {pinCompleted=resolve;});
+    const responseSeen=page.waitForResponse(response => response.url().includes('/open-parameter-bindings/'));
+    await page.getByRole('button', {name:'Atualizar seções'}).click();
+    await page.getByRole('button', {name:'Atualizar seções'}).waitFor({state:'visible'});
+    releasePin();
+    await completed;
+    await responseSeen;
+    assert.equal(await panel.count(),0);
+    assert.equal(await page.getByText('Conferindo o pino autorizado…', {exact:true}).count(),0);
     await memoryLink.focus();
     assert.equal(await memoryLink.evaluate(element => document.activeElement === element), true);
     assert.equal(await page.locator('#pd-narrative').inputValue(), '');
