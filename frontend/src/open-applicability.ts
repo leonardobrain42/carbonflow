@@ -52,6 +52,8 @@ const EMPTY:Declaration={
 export class OpenApplicabilityComponent implements OnChanges {
   @Input({required:true}) projectId='';
   @Input() editable=false;
+  /** One declaration, several screens: the form parts always save the complete declaration. */
+  @Input() part:'summary'|'network'|'rights'|'dates'='summary';
   /** Notify the host only after a successful persisted declaration revision. */
   @Output() readonly saved = new EventEmitter<void>();
   private readonly http=inject(HttpClient);
@@ -66,6 +68,12 @@ export class OpenApplicabilityComponent implements OnChanges {
   readonly vcsDraft=signal({eventOn:'',documentRef:''});
   readonly loading=signal(true);
   readonly term=plainTerm;
+  summary(){return this.part==='summary';}
+  saveLabel(){
+    return this.part==='dates'?'Salvar datas sem aprovação automática'
+      :this.part==='network'?'Salvar acesso sem aprovação automática'
+      :'Salvar direitos sem aprovação automática';
+  }
   readonly busy=signal(false);
   readonly error=signal('');
   readonly notice=signal('');

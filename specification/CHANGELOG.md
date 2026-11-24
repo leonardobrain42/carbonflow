@@ -1,4 +1,6 @@
 # Changelog da especificação viva
+## 0.3.0-rc.8 — 24/11/2026 (proposta)
+- Documenta a reorganização de UX da preparação técnica (CF-UX-TECH-001-APPLICABILITY-SCREENS): "Analisar" vira "Situação do projeto" (somente leitura) e os formulários passam para "Acesso à rede", "Direitos do projeto" e, no caso das datas, "Estações e fronteira". Sem mudança de regra, gate, política ou migração; o ponto de retomada aceita as novas telas.
 ## 0.3.0-rc.7 — 24/11/2026 (proposta)
 - Registra a decisão Q05 (D14, quatro recomendações) e o contrato CF-OPEN-007-DY-Q05-POLICY: ano 1 de Dy por ausência comprovada na janela exploratória (migração aditiva V98), base única do rateio (EVs em circulação) com gate bloqueado até o EVR nacional, texto do gate `NORMATIVE_WINDOW`. A totalização acumulada e o consumo pelo executor ficam pendentes. Atualiza decisões, pendências G04, matriz S07, estado, E8 e o quadro de decisão.
 ## 0.3.0-rc.6 — 24/11/2026 (proposta)

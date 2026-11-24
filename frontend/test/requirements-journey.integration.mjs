@@ -69,6 +69,8 @@ for(const viewport of [{width:390,height:844},{width:1440,height:900}]){
       const requirements=root+'/technical/requirements';
       const declaration=root+'/technical/open-applicability';
       const technical='/workspace/projects/'+project+'/technical?secao=analisar';
+      const network='/workspace/projects/'+project+'/technical?secao=rede';
+      const rights='/workspace/projects/'+project+'/technical?secao=direitos';
       const before=await get(context,requirements);
       assert.equal(finding(before,'NO_DECLARATION').state,'ABSENT');
 
@@ -85,6 +87,7 @@ for(const viewport of [{width:390,height:844},{width:1440,height:900}]){
       assert.equal((await checkpoint).status(),200);
       await diagnosis.getByText(finding(before,'NO_DECLARATION').reason,{exact:true}).waitFor();
 
+      await page.getByRole('button',{name:'Preencher acesso à rede'}).click();
       await page.getByLabel('Qualquer BEV compatível pode utilizar?').selectOption('true');
       await page.getByLabel('Restringe o uso a veículos identificados?').selectOption('false');
       await page.getByLabel('Tecnologia de recarga',{exact:true}).selectOption('DCFC');
@@ -92,17 +95,24 @@ for(const viewport of [{width:390,height:844},{width:1440,height:900}]){
       await page.getByLabel('Energia do sistema',{exact:true}).selectOption('SIN');
       await page.getByLabel('Existe armazenamento/geração associada?').selectOption('false');
       await page.getByLabel('O carregador devolve energia à rede (V2G)?').selectOption('false');
-      const readsBeforeSave=reads;
       const save=page.waitForResponse(response=>
         new URL(response.url()).pathname===declaration&&response.request().method()==='PUT');
+      await page.getByRole('button',{name:'Salvar acesso sem aprovação automática'}).click();
+      assert.equal((await save).status(),200);
+      // The status screen reads the server diagnosis again when it opens.
+      const readsBeforeStatus=reads;
       const reread=page.waitForResponse(response=>
         new URL(response.url()).pathname===requirements&&response.request().method()==='GET');
-      await page.getByRole('button',{name:'Salvar declaração sem aprovação automática'}).click();
-      assert.equal((await save).status(),200);
+      const statusCheckpoint=page.waitForResponse(response=>
+        new URL(response.url()).pathname===root+'/journey/resume'
+        &&response.request().method()==='PUT');
+      await page.getByRole('navigation',{name:'Seções da preparação técnica'})
+        .getByRole('button',{name:'Situação do projeto'}).click();
+      assert.equal((await statusCheckpoint).status(),200);
       const refreshed=await reread;
       assert.equal(refreshed.status(),200);
       const after=await refreshed.json();
-      assert.ok(reads>readsBeforeSave,'A successful save must reread the server diagnosis');
+      assert.ok(reads>readsBeforeStatus,'The status screen must read the server diagnosis');
       assert.equal(finding(after,'NO_DECLARATION'),undefined);
       assert.equal(finding(after,'DRIVER_DISCLOSURE').state,'NEEDS_EVIDENCE');
       assert.equal(after.canRunE8,false);
@@ -137,6 +147,8 @@ for(const viewport of [{width:390,height:844},{width:1440,height:900}]){
 
       // A competing real write leaves the mounted form stale. Its rejected
       // If-Match must neither refresh the diagnosis as a success nor overwrite it.
+      await page.goto(base+network);
+      await page.getByLabel('Qualquer BEV compatível pode utilizar?').waitFor();
       const current=await get(context,declaration);
       const concurrent=await context.request.put(base+declaration,{
         headers:{'Idempotency-Key':randomUUID(),'If-Match':'"'+current.version+'"'},
@@ -147,13 +159,13 @@ for(const viewport of [{width:390,height:844},{width:1440,height:900}]){
       const readsBeforeConflict=reads;
       const conflict=page.waitForResponse(response=>
         new URL(response.url()).pathname===declaration&&response.request().method()==='PUT');
-      await page.getByRole('button',{name:'Salvar declaração sem aprovação automática'}).click();
+      await page.getByRole('button',{name:'Salvar acesso sem aprovação automática'}).click();
       assert.equal((await conflict).status(),412);
       await page.getByRole('alert').filter({hasText:'Outra revisão foi salva.'}).waitFor();
       assert.equal(reads,readsBeforeConflict,'A failed save must not emit success');
       assert.equal((await get(context,declaration)).version,committed.version);
-      await page.reload();
-      await diagnosis.getByText(disclosure.reason,{exact:true}).waitFor();
+      await page.goto(base+rights);
+      await page.getByLabel('Observações e limitações da declaração').waitFor();
       assert.equal(await page.getByLabel('Observações e limitações da declaração').inputValue(),
         'Concurrent revision TEST_ONLY');
 

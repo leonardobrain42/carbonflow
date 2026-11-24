@@ -167,7 +167,7 @@ test('CF-IMP-008: rascunho da conta cruza intake e prévia sem adquirir autorida
     assert.equal(await page.getByLabel('Atividade planejada').inputValue(), 'Recarga elétrica em ambiente urbano');
     await page.getByRole('button', {name: 'Salvar informações'}).click();
     await page.getByText('Informações preliminares salvas (revisão 1).').waitFor();
-    await sections.getByRole('button',{name:'Analisar'}).click();
+    await sections.getByRole('button',{name:'Situação do projeto'}).click();
     await page.getByText('PEN-004', {exact: false}).waitFor();
     assert.equal(state.intake.version, 1);
 
