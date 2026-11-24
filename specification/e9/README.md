@@ -1,6 +1,9 @@
 # E9 — Jornada e experiência (índice novo)
 A especificação de acompanhamento [RF-1..RF-9](../../docs/ux/CF-UX-ACOMP-REQUISITOS.md), [integração](../../docs/ux/CF-UX-ACOMP-INTEGRACAO-JORNADA.md) e [rastreabilidade](../../docs/ux/CF-UX-ACOMP-RASTREABILIDADE-ISSUES.md) já define o contrato de experiência e issues donas. Preservar esses IDs; não recriar epic paralela.
 
+## Entrada
+A raiz `/` oferece iniciar projeto próprio, acessar projetos ou explorar o piloto sintético; cadastro, confirmação e recuperação usam as APIs existentes de conta, sem alegar e-mail real ([CF-UX-ENTRY-001-ISSUE-145](../../docs/CF-UX-ENTRY-001-ISSUE-145.md); matriz CF-SPEC-S16). Nome de espaço de trabalho não concede PP, representação nem grants.
+
 ## Navegação
 Conta → projetos autorizados/retomada → visão geral do projeto → preparação por metodologia → aplicabilidade, linha de base, adicionalidade, quantificação, monitoramento, salvaguardas, PD e revisão. A jornada mostra próxima tarefa e motivo do bloqueio, sem transformar tarefa em aprovação. Trilhas em paralelo quando possível.
 - [Guia de navegação](../../docs/CF-UX-TECH-001-MODULE-NAVIGATION.md), [formulários tipados](../../docs/CF-UX-TECH-001-TYPED-FORMS-UX02B.md), [baseline/adicionalidade/PD](../../docs/CF-UX-TECH-001-BASELINE-ADDITIONALITY-PD-INTEGRATIONS.md).
