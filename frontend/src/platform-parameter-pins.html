@@ -110,6 +110,11 @@
               (input)="dyErf=$any($event.target).value">
             <p>Informe explicitamente zero quando aplicável. Não há total presumido nem rateio automático.</p>
             <h5>Emissões individualizadas (opcional)</h5>
+            @if (dyIssuances.length) {
+              <label><input type="checkbox" [checked]="dyAllocate" (change)="setDyAllocate($any($event.target).checked)">
+                Fundamentar atribuição geográfica das emissões</label>
+              <p>Informe a parcela BR na quantidade da emissão. Com atribuição estruturada, cada emissão positiva exige base documentada e licença. Nenhum percentual é presumido.</p>
+            }
             <p>Referencie a edição cadastrada da fonte externa. Informe somente metadados e valores
               declarados que você esteja autorizado a registrar. O servidor concilia as quantidades com os totais;
               isso não comprova cobertura nacional, validade da fonte ou direitos de uso.</p>
@@ -145,6 +150,32 @@
                 <label [for]="'cf-dy-locator-'+i">Localizador da emissão {{i+1}}</label>
                 <input [id]="'cf-dy-locator-'+i" maxlength="1000" required [value]="row.locator"
                   (input)="row.locator=$any($event.target).value">
+                @if (dyAllocate) {
+                  @if (row.allocation; as a) {
+                    <h6>Atribuição geográfica da emissão {{i+1}}</h6>
+                    <label [for]="'cf-dy-alloc-method-'+i">Modalidade da atribuição {{i+1}}</label>
+                    <select [id]="'cf-dy-alloc-method-'+i" required [value]="a.method" (change)="a.method=$any($event.target).value">
+                      <option value="">Selecione</option><option value="DIRECT_BR">Direta BR (1/1)</option>
+                      <option value="DOCUMENTED_SHARE">Parcela documentada</option>
+                    </select>
+                    <label [for]="'cf-dy-alloc-total-'+i">Total original da emissão {{i+1}} · tCO2e</label>
+                    <input [id]="'cf-dy-alloc-total-'+i" inputmode="decimal" required [value]="a.totalTco2e" (input)="a.totalTco2e=$any($event.target).value">
+                    <label [for]="'cf-dy-alloc-num-'+i">Numerador da base {{i+1}}</label>
+                    <input [id]="'cf-dy-alloc-num-'+i" inputmode="decimal" required [value]="a.shareNumerator" (input)="a.shareNumerator=$any($event.target).value">
+                    <label [for]="'cf-dy-alloc-den-'+i">Denominador da base {{i+1}}</label>
+                    <input [id]="'cf-dy-alloc-den-'+i" inputmode="decimal" required [value]="a.shareDenominator" (input)="a.shareDenominator=$any($event.target).value">
+                    <label [for]="'cf-dy-alloc-unit-'+i">Unidade da base {{i+1}}</label>
+                    <input [id]="'cf-dy-alloc-unit-'+i" required maxlength="80" [value]="a.basisUnit" (input)="a.basisUnit=$any($event.target).value">
+                    <label [for]="'cf-dy-alloc-source-'+i">ID da fonte da atribuição {{i+1}}</label>
+                    <input [id]="'cf-dy-alloc-source-'+i" required maxlength="160" [value]="a.sourceId" (input)="a.sourceId=$any($event.target).value">
+                    <label [for]="'cf-dy-alloc-edition-'+i">Edição da fonte da atribuição {{i+1}}</label>
+                    <input [id]="'cf-dy-alloc-edition-'+i" required maxlength="160" [value]="a.sourceEdition" (input)="a.sourceEdition=$any($event.target).value">
+                    <label [for]="'cf-dy-alloc-locator-'+i">Localizador da atribuição {{i+1}}</label>
+                    <input [id]="'cf-dy-alloc-locator-'+i" required maxlength="1000" [value]="a.locator" (input)="a.locator=$any($event.target).value">
+                    <label [for]="'cf-dy-alloc-reason-'+i">Fundamentação da atribuição {{i+1}}</label>
+                    <textarea [id]="'cf-dy-alloc-reason-'+i" required rows="2" maxlength="2000" [value]="a.rationale" (input)="a.rationale=$any($event.target).value"></textarea>
+                  }
+                }
                 <button type="button" class="cf-workspace-outline" [disabled]="dyBusy()"
                   (click)="removeDyIssuance(i)">Remover emissão {{i+1}}</button>
               </fieldset>
@@ -210,11 +241,11 @@
           }
           @if (dyIssuances.length || dyCoverage.length) {
             <label>
-              <input type="checkbox" [checked]="dyBindLicenses" [disabled]="!!dyCoverage.length"
+              <input type="checkbox" [checked]="dyBindLicenses" [disabled]="!!dyCoverage.length||dyAllocate"
                 (change)="dyBindLicenses=$any($event.target).checked">
               Vincular licenças das fontes
             </label>
-            <p>A matriz exige licença vigente de todas as edições consultadas, inclusive buscas negativas.
+            <p>A matriz e a atribuição exigem licença vigente de todas as edições utilizadas, inclusive buscas negativas.
               Sem matriz, os itens não vinculados continuam declarações manuais. Não há admissão de E8.</p>
             @if (dyBindLicenses) {
               @for (source of dySources(); track source.key; let i=$index) {
@@ -305,6 +336,28 @@
               }
             } @else {
               <p>Sem matriz estruturada de cobertura. A declaração não comprova ausência de créditos.</p>
+            }
+            @if (item.allocationCount) {
+              <h5>Atribuição geográfica · {{item.allocationCount}} emissões</h5>
+              @if (item.allocationState==='ALLOCATION_RIGHTS_RECHECK_REQUIRED') {
+                <p>Detalhes protegidos: revalide os direitos das fontes.</p>
+              } @else {
+                <p>Parcelas declaradas conciliadas, sem comprovação da adequação normativa da base.</p>
+              }
+              @for (allocation of item.allocations ?? []; track $index) {
+                <dl>
+                  <dt>Emissão</dt><dd>{{allocation.program}} / {{allocation.registryProject}} / {{allocation.issuanceId}}</dd>
+                  <dt>Modalidade</dt><dd>{{allocation.method}}</dd>
+                  <dt>Total original</dt><dd>{{allocation.totalTco2e}} tCO2e</dd>
+                  <dt>Base declarada</dt><dd>{{allocation.shareNumerator}} / {{allocation.shareDenominator}} · {{allocation.basisUnit}}</dd>
+                  <dt>Parcela BR</dt><dd>{{allocation.brazilTco2e}} tCO2e</dd>
+                  <dt>Fonte / edição</dt><dd>{{allocation.sourceId}} / {{allocation.sourceEdition}}</dd>
+                  <dt>Localizador</dt><dd>{{allocation.locator}}</dd>
+                  <dt>Fundamentação</dt><dd>{{allocation.rationale}}</dd>
+                </dl>
+              }
+            } @else {
+              <p>Sem atribuição geográfica estruturada; não há comprovação da parcela brasileira.</p>
             }
             @if (item.review; as opinion) {
               <h5>Parecer interno desta versão</h5>

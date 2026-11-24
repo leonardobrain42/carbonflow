@@ -25,15 +25,16 @@ class OpenDySourceRights {
     private final PlatformSourceFiles rights;
     OpenDySourceRights(PlatformSourceFiles rights) { this.rights=rights; }
 
-    static List<Input> normalize(List<Input> requested,List<OpenDyIssuances.Row> rows,List<OpenDySearchCoverage.Row> coverage) {
+    static List<Input> normalize(List<Input> requested,List<OpenDyIssuances.Row> rows,List<OpenDySearchCoverage.Row> coverage,List<OpenDyAllocations.Row> allocations) {
         if (requested==null || requested.isEmpty()) {
-            if (!coverage.isEmpty()) throw invalid();
+            if (!coverage.isEmpty() || !allocations.isEmpty()) throw invalid();
             return List.of();
         }
         if (requested.size()>100) throw invalid();
         var expected=new HashSet<Source>();
         for (var row:rows) expected.add(new Source(row.sourceId(),row.sourceEdition()));
         for (var row:coverage) expected.add(new Source(row.sourceId(),row.sourceEdition()));
+        for (var row:allocations) expected.add(new Source(row.sourceId(),row.sourceEdition()));
         var found=new HashSet<Source>();
         for (var input:requested) {
             if (input==null || input.licenseId()==null || input.sourceId()==null || input.sourceEdition()==null
@@ -91,6 +92,6 @@ class OpenDySourceRights {
     }
 
     private static IllegalArgumentException invalid() {
-        return new IllegalArgumentException("Vincule uma licença por edição de todas as fontes das emissões e consultas. A matriz de cobertura exige vínculos.");
+        return new IllegalArgumentException("Vincule uma licença por edição de todas as fontes das emissões, consultas e atribuições. A matriz e a atribuição exigem vínculos.");
     }
 }

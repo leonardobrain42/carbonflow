@@ -147,7 +147,10 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
         sourceRightsState:dyPost.body.sourceLicenses?.length?'LICENSE_DECISIONS_CURRENT':'NO_LICENSE_PIN',
         sourceLicenses:(dyPost.body.sourceLicenses??[]).map(pin=>({...pin,decisionVersion:1})),
         coverageCount:dyPost.body.searchCoverage?.length??0,searchCoverage:dyPost.body.searchCoverage??[],
-        coverageState:dyPost.body.searchCoverage?.length?(dyPost.body.outcome==='INCONCLUSIVE'?'SEARCH_INCONCLUSIVE':'DECLARED_MATRIX_COMPLETE'):'NO_SEARCH_MATRIX'};
+        coverageState:dyPost.body.searchCoverage?.length?(dyPost.body.outcome==='INCONCLUSIVE'?'SEARCH_INCONCLUSIVE':'DECLARED_MATRIX_COMPLETE'):'NO_SEARCH_MATRIX',
+        allocationCount:dyPost.body.allocations?.length??0,
+        allocationState:dyPost.body.allocations?.length?'DECLARED_ALLOCATION_RECONCILED':'NO_STRUCTURED_ALLOCATION',
+        allocations:(dyPost.body.allocations??[]).map((a,i)=>({...a,brazilTco2e:dyPost.body.issuances[i].creditsTco2e}))};
       dyRows=[saved,...dyRows];
       return route.fulfill({status:201,json:saved});
     });
@@ -170,6 +173,18 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
       await page.getByLabel('ID da fonte '+i,{exact:true}).fill('TEST-REGISTRY');
       await page.getByLabel('Edição da fonte '+i,{exact:true}).fill('1');
       await page.getByLabel('Localizador da emissão '+i,{exact:true}).fill('TEST_ONLY item '+i);
+    }
+    await page.getByLabel('Fundamentar atribuição geográfica das emissões').check();
+    for (const [i,total,num,den,method] of [[1,'100','3','4','DOCUMENTED_SHARE'],[2,'25','1','1','DIRECT_BR']]) {
+      await page.getByLabel('Modalidade da atribuição '+i,{exact:true}).selectOption(method);
+      await page.getByLabel('Total original da emissão '+i+' · tCO2e',{exact:true}).fill(total);
+      await page.getByLabel('Numerador da base '+i,{exact:true}).fill(num);
+      await page.getByLabel('Denominador da base '+i,{exact:true}).fill(den);
+      await page.getByLabel('Unidade da base '+i,{exact:true}).fill('TEST_ONLY activity');
+      await page.getByLabel('ID da fonte da atribuição '+i,{exact:true}).fill('TEST-REGISTRY');
+      await page.getByLabel('Edição da fonte da atribuição '+i,{exact:true}).fill('1');
+      await page.getByLabel('Localizador da atribuição '+i,{exact:true}).fill('TEST_ONLY split '+i);
+      await page.getByLabel('Fundamentação da atribuição '+i,{exact:true}).fill('Declared territorial attribution fixture');
     }
     for (const [i,kind] of [[1,'ERC'],[2,'ERF']]) {
       await page.getByRole('button',{name:'Adicionar consulta de cobertura'}).click();
@@ -210,6 +225,10 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
     await page.getByText('Matriz de cobertura · 2 consultas',{exact:true}).waitFor();
     assert.equal(dyPost.body.searchCoverage.length,2);
     assert.equal(dyPost.body.searchCoverage[1].creditKind,'ERF');
+    await page.getByText('Atribuição geográfica · 2 emissões',{exact:true}).waitFor();
+    assert.equal(dyPost.body.allocations.length,2);
+    assert.equal(dyPost.body.allocations[0].shareNumerator,'3');
+    assert.equal(dyPost.body.issuances[0].allocation,undefined);
     await outcome.selectOption('INCONCLUSIVE');
     await page.getByLabel('ERC emitidos · tCO2e').waitFor({state:'detached'});
     await page.getByRole('button',{name:'Registrar avaliação de Dy'}).click();
@@ -221,6 +240,7 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
     assert.deepEqual(dyPost.body.issuances,[]);
     assert.deepEqual(dyPost.body.sourceLicenses,[]);
     assert.deepEqual(dyPost.body.searchCoverage,[]);
+    assert.deepEqual(dyPost.body.allocations,[]);
     dyCanRecord=false;dyCanReview=true;
     await page.getByRole('button',{name:'Atualizar projetos de Dy'}).click();
     await outcome.waitFor({state:'detached'});

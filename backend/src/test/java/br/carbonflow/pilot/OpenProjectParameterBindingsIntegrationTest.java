@@ -337,6 +337,37 @@ class OpenProjectParameterBindingsIntegrationTest {
         assertEquals("SEARCH_INCONCLUSIVE",gap.path("coverageState").asText());
         assertTrue(gap.path("dyPreview").isNull());
         assertFalse(gap.path("usableForE8").asBoolean());
+        String allocations="""
+            [{"program":"TEST-PROGRAM","registryProject":"A","issuanceId":"ISS-1","method":"DOCUMENTED_SHARE",
+              "totalTco2e":"100","shareNumerator":"3","shareDenominator":"4","basisUnit":"TEST_ONLY activity",
+              "sourceId":"TEST-DY-REGISTRY","sourceEdition":"1","locator":"TEST_ONLY split A",
+              "rationale":"Declared territorial attribution fixture"},
+             {"program":"TEST-PROGRAM","registryProject":"B","issuanceId":"ISS-2","method":"DIRECT_BR",
+              "totalTco2e":"25","shareNumerator":"1","shareDenominator":"1","basisUnit":"dimensionless",
+              "sourceId":"TEST-DY-REGISTRY","sourceEdition":"1","locator":"TEST_ONLY split B",
+              "rationale":"Declared Brazilian issuance fixture"}]
+            """;
+        String allocated=covered.substring(0,covered.length()-1)+",\"allocations\":"+allocations+"}";
+        assertEquals(422,call("POST",dyPath,manager,key(),"\"9\"",
+            allocated.replace("\"shareNumerator\":\"3\"","\"shareNumerator\":\"2\"")).statusCode());
+        assertEquals(422,call("POST",dyPath,manager,key(),"\"9\"",
+            allocated.replace("\"issuanceId\":\"ISS-2\",\"method\"","\"issuanceId\":\"UNKNOWN\",\"method\"")).statusCode());
+        assertEquals(422,call("POST",dyPath,manager,key(),"\"9\"",
+            matrixWithoutRights.substring(0,matrixWithoutRights.length()-1)+",\"allocations\":"+allocations+"}").statusCode());
+        String allocationKey=key();
+        JsonNode attributed=json(call("POST",dyPath,manager,allocationKey,"\"9\"",allocated),201);
+        assertEquals(10,attributed.path("version").asInt());
+        assertEquals("DECLARED_ALLOCATION_RECONCILED",attributed.path("allocationState").asText());
+        assertEquals(2,attributed.path("allocationCount").asInt());
+        assertEquals("75",attributed.at("/allocations/0/brazilTco2e").asText());
+        assertEquals("100",attributed.at("/allocations/0/totalTco2e").asText());
+        assertEquals("0.75",attributed.path("dyPreview").asText());
+        assertFalse(attributed.path("usableForE8").asBoolean());
+        assertEquals(attributed,json(call("POST",dyPath,manager,allocationKey,"\"9\"",allocated),200));
+        assertEquals(409,call("POST",dyPath,manager,allocationKey,"\"9\"",
+            allocated.replace("TEST_ONLY split A","TEST_ONLY split changed")).statusCode());
+        assertEquals(0,json(call("GET",dyRead,owner,null,null,null),200).at("/assessments/0/allocations").size());
+
         database.transaction(c->{
             update(c,"""
                 INSERT INTO app_content_license_decision(license_id,version,outcome,decided_by,reason)
@@ -348,6 +379,9 @@ class OpenProjectParameterBindingsIntegrationTest {
         assertEquals("SEARCH_RIGHTS_RECHECK_REQUIRED",hiddenCoverage.path("coverageState").asText());
         assertEquals(0,hiddenCoverage.path("searchCoverage").size());
         assertEquals(2,hiddenCoverage.path("coverageCount").asInt());
+        assertEquals("ALLOCATION_RIGHTS_RECHECK_REQUIRED",hiddenCoverage.path("allocationState").asText());
+        assertEquals(0,hiddenCoverage.path("allocations").size());
+        assertEquals(2,hiddenCoverage.path("allocationCount").asInt());
 
 
         assertEquals(0L,database.read(c->first(c,"SELECT count(*) FROM app_open_project_parameter_binding WHERE project_id=? AND parameter_kind='DY'",
