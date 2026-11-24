@@ -10,6 +10,7 @@ import {ProjectStationsComponent} from './project-stations';
 import {DecisionWorkbenchComponent} from './decision-workbench';
 import {JourneyFocusComponent} from './journey-focus';
 import {JourneyCheckpointService} from './journey-checkpoint';
+import {TriageAnswers, intakeSuggestions} from './triage-suggestions';
 import {WorkspaceNavigationComponent} from './workspace-navigation';
 import {afterNextRender, Component, computed, effect, ElementRef, inject, Injector, signal, viewChild} from '@angular/core';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
@@ -175,6 +176,12 @@ export class ProjectTechnicalComponent {
   readonly error = signal('');
   readonly notice = signal('');
   readonly form = signal<IntakeForm>(formValues(null));
+  /** Owner's own triage answers, offered for empty intake fields; never saved by themselves. */
+  readonly triageAnswers = signal<TriageAnswers | null>(null);
+  readonly intakeSuggestionsPending = computed(() => {
+    const current = this.form() as Record<string, string>;
+    return intakeSuggestions(this.triageAnswers()).filter(item => !current[item.field]?.trim());
+  });
   readonly owner = computed(() => this.capabilities()?.owner !== false && !!this.capabilities());
   readonly sections = computed(() => SECTIONS.filter(item => {
     if (item.id === 'inicio') return this.can('VIEW_INTAKE');
@@ -323,6 +330,7 @@ export class ProjectTechnicalComponent {
         });
       }
       this.dossier.set(dossier);
+      if (this.owner() && this.can('SAVE_INTAKE')) void this.loadTriage();
     } catch (cause: unknown) {
       this.project.set(null);
       this.capabilities.set(null);
@@ -375,6 +383,17 @@ export class ProjectTechnicalComponent {
     if (await this.router.navigate([], {relativeTo: this.route, queryParams: {secao: section, guia: guide, etapa:null}, queryParamsHandling: 'merge'})) {
       afterNextRender(() => this.heading()?.nativeElement.focus(), {injector: this.injector});
     }
+  }
+
+  applyIntakeTriage() {
+    for (const item of this.intakeSuggestionsPending()) this.update(item.field as keyof IntakeForm, item.value);
+  }
+
+  private async loadTriage() {
+    try {
+      const view = await firstValueFrom(this.http.get<{answers?: TriageAnswers}>(this.root + '/triage'));
+      this.triageAnswers.set(view.answers ?? null);
+    } catch { this.triageAnswers.set(null); }
   }
 
   update(field: keyof IntakeForm, value: string) {

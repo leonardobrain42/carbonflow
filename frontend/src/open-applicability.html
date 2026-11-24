@@ -48,6 +48,16 @@
     @if (!summary() && editable) {
       <form (submit)="save($event)" class="cf-open-applicability-form">
         @if (part==='network') {
+        @if (pendingSuggestions().length) {
+          <div class="cf-journey-context" role="group" aria-label="Respostas da triagem">
+            <strong>Respostas que você deu na triagem</strong>
+            <ul>
+              @for (item of pendingSuggestions(); track item.field) { <li>{{item.label}}</li> }
+            </ul>
+            <p class="cf-workspace-helper">Preenche só os campos ainda vazios. Nada é salvo até você salvar a tela.</p>
+            <button type="button" class="cf-workspace-outline" [disabled]="busy()" (click)="applyTriage()">Usar respostas da triagem</button>
+          </div>
+        }
         <fieldset [disabled]="busy()">
           <legend>Como funciona o acesso aos carregadores?</legend>
           <p>As informações abaixo são independentes: terreno privado não equivale a frota fechada.</p>

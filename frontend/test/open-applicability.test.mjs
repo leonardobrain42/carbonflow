@@ -131,6 +131,11 @@ test('a ficha OPEN permite preparar direitos sem fonte admitida nem cálculo E8'
     }});
     });
     await page.route('**/v1/projects/*/journey/resume',r=>r.fulfill({status:204}));
+    await page.route('**/v1/projects/*/triage',r=>r.fulfill({json:{version:3,answers:{
+      '1':{objective:'Rede aberta',activityType:'MOBILIDADE_ELETRICA',methodologyCandidate:'VM0038'},
+      '3':{access:'PUBLIC',network:'OPEN',chargerType:'DCFC',propulsion:'BEV',
+           electricitySource:'SIN',associatedInfrastructure:'NO',vehicleClass:'LDV'},
+    }}}));
     await page.route('**/v1/projects/*/technical/open-sites',r=>r.fulfill({json:{
       projectId:project,environment:'SANDBOX',sites:[],chargers:[],
       boundary:{version:0,selected:[],state:'NO_SELECTION',findings:[],usableForE8:false},
@@ -144,15 +149,26 @@ test('a ficha OPEN permite preparar direitos sem fonte admitida nem cálculo E8'
     await page.goto(base+'/workspace/projects/'+project+'/technical?secao=rede');
     await page.getByRole('heading',{name:'Acesso aos carregadores'}).waitFor();
     assert.equal(await page.getByLabel('Nome do titular neste projeto').count(),0,'rights do not belong to the network screen');
-    await page.getByLabel('Qualquer BEV compatível pode utilizar?').selectOption('true');
-    await page.getByLabel('Restringe o uso a veículos identificados?').selectOption('false');
+    // The owner's triage answers are offered for empty fields; nothing is saved until the person saves.
+    const fromTriage=page.getByRole('group',{name:'Respostas da triagem'});
+    await fromTriage.getByText('Tipo de recarga: DCFC').waitFor();
+    await fromTriage.getByText('Acesso aos carregadores: Aberto ao público').waitFor();
+    assert.equal(revision,0);
+    await fromTriage.getByRole('button',{name:'Usar respostas da triagem'}).click();
+    assert.equal(revision,0,'applying suggestions does not save');
+    assert.equal(await fromTriage.count(),0,'no empty field left to suggest');
+    assert.equal(await page.getByLabel('Qualquer BEV compatível pode utilizar?').inputValue(),'true');
+    assert.equal(await page.getByLabel('Restringe o uso a veículos identificados?').inputValue(),'false');
+    assert.equal(await page.getByLabel('Tecnologia de recarga').inputValue(),'DCFC');
+    assert.equal(await page.getByLabel('Veículos atendidos').inputValue(),'BEV');
+    assert.equal(await page.getByLabel('Energia do sistema').inputValue(),'SIN');
+    assert.equal(await page.getByLabel('Existe armazenamento/geração associada?').inputValue(),'false');
     await page.getByLabel('O ponto fica em terreno particular?').selectOption('true');
-    await page.getByLabel('Tecnologia de recarga').selectOption('DCFC');
-    await page.getByLabel('Veículos atendidos').selectOption('BEV');
-    await page.getByLabel('Energia do sistema').selectOption('SIN');
-    await page.getByLabel('Existe armazenamento/geração associada?').selectOption('false');
     await page.getByLabel('O carregador devolve energia à rede (V2G)?').selectOption('false');
     await saved('Salvar acesso sem aprovação automática');
+    assert.equal(answers.chargerType,'DCFC');
+    assert.equal(answers.unrestrictedBevAccess,true);
+    assert.equal(answers.associatedInfrastructure,false);
     assert.equal(revision,1);
 
     // 2. Rights: holder, contract, files and disclosure, without the network questions.

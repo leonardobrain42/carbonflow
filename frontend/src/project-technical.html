@@ -251,6 +251,16 @@
               } @else {
                 <p>Consulte as informações técnicas registradas no rascunho.</p>
               }
+              @if (can('SAVE_INTAKE') && intakeSuggestionsPending().length) {
+                <div class="cf-journey-context" role="group" aria-label="Respostas da triagem">
+                  <strong>Respostas que você deu na triagem</strong>
+                  <ul>
+                    @for (item of intakeSuggestionsPending(); track item.field) { <li>{{item.label}}</li> }
+                  </ul>
+                  <p class="cf-workspace-helper">Preenche só os campos ainda vazios. Nada é salvo até você salvar.</p>
+                  <button type="button" class="cf-workspace-outline" [disabled]="saving()" (click)="applyIntakeTriage()">Usar respostas da triagem</button>
+                </div>
+              }
               <form (submit)="save($event)">
                 <fieldset [disabled]="saving() || !can('SAVE_INTAKE')" class="cf-journey-fieldset">
                   <label for="cf-tech-activity">Atividade planejada</label>
@@ -393,7 +403,7 @@
               <p>Responda como funciona o acesso aos carregadores. Cada resposta vira uma revisão
                 da declaração; nada aqui aprova a rede como aberta.</p>
               @if (saved.journey.candidate === 'VM0038' && can('VIEW_OPEN_APPLICABILITY')) {
-                <carbonflow-open-applicability [projectId]="projectId" part="network"
+                <carbonflow-open-applicability [projectId]="projectId" part="network" [suggestFromTriage]="owner()"
                   [editable]="can('SAVE_OPEN_APPLICABILITY')" (saved)="refreshRequirements()">
                 </carbonflow-open-applicability>
               } @else {
