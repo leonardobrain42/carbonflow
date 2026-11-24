@@ -33,6 +33,22 @@ class OpenIrAssessmentPersistenceTest {
     }
 
     @Test
+    void annualEvidenceMigrationHasValidatedForeignKeysAndImmutableTrigger() {
+        assertEquals(1,database.read(c->first(c,"""
+            SELECT count(*)::int FROM flyway_schema_history WHERE version='91' AND success
+            """,r->r.getInt(1))).intValue());
+        assertEquals("O",database.read(c->first(c,"""
+            SELECT tgenabled::text FROM pg_trigger
+            WHERE tgrelid='app_open_ir_annual_evidence'::regclass
+                AND tgname='app_open_ir_annual_evidence_immutable'
+            """,r->r.getString(1))));
+        assertEquals(3,database.read(c->first(c,"""
+            SELECT count(*)::int FROM pg_constraint
+            WHERE conrelid='app_open_ir_annual_evidence'::regclass AND contype='f' AND convalidated
+            """,r->r.getInt(1))).intValue());
+    }
+
+    @Test
     void digestSeparatesTextBoundariesNullAndRevision() {
         assertNotEquals(OpenIrAssessments.digest("ab","c"),OpenIrAssessments.digest("a","bc"));
         assertNotEquals(OpenIrAssessments.digest("a",null),OpenIrAssessments.digest("a",""));
