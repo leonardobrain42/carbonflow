@@ -86,6 +86,33 @@
       @if (dyError()) { <p role="alert">{{dyError()}}</p> }
       @if (dyMessage()) { <p role="status">{{dyMessage()}}</p> }
       @if (dyHistory(); as history) {
+        <section aria-label="Prontidão consolidada de Dy" class="cf-journey-context">
+          <h5>Prontidão consolidada de Dy</h5>
+          @if (history.readiness; as report) {
+            <p><strong>Bloqueado para E8</strong> · {{report.policyVersion}}</p>
+            @if (report.assessmentId) {
+              <p>Diagnóstico da versão vigente {{report.assessmentVersion}}. Não utiliza pareceres de versões anteriores.</p>
+              <p class="energy-hash">{{report.assessmentId}} · SHA-256: {{report.assessmentSha256}}</p>
+            } @else {
+              <p>Nenhuma avaliação vigente para diagnosticar.</p>
+            }
+            @if (report.internalChecksComplete) {
+              <p>Controles internos satisfeitos. Ainda faltam decisões normativas, comprovação externa e admissão.</p>
+            } @else {
+              <p>Controles internos pendentes ou não avaliados.</p>
+            }
+            <ul class="cf-tech-gates">
+              @for (gate of report.gates; track gate.code) {
+                <li>
+                  <strong>{{dyGateLabel(gate.code)}} — {{dyGateStatus(gate.status)}}</strong>
+                  <p>{{gate.detail}}</p>
+                </li>
+              }
+            </ul>
+          } @else {
+            <p>Diagnóstico consolidado indisponível. Não é possível concluir prontidão nem admitir E8.</p>
+          }
+        </section>
         @if (history.calendarGate) {
           <p>Janela anterior não resolvida: {{history.calendarGate}}. Somente pesquisa inconclusiva pode ser registrada.</p>
         } @else {

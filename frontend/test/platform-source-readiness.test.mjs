@@ -122,7 +122,17 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
       if(route.request().method()==='GET'){
         if(dyMode==='DENIED')return route.fulfill({status:404,json:{}});
         const year=Number(path.split('/').at(-1));
-        return route.fulfill({json:{projectId:dyProject,projectYear:year,
+        const latest=dyRows[0];
+        const codes=['CALENDAR','ASSESSMENT','FRESHNESS','SOURCE_RIGHTS','ARITHMETIC',
+          'SEARCH_COVERAGE','ISSUANCE_INVENTORY','GEOGRAPHIC_ALLOCATION','INDEPENDENT_REVIEW',
+          'NORMATIVE_WINDOW','EXTERNAL_EVIDENCE','E8_ADMISSION'];
+        const readiness={policyVersion:'OPEN-DY-READINESS@1',assessmentId:dyMode==='WRONG_REPORT'?'other-run':latest?.id??null,
+          assessmentVersion:latest?.version??0,assessmentSha256:latest?.assessmentSha256??null,
+          state:'BLOCKED',internalChecksComplete:false,usableForE8:dyMode==='ADMITTED',
+          gates:codes.map((code,i)=>({code,status:i===0&&year!==1?'SATISFIED_INTERNAL':
+            i===1&&latest?'SATISFIED_INTERNAL':i>1&&i<9&&!latest?'NOT_EVALUATED':'BLOCKED',
+            detail:'Diagnóstico de teste '+code}))};
+        return route.fulfill({json:{projectId:dyProject,projectYear:year,readiness,
           latestVersion:dyRows[0]?.version??0,priorStart:year===1?null:'2034-07-01T03:00:00Z',
           priorEndExclusive:year===1?null:'2035-07-01T03:00:00Z',
           calendarGate:year===1?'FIRST_YEAR_REVIEW_REQUIRED':null,assessments:dyRows,
@@ -161,6 +171,10 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
     await page.getByLabel('Ano relativo do projeto',{exact:true}).fill('2');
     await page.getByRole('button',{name:'Consultar avaliações de Dy'}).click();
     await page.getByText('Nenhuma avaliação registrada para este ano.').waitFor();
+    const diagnosis=page.getByRole('region',{name:'Prontidão consolidada de Dy'});
+    await diagnosis.getByText('Bloqueado para E8',{exact:true}).waitFor();
+    await diagnosis.getByText('Nenhuma avaliação vigente para diagnosticar.',{exact:true}).waitFor();
+    await diagnosis.getByText('Avaliação vigente — Pendente',{exact:true}).waitFor();
     const outcome=page.getByLabel('Resultado da pesquisa',{exact:true});
     await outcome.selectOption('FLEET_CREDITS_FOUND');
     await page.getByLabel('ERC emitidos · tCO2e').fill('75');
@@ -213,6 +227,8 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
     await page.getByRole('button',{name:'Registrar avaliação de Dy'}).click();
     await page.getByText('Avaliação registrada em nova versão, sem admissão para E8.').waitFor();
     const firstDy=page.getByText('Versão 1 · FLEET_CREDITS_FOUND · Sem admissão');
+    await diagnosis.getByText('Diagnóstico da versão vigente 1.',{exact:false}).waitFor();
+    await diagnosis.getByText('Admissão E8 — Pendente',{exact:true}).waitFor();
     await firstDy.click();
     await page.getByText('0.75',{exact:true}).waitFor();
     assert.equal(dyPost.match,'"0"');
@@ -283,6 +299,12 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
     await page.getByRole('button',{name:'Consultar avaliações de Dy'}).click();
     await page.getByText('Início não resolvido: CREDIT_START_MISSING.',{exact:false}).waitFor();
     assert.equal(await addQuery.isDisabled(),true);
+    for (const mode of ['WRONG_REPORT','ADMITTED']) {
+      dyMode=mode;
+      await page.getByRole('button',{name:'Consultar avaliações de Dy'}).click();
+      await diagnosis.waitFor({state:'detached'});
+      await page.getByRole('alert').filter({hasText:'Não foi possível consultar ou registrar a avaliação de Dy.'}).waitFor();
+    }
     dyMode='DENIED';
     await page.getByRole('button',{name:'Consultar avaliações de Dy'}).click();
     await page.getByRole('alert').filter({hasText:'Avaliação indisponível para esta conta.'}).waitFor();
