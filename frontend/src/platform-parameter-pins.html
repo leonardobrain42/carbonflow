@@ -210,7 +210,7 @@
                     <label [for]="'cf-dy-alloc-den-'+i">Denominador da base {{i+1}}</label>
                     <input [id]="'cf-dy-alloc-den-'+i" inputmode="decimal" required [value]="a.shareDenominator" (input)="a.shareDenominator=$any($event.target).value">
                     <label [for]="'cf-dy-alloc-unit-'+i">Unidade da base {{i+1}}</label>
-                    <input [id]="'cf-dy-alloc-unit-'+i" required maxlength="80" [value]="a.basisUnit" (input)="a.basisUnit=$any($event.target).value">
+                    <input [id]="'cf-dy-alloc-unit-'+i" required maxlength="80" placeholder="Parcela documentada: EV_IN_CIRCULATION" [value]="a.basisUnit" (input)="a.basisUnit=$any($event.target).value">
                     <label [for]="'cf-dy-alloc-source-'+i">ID da fonte da atribuição {{i+1}}</label>
                     <input [id]="'cf-dy-alloc-source-'+i" required maxlength="160" [value]="a.sourceId" (input)="a.sourceId=$any($event.target).value">
                     <label [for]="'cf-dy-alloc-edition-'+i">Edição da fonte da atribuição {{i+1}}</label>

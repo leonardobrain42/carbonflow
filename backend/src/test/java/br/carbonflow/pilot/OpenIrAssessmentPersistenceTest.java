@@ -119,6 +119,33 @@ class OpenIrAssessmentPersistenceTest {
     }
 
     @Test
+    void dyFirstYearAbsenceMigrationWidensOutcomeShapeAndGuardsTheContextAtCommit() {
+        assertEquals(1,database.read(c->first(c,"""
+            SELECT count(*)::int FROM flyway_schema_history WHERE version='98' AND success
+            """,r->r.getInt(1))).intValue());
+        assertEquals(1,database.read(c->first(c,"""
+            SELECT count(*)::int FROM pg_constraint
+            WHERE conrelid='app_open_dy_assessment'::regclass AND convalidated AND conname='app_open_dy_outcome_shape'
+                AND pg_get_constraintdef(oid) LIKE '%FIRST_YEAR_EXPLORATORY_WINDOW%'
+            """,r->r.getInt(1))).intValue());
+        assertEquals(1,database.read(c->first(c,"""
+            SELECT count(*)::int FROM pg_constraint
+            WHERE conrelid='app_open_dy_assessment'::regclass AND contype='c'
+                AND pg_get_constraintdef(oid) LIKE '%FLEET_CREDITS_FOUND%' AND pg_get_constraintdef(oid) LIKE '%dy_preview%'
+            """,r->r.getInt(1))).intValue(),"exactly one outcome-shape constraint remains");
+        assertEquals(1,database.read(c->first(c,"""
+            SELECT count(*)::int FROM pg_trigger
+            WHERE tgrelid='app_open_dy_assessment'::regclass AND tgname='app_open_dy_first_year_absence_guard'
+                AND tgenabled='O' AND tgdeferrable AND tginitdeferred
+            """,r->r.getInt(1))).intValue());
+        assertEquals(0,database.read(c->first(c,"""
+            SELECT count(*)::int FROM app_open_dy_assessment a
+            WHERE a.calendar_gate='FIRST_YEAR_EXPLORATORY_WINDOW' AND NOT EXISTS (
+              SELECT 1 FROM app_open_dy_first_year_context x WHERE x.assessment_id=a.id AND x.context_gate IS NULL)
+            """,r->r.getInt(1))).intValue());
+    }
+
+    @Test
     void temporalEvidenceMigrationHasValidatedConstraintsAndImmutableTrigger() {
         assertEquals(1,database.read(c->first(c,"""
             SELECT count(*)::int FROM flyway_schema_history WHERE version='96' AND success

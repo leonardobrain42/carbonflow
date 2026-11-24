@@ -181,3 +181,5 @@ sem quantidades, nomes de fontes ou referências privadas. O estado é sempre
 BLOCKED e usableForE8=false: janela normativa, evidência externa e admissão
 permanecem bloqueios explícitos mesmo se internalChecksComplete=true.
 Não há nova persistência, migration, pino numérico ou alteração do executor.
+
+> Atualização (Q05, D14): ano 1 por ausência comprovada na janela exploratória, base única do rateio e texto do gate `NORMATIVE_WINDOW`; ver [CF-OPEN-007-DY-Q05-POLICY](CF-OPEN-007-DY-Q05-POLICY.md).
