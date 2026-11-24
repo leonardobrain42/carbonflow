@@ -28,3 +28,6 @@ A seção **Analisar** misturava duas funções: mostrar a situação do projeto
 - Datas registradas sem prova: "sem prova admitida" (antes "referência não admitida").
 - "PP jurídico" passa a "proponente do projeto (PP)".
 - **Um aviso permanente** no cabeçalho da preparação técnica ("nada nesta área aprova metodologia, fonte, cálculo ou crédito; essa decisão é da Verra e da VVB") substitui as frases equivalentes do painel de trabalho e da lista de pendências. Avisos específicos de cada tela (evidência, quantificação, declaração) permanecem.
+
+## Proteção de rascunho (24/11/2026)
+Acesso à rede, Direitos do projeto e Datas pedem confirmação antes de sair com respostas ou rascunhos de titular, contrato e eventos ainda não salvos, como as demais telas editáveis.

@@ -143,6 +143,23 @@ class OpenApplicabilityIntegrationTest {
         assertTrue(stale.at("/readiness/stale").asBoolean());
         assertTrue(stale.at("/readiness/findings").toString().contains("TRIAGE_CHANGED"));
         assertEquals(2L,count(id));
+        // D15: once reconfirmed, only a relevant triage answer makes the declaration stale again.
+        assertEquals(200,call("PUT",path,owner.cookie(),UUID.randomUUID().toString(),"\"2\"",withDisclosure).statusCode());
+        assertFalse(json(call("GET",path,owner.cookie(),null,null,null)).at("/readiness/stale").asBoolean());
+        assertEquals(200,call("PATCH",triage+"/cursor",owner.cookie(),UUID.randomUUID().toString(),"\"1\"",
+            "{\"nextStep\":3}").statusCode());
+        assertEquals(200,call("PUT",triage+"/steps/1",owner.cookie(),UUID.randomUUID().toString(),"\"2\"",
+            "{\"answers\":{\"objective\":\"Planejar rede pública\",\"activityType\":\"MOBILIDADE_ELETRICA\",\"methodologyCandidate\":\"VM0038\"},\"nextStep\":2}"
+            ).statusCode());
+        JsonNode narrative=json(call("GET",path,owner.cookie(),null,null,null));
+        assertFalse(narrative.at("/readiness/stale").asBoolean(),"cursor moves and narrative edits keep the declaration current");
+        assertFalse(narrative.at("/readiness/findings").toString().contains("TRIAGE_CHANGED"));
+        assertEquals(3,narrative.path("latestTriageVersion").asInt());
+        assertEquals(200,call("PUT",triage+"/steps/3",owner.cookie(),UUID.randomUUID().toString(),"\"3\"",
+            "{\"answers\":{\"propulsion\":\"PHEV\"},\"nextStep\":4}").statusCode());
+        JsonNode scope=json(call("GET",path,owner.cookie(),null,null,null));
+        assertTrue(scope.at("/readiness/stale").asBoolean(),"a scope answer in step 3 makes it stale");
+        assertTrue(scope.at("/readiness/findings").toString().contains("TRIAGE_CHANGED"));
         assertEquals(0,database.read(c->first(c,
             "SELECT count(*) FROM pilot_intake_revision WHERE project_id=?",
             r->r.getInt(1),id)).intValue());

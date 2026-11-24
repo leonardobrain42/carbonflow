@@ -83,6 +83,16 @@ export class OpenApplicabilityComponent implements OnChanges {
     {value:'false',label:'Não'},
   ];
   private retryKey='';
+  /** Last persisted answers: leaving with different answers or pending drafts asks first. */
+  private persisted=JSON.stringify(EMPTY);
+  dirty(){
+    return JSON.stringify(this.form())!==this.persisted || !!this.partyDraft().displayName.trim()
+      || !!this.contractLabel().trim() || !!this.operationalDraft().eventOn || !!this.operationalDraft().documentRef.trim()
+      || !!this.vcsDraft().eventOn || !!this.vcsDraft().documentRef.trim();
+  }
+  canLeave(){
+    return !this.editable || !this.dirty() || confirm('Sair desta tela e descartar as respostas ainda não salvas?');
+  }
 
   ngOnChanges(changes:SimpleChanges){
     if(changes['projectId'])void this.load();
@@ -95,6 +105,7 @@ export class OpenApplicabilityComponent implements OnChanges {
         '/v1/projects/'+encodeURIComponent(this.projectId)+'/technical/open-applicability'));
       this.view.set(data);
       this.form.set({...EMPTY,...data.latest?.answers});
+      this.persisted=JSON.stringify(this.form());
       await this.loadRights();
       this.retryKey='';
     }catch(problem){this.error.set(this.message(problem));}
@@ -186,6 +197,7 @@ export class OpenApplicabilityComponent implements OnChanges {
         this.form(),{headers:{'If-Match':'"'+snapshot.version+'"','Idempotency-Key':this.retryKey}}));
       this.view.set(updated);
       this.form.set({...EMPTY,...updated.latest?.answers});
+      this.persisted=JSON.stringify(this.form());
       this.retryKey='';
       this.notice.set('Declaração versionada salva. A jornada pode continuar, mas nenhuma decisão técnica foi aprovada.');
       this.saved.emit();

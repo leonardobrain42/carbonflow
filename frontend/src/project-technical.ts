@@ -149,8 +149,9 @@ export class ProjectTechnicalComponent {
   private readonly decisionEditor = viewChild(DecisionWorkbenchComponent);
   private readonly pdEditor = viewChild(PdSectionsComponent);
   private readonly pdReview = viewChild(PdReviewsComponent);
+  private readonly applicabilityEditor = viewChild(OpenApplicabilityComponent);
   // Internal tab changes keep the intake form mounted and must never discard drafts.
-  readonly canLeaveGuides = () => (this.guideEditor()?.canLeave() ?? true) && (this.stationsEditor()?.canLeave() ?? true) && (this.decisionEditor()?.canLeave() ?? true) && (this.pdEditor()?.canLeave() ?? true) && (this.pdReview()?.canLeave() ?? true);
+  readonly canLeaveGuides = () => (this.guideEditor()?.canLeave() ?? true) && (this.stationsEditor()?.canLeave() ?? true) && (this.decisionEditor()?.canLeave() ?? true) && (this.pdEditor()?.canLeave() ?? true) && (this.pdReview()?.canLeave() ?? true) && (this.applicabilityEditor()?.canLeave() ?? true);
   readonly canLeaveWorkspace = () => (!this.dirty() ||
     confirm('Sair da preparação e descartar as informações técnicas ainda não salvas?')) &&
     this.canLeaveGuides();

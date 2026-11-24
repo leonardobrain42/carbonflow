@@ -1,5 +1,5 @@
 # Catálogo de contratos e evidências incrementais
-Inventário de 91 arquivos em docs/ (86 no corte `507bf268d6955cd0c317d2ff404a905009985907` + CF-OPEN-007-IR-INTRA-YEAR-REUSE, CF-OPEN-007-DECISION-Q04-Q05 e CF-OPEN-007-IR-FIRST-YEAR-EX-ANTE e CF-OPEN-007-DY-Q05-POLICY e CF-UX-TECH-001-APPLICABILITY-SCREENS). A classificação serve para navegação; o documento de cada fatia pode ter limites superados por fatias posteriores. Não mover/renomear os originais nem interpretá-los isoladamente como estado atual. Consulte [estado](ESTADO_DO_TRABALHO.md), issue dona e changelog.
+Inventário de 92 arquivos em docs/ (86 no corte `507bf268d6955cd0c317d2ff404a905009985907` + CF-OPEN-007-IR-INTRA-YEAR-REUSE, CF-OPEN-007-DECISION-Q04-Q05 e CF-OPEN-007-IR-FIRST-YEAR-EX-ANTE e CF-OPEN-007-DY-Q05-POLICY e CF-UX-TECH-001-APPLICABILITY-SCREENS e CF-UX-TECH-001-BACKLOG). A classificação serve para navegação; o documento de cada fatia pode ter limites superados por fatias posteriores. Não mover/renomear os originais nem interpretá-los isoladamente como estado atual. Consulte [estado](ESTADO_DO_TRABALHO.md), issue dona e changelog.
 
 ## Núcleo, operação e segurança
 - [CF-ADMIN-LOCAL-SANDBOX.md](../docs/CF-ADMIN-LOCAL-SANDBOX.md)
@@ -96,6 +96,7 @@ Inventário de 91 arquivos em docs/ (86 no corte `507bf268d6955cd0c317d2ff404a90
 - [CF-UX-TECH-001-FORM-SCHEMA-UX02A.md](../docs/CF-UX-TECH-001-FORM-SCHEMA-UX02A.md)
 - [CF-UX-TECH-001-MODULE-NAVIGATION.md](../docs/CF-UX-TECH-001-MODULE-NAVIGATION.md)
 - [CF-UX-TECH-001-APPLICABILITY-SCREENS.md](../docs/CF-UX-TECH-001-APPLICABILITY-SCREENS.md)
+- [CF-UX-TECH-001-BACKLOG.md](../docs/CF-UX-TECH-001-BACKLOG.md)
 - [CF-UX-TECH-001-STATIONS-BOUNDARY-UX03A.md](../docs/CF-UX-TECH-001-STATIONS-BOUNDARY-UX03A.md)
 - [CF-UX-TECH-001-TYPED-FORMS-UX02B.md](../docs/CF-UX-TECH-001-TYPED-FORMS-UX02B.md)
 - [CF-UX-TECH-001-UX-T17-ROTEIRO.md](../docs/CF-UX-TECH-001-UX-T17-ROTEIRO.md)
