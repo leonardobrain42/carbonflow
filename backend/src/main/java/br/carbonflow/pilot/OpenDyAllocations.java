@@ -15,6 +15,7 @@ final class OpenDyAllocations {
                String totalTco2e,String shareNumerator,String shareDenominator,String brazilTco2e,String basisUnit,
                String sourceId,String sourceEdition,String locator,String rationale) {}
     private record Key(String program,String project,String issuance) {}
+    static final String EV_BASIS="EV_IN_CIRCULATION";
     private OpenDyAllocations() {}
 
     static List<Row> normalize(List<Input> supplied,List<OpenDyIssuances.Row> items) {
@@ -47,6 +48,9 @@ final class OpenDyAllocations {
             if ((!direct && !shared) || (direct && (numerator.compareTo(BigDecimal.ONE)!=0
                     || denominator.compareTo(BigDecimal.ONE)!=0)) || (shared && numerator.compareTo(denominator)>=0))
                 throw invalid("Atribuição direta exige 1/1; rateio exige fração positiva inferior a 1.");
+            // Q05 (D14): a documented share uses the number of EVs in circulation as its only basis.
+            if (shared && !EV_BASIS.equals(OpenDyAssessmentRules.text(input.basisUnit(),1,80)))
+                throw invalid("Rateio exige a base "+EV_BASIS+" (EVs em circulação); outra base exige decisão específica.");
             if (brazil.multiply(denominator).compareTo(total.multiply(numerator))!=0)
                 throw invalid("Quantidade BR diverge do total multiplicado pela fração declarada.");
             rows.add(new Row(i+1,item.program(),item.registryProject(),item.issuanceId(),input.method(),

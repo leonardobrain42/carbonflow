@@ -9,12 +9,17 @@ record OpenE8IrContext(UUID assessmentId,Integer version,String assessmentSha256
                        String state,String contextSha256,UUID author,UUID reviewer) {
     static final String BASIS="STRUCTURED_PROJECT_SOURCE_YEAR";
     static final String CHECKED="CHECKED_INTERNAL_NOT_ADMITTED";
+    /** Q04 option B: project year 1 only as an ex ante estimate, annual-update route, plan reviewed and linked. */
+    static final String FIRST_YEAR_EX_ANTE="FIRST_YEAR_EX_ANTE_CHECKED_NOT_ADMITTED";
 
     static String classify(Integer projectYear,Integer sourceYear,boolean timingResolved,
                            boolean exists,boolean stale,boolean samePeriodReferences,
-                           boolean checked,boolean annualProofCurrent,boolean candidateOne) {
+                           boolean checked,boolean annualProofCurrent,boolean candidateOne,
+                           boolean firstYearPlanLinked) {
         if(!timingResolved || projectYear==null || sourceYear==null) return "TIMING_UNRESOLVED";
-        if(projectYear==1) return "FIRST_YEAR_REVIEW_REQUIRED";
+        if(projectYear==1)
+            return exists && !stale && samePeriodReferences && candidateOne && firstYearPlanLinked
+                ? FIRST_YEAR_EX_ANTE : "FIRST_YEAR_REVIEW_REQUIRED";
         if(!exists) return "MISSING_FOR_PROJECT_YEAR";
         if(stale) return "STALE";
         if(!samePeriodReferences) return "PERIOD_REFERENCE_MISMATCH";
@@ -32,7 +37,7 @@ record OpenE8IrContext(UUID assessmentId,Integer version,String assessmentSha256
     }
 
     BigDecimal rehearsalValue() {
-        return CHECKED.equals(state)&&assessmentId!=null?BigDecimal.ONE:null;
+        return (CHECKED.equals(state)||FIRST_YEAR_EX_ANTE.equals(state))&&assessmentId!=null?BigDecimal.ONE:null;
     }
     boolean authoredBy(UUID actor) {
         return actor!=null&&(Objects.equals(actor,author)||Objects.equals(actor,reviewer));

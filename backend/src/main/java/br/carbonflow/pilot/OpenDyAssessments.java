@@ -49,6 +49,9 @@ class OpenDyAssessments {
                    OffsetDateTime priorEndExclusive, String calendarGate, List<View> assessments,
                    OpenDyFirstYear.Context firstYearContext, OpenDyReadiness.Report readiness) {}
 
+    /** Q05: year-1 absence is stored with this gate and a resolved exploratory context, never a normative prior year. */
+    static final String FIRST_YEAR_ABSENCE_GATE="FIRST_YEAR_EXPLORATORY_WINDOW";
+
     private record Calendar(OffsetDateTime from, OffsetDateTime until, String gate) {}
     private record Stored(UUID id, String project, int year, int version, int triage,
                           OffsetDateTime from, OffsetDateTime until, String gate, String outcome,
@@ -202,7 +205,18 @@ class OpenDyAssessments {
             var firstYear=year==1?OpenDyFirstYear.current(c,project):null;
             if (firstYear!=null && firstYear.contextGate()!=null && !coverage.isEmpty())
                 throw invalid("Resolva o início do projeto antes de registrar a pesquisa exploratória estruturada do ano 1.");
-            if (calendar.gate()!=null && !"INCONCLUSIVE".equals(values.outcome()))
+            String gate=calendar.gate();
+            if (year==1 && "FLEET_CREDITS_FOUND".equals(values.outcome()))
+                throw invalid("Ano 1: créditos de frota na janela exploratória exigem decisão específica. Registre pesquisa inconclusiva ou ausência comprovada.");
+            if (year==1 && "NO_FLEET_CREDITS_DECLARED".equals(values.outcome())) {
+                if (firstYear==null || firstYear.contextGate()!=null)
+                    throw invalid("Resolva o início do projeto e o recorte OPEN antes de declarar ausência no ano 1.");
+                if (coverage.isEmpty())
+                    throw invalid("Ausência no ano 1 exige a matriz de cobertura nacional completa e licenciada.");
+                if (!issuances.isEmpty() || values.erc().signum()!=0 || values.erf().signum()!=0)
+                    throw invalid("Ausência no ano 1 exige ERC = 0, ERF = 0 e nenhuma emissão; qualquer crédito exige decisão específica.");
+                gate=FIRST_YEAR_ABSENCE_GATE;
+            } else if (gate!=null && !"INCONCLUSIVE".equals(values.outcome()))
                 throw invalid("O ano anterior não está resolvido. Registre pesquisa inconclusiva.");
             try {
                 OpenDyIssuances.reconcile(issuances,values,calendar.from(),calendar.until());
@@ -221,7 +235,7 @@ class OpenDyAssessments {
             var pins=sourceRights.capture(c,organization,licenses);
             int triage=OpenCalculationReadiness.triageRevision(c,project);
             UUID id=UUID.randomUUID();
-            String hash=digest("OPEN-DY-ASSESSMENT@1",fingerprint,triage,calendar.gate(),
+            String hash=digest("OPEN-DY-ASSESSMENT@1",fingerprint,triage,gate,
                 calendar.from()==null?null:calendar.from().toInstant(),
                 calendar.until()==null?null:calendar.until().toInstant(),
                 OpenDyAssessmentRules.number(values.preview()));
@@ -240,7 +254,7 @@ class OpenDyAssessments {
                  author_id,command_key,command_sha256)
                 VALUES (?,?,?,'SANDBOX',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 """,id,project,organization,year,expected+1,triage,calendar.from(),calendar.until(),
-                calendar.gate(),values.outcome(),values.erc(),values.erf(),values.preview(),
+                gate,values.outcome(),values.erc(),values.erf(),values.preview(),
                 programs,refs,locator,note,HexFormat.of().parseHex(hash),actor.id(),command,
                 HexFormat.of().parseHex(fingerprint));
             int ordinal=0;
@@ -367,16 +381,21 @@ class OpenDyAssessments {
         return new History(project,year,rows.isEmpty()?0:rows.get(0).version(),
             calendar.from(),calendar.until(),calendar.gate(),List.copyOf(views),
             year==1?OpenDyFirstYear.current(c,project):null,
-            OpenDyReadiness.evaluate(year,calendar.gate(),rows.isEmpty()?null:readinessFacts(rows.get(0),views.get(0))));
+            OpenDyReadiness.evaluate(year,calendar.gate(),rows.isEmpty()?null:readinessFacts(c,rows.get(0),views.get(0))));
     }
 
-    private static OpenDyReadiness.Facts readinessFacts(Stored row,View view) {
+    private static OpenDyReadiness.Facts readinessFacts(Connection c,Stored row,View view) throws SQLException {
+        // Counted in SQL so staff and project accounts get the same aggregate diagnosis, without any content.
+        int sharedAllocations=first(c,"""
+            SELECT count(*)::int FROM app_open_dy_allocation WHERE assessment_id=? AND method='DOCUMENTED_SHARE'
+            """,r->r.getInt(1),row.id());
         boolean conclusive=!"INCONCLUSIVE".equals(row.outcome());
         boolean arithmetic=false,positive=false;
         // Never derive or expose a new result from data whose rights require rechecking.
         if (conclusive && !"LICENSE_RECHECK_REQUIRED".equals(view.sourceRightsState())) {
             try {
-                var values=OpenDyAssessmentRules.values(row.outcome(),row.erc(),row.erf(),row.gate());
+                var values=OpenDyAssessmentRules.values(row.outcome(),row.erc(),row.erf(),
+                    FIRST_YEAR_ABSENCE_GATE.equals(row.gate())?null:row.gate());
                 arithmetic=Objects.equals(OpenDyAssessmentRules.number(values.preview()),row.preview());
                 positive=values.erc().signum()>0 || values.erf().signum()>0;
             } catch (IllegalArgumentException ignored) { /* inconsistent historical snapshot */ }
@@ -384,14 +403,17 @@ class OpenDyAssessments {
         var review=view.review();
         return new OpenDyReadiness.Facts(row.id(),row.version(),row.sha(),view.stale(),conclusive,arithmetic,positive,
             view.issuanceCount(),view.coverageState(),view.allocationState(),view.sourceRightsState(),
-            review==null?null:review.outcome(),review!=null && Objects.equals(row.sha(),review.assessmentSha256()));
+            review==null?null:review.outcome(),review!=null && Objects.equals(row.sha(),review.assessmentSha256()),
+            row.year()==1 && FIRST_YEAR_ABSENCE_GATE.equals(row.gate()) && "NO_FLEET_CREDITS_DECLARED".equals(row.outcome()),
+            sharedAllocations);
     }
 
     private static boolean stale(Connection c,Stored row) throws SQLException {
         Calendar now=calendar(c,row.project(),row.year());
         return (row.year()==1 && !Objects.equals(OpenDyFirstYear.read(c,row.id()),OpenDyFirstYear.current(c,row.project())))
             || OpenCalculationReadiness.triageRevision(c,row.project())!=row.triage()
-            || !Objects.equals(now.gate(),row.gate()) || !same(now.from(),row.from()) || !same(now.until(),row.until());
+            || !(FIRST_YEAR_ABSENCE_GATE.equals(row.gate()) || Objects.equals(now.gate(),row.gate()))
+            || !same(now.from(),row.from()) || !same(now.until(),row.until());
     }
 
     private View view(Connection c,Stored row,boolean staff) throws SQLException {

@@ -17,8 +17,11 @@ final class OpenE8AnnualMath {
     record Totals(String beTco2e, String peTco2e, String leTco2e,
                   String erTco2e, String erDisplay) {}
     /** Structured IR assessment behind one period run; the same assessment must serve the whole year. */
-    record IrReference(UUID assessmentId, Integer version, String assessmentSha256) {
-        boolean complete() { return assessmentId != null && version != null && assessmentSha256 != null; }
+    record IrReference(UUID assessmentId, Integer version, String assessmentSha256, String state) {
+        boolean complete() {
+            return assessmentId != null && version != null && assessmentSha256 != null && state != null;
+        }
+        boolean firstYearExAnte() { return OpenE8IrContext.FIRST_YEAR_EX_ANTE.equals(state); }
     }
     record Member(String period, UUID runId, int version, String inputSha256,
                   Instant windowStart, Instant windowEndExclusive, Integer projectYear,
@@ -26,6 +29,7 @@ final class OpenE8AnnualMath {
     record Issue(String code, String period, Instant from, Instant until, String detail) {}
     record Result(String projectId, int projectYear, Instant windowStart, Instant windowEndExclusive,
                   String engine, String state, boolean usableForE8, boolean canIssueVcu,
+                  String calculationBasis,
                   Totals totals, List<Member> members, List<Issue> issues, String manifestSha256) {}
 
     private OpenE8AnnualMath() {}
@@ -129,11 +133,14 @@ final class OpenE8AnnualMath {
             }
         }
         String state = totals == null ? "BLOCKED" : "REVIEWED_INTERNAL";
+        // Q04 option B: a first-year IR basis makes the whole figure an ex ante estimate, never a monitored result.
+        String basis = calculated.stream().anyMatch(m -> m.ir() != null && m.ir().firstYearExAnte())
+            ? "EX_ANTE_ESTIMATE" : "INTERNAL_REHEARSAL";
         // Immutable period IDs/hashes and precise values make this read projection reproducible.
         String material = ENGINE + "|" + project + "|" + year + "|" + from + "|" + until
-            + "|" + members + "|" + issues + "|" + totals;
+            + "|" + members + "|" + issues + "|" + totals + "|" + basis;
         String digest = HexFormat.of().formatHex(AccessSecrets.digest(material));
-        return new Result(project, year, from, until, ENGINE, state, false, false,
+        return new Result(project, year, from, until, ENGINE, state, false, false, basis,
             totals, List.copyOf(members), List.copyOf(issues), digest);
     }
 

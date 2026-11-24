@@ -123,10 +123,10 @@ O recorte é **nacional** (p.20). O rateio só é necessário se algum projeto d
 ## 7. Registro da decisão (preencher)
 | Campo | Q04 | Q05 |
 |---|---|---|
-| Opção escolhida | | |
-| Responsável e competência | | |
-| Data | | |
-| Base consultada | | |
-| Consulta formal (Verra/VVB), se houve | | |
-| Condições adicionais | | |
-| PR que implementa | | |
+| Opção escolhida | **B** (rota de atualização anual, plano revisado, só estimativa ex ante) | **As quatro recomendações** (3.1 registrar anual e acumulada, vigente = anual; 3.2 janela exploratória + ausência comprovada; 3.3 EVs em circulação, bloqueado até EVR nacional; 3.4 bloquear) |
+| Responsável e competência | Responsável pelo produto (decisão em conversa de 24/11/2026); competência metodológica não declarada | Idem |
+| Data | 24/11/2026 | 24/11/2026 |
+| Base consultada | Este documento; VM0038 v1.1 §10.1 (pp.20–21) | Este documento; VM0038 v1.1 §9.4 (pp.19–20) e §10.2 (pp.32–33) |
+| Consulta formal (Verra/VVB), se houve | Não registrada | Não registrada |
+| Condições adicionais | As cinco condições da recomendação B (§2); ano 1 segue bloqueado por Dy | Nenhuma além das recomendações; acumulada ainda não implementada |
+| PR que implementa | #248 | Este PR (primeira fatia; ver CF-OPEN-007-DY-Q05-POLICY) |

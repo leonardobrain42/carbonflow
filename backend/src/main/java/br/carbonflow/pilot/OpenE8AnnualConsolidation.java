@@ -52,7 +52,7 @@ class OpenE8AnnualConsolidation {
                         : new OpenE8AnnualMath.Totals(memory.beTco2e(), memory.peTco2e(), memory.leTco2e(),
                             memory.erTco2e(), memory.erDisplay()),
                     run.irContext() == null ? null : new OpenE8AnnualMath.IrReference(run.irContext().assessmentId(),
-                        run.irContext().version(), run.irContext().assessmentSha256())));
+                        run.irContext().version(), run.irContext().assessmentSha256(), run.irContext().state())));
             }
             for (var window : windows) if (!seen.contains(window.period()))
                 members.add(missing(window.period(), window.window()));

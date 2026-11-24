@@ -13,7 +13,8 @@ class OpenE8AnnualMathTest {
     private static final Instant MID = Instant.parse("2027-08-01T03:00:00Z");
     private static final Instant END = Instant.parse("2028-02-01T03:00:00Z");
     private static final OpenE8AnnualMath.IrReference IR =
-        new OpenE8AnnualMath.IrReference(UUID.fromString("00000000-0000-0000-0000-0000000000a1"), 1, "a".repeat(64));
+        new OpenE8AnnualMath.IrReference(UUID.fromString("00000000-0000-0000-0000-0000000000a1"), 1, "a".repeat(64),
+            OpenE8IrContext.CHECKED);
 
     @Test
     void sumsEachWindowErWithItsOwnDiscountAndStableReferences() {
@@ -135,9 +136,9 @@ class OpenE8AnnualMathTest {
         var first = member("M1", START, MID, "8", "3", "0", "2.5");
         var second = member("M2", MID, END, "4", "1", "0", "3");
         assertTrue(annual(List.of(first, second)).issues().isEmpty());
-        var otherVersion = withIr(second, new OpenE8AnnualMath.IrReference(IR.assessmentId(), 2, IR.assessmentSha256()));
-        var otherHash = withIr(second, new OpenE8AnnualMath.IrReference(IR.assessmentId(), 1, "b".repeat(64)));
-        var otherId = withIr(second, new OpenE8AnnualMath.IrReference(UUID.randomUUID(), 1, IR.assessmentSha256()));
+        var otherVersion = withIr(second, new OpenE8AnnualMath.IrReference(IR.assessmentId(), 2, IR.assessmentSha256(), IR.state()));
+        var otherHash = withIr(second, new OpenE8AnnualMath.IrReference(IR.assessmentId(), 1, "b".repeat(64), IR.state()));
+        var otherId = withIr(second, new OpenE8AnnualMath.IrReference(UUID.randomUUID(), 1, IR.assessmentSha256(), IR.state()));
         for (var different : List.of(otherVersion, otherHash, otherId)) {
             var result = annual(List.of(first, different));
             assertTrue(has(result, "IR_REFERENCE_MISMATCH"));
@@ -151,7 +152,7 @@ class OpenE8AnnualMathTest {
         var first = member("M1", START, MID, "8", "3", "0", "2.5");
         for (var missing : List.of(withIr(member("M2", MID, END, "4", "1", "0", "3"), null),
                 withIr(member("M2", MID, END, "4", "1", "0", "3"),
-                    new OpenE8AnnualMath.IrReference(IR.assessmentId(), null, IR.assessmentSha256())))) {
+                    new OpenE8AnnualMath.IrReference(IR.assessmentId(), null, IR.assessmentSha256(), IR.state())))) {
             var result = annual(List.of(first, missing));
             assertTrue(has(result, "IR_REFERENCE_MISSING"));
             assertNull(result.totals());
@@ -161,13 +162,29 @@ class OpenE8AnnualMathTest {
     @Test
     void irReferenceChangesTheManifestAndUncalculatedWindowsDoNotAddMismatch() {
         var first = member("M1", START, END, "1", "0", "0", "1");
-        var other = withIr(first, new OpenE8AnnualMath.IrReference(IR.assessmentId(), 2, IR.assessmentSha256()));
+        var other = withIr(first, new OpenE8AnnualMath.IrReference(IR.assessmentId(), 2, IR.assessmentSha256(), IR.state()));
         assertNotEquals(annual(List.of(first)).manifestSha256(), annual(List.of(other)).manifestSha256());
         var blocked = new OpenE8AnnualMath.Member("M1", UUID.randomUUID(), 1, "h", START, END, 1, "BLOCKED", false, null,
-            new OpenE8AnnualMath.IrReference(UUID.randomUUID(), 9, "c".repeat(64)));
+            new OpenE8AnnualMath.IrReference(UUID.randomUUID(), 9, "c".repeat(64), IR.state()));
         var result = annual(List.of(blocked));
         assertTrue(has(result, "RUN_NOT_CALCULATED"));
         assertFalse(has(result, "IR_REFERENCE_MISMATCH"));
+    }
+
+    @Test
+    void firstYearIrBasisMakesTheAnnualFigureAnExAnteEstimateNeverAMonitoredResult() {
+        var ex = new OpenE8AnnualMath.IrReference(IR.assessmentId(), 1, IR.assessmentSha256(),
+            OpenE8IrContext.FIRST_YEAR_EX_ANTE);
+        var estimate = annual(List.of(withIr(member("M1", START, END, "1", "0", "0", "1"), ex)));
+        assertEquals("EX_ANTE_ESTIMATE", estimate.calculationBasis());
+        assertEquals("REVIEWED_INTERNAL", estimate.state());
+        assertFalse(estimate.usableForE8());
+        assertFalse(estimate.canIssueVcu());
+        var rehearsal = annual(List.of(member("M1", START, END, "1", "0", "0", "1")));
+        assertEquals("INTERNAL_REHEARSAL", rehearsal.calculationBasis());
+        assertNotEquals(estimate.manifestSha256(), rehearsal.manifestSha256());
+        var noState = new OpenE8AnnualMath.IrReference(IR.assessmentId(), 1, IR.assessmentSha256(), null);
+        assertTrue(has(annual(List.of(withIr(member("M1", START, END, "1", "0", "0", "1"), noState))), "IR_REFERENCE_MISSING"));
     }
 
     private static OpenE8AnnualMath.Member withIr(OpenE8AnnualMath.Member m, OpenE8AnnualMath.IrReference ir) {

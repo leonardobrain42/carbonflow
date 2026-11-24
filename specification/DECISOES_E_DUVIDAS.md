@@ -15,14 +15,16 @@ Este registro resume decisões **documentadas no repositório/backlog**, não re
 | CF-SPEC-D10 | UI/PD projetam fatos e cálculo canônicos; não criam outra fonte de verdade | [#122](https://github.com/leonardobrain42/carbonflow/issues/122), [#128](https://github.com/leonardobrain42/carbonflow/issues/128), [CF-UX-TECH-001-UX08-REQUIREMENT-PROJECTION](../docs/CF-UX-TECH-001-UX08-REQUIREMENT-PROJECTION.md) | Sem aprovação documental inferida de uma projeção |
 | CF-SPEC-D11 | Estado de revisão interna distinto de VVB, Verra e emissão | [#101](https://github.com/leonardobrain42/carbonflow/issues/101), [E8-014](../evidencias/e8-014/VERIFICACAO.md) | Evidência externa e autoridade necessárias |
 | CF-SPEC-D12 | Reuso intra-ano de IR: mesmo ano relativo/fonte, referências canônicas equivalentes (snapshots e ciclo), vigência declarada cobrindo cada dia do período e a janela anual congelada; ano 1 excluído; hash de contexto próprio | [CF-OPEN-007-IR-INTRA-YEAR-REUSE](../docs/CF-OPEN-007-IR-INTRA-YEAR-REUSE.md) | **Política interna de engenharia**, não regra Verra; não admite parâmetro; requer revisão humana da política |
+| CF-SPEC-D13 | **Q04 decidida (opção B, 24/11/2026):** IR do ano 1 só como estimativa ex ante pela rota de atualização anual, com avaliação exata do período, parecer inicial independente e plano V94 vinculado e vigente | [CF-OPEN-007-IR-FIRST-YEAR-EX-ANTE](../docs/CF-OPEN-007-IR-FIRST-YEAR-EX-ANTE.md); decisão do responsável pelo produto | **Política interna reversível**, sem consulta formal a Verra/VVB registrada; o ano 1 segue bloqueado por Dy (Q05) |
+| CF-SPEC-D14 | **Q05 decidida (24/11/2026), quatro recomendações aprovadas:** leitura anual y−1 com registro da acumulada (acumulada ainda não implementada); ano 1 pela janela exploratória com Dy = 1 só com ausência comprovada e parecer; rateio por EVs em circulação bloqueado até o EVR nacional; pesquisa inconclusiva bloqueia | [CF-OPEN-007-DY-Q05-POLICY](../docs/CF-OPEN-007-DY-Q05-POLICY.md); decisão do responsável pelo produto | **Política interna reversível**, sem consulta formal a Verra/VVB; não admite E8 |
 
 ## Questões que exigem decisão, não suposição
 - Q01: recuperar kit 0.2.14 e reconciliar DEC/RF/CT/PEN por origem.
 - Q02: estratégia admissível EVR nacional, lacunas e ratings; decisão de dados e risco (#94/#95).
 - Q03: opção OM/TOOL07, gases, vintage e fonte SIN; revisão competente (#96).
-- Q04/Q05: ver [documento de decisão com alternativas e recomendação](../docs/CF-OPEN-007-DECISION-Q04-Q05.md) (aguarda decisão humana; nada implementado).
-- Q04: IR inicial/ex ante e prova anual além das guardas internas; confirmar se a política interna D12 de reuso intra-ano é suficiente para a revisão normativa (#96/#97).
-- Q05: Dy, interpretação de ERC/ERF e rateio/recorte nacional, ano inicial (#96/#97).
+- Q04/Q05: ver [documento de decisão com alternativas e recomendação](../docs/CF-OPEN-007-DECISION-Q04-Q05.md). **Q04 decidida (D13, opção B); Q05 decidida (D14), implementação parcial.**
+- Q04: **decidida** (D13, opção B); resta confirmar com especialista/VVB se a política interna D12/D13 é suficiente para a revisão normativa (#96/#97).
+- Q05: **decidida** (D14); pendentes o registro da totalização acumulada, a confirmação externa da interpretação (anual versus acumulada, ano inicial), o denominador nacional de EVR (G03) e a integração do Dy versionado ao executor (#97).
 - Q06: poderes, convites, competência, provas por ato, regime VCS e versões de templates (#24/#10/#122).
 - Q07: metas de operação/hospedagem, amostra real, parecer independente e critérios de release (#101, PEN-006/008).
 

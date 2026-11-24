@@ -10,7 +10,16 @@ final class OpenDyReadiness {
     record Facts(UUID assessmentId,int version,String assessmentSha256,boolean stale,
                  boolean conclusive,boolean arithmeticValid,boolean positiveTotals,
                  int issuanceCount,String coverageState,String allocationState,
-                 String rightsState,String reviewOutcome,boolean exactReview) {}
+                 String rightsState,String reviewOutcome,boolean exactReview,
+                 boolean firstYearExploratoryAbsence,int sharedAllocationCount) {
+        Facts(UUID assessmentId,int version,String assessmentSha256,boolean stale,
+              boolean conclusive,boolean arithmeticValid,boolean positiveTotals,
+              int issuanceCount,String coverageState,String allocationState,
+              String rightsState,String reviewOutcome,boolean exactReview) {
+            this(assessmentId,version,assessmentSha256,stale,conclusive,arithmeticValid,positiveTotals,
+                issuanceCount,coverageState,allocationState,rightsState,reviewOutcome,exactReview,false,0);
+        }
+    }
     record Gate(String code,String status,String detail) {}
     record Report(String policyVersion,UUID assessmentId,int assessmentVersion,String assessmentSha256,
                   String state,boolean internalChecksComplete,boolean usableForE8,List<Gate> gates) {}
@@ -20,8 +29,11 @@ final class OpenDyReadiness {
         var gates=new ArrayList<Gate>();
         boolean exists=facts!=null;
         boolean rightsBlocked=exists && "LICENSE_RECHECK_REQUIRED".equals(facts.rightsState());
-        gate(gates,"CALENDAR",year>1 && calendarGate==null,"Janela anterior resolvida no calendário do projeto.",
-            year==1?"Primeiro ano: interpretação normativa pendente. A janela exploratória não substitui o ano anterior."
+        boolean firstYearAbsence=year==1 && exists && facts.firstYearExploratoryAbsence();
+        gate(gates,"CALENDAR",firstYearAbsence || (year>1 && calendarGate==null),
+            firstYearAbsence?"Primeiro ano: janela exploratória de 12 meses antes do início de creditação com ausência declarada (política interna D14); não é um ano anterior normativo."
+                :"Janela anterior resolvida no calendário do projeto.",
+            year==1?"Primeiro ano: só a ausência comprovada na janela exploratória é aceita internamente (política D14). Créditos encontrados ou pesquisa inconclusiva continuam bloqueados."
                 :"Resolva a janela anterior do projeto e o recorte aplicável.");
         gate(gates,"ASSESSMENT",exists,"Avaliação vigente identificada.","Registre uma avaliação para este ano do projeto.");
         if (!exists) {
@@ -53,10 +65,12 @@ final class OpenDyReadiness {
                 } else {
                     gate(gates,"ISSUANCE_INVENTORY",facts.positiveTotals() && facts.issuanceCount()>0,
                         "Emissões individualizadas na avaliação.","Individualize e concilie as emissões; ausência de itens não prova zero.");
-                    gate(gates,"GEOGRAPHIC_ALLOCATION",facts.issuanceCount()>0 &&
+                    boolean shared=facts.sharedAllocationCount()>0;
+                    gate(gates,"GEOGRAPHIC_ALLOCATION",facts.issuanceCount()>0 && !shared &&
                         "DECLARED_ALLOCATION_RECONCILED".equals(facts.allocationState()),
                         "Atribuição geográfica declarada conciliada; base ainda depende de validação.",
-                        "Fundamente a parcela BR de cada emissão positiva.");
+                        shared?"Rateio por EVs em circulação (política D14) depende do denominador nacional de EVR, ainda não admitido (G03)."
+                            :"Fundamente a parcela BR de cada emissão positiva.");
                 }
                 gate(gates,"INDEPENDENT_REVIEW","CHECKED_INTERNAL".equals(facts.reviewOutcome()) && facts.exactReview(),
                     "Parecer interno vinculado ao hash exato; não é admissão normativa.",
@@ -65,7 +79,7 @@ final class OpenDyReadiness {
         }
         boolean internalComplete=gates.stream().allMatch(g->"SATISFIED_INTERNAL".equals(g.status()) || "NOT_APPLICABLE".equals(g.status()));
         // Permanent gates of this policy version. No UI or scalar pin can override them.
-        gates.add(new Gate("NORMATIVE_WINDOW","BLOCKED","Esclareça a interpretação anual versus acumulada da VM0038 v1.1 e o tratamento do ano inicial."));
+        gates.add(new Gate("NORMATIVE_WINDOW","BLOCKED","Política interna D14 adotada (leitura anual y−1; ano 1 pela janela exploratória com ausência comprovada); a interpretação normativa externa (anual versus acumulada, ano inicial) não foi confirmada."));
         gates.add(new Gate("EXTERNAL_EVIDENCE","BLOCKED","Comprove a exaustividade dos programas, registros oficiais e, quando aplicável, a adequação da atribuição geográfica."));
         gates.add(new Gate("E8_ADMISSION","BLOCKED","Ainda não existe admissão normativa da avaliação nem integração ao executor E8."));
         return new Report(POLICY,exists?facts.assessmentId():null,exists?facts.version():0,
