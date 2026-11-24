@@ -14,6 +14,7 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
     let posted = null;
     let secondPeriodMatch = null;
     let showRehearsal = false;
+    let viewPd = false;
     const annualYears = [];
     const rehearsal = {
       id:'30000000-0000-4000-8000-000000000098',
@@ -58,7 +59,7 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
     await page.route('**/v1/projects/*/technical/capabilities', route => route.fulfill({json:{
       projectId:project, environment:'SANDBOX', owner:true,
       modules:{intake:'PREPARATORY_ONLY', calculation:'NOT_ENABLED'},
-      actions:['VIEW_INTAKE','VIEW_OPEN_CALCULATION','RECORD_OPEN_E8_RUN'],
+      actions:['VIEW_INTAKE','VIEW_OPEN_CALCULATION','RECORD_OPEN_E8_RUN',...(viewPd ? ['VIEW_DOSSIER'] : [])],
     }}));
     await page.route('**/v1/projects/*/technical/intake', route => route.fulfill({json:{
       projectId:project, organizationId:organization, environment:'SANDBOX', version:1,
@@ -201,6 +202,14 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
     await page.getByText('Referência: LE', {exact:true}).waitFor();
     await page.getByText('Referência: ER', {exact:true}).waitFor();
     await page.getByText('4.05 tCO2e').waitFor();
+    const pdLink=page.getByRole('link', {name:'Consultar vínculo com a seção Quantificação do PD'});
+    assert.equal(await pdLink.count(), 0);
+    viewPd = true;
+    await page.reload();
+    await pdLink.waitFor();
+    assert.equal(await pdLink.getAttribute('href'),
+      '/workspace/projects/'+project+'/technical?secao=redigir&guia=quantification');
+    await page.getByText('Confira o período, o identificador e a versão.').waitFor();
     await page.getByText('Ensaio interno consolidado · ano 1', {exact:true}).waitFor();
     await page.getByText('5.50 tCO2e', {exact:true}).waitFor();
     await page.getByText('Janelas e referências da consolidação · 1 períodos', {exact:true}).click();
