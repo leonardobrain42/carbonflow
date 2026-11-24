@@ -1,4 +1,6 @@
 # Changelog da especificação viva
+## 0.3.0-rc.16 — 24/11/2026 (proposta)
+- UX (fatia 7 do backlog): "Por que está bloqueado?" na Quantificação, com todas as pendências que impedem o resultado, próxima ação e papel previsto, lidas dos gates do servidor. Só interface; gates, estados e guardas E8 inalterados.
 ## 0.3.0-rc.14 — 24/11/2026 (proposta)
 - UX (fatia 3 do backlog): uma só lista de pendências em Situação do projeto e resumo na Visão geral. Só interface; projeção de requisitos, estados e regras inalterados.
 ## 0.3.0-rc.13 — 24/11/2026 (proposta)

@@ -40,9 +40,23 @@
         </details>
       }
     } @else if (blockingCause(); as cause) {
-      <h4>O que falta para haver resultado</h4>
-      <p><strong>Falta {{gateTitle(cause)}}.</strong>
-        Não há BE, PE, LE nem ER. Ausência não é zero.</p>
+      <section class="cf-journey-context" aria-labelledby="cf-open-calc-why">
+        <h4 id="cf-open-calc-why">Por que está bloqueado?</h4>
+        <p><strong>Falta {{blockerTitle(cause)}}.</strong>
+          Não há BE, PE, LE nem ER. Ausência não é zero.</p>
+        <p>{{blockers().length === 1 ? 'Uma pendência impede' : blockers().length + ' pendências impedem'}} o resultado
+          {{blockersFromRun() ? 'na última tentativa · ' + runPeriod() : 'no diagnóstico atual'}}.
+          Resolver todas não emite crédito: a admissão normativa continua separada.</p>
+        <ol class="cf-tech-gates" aria-label="Pendências que impedem o resultado">
+          @for (gate of blockers(); track gate.code) {
+            <li>
+              <strong>{{blockerTitle(gate)}}</strong> — {{stateLabel(gate.state)}}
+              <p>Próxima ação: {{gate.nextAction}} <small>· {{roleLabel(gate.owner)}}</small></p>
+            </li>
+          }
+        </ol>
+        <p class="cf-workspace-helper">O motivo e a referência de cada item estão nas listas abaixo.</p>
+      </section>
     }
     <dl class="cf-tech-capabilities">
       <div><dt>Situação</dt><dd>{{ stateLabel(state.calculationState) }}</dd></div>
