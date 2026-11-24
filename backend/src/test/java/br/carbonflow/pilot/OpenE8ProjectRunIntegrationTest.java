@@ -73,6 +73,9 @@ class OpenE8ProjectRunIntegrationTest {
         assertTrue(run.path("gates").toString().contains("EF_FUEL"));
         assertTrue(run.path("gates").toString().contains("RUN_WINDOW_MISSING"));
         assertTrue(run.at("/timing/projectYear").isNull());
+        assertEquals("TIMING_UNRESOLVED",run.at("/irContext/state").asText());
+        assertTrue(run.at("/irContext/assessmentId").isNull());
+        assertEquals(64,run.at("/irContext/contextSha256").asText().length());
         assertFalse(run.toString().contains("EF-SYN"));
         assertFalse(run.toString().contains("SIM-DY"));
         assertNull(run.path("beTco2e").textValue());
@@ -98,7 +101,7 @@ class OpenE8ProjectRunIntegrationTest {
         assertEquals(200, listed.statusCode(), listed.body());
         assertTrue(json(listed).path("canRecord").asBoolean());
         JsonNode selection=json(listed).path("currentSelection");
-        assertEquals("OPEN-E8-INPUT-SELECTION@1",selection.path("policyVersion").asText());
+        assertEquals("OPEN-E8-INPUT-SELECTION@2",selection.path("policyVersion").asText());
         assertEquals(project,selection.path("projectId").asText());
         assertEquals("M1",selection.path("period").asText());
         assertEquals("RUN_WINDOW_MISSING",selection.path("timingGate").asText());
@@ -109,6 +112,8 @@ class OpenE8ProjectRunIntegrationTest {
         assertEquals("MISSING",selection.at("/inputs/0/state").asText());
         assertEquals("TIMING_UNRESOLVED",selection.at("/inputs/2/state").asText());
         assertTrue(selection.at("/inputs/2/id").isNull());
+        assertEquals("STRUCTURED_PROJECT_SOURCE_YEAR",selection.at("/inputs/3/basis").asText());
+        assertEquals("TIMING_UNRESOLVED",selection.at("/inputs/3/state").asText());
         assertEquals("LEGACY_SOURCE_YEAR_PIN",selection.at("/inputs/4/basis").asText());
         assertEquals(id, json(listed).at("/runs/0/id").asText());
         assertEquals(200, call("GET", path + "/" + id, owner.cookie(), null, null, null).statusCode());
@@ -174,6 +179,8 @@ class OpenE8ProjectRunIntegrationTest {
         assertEquals(id.toString(), historical.path("id").asText());
         assertEquals("STALE", historical.path("state").asText());
         assertTrue(historical.path("timing").isNull());
+        assertTrue(historical.path("irContext").isNull());
+        assertTrue(historical.path("gates").toString().contains("RUN_IR_LEGACY"));
         assertTrue(historical.path("gates").toString().contains("RUN_TIMING_LEGACY"));
 
         var renewed = call("POST", path, owner.cookie(), key(), "\"1\"", "{}");
