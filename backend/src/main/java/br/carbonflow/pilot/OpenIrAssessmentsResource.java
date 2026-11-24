@@ -23,6 +23,20 @@ public class OpenIrAssessmentsResource {
             .tag(Integer.toString(result.view().version())).build();
     }
 
+    @POST
+    @Path("/{project}/{assessment}/review")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response review(@CookieParam(AccountAccess.COOKIE) String cookie,
+                           @PathParam("project") String project,
+                           @PathParam("assessment") java.util.UUID assessment,
+                           @HeaderParam("Idempotency-Key") String key,
+                           @HeaderParam("If-Match") String match,
+                           OpenIrAssessments.ReviewInput input) {
+        var result=service.review(cookie,project,assessment,key,match,input);
+        return secure(result.view()).status(result.created()?201:200)
+            .tag(Integer.toString(result.view().version())).build();
+    }
+
     @GET
     @Path("/{project}/{year}/{sourceYear}")
     public Response history(@CookieParam(AccountAccess.COOKIE) String cookie,
