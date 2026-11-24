@@ -5,11 +5,13 @@ import {firstValueFrom} from 'rxjs';
 type Options={canRecord:boolean;canReview:boolean;projects:{projectId:string;title:string}[]};
 type Period={period:string;projectYear:number;sourceYear:number;latestVersion:number;
   fleetSelectionId:string;fuelPinId:string};
+type InitialPlan={evr:string;afec:string;mpg:string;fuel:string};
 type Assessment={id:string;projectId:string;projectYear:number;sourceYear:number;version:number;
   period:string;fleetSelectionId:string;fuelPinId:string;frequency:string;basis:string;
   rationale:string|null;state:string;assessmentSha256:string;candidate:string|null;stale:boolean;
   usableForE8:boolean;recordedAt:string;review:{outcome:string;annualUpdateBasis:string;
-    evidenceLocator:string|null;reason:string|null;reviewedAt:string}|null;
+    evidenceLocator:string|null;reason:string|null;reviewedAt:string;
+    initialContext?:{followupOn:string;planSha256:string;plan:InitialPlan|null}|null}|null;
   annualEvidence:{priorAssessmentId:string|null;evidenceSha256:string|null;state:string;policy:string}|null};
 
 @Component({selector:'carbonflow-open-ir-assessments',standalone:true,
@@ -38,6 +40,7 @@ export class OpenIrAssessmentsComponent implements OnChanges,OnDestroy {
   priorId='';
   locator='';
   reason='';
+  initialPlan:InitialPlan={evr:'',afec:'',mpg:'',fuel:''};
 
   ngOnChanges(){this.options.set(null);this.selectedProject=this.staff?'':this.projectId;
     this.reset();void (this.staff?this.loadOptions():this.load());}
@@ -50,6 +53,7 @@ export class OpenIrAssessmentsComponent implements OnChanges,OnDestroy {
   }
   private clearReview(){
     this.reviewId='';this.outcome='';this.annualBasis='';this.priorId='';this.locator='';this.reason='';
+    this.initialPlan={evr:'',afec:'',mpg:'',fuel:''};
   }
   private root(project=this.selectedProject){
     const id=encodeURIComponent(project);
@@ -109,12 +113,15 @@ export class OpenIrAssessmentsComponent implements OnChanges,OnDestroy {
   beginReview(row:Assessment){if(!this.canReview(row)||this.busy())return;this.clearReview();this.reviewId=row.id;}
   priors(row:Assessment){return this.rows().filter(p=>p.id!==row.id&&!p.stale&&
     p.projectYear===row.projectYear-1&&p.sourceYear===row.sourceYear-1&&p.frequency==='ANNUAL'&&
-    p.basis==='PROJECT_SPECIFIC'&&(!p.review||p.review.outcome==='CHECKED_INTERNAL'));}
+    p.basis==='PROJECT_SPECIFIC'&&(!p.review||p.review.outcome==='CHECKED_INTERNAL'||
+      (p.projectYear===1&&p.review.outcome==='INITIAL_BASELINE_CHECKED'&&!!p.review.initialContext)));}
   reviewValid(row:Assessment){
     return this.canReview(row)&&!this.busy()&&!!this.outcome&&!!this.annualBasis&&
       this.locator.trim().length>=3&&this.reason.trim().length>=15&&
-      (this.outcome!=='CHECKED_INTERNAL'||(row.state==='PENDING_REVIEW'&&this.annualBasis==='OBSERVED_UPDATE'&&
-        this.priors(row).some(p=>p.id===this.priorId)));
+      (this.outcome!=='CHECKED_INTERNAL'||(row.projectYear>1&&row.state==='PENDING_REVIEW'&&this.annualBasis==='OBSERVED_UPDATE'&&
+        this.priors(row).some(p=>p.id===this.priorId)))&&
+      (this.outcome!=='INITIAL_BASELINE_CHECKED'||(row.projectYear===1&&row.state==='PENDING_REVIEW'&&this.annualBasis==='PLAN_ONLY'&&
+        Object.values(this.initialPlan).every(v=>v.trim().length>=15&&v.trim().length<=2000)));
   }
   private headers(path:string,version:number,body:object){
     const fingerprint=JSON.stringify([path,version,body]);
@@ -132,7 +139,9 @@ export class OpenIrAssessmentsComponent implements OnChanges,OnDestroy {
     await this.submit(this.root()+'/'+encodeURIComponent(row.id)+'/review',row.version,{
       assessmentSha256:row.assessmentSha256,outcome:this.outcome,annualUpdateBasis:this.annualBasis,
       evidenceLocator:this.locator.trim(),reason:this.reason.trim(),
-      priorAssessmentId:this.outcome==='CHECKED_INTERNAL'?this.priorId:null
+      priorAssessmentId:this.outcome==='CHECKED_INTERNAL'?this.priorId:null,
+      ...(this.outcome==='INITIAL_BASELINE_CHECKED'?{initialPlan:{evr:this.initialPlan.evr.trim(),afec:this.initialPlan.afec.trim(),
+        mpg:this.initialPlan.mpg.trim(),fuel:this.initialPlan.fuel.trim()}}:{})
     },'Parecer registrado. A conferência interna não libera o E8.');
   }
   private async submit(path:string,version:number,body:object,success:string){
@@ -150,6 +159,8 @@ export class OpenIrAssessmentsComponent implements OnChanges,OnDestroy {
       PENDING_METHOD:'Fundamentação metodológica pendente',
       PENDING_REVIEW:'Aguardando parecer técnico',
       CHECKED_INTERNAL_NOT_ADMITTED:'Conferido internamente — não admitido',
+      INITIAL_BASELINE_CHECKED_NOT_ADMITTED:'Plano inicial conferido — não admitido',
+      INITIAL_BASELINE_CHECKED:'Plano inicial conferido',
       NEEDS_INFORMATION_NOT_ADMITTED:'Complementação necessária',
       REJECTED_NOT_ADMITTED:'Rejeitado — não admitido',
       STALE_NOT_ADMITTED:'Obsoleto — reavaliar',
