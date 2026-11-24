@@ -156,7 +156,7 @@ test('a ficha OPEN permite preparar direitos sem fonte admitida nem cálculo E8'
     assert.equal(revision,0);
     await fromTriage.getByRole('button',{name:'Usar respostas da triagem'}).click();
     assert.equal(revision,0,'applying suggestions does not save');
-    assert.equal(await fromTriage.count(),0,'no empty field left to suggest');
+    await fromTriage.waitFor({state:'detached'});
     assert.equal(await page.getByLabel('Qualquer BEV compatível pode utilizar?').inputValue(),'true');
     assert.equal(await page.getByLabel('Restringe o uso a veículos identificados?').inputValue(),'false');
     assert.equal(await page.getByLabel('Tecnologia de recarga').inputValue(),'DCFC');

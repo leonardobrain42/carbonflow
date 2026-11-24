@@ -136,7 +136,13 @@ test('o roteiro observado acha a ação, cadastra a estação, anexa o arquivo, 
     await page.getByText('Como estes campos entrariam no PD',{exact:true}).click();
     await page.getByText('não é copiada',{exact:false}).waitFor();
     await page.getByText('O PD não fica pronto.',{exact:false}).waitFor();
+    // Holder and contract were chosen but not saved: leaving asks first (unsaved-draft guard).
+    const leaving=new Promise(resolve=>page.once('dialog',async dialog=>{
+      resolve(dialog.message());
+      await dialog.accept();
+    }));
     await page.getByRole('button',{name:'Ver situação do projeto'}).click();
+    assert.match(await leaving,/descartar as respostas ainda não salvas/);
     await page.getByText('Não liberado enquanto faltarem fontes',{exact:false}).waitFor();
     assert.deepEqual(seen,['station','party','contract','file']);
     assert.equal(sites[0].details.name,'Estação Norte');
