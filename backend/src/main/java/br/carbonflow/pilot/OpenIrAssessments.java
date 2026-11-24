@@ -110,17 +110,33 @@ class OpenIrAssessments {
     }
 
     List<View> history(String token,String project,int year,int sourceYear) {
+        return scope.read(token,project,"VIEW_OPEN_PARAMETER_BINDING",(c,ctx)->
+            historyRows(c,project,year,sourceYear,false));
+    }
+
+    List<View> staffHistory(String token,String project,int year,int sourceYear) {
+        return database.transaction(c -> {
+            var actor=managers.requireManager(c,token);
+            UUID org=first(c,"""
+                SELECT organization_id FROM app_project
+                WHERE id=? AND environment='SANDBOX' AND state='DRAFT' FOR SHARE
+                """,r->r.getObject(1,UUID.class),project);
+            if(org==null || !actor.organizations().contains(org)) throw hidden();
+            return historyRows(c,project,year,sourceYear,true);
+        });
+    }
+
+    private static List<View> historyRows(Connection c,String project,int year,int sourceYear,boolean staff)
+            throws SQLException {
         if(year<1 || year>100 || sourceYear<1900 || sourceYear>2100)
             throw invalid("Anos fora do contrato.");
-        return scope.read(token,project,"VIEW_OPEN_PARAMETER_BINDING",(c,ctx)->{
-            var result=new ArrayList<View>();
-            for(var row:query(c,SELECT+"""
-                WHERE project_id=? AND project_year=? AND source_year=?
-                ORDER BY version DESC LIMIT 50
-                """,OpenIrAssessments::stored,project,year,sourceYear))
-                result.add(view(c,row,false));
-            return List.copyOf(result);
-        });
+        var result=new ArrayList<View>();
+        for(var row:query(c,SELECT+"""
+            WHERE project_id=? AND project_year=? AND source_year=?
+            ORDER BY version DESC LIMIT 50
+            """,OpenIrAssessments::stored,project,year,sourceYear))
+            result.add(view(c,row,staff));
+        return List.copyOf(result);
     }
 
     /** Reuses one fleet handoff for the three metrics it contains. */
