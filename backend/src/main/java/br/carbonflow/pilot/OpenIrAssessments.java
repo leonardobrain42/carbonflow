@@ -28,13 +28,14 @@ import jakarta.enterprise.context.ApplicationScoped;
 class OpenIrAssessments {
     record Input(String period, String frequency, String basis, String rationale) {}
     record ReviewInput(String assessmentSha256, String outcome, String annualUpdateBasis,
-                       String evidenceLocator, String reason) {}
+                       String evidenceLocator, String reason, UUID priorAssessmentId) {}
     record Review(UUID reviewerId, String outcome, String assessmentSha256, String ruleReference,
                   String annualUpdateBasis, String evidenceLocator, String reason, OffsetDateTime reviewedAt) {}
+    record AnnualEvidence(UUID priorAssessmentId, String evidenceSha256, String state, String policy) {}
     record View(UUID id, String projectId, int projectYear, int sourceYear, int version,
                 String period, UUID fleetSelectionId, UUID fuelPinId, String frequency,
                 String basis, String rationale, String state, String assessmentSha256,
-                String candidate, boolean stale, boolean usableForE8, OffsetDateTime recordedAt, Review review) {}
+                String candidate, boolean stale, boolean usableForE8, OffsetDateTime recordedAt, Review review, AnnualEvidence annualEvidence) {}
     record Result(View view, boolean created) {}
     private record Fleet(UUID id, UUID binding, int version, int year, String sha) {}
     private record Refs(Fleet fleet, OpenE8ProjectRuns.InputReference fuel, OpenE8Timing.Context timing,
@@ -176,6 +177,8 @@ class OpenIrAssessments {
             } catch(IllegalArgumentException e) { throw invalid(e.getMessage()); }
             String fingerprint=digest("OPEN-IR-REVIEW@1",project,assessment,row.sha(),expected,
                 input.outcome(),input.annualUpdateBasis(),locator,reason);
+            if(input.priorAssessmentId()!=null)
+                fingerprint=digest("OPEN-IR-REVIEW-ANNUAL@1",fingerprint,input.priorAssessmentId());
             Object[] replay=first(c,"""
                 SELECT assessment_id,encode(command_sha256,'hex') FROM app_open_ir_review
                 WHERE reviewer_id=? AND command_key=?
@@ -192,6 +195,19 @@ class OpenIrAssessments {
             PilotCommands.requireVersion(expected,latest);
             if(view(c,row,true).stale()) throw conflict("Avaliação desatualizada. Registre nova versão.");
             if(readReview(c,assessment,true)!=null) throw conflict("Já existe parecer nesta versão.");
+            OpenIrAnnualEvidence.Proof proof=null;
+            if("CHECKED_INTERNAL".equals(input.outcome())) {
+                if(input.priorAssessmentId()==null)
+                    throw invalid("Selecione a avaliação canônica do ano anterior.");
+                Stored previous=first(c,SELECT+" WHERE project_id=? AND id=?",
+                    OpenIrAssessments::stored,project,input.priorAssessmentId());
+                if(previous==null) throw hidden();
+                try {
+                    proof=OpenIrAnnualEvidence.capture(annualSnapshot(c,previous),annualSnapshot(c,row));
+                } catch(IllegalArgumentException e) { throw invalid(e.getMessage()); }
+            } else if(input.priorAssessmentId()!=null) {
+                throw invalid("Vínculo de atualização observada é reservado à checagem interna.");
+            }
             update(c,"""
                 INSERT INTO app_open_ir_review
                 (assessment_id,assessment_sha256,author_id,reviewer_id,outcome,rule_reference,
@@ -200,6 +216,18 @@ class OpenIrAssessments {
                 """,assessment,bytes(row.sha()),author,actor.id(),input.outcome(),
                 OpenIrAssessment.RULE_REFERENCE,input.annualUpdateBasis(),locator,reason,
                 command,bytes(fingerprint));
+            if(proof!=null) {
+                var prior=proof.previous();
+                update(c,"""
+                    INSERT INTO app_open_ir_annual_evidence
+                    (assessment_id,prior_assessment_id,project_id,project_year,source_year,
+                     prior_project_year,prior_source_year,assessment_sha256,prior_assessment_sha256,
+                     evidence_sha256,policy)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?)
+                    """,row.id(),prior.id(),project,row.year(),row.sourceYear(),prior.projectYear(),
+                    prior.sourceYear(),bytes(row.sha()),bytes(prior.assessmentSha()),bytes(proof.digest()),
+                    OpenIrAnnualEvidence.POLICY);
+            }
             return new Result(view(c,row,true),true);
         });
     }
@@ -271,22 +299,64 @@ class OpenIrAssessments {
         return new Refs(fleet,fuel,timing,OpenCalculationReadiness.triageRevision(c,project));
     }
 
-    private static View view(Connection c,Stored row,boolean staff) throws SQLException {
+    private static boolean stale(Connection c,Stored row) throws SQLException {
         Refs current=references(c,row.project(),row.period());
         Integer latest=first(c,"""
             SELECT max(version) FROM app_open_ir_assessment
             WHERE project_id=? AND project_year=? AND source_year=?
             """,r->r.getInt(1),row.project(),row.year(),row.sourceYear());
-        boolean stale=current==null || row.version()!=latest || row.triage()!=current.triage()
+        return current==null || row.version()!=latest || row.triage()!=current.triage()
             || !row.timingSha().equals(current.timing().fingerprint())
             || !row.fleet().equals(current.fleet().id()) || !row.fleetSha().equals(current.fleet().sha())
             || !row.fuel().equals(current.fuel().id()) || !row.fuelSha().equals(current.fuel().sha256());
+    }
+
+    private static OpenIrAnnualEvidence.Snapshot annualSnapshot(Connection c,Stored row) throws SQLException {
+        Review opinion=readReview(c,row.id(),false);
+        boolean current=!stale(c,row) && (opinion==null || "CHECKED_INTERNAL".equals(opinion.outcome()));
+        return first(c,"""
+            SELECT f.fleet_snapshot_id,f.rating_snapshot_id,b.candidate_id,f.cycle
+            FROM app_open_e8_fleet_selection f
+            JOIN app_open_project_parameter_binding b ON b.project_id=f.project_id
+            WHERE f.project_id=? AND f.id=? AND b.id=? AND b.parameter_kind='EF_FUEL'
+                AND f.observation_year=? AND b.vintage_year=?
+            """,r->new OpenIrAnnualEvidence.Snapshot(row.id(),row.project(),row.year(),row.sourceYear(),
+                row.sha(),r.getObject(1,UUID.class),r.getObject(2,UUID.class),r.getObject(3,UUID.class),
+                r.getString(4),row.at(),current,"PENDING_REVIEW".equals(row.state())),
+            row.project(),row.fleet(),row.fuel(),row.sourceYear(),row.sourceYear());
+    }
+
+    private static AnnualEvidence annualEvidence(Connection c,Stored row,Review review) throws SQLException {
+        if(review==null || !"CHECKED_INTERNAL".equals(review.outcome())) return null;
+        AnnualEvidence pin=first(c,"""
+            SELECT prior_assessment_id,encode(evidence_sha256,'hex'),policy
+            FROM app_open_ir_annual_evidence WHERE assessment_id=?
+            """,r->new AnnualEvidence(r.getObject(1,UUID.class),r.getString(2),
+                "CONSECUTIVE_REFERENCES_NOT_ADMITTED",r.getString(3)),row.id());
+        if(pin==null) return new AnnualEvidence(null,null,"LEGACY_EVIDENCE_MISSING",OpenIrAnnualEvidence.POLICY);
+        Stored prior=first(c,SELECT+" WHERE project_id=? AND id=?",OpenIrAssessments::stored,
+            row.project(),pin.priorAssessmentId());
+        try {
+            if(prior!=null && pin.evidenceSha256().equals(
+                OpenIrAnnualEvidence.capture(annualSnapshot(c,prior),annualSnapshot(c,row)).digest()))
+                return pin;
+        } catch(IllegalArgumentException e) { /* immutable historical proof requires recheck */ }
+        return new AnnualEvidence(pin.priorAssessmentId(),pin.evidenceSha256(),
+            "STALE_EVIDENCE_NOT_ADMITTED",pin.policy());
+    }
+
+    private static View view(Connection c,Stored row,boolean staff) throws SQLException {
+        boolean stale=stale(c,row);
         Review review=readReview(c,row.id(),staff);
-        String state=stale?"STALE_NOT_ADMITTED":review==null?row.state():review.outcome()+"_NOT_ADMITTED";
+        AnnualEvidence annual=annualEvidence(c,row,review);
+        boolean evidenceMissing=annual!=null && !"CONSECUTIVE_REFERENCES_NOT_ADMITTED".equals(annual.state());
+        String state=stale?"STALE_NOT_ADMITTED":evidenceMissing?"ANNUAL_EVIDENCE_RECHECK_REQUIRED":
+            review==null?row.state():review.outcome()+"_NOT_ADMITTED";
         return new View(row.id(),row.project(),row.year(),row.sourceYear(),row.version(),row.period(),
             row.fleet(),row.fuel(),row.frequency(),row.basis(),staff?row.rationale():null,
-            state,row.sha(),stale || (review!=null && !"CHECKED_INTERNAL".equals(review.outcome()))?
-                null:row.candidate(),stale,false,row.at(),review);
+            state,row.sha(),stale || evidenceMissing || (review!=null && !"CHECKED_INTERNAL".equals(review.outcome()))?
+                null:row.candidate(),stale || (annual!=null && "STALE_EVIDENCE_NOT_ADMITTED".equals(annual.state())),
+            false,row.at(),review,annual);
     }
 
     static String digest(Object... parts) {
