@@ -218,7 +218,9 @@ jobs:
           docker compose -p "$CARBONFLOW_DEMO_PROJECT" -f compose.yaml -f compose.demo.yaml exec -T db \
             psql -U carbonflow -d carbonflow -v ON_ERROR_STOP=1 -c "
               ALTER TABLE app_open_asset_evidence DROP COLUMN submitted_file_name;
-              DELETE FROM flyway_schema_history WHERE version='69.1';
+              ALTER TABLE app_open_e8_run DROP COLUMN temporal_context;
+              ALTER TABLE app_open_e8_run_command DROP COLUMN request_sha256;
+              DELETE FROM flyway_schema_history WHERE version IN ('69.1','81');
               UPDATE flyway_schema_history SET checksum=167374965 WHERE version='71';"
           python3 scripts/demo_flyway_compat.py
           python3 scripts/demo_flyway_compat.py --apply
@@ -388,6 +390,27 @@ jobs:
           sql = Path("backend/src/main/resources/db/migration/V80__open_e8_hourly_engine_constraint.sql").read_text()
           print(sql.replace("engine IN ('vm0038-open-grid-arithmetic@1','vm0038-open-grid-arithmetic@2-hourly')", "engine='vm0038-open-grid-arithmetic@1'"))
           PY
+          # A non-empty legacy run and its idempotency command exercise actual
+          # preserved column values, not merely an empty-table comparison.
+          "${dc[@]}" exec -T db psql -U carbonflow -d carbonflow -v ON_ERROR_STOP=1 -c "
+            INSERT INTO app_open_e8_run(id,project_id,organization_id,environment,
+              period_code,version,input_sha256,state,gate_codes,created_by,temporal_context)
+            SELECT 'f7900000-0000-4000-8000-000000000001',p.id,p.organization_id,p.environment,
+              'CI-V79-LEGACY',1,decode(repeat('ab',32),'hex'),'BLOCKED',
+              ARRAY['LEGACY_CI'],i.id,jsonb_build_object('fixture','historical calendar')
+            FROM app_project p CROSS JOIN app_identity i
+            WHERE p.environment='SANDBOX' AND i.email_normalized='demo@carbonflow.test'
+            ORDER BY p.id LIMIT 1;
+            INSERT INTO app_open_e8_run_command(actor_id,command_key,project_id,run_id,fingerprint,request_sha256)
+            SELECT created_by,'ci-v79-legacy-command',project_id,id,decode(repeat('cd',32),'hex'),
+              decode(repeat('ef',32),'hex') FROM app_open_e8_run
+            WHERE id='f7900000-0000-4000-8000-000000000001';
+            DO \$\$ BEGIN
+              IF NOT EXISTS (SELECT 1 FROM app_open_e8_run_command
+                              WHERE command_key='ci-v79-legacy-command') THEN
+                RAISE EXCEPTION 'Missing historical fixture';
+              END IF;
+            END \$\$;"
           snapshot() {
             "${dc[@]}" exec -T db psql -U carbonflow -d carbonflow -At -v ON_ERROR_STOP=1 -c "
               SELECT md5(coalesce((SELECT jsonb_agg(to_jsonb(r) ORDER BY id)::text FROM app_open_e8_run r),'')) ||
