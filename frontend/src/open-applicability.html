@@ -294,14 +294,8 @@
         <div><dt>Cálculo</dt><dd>{{market.usableForE8 ? 'Liberado' : 'Não liberado'}}</dd></div>
       </dl>
     }
-    <details class="cf-journey-context">
-      <summary>O que ainda precisa ser comprovado?</summary>
-      <ul class="cf-tech-gates">
-        @for (item of state.readiness.findings;track item.code){
-          <li><strong>{{term(item.code)}}</strong> — {{item.text}}
-            <small>{{term(item.state)}} · Referência: {{item.code}}</small></li>
-        }
-      </ul>
+    <div class="cf-journey-context">
+      <p>Cada achado desta declaração aparece na lista de pendências da Situação do projeto, com motivo, papel e próximo passo.</p>
       <p>Fontes dependentes:
         @for (dep of state.readiness.sourceDependencies; track dep) {
           {{term(dep)}}@if (!$last) {, }
@@ -309,7 +303,7 @@
       <small>Referências: {{state.readiness.sourceDependencies.join(', ')}}</small>
       <p>O preenchimento não depende de todas essas fontes estarem disponíveis; a habilitação
         para cálculo real continua separada e não usa dados sintéticos como fallback.</p>
-    </details>
+    </div>
     }
   }
 </section>

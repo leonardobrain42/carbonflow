@@ -1,4 +1,6 @@
 # Changelog da especificação viva
+## 0.3.0-rc.14 — 24/11/2026 (proposta)
+- UX (fatia 3 do backlog): uma só lista de pendências em Situação do projeto e resumo na Visão geral. Só interface; projeção de requisitos, estados e regras inalterados.
 ## 0.3.0-rc.13 — 24/11/2026 (proposta)
 - UX (fatia 2 do backlog): respostas da triagem sugeridas em Preparar informações e Acesso à rede, aplicadas só a campos vazios e por ação explícita; nada é salvo automaticamente. Só interface.
 ## 0.3.0-rc.12 — 24/11/2026 (proposta)

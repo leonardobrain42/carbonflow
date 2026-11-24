@@ -238,9 +238,9 @@ test('a ficha OPEN permite preparar direitos sem fonte admitida nem cálculo E8'
     const ficha=page.getByRole('region',{name:'Aplicabilidade de rede aberta'});
     await ficha.getByText('Rede aberta candidata',{exact:false}).waitFor();
     await ficha.getByText('Referência: OPEN_CANDIDATE',{exact:true}).waitFor();
-    await ficha.getByText('O que ainda precisa ser comprovado?',{exact:true}).click();
-    await ficha.getByText('Divulgação aos motoristas',{exact:true}).waitFor();
-    await ficha.getByText('Referência: DRIVER_DISCLOSURE',{exact:false}).waitFor();
+    // One list: the declaration findings live in the pending list, not repeated inside the ficha.
+    assert.equal(await ficha.getByText('O que ainda precisa ser comprovado?').count(),0);
+    await page.locator('carbonflow-project-requirements').getByText('Divulgação aos motoristas',{exact:true}).waitFor();
     await ficha.getByRole('heading',{name:'Teste de mercado §4 e citação da lista positiva'}).waitFor();
     await ficha.getByText('0,7% de estoque em 2024 · VMD0049 v1.1 Tabela 1').waitFor();
     await ficha.getByText('7,5%',{exact:true}).waitFor();
@@ -249,7 +249,6 @@ test('a ficha OPEN permite preparar direitos sem fonte admitida nem cálculo E8'
     await ficha.getByText('Ausente. Ausência não é zero.').waitFor();
     const closes=ficha.locator('dt',{hasText:'Fecha a aplicabilidade'}).locator('xpath=..');
     assert.equal((await closes.locator('dd').innerText()).trim(),'Não');
-    await ficha.getByText('Dados oficiais pendentes',{exact:false}).waitFor();
     await page.getByText('Não liberado enquanto faltarem fontes',{exact:false}).waitFor();
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
     await page.setViewportSize({width:1440,height:900});
