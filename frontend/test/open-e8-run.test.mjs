@@ -179,7 +179,7 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
     await page.getByText('Ainda não há pino de fator fóssil, fator elétrico, IR ou Dy neste projeto.').waitFor();
     await page.getByText('fator elétrico, estoque nacional EVR e ratings PBEV').waitFor();
     await page.getByText('Estoque nacional EVR · Fonte ainda não vinculada').waitFor();
-    await page.getByText('Próxima ação: Selecionar fonte EVR e avaliar cobertura').waitFor();
+    await page.getByText('Próxima ação: Selecionar fonte EVR e avaliar cobertura',{exact:true}).waitFor(); // detailed list; the summary adds the role
     await page.setViewportSize({width:390,height:844});
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
     await page.setViewportSize({width:1440,height:900});
@@ -208,7 +208,7 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
     await page.getByText('Não calculados').waitFor();
     await page.getByText('Melhoria tecnológica · Não informado').waitFor();
     await page.getByText('A melhoria tecnológica não tem valor normalizado armazenado. A tentativa não inventa 1.').waitFor();
-    await page.getByText('Próxima ação: Completar o vínculo e a admissão antes de executar').waitFor();
+    await page.getByText('Próxima ação: Completar o vínculo e a admissão antes de executar',{exact:true}).waitFor(); // detailed list; the summary adds the role
     const ir=page.locator('li').filter({hasText:'Melhoria tecnológica'});
     await ir.getByText('Papel e referência',{exact:true}).click();
     await ir.getByText('Referência: IR',{exact:true}).waitFor();

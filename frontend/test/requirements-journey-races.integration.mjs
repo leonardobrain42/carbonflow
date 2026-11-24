@@ -103,14 +103,14 @@ test('UX-08: respostas fora de ordem, seletores persistidos, conflito e revogaç
     await page.getByLabel('Restringe o uso a veículos identificados?').selectOption('true');
     const networkSaved = page.waitForResponse(response =>
       response.url() === applicability && response.request().method() === 'PUT');
-    await page.getByRole('button', {name: 'Salvar acesso sem aprovação automática'}).click();
+    await page.getByRole('button', {name: 'Salvar acesso à rede'}).click();
     assert.equal((await json(await networkSaved)).version, 1);
     await page.goto(technical + 'direitos');
     await page.getByLabel('Titular registrado', {exact: true}).selectOption('HOLDER-UX08');
     await page.getByLabel('Contrato registrado', {exact: true}).selectOption('CONTRACT-UX08');
     const savedResponse = page.waitForResponse(response =>
       response.url() === applicability && response.request().method() === 'PUT');
-    await page.getByRole('button', {name: 'Salvar direitos sem aprovação automática'}).click();
+    await page.getByRole('button', {name: 'Salvar direitos'}).click();
     const saved = await json(await savedResponse);
     assert.equal(saved.version, 2);
     assert.equal(saved.latest.answers.unrestrictedBevAccess, false);
@@ -139,7 +139,7 @@ test('UX-08: respostas fora de ordem, seletores persistidos, conflito e revogaç
     await page.getByLabel('O ponto fica em terreno particular?').selectOption('false');
     const conflictResponse = page.waitForResponse(response =>
       response.url() === applicability && response.request().method() === 'PUT');
-    await page.getByRole('button', {name: 'Salvar acesso sem aprovação automática'}).click();
+    await page.getByRole('button', {name: 'Salvar acesso à rede'}).click();
     assert.equal((await conflictResponse).status(), 412);
     await page.getByRole('alert').filter({hasText: 'Outra revisão foi salva'}).waitFor();
     assert.equal(await page.getByLabel('O ponto fica em terreno particular?').inputValue(), 'false');

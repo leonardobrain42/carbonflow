@@ -316,9 +316,10 @@
                   <textarea #notes id="cf-tech-notes" name="notes" rows="4" maxlength="2000"
                     [value]="form().notes" (input)="update('notes', notes.value)"></textarea>
                 </fieldset>
-                <div class="cf-triage-actions">
+                <div class="cf-triage-actions cf-save-bar" role="group" aria-label="Salvar esta tela">
                   @if (can('SAVE_INTAKE')) {
-                    <button class="cf-workspace-primary" type="submit" [disabled]="saving()">Salvar informações</button>
+                    <span class="cf-save-state" role="status">{{ dirty() ? 'Alterações não salvas' : 'Sem alterações pendentes' }}</span>
+                    <button class="cf-workspace-primary" type="submit" [disabled]="saving()">{{ saving() ? 'Salvando…' : 'Salvar informações' }}</button>
                   }
                   <button class="cf-workspace-outline" type="button" (click)="open('analisar')">Ver pendências</button>
                 </div>

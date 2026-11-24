@@ -218,3 +218,10 @@
   background: #83d99f; color: #0e1f18; font-size: .8rem; font-weight: 700; text-align: center; line-height: 1.4rem; }
 .cf-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
   clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+/* Save bar: stays at the bottom of the viewport while a long form scrolls. */
+.cf-save-bar { position: sticky; bottom: 0; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: .6rem 1rem;
+  margin-top: 1rem; padding: .75rem 1rem; background: #0e1f18; border-top: 1px solid #2f4a3d;
+  box-shadow: 0 -6px 12px rgba(0,0,0,.25); }
+.cf-save-bar small { flex-basis: 100%; color: #b9cbc1; }
+.cf-save-state { font-weight: 600; }
+@media (max-width: 640px) { .cf-save-bar .cf-workspace-primary { flex: 1 1 100%; } }
