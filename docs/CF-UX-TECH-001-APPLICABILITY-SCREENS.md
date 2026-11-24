@@ -19,7 +19,12 @@ A seção **Analisar** misturava duas funções: mostrar a situação do projeto
 ## Limites conhecidos
 - Pendências de preenchimento levam direto à tela que as resolve: declaração ausente, acesso indefinido, configuração pendente, triagem alterada e rede fechada → `rede`; comprovante de contrato ou divulgação → `direitos`. Os rótulos viram "Abrir acesso à rede" e "Abrir direitos do projeto". Itens de espera (revisão, fonte, lacuna de datas, dependência de direitos) e as lacunas de dados iniciais seguem como antes (`analisar`/`preparar`), pois não há campo a preencher ou a tela depende de outro módulo. O backend só altera o destino e o rótulo: estado, grupo e regra não mudam.
 - A proteção contra resposta antiga da lista de pendências continua no componente, mas o cenário "salvar com a lista aberta" deixou de existir na interface.
-- Outros textos de ajuda da aplicabilidade e o vocabulário de "não informado" (cinco variações) não foram unificados aqui.
 
 ## Testes
 `open-applicability.test.mjs` (três telas, leitura sem formulário), `usability-t17.test.mjs`, `project-technical.test.mjs` e os dois roteiros com backend real (`requirements-journey*.integration.mjs`) foram ajustados; `ProjectJourneyCompassIntegrationTest` valida `rede` e `direitos` no ponto de retomada. Os testes de navegador rodam no CI.
+
+## Vocabulário e avisos (fatia seguinte)
+- **Não respondido** é sempre "Não informado" nos campos da declaração (antes: "Ainda não sei", "Ainda não escolhido", "Ainda não foi informado"). **Declarado como incerto** é "A confirmar" (antes, na dupla reivindicação, "Não avaliado"). Os valores gravados (`''`, `NOT_DECLARED`, `UNKNOWN`) não mudam.
+- Datas registradas sem prova: "sem prova admitida" (antes "referência não admitida").
+- "PP jurídico" passa a "proponente do projeto (PP)".
+- **Um aviso permanente** no cabeçalho da preparação técnica ("nada nesta área aprova metodologia, fonte, cálculo ou crédito; essa decisão é da Verra e da VVB") substitui as frases equivalentes do painel de trabalho e da lista de pendências. Avisos específicos de cada tela (evidência, quantificação, declaração) permanecem.
