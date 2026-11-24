@@ -12,6 +12,10 @@ type PlannedMetric={source:string;responsible:string;procedure:string};
 type ExAnteOption=PlanLink&{plan:Record<Metric,PlannedMetric>&{rationale:string}};
 type SourceMetadata={sourceId:string;edition:string;title:string;referenceYear:number|null};
 type ReviewReferences={fleetSnapshotId:string;ratingSnapshotId:string;fuelCandidateId:string}&Record<Metric,SourceMetadata[]>;
+type TemporalWindow={yearFrom:string;yearUntil:string;periodFrom:string;periodUntil:string;reviewedOn:string};
+type TemporalInput={updatedOn:string;validFrom:string;validUntil:string;evidenceLocator:string};
+type TemporalItem={evidence:TemporalInput&{metric:string};referenceSha256:string};
+const emptyTemporal=():TemporalInput=>({updatedOn:'',validFrom:'',validUntil:'',evidenceLocator:''});
 type Assessment={id:string;projectId:string;projectYear:number;sourceYear:number;version:number;
   period:string;fleetSelectionId:string;fuelPinId:string;frequency:string;basis:string;
   rationale:string|null;state:string;assessmentSha256:string;candidate:string|null;stale:boolean;
@@ -19,7 +23,9 @@ type Assessment={id:string;projectId:string;projectYear:number;sourceYear:number
     evidenceLocator:string|null;reason:string|null;reviewedAt:string;
     initialContext?:{followupOn:string;planSha256:string;plan:InitialPlan|null;exAntePlan?:PlanLink|null}|null}|null;
   initialLinkState?:string|null;exAnteOption?:ExAnteOption|null;reviewReferences?:ReviewReferences|null;
-  annualEvidence:{priorAssessmentId:string|null;evidenceSha256:string|null;state:string;policy:string}|null};
+  temporalWindow?:TemporalWindow|null;
+  annualEvidence:{priorAssessmentId:string|null;evidenceSha256:string|null;state:string;policy:string;
+    window?:TemporalWindow|null;temporalItems?:TemporalItem[]}|null};
 
 @Component({selector:'carbonflow-open-ir-assessments',standalone:true,
   templateUrl:'./open-ir-assessments.html'})
@@ -49,6 +55,7 @@ export class OpenIrAssessmentsComponent implements OnChanges,OnDestroy {
   reason='';
   initialPlan:InitialPlan={evr:'',afec:'',mpg:'',fuel:''};
   initialDecision:InitialPlan={evr:'',afec:'',mpg:'',fuel:''};
+  temporal:Record<Metric,TemporalInput>={evr:emptyTemporal(),afec:emptyTemporal(),mpg:emptyTemporal(),fuel:emptyTemporal()};
   readonly metrics:{key:Metric;label:string}[]=[{key:'evr',label:'EVR'},{key:'afec',label:'AFEC'},{key:'mpg',label:'MPG'},{key:'fuel',label:'EFfuel'}];
   actualReference(row:Assessment,key:Metric){return key==='evr'?row.reviewReferences?.fleetSnapshotId:key==='fuel'?row.reviewReferences?.fuelCandidateId:row.reviewReferences?.ratingSnapshotId;}
 
@@ -65,6 +72,7 @@ export class OpenIrAssessmentsComponent implements OnChanges,OnDestroy {
     this.reviewId='';this.outcome='';this.annualBasis='';this.priorId='';this.locator='';this.reason='';
     this.initialPlan={evr:'',afec:'',mpg:'',fuel:''};
     this.initialDecision={evr:'',afec:'',mpg:'',fuel:''};
+    this.temporal={evr:emptyTemporal(),afec:emptyTemporal(),mpg:emptyTemporal(),fuel:emptyTemporal()};
   }
   private root(project=this.selectedProject){
     const id=encodeURIComponent(project);
@@ -125,12 +133,19 @@ export class OpenIrAssessmentsComponent implements OnChanges,OnDestroy {
   priors(row:Assessment){return this.rows().filter(p=>p.id!==row.id&&!p.stale&&
     p.projectYear===row.projectYear-1&&p.sourceYear===row.sourceYear-1&&p.frequency==='ANNUAL'&&
     p.basis==='PROJECT_SPECIFIC'&&(p.projectYear===1?p.initialLinkState==='LINKED_CURRENT':
-      (!p.review||p.review.outcome==='CHECKED_INTERNAL')));}
+      p.annualEvidence?.state==='CONSECUTIVE_REFERENCES_NOT_ADMITTED'));
+  }
+  temporalValid(row:Assessment){
+    const w=row.temporalWindow;if(!w)return false;
+    return this.metrics.every(({key})=>{const e=this.temporal[key];return !!e.updatedOn&&!!e.validFrom&&!!e.validUntil&&
+      e.updatedOn>=w.yearFrom&&e.updatedOn<w.yearUntil&&e.updatedOn<=w.reviewedOn&&
+      e.validFrom<e.validUntil&&e.validFrom<=w.periodFrom&&e.validUntil>=w.periodUntil&&
+      e.evidenceLocator.trim().length>=3&&e.evidenceLocator.trim().length<=2000;});}
   reviewValid(row:Assessment){
     return this.canReview(row)&&!this.busy()&&!!this.outcome&&!!this.annualBasis&&
       this.locator.trim().length>=3&&this.reason.trim().length>=15&&
       (this.outcome!=='CHECKED_INTERNAL'||(row.projectYear>1&&row.state==='PENDING_REVIEW'&&this.annualBasis==='OBSERVED_UPDATE'&&
-        this.priors(row).some(p=>p.id===this.priorId)))&&
+        this.priors(row).some(p=>p.id===this.priorId)&&this.temporalValid(row)))&&
       (this.outcome!=='INITIAL_BASELINE_CHECKED'||(row.projectYear===1&&row.state==='PENDING_REVIEW'&&this.annualBasis==='PLAN_ONLY'&&
         !!row.exAnteOption&&!!row.reviewReferences&&this.metrics.every(({key})=>
           !!row.reviewReferences?.[key]?.length&&
@@ -153,6 +168,8 @@ export class OpenIrAssessmentsComponent implements OnChanges,OnDestroy {
       assessmentSha256:row.assessmentSha256,outcome:this.outcome,annualUpdateBasis:this.annualBasis,
       evidenceLocator:this.locator.trim(),reason:this.reason.trim(),
       priorAssessmentId:this.outcome==='CHECKED_INTERNAL'?this.priorId:null,
+      ...(this.outcome==='CHECKED_INTERNAL'?{temporalEvidence:this.metrics.map(({key})=>({metric:key==='fuel'?'EF_FUEL':key.toUpperCase(),
+        ...this.temporal[key],evidenceLocator:this.temporal[key].evidenceLocator.trim()}))}:{}),
       ...(this.outcome==='INITIAL_BASELINE_CHECKED'&&row.exAnteOption?{
         initialPlan:Object.fromEntries(this.metrics.map(({key})=>[key,this.initialDecision[key]+': '+this.initialPlan[key].trim()])),
         exAntePlanId:row.exAnteOption.id,exAntePlanVersion:row.exAnteOption.version,exAntePlanSha256:row.exAnteOption.sha256}:{})
@@ -183,6 +200,7 @@ export class OpenIrAssessmentsComponent implements OnChanges,OnDestroy {
       ANNUAL_EVIDENCE_RECHECK_REQUIRED:'Prova anual requer rechecagem',
       CONSECUTIVE_REFERENCES_NOT_ADMITTED:'Referências consecutivas — não admitidas',
       LEGACY_EVIDENCE_MISSING:'Parecer anterior sem vínculo anual',
+      TEMPORAL_EVIDENCE_MISSING:'Parecer anterior sem evidências datadas',
       STALE_EVIDENCE_NOT_ADMITTED:'Prova anual obsoleta',
       ANNUAL:'Anual',NON_ANNUAL:'Não anual',UNKNOWN:'Indeterminada',
       PROJECT_SPECIFIC:'Dados específicos do projeto',DEFAULT_VALUES:'Valores padrão',
