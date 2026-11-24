@@ -193,6 +193,7 @@
         Registrar tentativa de cálculo</button>
     }
     <button type="button" class="cf-workspace-outline" [disabled]="recording()" (click)="load()">Atualizar diagnóstico</button>
+    <carbonflow-open-e8-annual [projectId]="projectId" [refreshKey]="latestRun()?.id ?? ''" />
   }
   <ng-template #gateDetail let-gate="gate" let-title="title">
     <strong>{{title}} · {{stateLabel(gate.state)}}</strong>

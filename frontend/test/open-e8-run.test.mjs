@@ -14,6 +14,7 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
     let posted = null;
     let secondPeriodMatch = null;
     let showRehearsal = false;
+    const annualYears = [];
     const rehearsal = {
       id:'30000000-0000-4000-8000-000000000098',
       projectId:project, period:'M1', version:2, state:'REVIEWED_INTERNAL', stale:false,
@@ -72,6 +73,22 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
     await page.route('**/v1/projects/*/technical/preliminary-dossier', route => route.fulfill({status:204}));
     await page.route('**/v1/projects/*/technical/open-applicability', route => route.fulfill({status:404}));
     await page.route('**/v1/projects/*/technical/open-parameter-bindings', route => route.fulfill({json:[]}));
+    await page.route('**/v1/projects/*/technical/open-calculation-years/*', route => {
+      const projectYear=Number(route.request().url().split('/').at(-1));
+      annualYears.push(projectYear);
+      const complete=showRehearsal&&projectYear===1;
+      return route.fulfill({json:{
+        projectId:project,projectYear,state:complete?'REVIEWED_INTERNAL':'BLOCKED',
+        windowStart:'2027-02-01T03:00:00Z',windowEndExclusive:'2028-02-01T03:00:00Z',
+        usableForE8:false,canIssueVcu:false,manifestSha256:'a'.repeat(64),
+        totals:complete?{beTco2e:'12',peTco2e:'4',leTco2e:'0',erTco2e:'5.5',erDisplay:'5.50'}:null,
+        members:[{period:'M1',runId:rehearsal.id,version:2,inputSha256:'b'.repeat(64),
+          windowStart:'2027-02-01T03:00:00Z',windowEndExclusive:'2027-08-01T03:00:00Z',
+          state:'REVIEWED_INTERNAL',stale:false}],
+        issues:complete?[]:[{code:'COVERAGE_GAP',period:'M2',from:'2027-08-01T03:00:00Z',
+          until:'2028-02-01T03:00:00Z',detail:'Falta uma janela de monitoramento neste intervalo do ano do projeto.'}],
+      }});
+    });
     await page.route('**/v1/projects/*/technical/open-calculation-readiness', route => route.fulfill({json:{
       projectId:project, environment:'SANDBOX', methodology:'VM0038', scenario:'OPEN',
       workflowState:'PREPARATION', calculationState:'BLOCKED_MISSING_DATA',
@@ -126,6 +143,9 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
     await page.getByText('Falta Estoque nacional EVR.').waitFor();
     await page.getByText('Não há BE, PE, LE nem ER. Ausência não é zero.').waitFor();
     await page.getByRole('heading', {name:'Última tentativa de cálculo · M1'}).waitFor();
+    await page.getByRole('heading', {name:'Consolidação por ano do projeto'}).waitFor();
+    await page.getByText('Total anual indisponível · ano 1', {exact:true}).waitFor();
+    await page.getByText('Referência: COVERAGE_GAP', {exact:true}).waitFor();
     await page.getByText('Outro ator, que não seja o autor dos vínculos').waitFor();
     await page.getByText('Ainda não há pino de fator fóssil, fator elétrico, IR ou Dy neste projeto.').waitFor();
     await page.getByText('fator elétrico, estoque nacional EVR e ratings PBEV').waitFor();
@@ -181,6 +201,10 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
     await page.getByText('Referência: LE', {exact:true}).waitFor();
     await page.getByText('Referência: ER', {exact:true}).waitFor();
     await page.getByText('4.05 tCO2e').waitFor();
+    await page.getByText('Ensaio interno consolidado · ano 1', {exact:true}).waitFor();
+    await page.getByText('5.50 tCO2e', {exact:true}).waitFor();
+    await page.getByText('Janelas e referências da consolidação · 1 períodos', {exact:true}).click();
+    await page.getByText('SHA-256 desta consulta:', {exact:false}).waitFor();
     assert.equal(await page.getByText('Habilitada', {exact:true}).count(), 0);
 
     await page.getByText('Emissões por hora · 2 horas · SIN', {exact:true}).click();
@@ -191,6 +215,20 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
     await page.setViewportSize({width:390,height:844});
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
     await page.setViewportSize({width:1440,height:900});
+
+    const annualYear=page.getByLabel('Ano do projeto a consolidar', {exact:true});
+    await annualYear.fill('2');
+    await page.getByRole('button', {name:'Consultar ano do projeto',exact:true}).click();
+    await page.getByText('Total anual indisponível · ano 2', {exact:true}).waitFor();
+    assert.equal(await page.getByText('5.50 tCO2e', {exact:true}).count(),0);
+    assert.ok(annualYears.includes(2));
+    await annualYear.fill('0');
+    await page.getByRole('button', {name:'Consultar ano do projeto',exact:true}).click();
+    await page.getByText('Informe um ano do projeto entre 1 e 100.', {exact:true}).waitFor();
+    assert.equal(annualYears.includes(0),false);
+    await annualYear.fill('1');
+    await page.getByRole('button', {name:'Consultar ano do projeto',exact:true}).click();
+    await page.getByText('Ensaio interno consolidado · ano 1', {exact:true}).waitFor();
 
     const period = page.getByLabel('Período de monitoramento', {exact:true});
     await period.selectOption('M2');

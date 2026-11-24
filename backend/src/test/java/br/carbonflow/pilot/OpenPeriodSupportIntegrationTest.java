@@ -521,6 +521,22 @@ class OpenPeriodSupportIntegrationTest {
         assertEquals(200,postMethod(runs,preparer.cookie(),rehearsalKey,"\"1\"","{}").statusCode());
         assertFalse(rehearsal.toString().contains("EF-SYN"));
         assertFalse(rehearsal.toString().contains("SIM-DY"));
+        String annualUrl=technical+"/open-calculation-years/1";
+        var annualResponse=call("GET",annualUrl,preparer.cookie(),null,null);
+        assertEquals(200,annualResponse.statusCode(),annualResponse.body());
+        assertTrue(annualResponse.headers().firstValue("Cache-Control").orElseThrow().contains("no-store"));
+        JsonNode annual=json(annualResponse);
+        assertEquals("BLOCKED",annual.path("state").asText());
+        assertTrue(annual.path("totals").isNull(),"Two measured hours do not cover a project year");
+        assertEquals(1,annual.path("members").size(),"Only the latest version of M1 is selected");
+        assertEquals(rehearsal.path("id"),annual.at("/members/0/runId"));
+        assertEquals("2.75",annual.at("/members/0/totals/erTco2e").asText());
+        assertTrue(annual.path("issues").toString().contains("COVERAGE_GAP"));
+        assertFalse(annual.path("usableForE8").asBoolean());
+        assertFalse(annual.path("canIssueVcu").asBoolean());
+        assertEquals(annual,json(call("GET",annualUrl,preparer.cookie(),null,null)));
+        assertEquals(404,call("GET",annualUrl,op.cookie(),null,null).statusCode());
+        assertEquals(404,call("GET",annualUrl,outside.cookie(),null,null).statusCode());
         JsonNode stillBlocked=json(call("GET",technical+"/open-calculation-readiness",
             owner.cookie(),null,null));
         assertFalse(stillBlocked.path("canRunE8").asBoolean());
@@ -583,6 +599,7 @@ class OpenPeriodSupportIntegrationTest {
 
         String runDetail=runs+"/"+rehearsal.path("id").asText();
         addIrPin(project,org,staffManager.id(),2028,3);
+        assertEquals(annual,json(call("GET",annualUrl,owner.cookie(),null,null)));
         assertEquals(rehearsal,json(call("GET",runDetail,owner.cookie(),null,null)),
             "Publishing an IR for a different year must not stale the run");
         addIrPin(project,org,staffManager.id(),2027,2);
@@ -590,6 +607,11 @@ class OpenPeriodSupportIntegrationTest {
         assertEquals("STALE",old.path("state").asText());
         assertEquals(rehearsal.path("timing"),old.path("timing"));
         assertEquals(rehearsal.path("memory"),old.path("memory"));
+        JsonNode annualStale=json(call("GET",annualUrl,owner.cookie(),null,null));
+        assertTrue(annualStale.path("totals").isNull());
+        assertTrue(annualStale.path("issues").toString().contains("RUN_STALE"));
+        assertNotEquals(annual.path("manifestSha256"),annualStale.path("manifestSha256"));
+        assertEquals(annual.at("/members/0/totals"),annualStale.at("/members/0/totals"));
         var replay=postMethod(runs,preparer.cookie(),rehearsalKey,"\"1\"","{}");
         assertEquals(200,replay.statusCode(),replay.body());
         assertEquals(old,json(replay));
