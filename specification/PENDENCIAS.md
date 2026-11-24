@@ -17,10 +17,10 @@ Fonte verificável: [E8-013 — pendências e efeito no backlog](../evidencias/e
 | ID | Lacuna | Próxima ação | Issue dona |
 |---|---|---|---|
 | CF-SPEC-G01 | Kit original ausente | Recuperar ZIP, conferir manifesto, mapear IDs e divergências | Governança documental |
-| CF-SPEC-G02 | CI #573 Quarkus não executado (HTTP 429) | Reexecutar testes completos e registrar log | #96/#97 |
+| CF-SPEC-G02 | CI #573 Quarkus não executado (HTTP 429) | **Superada pela evidência de CI** (Quarkus verde na main nos merges #242/#243); manter registro histórico | #96/#97 |
 | CF-SPEC-G03 | EVR nacional e comparáveis não admitidos | Avaliar cobertura, classificação, fonte e licença | #92/#94/#95 |
 | CF-SPEC-G04 | EFfuel/EFel SIN e Dy não plenamente admitidos | Resolver regra, dados, unidades, vigência, provas e integração | #96/#97 |
-| CF-SPEC-G05 | IR por período; ano 1 e homologação | Reuso intra-ano seguro; tratar primeiro ano; E2E com dados canônicos e revogação | #96/#97/#101 |
+| CF-SPEC-G05 | IR: ano 1/ex ante e homologação | Reuso intra-ano implementado (D12); tratar primeiro ano; E2E com dados canônicos de dois períodos, reexecução e revogação | #96/#97/#101 |
 | CF-SPEC-G06 | ED/EC real e alternativa de eficiência DCFC | Evidenciar amostra, QA, origem e rota derivada | #98/#101 |
 | CF-SPEC-G07 | PD/MR interno completo e atos | Projeção, autoria, exportação e manifesto, sem alegar aprovação | #43/#122/#128 |
 | CF-SPEC-G08 | Papéis, UX, autorização e jornada real | Confrontar gates e usuários representativos | #13/#19/#24/#124/#101 |

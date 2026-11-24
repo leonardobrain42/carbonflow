@@ -483,8 +483,16 @@ class OpenIrAssessments {
         AnnualEvidence annual=annualEvidence(c,row,review,false);
         boolean checked=review!=null && "CHECKED_INTERNAL".equals(review.outcome());
         boolean proof=annual!=null && "CONSECUTIVE_REFERENCES_NOT_ADMITTED".equals(annual.state());
-        boolean matches=period.equals(row.period()) && Objects.equals(fleet,row.fleet())
+        boolean exact=period.equals(row.period()) && Objects.equals(fleet,row.fleet())
             && Objects.equals(fuel,row.fuel()) && timing.fingerprint().equals(row.timingSha());
+        boolean matches=exact;
+        OpenIrIntraYearReuse.Span reusedSpan=null;
+        if(!exact && !period.equals(row.period()) && year>1 && checked && proof) {
+            var reuse=intraYearReuse(c,row,annual,period,fleet,fuel,timing);
+            matches=reuse!=OpenIrIntraYearReuse.Outcome.REFERENCE_MISMATCH;
+            proof=reuse==OpenIrIntraYearReuse.Outcome.REUSABLE;
+            if(proof) reusedSpan=periodSpan(timing);
+        }
         String state=OpenE8IrContext.classify(year,source,resolved,true,stale(c,row),matches,
             checked,proof,"1".equals(row.candidate()));
         UUID author=first(c,"SELECT author_id FROM app_open_ir_assessment WHERE id=?",
@@ -493,8 +501,46 @@ class OpenIrAssessments {
             r->r.getString(1),row.id());
         String linkState=initialLinkState(c,row,review);
         if(linkState!=null) reviewSha=digest("OPEN-IR-INITIAL-LINK-STATE@1",reviewSha,linkState);
+        if(reusedSpan!=null && OpenE8IrContext.CHECKED.equals(state))
+            reviewSha=OpenIrIntraYearReuse.marker(reviewSha,row.period(),reusedSpan,row.id(),row.sha());
         return OpenE8IrContext.of(project,period,year,source,row.id(),row.version(),row.sha(),state,
             reviewSha,annual==null?null:annual.evidenceSha256(),author,review==null?null:review.reviewerId());
+    }
+
+    /** Compares the period asked by a run with the assessed period using canonical references, never row ids. */
+    private static OpenIrIntraYearReuse.Outcome intraYearReuse(Connection c,Stored row,AnnualEvidence annual,
+            String period,UUID fleet,UUID fuel,OpenE8Timing.Context timing) throws SQLException {
+        Refs target=references(c,row.project(),period);
+        if(target==null || target.triage()!=row.triage() || !Objects.equals(fleet,target.fleet().id())
+           || !Objects.equals(fuel,target.fuel().id()) || fleet==null || fuel==null)
+            return OpenIrIntraYearReuse.Outcome.REFERENCE_MISMATCH;
+        var assessed=canonical(c,row.project(),row.fleet(),row.fuel(),row.sourceYear());
+        var requested=canonical(c,row.project(),fleet,fuel,row.sourceYear());
+        return OpenIrIntraYearReuse.decide(
+            new OpenIrIntraYearReuse.Subject(row.year(),row.sourceYear(),assessed,null),
+            new OpenIrIntraYearReuse.Subject(timing.year().projectYear(),timing.year().sourceYear(),requested,periodSpan(timing)),
+            annual.window(),annual.temporalItems().stream().toList());
+    }
+
+    private static OpenIrIntraYearReuse.Span periodSpan(OpenE8Timing.Context timing) {
+        if(timing==null || timing.window()==null) return null;
+        var w=timing.window();
+        // Same local-day convention as the temporal evidence window: last touched day plus one, exclusive.
+        return new OpenIrIntraYearReuse.Span(w.from().atZoneSameInstant(VintageWindows.ZONE).toLocalDate(),
+            w.until().toInstant().minusNanos(1).atZone(VintageWindows.ZONE).toLocalDate().plusDays(1));
+    }
+
+    private static OpenIrIntraYearReuse.Canonical canonical(Connection c,String project,UUID fleet,UUID fuel,
+            int sourceYear) throws SQLException {
+        if(fleet==null || fuel==null) return null;
+        return first(c,"""
+            SELECT f.fleet_snapshot_id,f.rating_snapshot_id,b.candidate_id,f.cycle
+            FROM app_open_e8_fleet_selection f
+            JOIN app_open_project_parameter_binding b ON b.project_id=f.project_id
+            WHERE f.project_id=? AND f.id=? AND b.id=? AND b.parameter_kind='EF_FUEL'
+                AND f.observation_year=? AND b.vintage_year=?
+            """,r->new OpenIrIntraYearReuse.Canonical(r.getObject(1,UUID.class),r.getObject(2,UUID.class),
+                r.getObject(3,UUID.class),r.getString(4)),project,fleet,fuel,sourceYear,sourceYear);
     }
 
     private static boolean stale(Connection c,Stored row) throws SQLException {

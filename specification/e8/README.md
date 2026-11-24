@@ -3,8 +3,8 @@ A [issue #89](https://github.com/leonardobrain42/carbonflow/issues/89) é a epic
 
 | Prioridade | Próxima fatia | Dono | Critério de passagem |
 |---|---|---|---|
-| P0 imediata | Revalidar #242 Quarkus após HTTP 429 | #96/#97 | Suite completa executada; registrar resultado e corrigir falha real se houver |
-| P0.1 | IR intra-ano: reuso de avaliação anual entre períodos compatíveis | #96/#97/#98 | Mesmo ano relativo e da fonte, mesmas referências canônicas, janela integralmente coberta, vínculo atual; divergiu/expirou → bloquear; hash e memória históricos preservados |
+| P0 imediata (cumprida) | Revalidar #242 Quarkus após HTTP 429 | #96/#97 | Concluída: Quarkus/PostgreSQL verde na main nos merges #242 e #243 (ver [estado](../ESTADO_DO_TRABALHO.md)) |
+| P0.1 (implementada em PR; aceite integrado pendente) | IR intra-ano: reuso de avaliação anual entre períodos compatíveis | #96/#97/#98 | Mesmo ano relativo e da fonte, mesmas referências canônicas, janela integralmente coberta, vínculo atual; divergiu/expirou → bloquear; hash e memória históricos preservados. Contrato: [CF-OPEN-007-IR-INTRA-YEAR-REUSE](../../docs/CF-OPEN-007-IR-INTRA-YEAR-REUSE.md). Falta teste integrado com dois períodos e dados canônicos |
 | P0.1/P0.2 | Primeiro ano/ex ante e prova documental de IR | #96/#97 | Caminho fundamentado e separado de monitoramento; não deduzir candidato pelo expoente zero |
 | P0.2 | Admissão de EVR, ratings, EFfuel/EFel, ED/EC | #92/#94/#95/#96/#98 | Evidência real, unidade/ciclo/vintage, cobertura/licença e parecer pelo escopo; lacuna explícita |
 | P0.3 | Dy ERC/ERF, janela anterior, nacional DCFC, exceções e consumo estruturado no E8 | #96/#97 | Pesquisa inconclusiva bloqueia; prova de valores e regra; integração versionada |

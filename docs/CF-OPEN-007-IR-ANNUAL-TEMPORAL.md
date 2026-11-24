@@ -16,3 +16,5 @@ As datas são declarações documentais examinadas pelo revisor independente da 
 Núcleo temporal: datas futuras, fronteiras do ano, lacunas, duplicatas, ordenação e hash; V96 FK/trigger, fixture histórica V79 e navegador simulado com parecer inicial e atualização anual. A homologação positiva com dados canônicos de dois anos, reexecução e revogação ainda precisa de teste integrado específico.
 
 Próxima fatia: compartilhar a avaliação anual entre períodos compatíveis, distinguindo janela anual, ano da fonte, referências canônicas e vigência de cada período. Não reutilizar prova quando houver lacuna ou divergência de referência.
+
+> Atualização: o compartilhamento entre períodos compatíveis foi tratado em [CF-OPEN-007-IR-INTRA-YEAR-REUSE](CF-OPEN-007-IR-INTRA-YEAR-REUSE.md).
