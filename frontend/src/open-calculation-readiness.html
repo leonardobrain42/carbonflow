@@ -55,17 +55,6 @@
       Valores ausentes não são emissões iguais a zero.</p>
     <h4>Como os resultados serão obtidos</h4>
     <p>Estas são as operações previstas na VM0038 v1.1.
-      @if (run.irContext; as ir) {
-        <details class="cf-journey-context">
-          <summary>Referência de IR congelada na tentativa · {{stateLabel(ir.state)}}</summary>
-          @if (ir.assessmentId) {
-            <p>Versão {{ir.version}} · <code>{{ir.assessmentId}}</code></p>
-            <p class="energy-hash">SHA-256 da avaliação: {{ir.assessmentSha256}}</p>
-          } @else { <p>Sem avaliação selecionada.</p> }
-          <p class="energy-hash">SHA-256 do contexto: {{ir.contextSha256}}</p>
-          <p>Estado no registro, não admissão normativa nem situação atual.</p>
-        </details>
-      } @else { <p>Esta tentativa não apresenta contexto estruturado de IR.</p> }
       @if (rehearsal()) {
         <strong>A memória acima é o ensaio interno.</strong>
         As operações continuam sem admissão normativa.
@@ -235,6 +224,17 @@
             : 'Não calculados'}}</dd></div>
         <div><dt>Emissão de créditos</dt><dd>{{run.canIssueVcu?'Habilitada':'Não habilitada'}}</dd></div>
       </dl>
+      @if (run.irContext; as ir) {
+        <details class="cf-journey-context">
+          <summary>Referência de IR congelada na tentativa · {{stateLabel(ir.state)}}</summary>
+          @if (ir.assessmentId) {
+            <p>Versão {{ir.version}} · <code>{{ir.assessmentId}}</code></p>
+            <p class="energy-hash">SHA-256 da avaliação: {{ir.assessmentSha256}}</p>
+          } @else { <p>Sem avaliação selecionada.</p> }
+          <p class="energy-hash">SHA-256 do contexto: {{ir.contextSha256}}</p>
+          <p>Estado no registro, não admissão normativa nem situação atual.</p>
+        </details>
+      } @else { <p>Esta tentativa não apresenta contexto estruturado de IR.</p> }
       @if (rehearsal()) {
         <p>Os números estão na memória do ensaio interno, no topo desta página.
           Não é admissão normativa nem emissão de crédito.</p>
