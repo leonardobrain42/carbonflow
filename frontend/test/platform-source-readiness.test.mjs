@@ -102,6 +102,7 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
     const plannedMetric={source:'Fonte prevista',responsible:'Equipe técnica',procedure:'Revisar fontes anualmente'};
     const exAnteOption={id:'ex-ante-plan',version:3,sha256:'d'.repeat(64),plan:{evr:plannedMetric,afec:plannedMetric,mpg:plannedMetric,fuel:plannedMetric,rationale:'Plano ex ante para o primeiro ano'}};
     const actualSource=[{sourceId:'actual-source',edition:'2035',title:'Fonte efetiva sintética',referenceYear:2035}];
+    const temporalWindow={yearFrom:'2036-01-01',yearUntil:'2037-01-01',periodFrom:'2036-02-01',periodUntil:'2036-03-01',reviewedOn:'2036-07-01'};
     let irRows=[{id:'ir-prior',projectId:irProject,projectYear:1,sourceYear:2035,version:1,
       period:'M1',fleetSelectionId:'fleet-prior',fuelPinId:'fuel-prior',frequency:'ANNUAL',
       basis:'PROJECT_SPECIFIC',rationale:'Referência anual anterior',state:'PENDING_REVIEW',
@@ -117,7 +118,7 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
       if(r.request().method()==='GET')return r.fulfill({json:irRows});
       irPost={body:r.request().postDataJSON(),match:r.request().headers()['if-match']};
       const saved={...irRows[0],...irPost.body,id:'ir-current',projectYear:2,sourceYear:2036,
-        fleetSelectionId:'fleet-current',fuelPinId:'fuel-current',assessmentSha256:'b'.repeat(64)};
+        fleetSelectionId:'fleet-current',fuelPinId:'fuel-current',assessmentSha256:'b'.repeat(64),temporalWindow};
       irRows=[saved,...irRows];return r.fulfill({status:201,json:saved});
     });
     let initialReview=null;
@@ -133,9 +134,10 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
     await page.route('**'+irRoot+'/ir-current/review',async r=>{
       irReview={body:r.request().postDataJSON(),match:r.request().headers()['if-match']};
       const saved={...irRows[0],state:'CHECKED_INTERNAL_NOT_ADMITTED',
-        review:{...irReview.body,reviewedAt:'2036-01-01T00:00:00Z'},
+        review:{...irReview.body,reviewedAt:'2036-07-01T00:00:00Z'},
         annualEvidence:{priorAssessmentId:'ir-prior',evidenceSha256:'c'.repeat(64),
-          state:'CONSECUTIVE_REFERENCES_NOT_ADMITTED',policy:'OPEN-IR-ANNUAL-EVIDENCE@1'}};
+          state:'CONSECUTIVE_REFERENCES_NOT_ADMITTED',policy:'OPEN-IR-ANNUAL-EVIDENCE@1',window:temporalWindow,
+          temporalItems:irReview.body.temporalEvidence.map(evidence=>({evidence,referenceSha256:'f'.repeat(64)}))}};
       irRows=[saved,...irRows.slice(1)];return r.fulfill({status:201,json:saved});
     });
     await page.getByRole('button', {name:'Pinos do projeto'}).click();
@@ -198,11 +200,24 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
     await current.getByLabel('Fundamentação do parecer').fill('Conferência de dois conjuntos anuais consecutivos.');
     assert.equal(await current.getByRole('button',{name:'Registrar parecer de IR'}).isDisabled(),true);
     await current.getByLabel('Avaliação do ano anterior').selectOption('ir-prior');
-    await current.getByRole('button',{name:'Registrar parecer de IR'}).click();
+    const annualSubmit=current.getByRole('button',{name:'Registrar parecer de IR'});
+    assert.equal(await annualSubmit.isDisabled(),true);
+    for(const label of ['EVR','AFEC','MPG','EFfuel']){
+      await current.getByLabel('Data de atualização '+label,{exact:true}).fill('2036-02-15');
+      await current.getByLabel('Vigência inicial '+label,{exact:true}).fill('2036-01-01');
+      await current.getByLabel('Vigência final exclusiva '+label,{exact:true}).fill('2037-01-01');
+      await current.getByLabel('Localizador da atualização '+label,{exact:true}).fill('DOC-'+label);
+    }
+    await current.getByLabel('Data de atualização EVR',{exact:true}).fill('2036-08-01');
+    assert.equal(await annualSubmit.isDisabled(),true);
+    await current.getByLabel('Data de atualização EVR',{exact:true}).fill('2036-02-15');
+    await annualSubmit.click();
     await irPanel.getByText('Continuidade anual: Referências consecutivas — não admitidas.').waitFor();
     assert.equal(irReview.match,'"1"');
     assert.equal(irReview.body.priorAssessmentId,'ir-prior');
     assert.equal(irReview.body.assessmentSha256,'b'.repeat(64));
+    assert.deepEqual(irReview.body.temporalEvidence.map(e=>e.metric),['EVR','AFEC','MPG','EF_FUEL']);
+    assert.equal(irReview.body.temporalEvidence[0].updatedOn,'2036-02-15');
     const dyProject='20000000-0000-4000-8000-000000000097';
     let dyRows=[];
     let dyPost=null;

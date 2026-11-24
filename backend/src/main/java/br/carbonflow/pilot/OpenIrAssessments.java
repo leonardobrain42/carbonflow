@@ -30,7 +30,8 @@ class OpenIrAssessments {
     record Input(String period, String frequency, String basis, String rationale) {}
     record ReviewInput(String assessmentSha256, String outcome, String annualUpdateBasis,
                        String evidenceLocator, String reason, UUID priorAssessmentId, InitialPlan initialPlan,
-                       UUID exAntePlanId, Integer exAntePlanVersion, String exAntePlanSha256) {}
+                       UUID exAntePlanId, Integer exAntePlanVersion, String exAntePlanSha256,
+                       List<OpenIrAnnualTemporalEvidence.Input> temporalEvidence) {}
     record InitialPlan(String evr, String afec, String mpg, String fuel) {
         InitialPlan validated() {
             return new InitialPlan(OpenDyAssessmentRules.text(evr,15,2000),
@@ -46,12 +47,14 @@ class OpenIrAssessments {
     record Review(UUID reviewerId, String outcome, String assessmentSha256, String ruleReference,
                   String annualUpdateBasis, String evidenceLocator, String reason, OffsetDateTime reviewedAt,
                   InitialContext initialContext) {}
-    record AnnualEvidence(UUID priorAssessmentId, String evidenceSha256, String state, String policy) {}
+    record AnnualEvidence(UUID priorAssessmentId, String evidenceSha256, String state, String policy,
+                          OpenIrAnnualTemporalEvidence.Window window,List<OpenIrAnnualTemporalEvidence.Item> temporalItems) {}
     record View(UUID id, String projectId, int projectYear, int sourceYear, int version,
                 String period, UUID fleetSelectionId, UUID fuelPinId, String frequency,
                 String basis, String rationale, String state, String assessmentSha256,
                 String candidate, boolean stale, boolean usableForE8, OffsetDateTime recordedAt, Review review, AnnualEvidence annualEvidence,
-                String initialLinkState, OpenIrExAntePlans.ReviewTarget exAnteOption, ReviewReferences reviewReferences) {}
+                String initialLinkState, OpenIrExAntePlans.ReviewTarget exAnteOption, ReviewReferences reviewReferences,
+                OpenIrAnnualTemporalEvidence.Window temporalWindow) {}
     record Result(View view, boolean created) {}
     record ProjectOption(String projectId,String title) {}
     record Options(boolean canRecord,boolean canReview,List<ProjectOption> projects) {}
@@ -265,6 +268,8 @@ class OpenIrAssessments {
             String locator,reason;
             boolean initial="INITIAL_BASELINE_CHECKED".equals(input.outcome());
             InitialPlan plan;
+            boolean annualCheck="CHECKED_INTERNAL".equals(input.outcome());
+            List<OpenIrAnnualTemporalEvidence.Input> temporalInputs;
             boolean legacyInitial=initial && input.exAntePlanId()==null && input.exAntePlanVersion()==null && input.exAntePlanSha256()==null;
             try {
                 OpenIrReviewRules.validate(input.outcome(),input.annualUpdateBasis(),row.state(),row.year());
@@ -279,6 +284,9 @@ class OpenIrAssessments {
                     OpenIrHandoffRules.note(plan.evr()); OpenIrHandoffRules.note(plan.afec());
                     OpenIrHandoffRules.note(plan.mpg()); OpenIrHandoffRules.note(plan.fuel());
                 }
+                if(!annualCheck && input.temporalEvidence()!=null)
+                    throw new IllegalArgumentException("Evidência temporal é reservada à atualização anual observada.");
+                temporalInputs=input.temporalEvidence()==null?null:OpenIrAnnualTemporalEvidence.normalized(input.temporalEvidence());
                 locator=OpenDyAssessmentRules.text(input.evidenceLocator(),3,2000);
                 reason=OpenDyAssessmentRules.text(input.reason(),15,2500);
             } catch(IllegalArgumentException e) { throw invalid(e.getMessage()); }
@@ -289,6 +297,8 @@ class OpenIrAssessments {
             if(legacyInitial) fingerprint=digest("OPEN-IR-INITIAL-PLAN@1",fingerprint,plan.evr(),plan.afec(),plan.mpg(),plan.fuel());
             else if(plan!=null) fingerprint=digest("OPEN-IR-INITIAL-HANDOFF@1",fingerprint,plan.evr(),plan.afec(),plan.mpg(),plan.fuel(),
                 input.exAntePlanId(),input.exAntePlanVersion(),input.exAntePlanSha256());
+            if(temporalInputs!=null) fingerprint=digest("OPEN-IR-REVIEW-TEMPORAL@1",fingerprint,
+                OpenIrAnnualTemporalEvidence.commandDigest(temporalInputs));
             Object[] replay=first(c,"""
                 SELECT assessment_id,encode(command_sha256,'hex') FROM app_open_ir_review
                 WHERE reviewer_id=? AND command_key=?
@@ -299,6 +309,7 @@ class OpenIrAssessments {
                 return new Result(view(c,row,true),false);
             }
             if(legacyInitial) throw invalid("Selecione a versão e o hash do plano ex ante vigente.");
+            if(annualCheck && temporalInputs==null)throw invalid("Informe as evidências temporais dos quatro parâmetros.");
             Integer latest=first(c,"""
                 SELECT max(version) FROM app_open_ir_assessment
                 WHERE project_id=? AND project_year=? AND source_year=?
@@ -306,7 +317,9 @@ class OpenIrAssessments {
             PilotCommands.requireVersion(expected,latest);
             if(view(c,row,true).stale()) throw conflict("Avaliação desatualizada. Registre nova versão.");
             if(readReview(c,assessment,true)!=null) throw conflict("Já existe parecer nesta versão.");
+            OffsetDateTime reviewedAt=first(c,"SELECT statement_timestamp()",r->r.getObject(1,OffsetDateTime.class));
             OpenIrAnnualEvidence.Proof proof=null;
+            OpenIrAnnualTemporalEvidence.Proof temporal=null;
             if("CHECKED_INTERNAL".equals(input.outcome())) {
                 if(input.priorAssessmentId()==null)
                     throw invalid("Selecione a avaliação canônica do ano anterior.");
@@ -314,7 +327,12 @@ class OpenIrAssessments {
                     OpenIrAssessments::stored,project,input.priorAssessmentId());
                 if(previous==null) throw hidden();
                 try {
+                    if(previous.year()>1 && !annualCurrent(c,previous))
+                        throw new IllegalArgumentException("A prova anual anterior precisa estar vigente.");
                     proof=OpenIrAnnualEvidence.capture(annualSnapshot(c,previous),annualSnapshot(c,row));
+                    if(reviewReferences(c,row)==null)
+                        throw new IllegalArgumentException("Metadados das fontes efetivas indisponíveis.");
+                    temporal=OpenIrAnnualTemporalEvidence.capture(temporalWindow(c,row,reviewedAt),proof.current(),temporalInputs);
                 } catch(IllegalArgumentException e) { throw invalid(e.getMessage()); }
             } else if(input.priorAssessmentId()!=null) {
                 throw invalid("Vínculo de atualização observada é reservado à checagem interna.");
@@ -342,14 +360,14 @@ class OpenIrAssessments {
                 (assessment_id,assessment_sha256,author_id,reviewer_id,outcome,rule_reference,
                  annual_update_basis,evidence_locator,reason,command_key,command_sha256,
                  initial_evr_plan,initial_afec_plan,initial_mpg_plan,initial_fuel_plan,initial_followup_on,initial_plan_sha256,
-                 ex_ante_project_id,ex_ante_plan_id,ex_ante_plan_version,ex_ante_plan_sha256,ex_ante_plan_author)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                 ex_ante_project_id,ex_ante_plan_id,ex_ante_plan_version,ex_ante_plan_sha256,ex_ante_plan_author,reviewed_at)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 """,assessment,bytes(row.sha()),author,actor.id(),input.outcome(),
                 OpenIrAssessment.RULE_REFERENCE,input.annualUpdateBasis(),locator,reason,
                 command,bytes(fingerprint),plan==null?null:plan.evr(),plan==null?null:plan.afec(),
                 plan==null?null:plan.mpg(),plan==null?null:plan.fuel(),followup,bytes(planSha),
                 target==null?null:project,target==null?null:target.id(),target==null?null:target.version(),
-                target==null?null:bytes(target.sha256()),target==null?null:target.author());
+                target==null?null:bytes(target.sha256()),target==null?null:target.author(),reviewedAt);
             if(proof!=null) {
                 var prior=proof.previous();
                 update(c,"""
@@ -359,8 +377,19 @@ class OpenIrAssessments {
                      evidence_sha256,policy)
                     VALUES (?,?,?,?,?,?,?,?,?,?,?)
                     """,row.id(),prior.id(),project,row.year(),row.sourceYear(),prior.projectYear(),
-                    prior.sourceYear(),bytes(row.sha()),bytes(prior.assessmentSha()),bytes(annualDigest(c,proof)), 
+                    prior.sourceYear(),bytes(row.sha()),bytes(prior.assessmentSha()),bytes(temporalDigest(c,proof,temporal)),
                     OpenIrAnnualEvidence.POLICY);
+                for(var item:temporal.items()) {
+                    var e=item.evidence();
+                    update(c,"""
+                        INSERT INTO app_open_ir_annual_temporal_evidence
+                        (assessment_id,metric,updated_on,valid_from,valid_until,evidence_locator,reference_sha256,
+                         year_from,year_until,period_from,period_until,reviewed_on)
+                        VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+                        """,row.id(),e.metric().name(),e.updatedOn(),e.validFrom(),e.validUntil(),e.evidenceLocator(),bytes(item.referenceSha256()),
+                        temporal.window().yearFrom(),temporal.window().yearUntil(),temporal.window().periodFrom(),
+                        temporal.window().periodUntil(),temporal.window().reviewedOn());
+                }
             }
             return new Result(view(c,row,true),true);
         });
@@ -451,7 +480,7 @@ class OpenIrAssessments {
             return OpenE8IrContext.of(project,period,year,source,null,null,null,state,null,null,null,null);
         }
         Review review=readReview(c,row.id(),true);
-        AnnualEvidence annual=annualEvidence(c,row,review);
+        AnnualEvidence annual=annualEvidence(c,row,review,false);
         boolean checked=review!=null && "CHECKED_INTERNAL".equals(review.outcome());
         boolean proof=annual!=null && "CONSECUTIVE_REFERENCES_NOT_ADMITTED".equals(annual.state());
         boolean matches=period.equals(row.period()) && Objects.equals(fleet,row.fleet())
@@ -497,29 +526,73 @@ class OpenIrAssessments {
             row.project(),row.fleet(),row.fuel(),row.sourceYear(),row.sourceYear());
     }
 
-    private static AnnualEvidence annualEvidence(Connection c,Stored row,Review review) throws SQLException {
+    private static OpenIrAnnualTemporalEvidence.Window temporalWindow(Connection c,Stored row,OffsetDateTime reviewedAt)throws SQLException {
+        Refs refs=references(c,row.project(),row.period());
+        if(refs==null)return null;
+        try {
+            return OpenIrAnnualTemporalEvidence.window(OpenE8Timing.calendar(c,row.project(),row.year()),refs.timing(),reviewedAt);
+        } catch(IllegalArgumentException e) {return null;}
+    }
+
+    private static String temporalDigest(Connection c,OpenIrAnnualEvidence.Proof proof,
+                                          OpenIrAnnualTemporalEvidence.Proof temporal)throws SQLException {
+        String priorDigest=proof.previous().projectYear()==1?null:first(c,"""
+            SELECT encode(evidence_sha256,'hex') FROM app_open_ir_annual_evidence WHERE assessment_id=?
+            """,r->r.getString(1),proof.previous().id());
+        return digest(OpenIrAnnualTemporalEvidence.POLICY,annualDigest(c,proof),priorDigest,temporal.digest());
+    }
+
+    private static boolean annualCurrent(Connection c,Stored row)throws SQLException {
+        AnnualEvidence prior=annualEvidence(c,row,readReview(c,row.id(),false),false);
+        return prior!=null && "CONSECUTIVE_REFERENCES_NOT_ADMITTED".equals(prior.state());
+    }
+
+    private static AnnualEvidence annualEvidence(Connection c,Stored row,Review review,boolean staff) throws SQLException {
         if(review==null || !"CHECKED_INTERNAL".equals(review.outcome())) return null;
         AnnualEvidence pin=first(c,"""
             SELECT prior_assessment_id,encode(evidence_sha256,'hex'),policy
             FROM app_open_ir_annual_evidence WHERE assessment_id=?
             """,r->new AnnualEvidence(r.getObject(1,UUID.class),r.getString(2),
-                "CONSECUTIVE_REFERENCES_NOT_ADMITTED",r.getString(3)),row.id());
-        if(pin==null) return new AnnualEvidence(null,null,"LEGACY_EVIDENCE_MISSING",OpenIrAnnualEvidence.POLICY);
+                "CONSECUTIVE_REFERENCES_NOT_ADMITTED",r.getString(3),null,List.of()),row.id());
+        if(pin==null) return new AnnualEvidence(null,null,"LEGACY_EVIDENCE_MISSING",OpenIrAnnualEvidence.POLICY,null,List.of());
+        var items=query(c,"""
+            SELECT metric,updated_on,valid_from,valid_until,evidence_locator,encode(reference_sha256,'hex')
+            FROM app_open_ir_annual_temporal_evidence WHERE assessment_id=?
+            """,r->new OpenIrAnnualTemporalEvidence.Item(new OpenIrAnnualTemporalEvidence.Input(
+                OpenIrAnnualTemporalEvidence.Metric.valueOf(r.getString(1)),r.getObject(2,LocalDate.class),
+                r.getObject(3,LocalDate.class),r.getObject(4,LocalDate.class),r.getString(5)),r.getString(6)),row.id());
+        if(items.isEmpty())return new AnnualEvidence(pin.priorAssessmentId(),pin.evidenceSha256(),
+            "TEMPORAL_EVIDENCE_MISSING",pin.policy(),null,List.of());
+        var ordered=items.stream().sorted(java.util.Comparator.comparing(i->i.evidence().metric())).toList();
+        var visible=ordered.stream().map(i->staff?i:new OpenIrAnnualTemporalEvidence.Item(
+            new OpenIrAnnualTemporalEvidence.Input(i.evidence().metric(),i.evidence().updatedOn(),i.evidence().validFrom(),
+                i.evidence().validUntil(),null),i.referenceSha256())).toList();
         Stored prior=first(c,SELECT+" WHERE project_id=? AND id=?",OpenIrAssessments::stored,
             row.project(),pin.priorAssessmentId());
+        var frozen=query(c,"""
+            SELECT DISTINCT year_from,year_until,period_from,period_until,reviewed_on
+            FROM app_open_ir_annual_temporal_evidence WHERE assessment_id=?
+            """,r->new OpenIrAnnualTemporalEvidence.Window(r.getObject(1,LocalDate.class),r.getObject(2,LocalDate.class),
+                r.getObject(3,LocalDate.class),r.getObject(4,LocalDate.class),r.getObject(5,LocalDate.class)),row.id());
+        var window=frozen.size()==1?frozen.getFirst():null;
+        var currentWindow=temporalWindow(c,row,review.reviewedAt());
         try {
-            if(prior!=null && pin.evidenceSha256().equals(
-                annualDigest(c,OpenIrAnnualEvidence.capture(annualSnapshot(c,prior),annualSnapshot(c,row)))))
-                return pin;
+            if(window!=null && window.equals(currentWindow) && prior!=null && (prior.year()==1 || annualCurrent(c,prior))) {
+                var proof=OpenIrAnnualEvidence.capture(annualSnapshot(c,prior),annualSnapshot(c,row));
+                var temporal=OpenIrAnnualTemporalEvidence.capture(window,proof.current(),
+                    ordered.stream().map(OpenIrAnnualTemporalEvidence.Item::evidence).toList());
+                if(temporal.items().equals(ordered) && pin.evidenceSha256().equals(temporalDigest(c,proof,temporal)))
+                    return new AnnualEvidence(pin.priorAssessmentId(),pin.evidenceSha256(),pin.state(),pin.policy(),window,visible);
+            }
         } catch(IllegalArgumentException e) { /* immutable historical proof requires recheck */ }
         return new AnnualEvidence(pin.priorAssessmentId(),pin.evidenceSha256(),
-            "STALE_EVIDENCE_NOT_ADMITTED",pin.policy());
+            "STALE_EVIDENCE_NOT_ADMITTED",pin.policy(),window,visible);
     }
 
     private static View view(Connection c,Stored row,boolean staff) throws SQLException {
         boolean stale=stale(c,row);
         Review review=readReview(c,row.id(),staff);
-        AnnualEvidence annual=annualEvidence(c,row,review);
+        AnnualEvidence annual=annualEvidence(c,row,review,staff);
         boolean evidenceMissing=annual!=null && !"CONSECUTIVE_REFERENCES_NOT_ADMITTED".equals(annual.state());
         String linkState=initialLinkState(c,row,review);
         boolean linkStale="LEGACY_LINK_MISSING".equals(linkState)||"LINK_STALE".equals(linkState);
@@ -528,10 +601,11 @@ class OpenIrAssessments {
         return new View(row.id(),row.project(),row.year(),row.sourceYear(),row.version(),row.period(),
             row.fleet(),row.fuel(),row.frequency(),row.basis(),staff?row.rationale():null,
             state,row.sha(),stale || linkStale || evidenceMissing || (review!=null && !"CHECKED_INTERNAL".equals(review.outcome()))?
-                null:row.candidate(),stale || linkStale || (annual!=null && "STALE_EVIDENCE_NOT_ADMITTED".equals(annual.state())),
+                null:row.candidate(),stale || linkStale || evidenceMissing,
             false,row.at(),review,annual,linkState,
             staff&&row.year()==1&&review==null&&!stale?OpenIrExAntePlans.currentReviewTarget(c,row.project()):null,
-            staff&&row.year()==1&&!stale?reviewReferences(c,row):null);
+            staff&&!stale&&review==null?reviewReferences(c,row):null,
+            staff&&row.year()>1&&review==null&&!stale&&reviewReferences(c,row)!=null?temporalWindow(c,row,first(c,"SELECT statement_timestamp()",r->r.getObject(1,OffsetDateTime.class))):null);
     }
 
     private static ReviewReferences reviewReferences(Connection c,Stored row)throws SQLException {
