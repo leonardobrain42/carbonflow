@@ -1,4 +1,6 @@
 # Changelog da especificação viva
+## 0.3.0-rc.10 — 24/11/2026 (proposta)
+- UX: vocabulário único para "não informado"/"a confirmar" na declaração de aplicabilidade e aviso normativo permanente no cabeçalho da preparação técnica, em lugar de frases repetidas. Só texto de interface; valores gravados, regras e permissões inalterados.
 ## 0.3.0-rc.9 — 24/11/2026 (proposta)
 - UX: as pendências de preenchimento da declaração de rede aberta passam a apontar direto para "Acesso à rede" ou "Direitos do projeto" (destino e rótulo apenas; estado, grupo e regras inalterados). Atualiza CF-UX-TECH-001-APPLICABILITY-SCREENS.
 ## 0.3.0-rc.8 — 24/11/2026 (proposta)

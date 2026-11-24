@@ -77,7 +77,7 @@
               <label for="cf-open-charger">Tecnologia de recarga</label>
               <select id="cf-open-charger" [value]="form().chargerType ?? ''"
                 (change)="update('chargerType',$any($event.target).value)">
-                <option value="">Ainda não sei</option><option value="DCFC">DCFC</option>
+                <option value="">Não informado</option><option value="DCFC">DCFC</option>
                 <option value="AC">AC</option><option value="MIXED">Mista</option>
                 <option value="UNKNOWN">A confirmar</option>
               </select>
@@ -86,7 +86,7 @@
               <label for="cf-open-propulsion">Veículos atendidos</label>
               <select id="cf-open-propulsion" [value]="form().propulsion ?? ''"
                 (change)="update('propulsion',$any($event.target).value)">
-                <option value="">Ainda não sei</option><option value="BEV">BEV (bateria)</option>
+                <option value="">Não informado</option><option value="BEV">BEV (bateria)</option>
                 <option value="PHEV">PHEV</option><option value="MIXED">Misturados</option>
                 <option value="UNKNOWN">A confirmar</option>
               </select>
@@ -95,7 +95,7 @@
               <label for="cf-open-sin">Energia do sistema</label>
               <select id="cf-open-sin" [value]="form().electricitySource ?? ''"
                 (change)="update('electricitySource',$any($event.target).value)">
-                <option value="">Ainda não sei</option><option value="SIN">Somente SIN</option>
+                <option value="">Não informado</option><option value="SIN">Somente SIN</option>
                 <option value="OTHER_GRID">Outra rede</option>
                 <option value="ON_SITE">Geração local</option>
                 <option value="MIXED">Origens combinadas</option>
@@ -123,7 +123,7 @@
         <fieldset [disabled]="busy()">
           <legend>Quem possui os direitos sobre as reduções?</legend>
           <p>Contrato com o proprietário não substitui a prova de divulgação aos motoristas.
-            Registrar o titular não cria PP jurídico e não concede poder de representante.</p>
+            Registrar o titular não cria o proponente do projeto (PP) nem concede poder de representante.</p>
           <label for="cf-rights-kind">Tipo do titular</label>
           <select id="cf-rights-kind" [value]="partyDraft().kind"
             (change)="partyDraft.update(current=>({...current,kind:$any($event.target).value}))">
@@ -151,7 +151,7 @@
           <label for="cf-open-owner">Titular registrado</label>
           <select id="cf-open-owner" [value]="form().rightsPartyCode ?? ''"
             (change)="chooseParty($any($event.target).value)">
-            <option value="">Ainda não escolhido</option>
+            <option value="">Não informado</option>
             @for (party of parties(); track party.code){
               <option [value]="party.code" [selected]="party.code === form().rightsPartyCode">{{party.displayName}}</option>
             }
@@ -163,7 +163,7 @@
           <label for="cf-open-contract">Contrato registrado</label>
           <select id="cf-open-contract" [value]="form().rightsContractCode ?? ''"
             (change)="update('rightsContractCode',$any($event.target).value)">
-            <option value="">Ainda não escolhido</option>
+            <option value="">Não informado</option>
             @for (contract of contractsForParty(); track contract.code){
               <option [value]="contract.code" [selected]="contract.code === form().rightsContractCode">{{contract.label}}</option>
             }
@@ -174,7 +174,7 @@
           <label for="cf-open-channel">Como a informação chega aos motoristas?</label>
           <select id="cf-open-channel" [value]="form().driverDisclosureChannel ?? 'NOT_DECLARED'"
             (change)="update('driverDisclosureChannel',$any($event.target).value)">
-            <option value="NOT_DECLARED">Ainda não foi informado</option>
+            <option value="NOT_DECLARED">Não informado</option>
             <option value="ON_CHARGER">Aviso no próprio carregador</option>
             <option value="APP_OR_WEBSITE">Aplicativo ou página de serviço</option>
             <option value="TERMS_OF_SERVICE">Termos acessíveis antes da recarga</option>
@@ -197,7 +197,7 @@
           <label for="cf-open-overlap">Risco de dupla reivindicação de créditos</label>
           <select id="cf-open-overlap" [value]="form().doubleClaimingCheck ?? 'UNKNOWN'"
             (change)="update('doubleClaimingCheck',$any($event.target).value)">
-            <option value="UNKNOWN">Não avaliado</option>
+            <option value="UNKNOWN">A confirmar</option>
             <option value="REVIEW_REQUIRED">Exige consulta jurídica</option>
             <option value="POTENTIAL_OVERLAP">Possível sobreposição identificada</option>
             <option value="NO_OVERLAP_DECLARED">Declaração de ausência de sobreposição (revisão pendente)</option>
@@ -224,9 +224,9 @@
           <label for="cf-op-event">Início operacional registrado</label>
           <select id="cf-op-event" [value]="form().operationalEventCode ?? ''"
             (change)="update('operationalEventCode',$any($event.target).value)">
-            <option value="">Ainda não escolhido</option>
+            <option value="">Não informado</option>
             @for (event of eventsOf('OPERATIONAL_START'); track event.code){
-              <option [value]="event.code" [selected]="event.code === form().operationalEventCode">{{event.eventOn}} · referência não admitida</option>
+              <option [value]="event.code" [selected]="event.code === form().operationalEventCode">{{event.eventOn}} · sem prova admitida</option>
             }
           </select>
           <label for="cf-vcs-date">Data do início de crédito VCS</label>
@@ -240,9 +240,9 @@
           <label for="cf-vcs-event">Início de crédito VCS registrado</label>
           <select id="cf-vcs-event" [value]="form().vcsEventCode ?? ''"
             (change)="update('vcsEventCode',$any($event.target).value)">
-            <option value="">Ainda não escolhido</option>
+            <option value="">Não informado</option>
             @for (event of eventsOf('VCS_START'); track event.code){
-              <option [value]="event.code" [selected]="event.code === form().vcsEventCode">{{event.eventOn}} · referência não admitida</option>
+              <option [value]="event.code" [selected]="event.code === form().vcsEventCode">{{event.eventOn}} · sem prova admitida</option>
             }
           </select>
         </fieldset>

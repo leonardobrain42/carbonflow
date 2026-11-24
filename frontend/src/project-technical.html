@@ -14,6 +14,8 @@
         <header class="cf-workspace-heading">
           <h1>Preparação técnica</h1>
           <p>{{ saved.journey.title }}</p>
+          <p class="cf-workspace-note cf-tech-standing-notice">Preparação interna: nada nesta área aprova
+            metodologia, fonte, cálculo ou crédito. Essa decisão é da Verra e da VVB.</p>
           <p class="cf-workspace-helper">
             @if (!can('VIEW_INTAKE')) { Dados iniciais restritos · somente etapas autorizadas }
             @else if (saved.version) { Rascunho salvo · Revisão {{ saved.version }} }
@@ -44,8 +46,7 @@
           @switch (section().id) {
             @case ('inicio') {
               <p>Escolha uma frente. Todas as etapas compartilham o mesmo projeto e
-                preservam o histórico de revisões. Preparação interna não equivale
-                a aprovação da metodologia, da Verra ou da VVB.</p>
+                preservam o histórico de revisões.</p>
               <carbonflow-journey-focus [projectId]="projectId" />
               <p class="cf-workspace-helper">A fila de tarefas mostra o que ainda falta
                 e o papel responsável. Você pode executar etapas independentes em paralelo;

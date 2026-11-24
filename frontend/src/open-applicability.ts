@@ -78,7 +78,7 @@ export class OpenApplicabilityComponent implements OnChanges {
   readonly error=signal('');
   readonly notice=signal('');
   readonly yesNo=[
-    {value:'',label:'Ainda não sei'},
+    {value:'',label:'Não informado'},
     {value:'true',label:'Sim'},
     {value:'false',label:'Não'},
   ];
