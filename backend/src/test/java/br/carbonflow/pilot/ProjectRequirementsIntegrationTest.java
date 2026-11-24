@@ -234,7 +234,8 @@ class ProjectRequirementsIntegrationTest {
         JsonNode fromJourney = finding(journey.path("diagnosis"), "NO_DECLARATION");
         assertEquals(fromRequirements.path("state").asText(), fromJourney.path("state").asText());
         assertEquals(fromRequirements.path("group").asText(), fromJourney.path("group").asText());
-        assertEquals("analisar", fromJourney.at("/destination/screen").asText());
+        assertEquals("rede", fromJourney.at("/destination/screen").asText());
+        assertEquals("Abrir acesso à rede", fromJourney.path("actionLabel").asText());
         assertEquals("MINE", fromJourney.path("group").asText());
         assertTrue(journey.path("progress").path("visible").asInt() > 0);
         assertFalse(journey.path("progress").toString().contains("NO_DECLARATION"));
