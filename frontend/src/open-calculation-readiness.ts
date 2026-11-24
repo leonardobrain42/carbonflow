@@ -300,13 +300,32 @@ export class OpenCalculationReadinessComponent implements OnChanges {
 
   /** The quantity that explains why there is no result. Names come from the server gate. */
   blockingCause():CalculationGate|null {
-    if(this.rehearsal())return null;
-    const gates=this.latestRun()?.gates?.length
+    return this.blockers()[0]??null;
+  }
+
+  /**
+   * Every server gate keeping this period without a result, missing data first, then review, then the rest.
+   * Taken from the latest attempt when it has gates, otherwise from the current diagnosis; never recomputed here.
+   */
+  blockers():CalculationGate[] {
+    if(this.rehearsal())return [];
+    const gates=this.blockersFromRun()
       ? this.latestRun()!.gates
       : (this.readiness()?.gates??[]);
     const rank=(state:string)=>state==='MISSING'||state==='MISSING_BINDING'?0
       :state==='REVIEW_REQUIRED'?1:2;
-    return [...gates].sort((left,right)=>rank(left.state)-rank(right.state))[0]??null;
+    const seen=new Set<string>();
+    return [...gates].sort((left,right)=>rank(left.state)-rank(right.state))
+      .filter(gate=>!seen.has(gate.code)&&!!seen.add(gate.code));
+  }
+
+  blockersFromRun():boolean {
+    return !!this.latestRun()?.gates?.length;
+  }
+
+  blockerTitle(gate:CalculationGate):string {
+    return gate.code.startsWith('E8_INPUT_BINDING_')||gate.code.startsWith('E8_FLEET_SELECTION_')
+      ? this.preparatoryTitle(gate) : this.gateTitle(gate);
   }
 
   pinLabel(pin:ParameterPin) {

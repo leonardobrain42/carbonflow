@@ -163,6 +163,13 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
     await page.goto(base + '/workspace/projects/' + project + '/technical?secao=quantificar');
     await page.getByText('Falta Estoque nacional EVR.').waitFor();
     await page.getByText('Não há BE, PE, LE nem ER. Ausência não é zero.').waitFor();
+    // Every blocking gate is listed in one place, missing data first, with next action and planned role.
+    const why=page.getByRole('region',{name:'Por que está bloqueado?'});
+    await why.getByText('2 pendências impedem o resultado no diagnóstico atual.',{exact:false}).waitFor();
+    const blockers=why.getByRole('list',{name:'Pendências que impedem o resultado'}).getByRole('listitem');
+    assert.equal(await blockers.count(),2);
+    assert.match(await blockers.nth(0).innerText(),/Estoque nacional EVR[\s\S]*Selecionar fonte EVR e avaliar cobertura/);
+    assert.match(await blockers.nth(1).innerText(),/Frota EVR e comparáveis · M1[\s\S]*Aguardar a avaliação da equipe/);
     await page.getByRole('heading', {name:'Última tentativa de cálculo · M1'}).waitFor();
     await page.getByRole('heading', {name:'Consolidação por ano do projeto'}).waitFor();
     await page.getByText('Total anual indisponível · ano 1', {exact:true}).waitFor();
@@ -194,6 +201,8 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
     assert.equal(await selectedInputs.getByText('Versão 2',{exact:true}).count(),0);
     await page.getByRole('button', {name:'Registrar tentativa de cálculo'}).click();
     await page.getByText('Falta Melhoria tecnológica.').waitFor();
+    await page.getByRole('region',{name:'Por que está bloqueado?'})
+      .getByText('2 pendências impedem o resultado na última tentativa · M1.',{exact:false}).waitFor();
     await page.getByText('Bloqueado · v1').waitFor();
     await page.getByText('Não calculados').waitFor();
     await page.getByText('Melhoria tecnológica · Não informado').waitFor();
