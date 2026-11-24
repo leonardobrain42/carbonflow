@@ -81,6 +81,11 @@
       }
       @case ('fatores'){
         <h4>Parâmetros e memória de cálculo</h4>
+        @if (canViewIr) {
+          <carbonflow-open-ir-assessments [projectId]="projectId"/>
+        } @else {
+          <p>Consulta de IR restrita à permissão de parâmetros do projeto.</p>
+        }
         @if (calculation();as c){
           <p role="status">Cálculo: {{labelState(c.calculationState)}}.
             {{c.canRunE8?'Verificar admissibilidade antes de executar.':'E8 não liberado para este projeto.'}}</p>
