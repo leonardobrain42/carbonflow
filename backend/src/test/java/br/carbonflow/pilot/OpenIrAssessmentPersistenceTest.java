@@ -49,6 +49,23 @@ class OpenIrAssessmentPersistenceTest {
     }
 
     @Test
+    void runContextMigrationPreservesValidatedReferenceAndGateConstraints() {
+        assertEquals(1,database.read(c->first(c,"""
+            SELECT count(*)::int FROM flyway_schema_history WHERE version='92' AND success
+            """,r->r.getInt(1))).intValue());
+        assertEquals(3,database.read(c->first(c,"""
+            SELECT count(*)::int FROM pg_constraint
+            WHERE conrelid='app_open_e8_run'::regclass AND convalidated
+                AND conname IN ('app_open_e8_ir_assessment_fk','app_open_e8_ir_context_shape',
+                    'app_open_e8_run_reviewed_pins')
+            """,r->r.getInt(1))).intValue());
+        assertEquals(0,database.read(c->first(c,"""
+            SELECT count(*)::int FROM app_open_e8_run
+            WHERE ir_context_sha256 IS NOT NULL AND ir_pin_id IS NOT NULL
+            """,r->r.getInt(1))).intValue());
+    }
+
+    @Test
     void digestSeparatesTextBoundariesNullAndRevision() {
         assertNotEquals(OpenIrAssessments.digest("ab","c"),OpenIrAssessments.digest("a","bc"));
         assertNotEquals(OpenIrAssessments.digest("a",null),OpenIrAssessments.digest("a",""));
