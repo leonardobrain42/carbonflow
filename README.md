@@ -2,6 +2,10 @@
 
 PIL-SYN-BR-001 · demonstração local com a massa sintética do kit 0.2.14. As E8-001/002 cobrem cálculo de referência e autorização. A E8-003 registra o enquadramento e o inventário. A E8-004 importa e revisa ED/EC. A E8-005 calcula BE, PE, LE e ER a partir de uma seleção salva. A E8-006 opera M1 e M2, confere cobertura e conserva fechamentos e reaberturas. A E8-007 gera, congela e exporta dossiês PD/MR por ato. A E8-008 acompanha listagens, canal manual e consulta pública simulada. A E8-009 registra auditorias do VVB e pedidos REG, V1 e V2. O Angular e a API usam a mesma origem e o PostgreSQL guarda as execuções e a trilha.
 
+## Especificação viva e contribuições
+
+Comece pela [especificação viva](specification/README.md), [estado do trabalho](specification/ESTADO_DO_TRABALHO.md), [matriz de rastreabilidade](specification/MATRIZ_RASTREABILIDADE.md) e [governança](specification/GOVERNANCA.md). O README abaixo preserva o roteiro do piloto sintético; não descreve sozinho o produto dinâmico OPEN. O kit histórico 0.2.14 não foi recuperado integralmente; ver [E0](specification/e0/README.md). A especificação documental deve evoluir no mesmo PR de alterações funcionais, sem substituir contratos, fontes ou evidências.
+
 ## Executar com Docker Compose
 
 Com o Docker Engine ativo e o plugin Docker Compose instalado, execute na raiz do projeto. Para problemas de inicialização do sandbox de contas, execute `python3 scripts/demo_sandbox.py doctor` e consulte o [guia de diagnóstico](docs/CF-IMP-006-DEMO-SANDBOX.md#diagnóstico-e-recuperação-local-sem-apagar-dados).
