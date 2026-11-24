@@ -42,9 +42,19 @@ class PdSections {
     }
 
     List<Section> list(String token, String project) {
+        return list(token, project, null, null);
+    }
+
+    List<Section> list(String token, String project, String period, UUID runId) {
         return scopes.read(token, project, "VIEW_DOSSIER", (c, scope) -> {
+            boolean selected = period != null || runId != null;
+            if (selected && !scope.actions().contains("VIEW_OPEN_E8_RUN")) throw missing();
+            if (selected && (period == null || runId == null))
+                throw new PilotProblem(400,"REFERENCIA_INCOMPLETA","run","CF-TRUST-001",
+                    "Informe período e tentativa juntos.");
             var sections = new ArrayList<Section>();
-            var run = scope.actions().contains("VIEW_OPEN_E8_RUN") ? runs.newest(c, project) : null;
+            var run = selected ? OpenE8ProjectRuns.find(c, project, period, runId)
+                : scope.actions().contains("VIEW_OPEN_E8_RUN") ? runs.newest(c, project) : null;
             OpenPdCalculationNote.Note calculation = scope.actions().contains("VIEW_OPEN_E8_RUN")
                 ? OpenPdCalculationNote.from(run, OpenPdCalculationProvenance.read(c, scope, run))
                 : OpenPdCalculationNote.restricted();

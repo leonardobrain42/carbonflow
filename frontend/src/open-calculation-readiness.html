@@ -163,9 +163,9 @@
       @if (canViewPd) {
         <p class="energy-hash">Memória da tentativa {{run.id}} · v{{run.version}} · {{run.period}}.</p>
         <a class="cf-workspace-link"
-           [href]="'/workspace/projects/' + projectId + '/technical?secao=redigir&guia=quantification'">
+           [href]="'/workspace/projects/' + projectId + '/technical?secao=redigir&guia=quantification&run=' + run.id + '&period=' + run.period">
           Consultar vínculo com a seção Quantificação do PD</a>
-        <p>A seção mostra a tentativa mais recente do projeto. Confira o período, o identificador e a versão.
+        <p>A seção consultará esta tentativa e este período, com os grants e licenças atuais.
           É uma prévia de leitura; o documento não fica pronto.</p>
       }
 

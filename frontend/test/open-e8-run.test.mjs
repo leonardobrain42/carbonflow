@@ -208,8 +208,8 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
     await page.reload();
     await pdLink.waitFor();
     assert.equal(await pdLink.getAttribute('href'),
-      '/workspace/projects/'+project+'/technical?secao=redigir&guia=quantification');
-    await page.getByText('Confira o período, o identificador e a versão.').waitFor();
+      '/workspace/projects/'+project+'/technical?secao=redigir&guia=quantification&run='+rehearsal.id+'&period=M1');
+    await page.getByText('A seção consultará esta tentativa e este período, com os grants e licenças atuais.').waitFor();
     await page.getByText('Ensaio interno consolidado · ano 1', {exact:true}).waitFor();
     await page.getByText('5.50 tCO2e', {exact:true}).waitFor();
     await page.getByText('Janelas e referências da consolidação · 1 períodos', {exact:true}).click();

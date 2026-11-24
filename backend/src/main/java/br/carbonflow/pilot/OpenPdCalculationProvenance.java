@@ -66,7 +66,7 @@ final class OpenPdCalculationProvenance {
             OpenCalculationTransparency.REFERENCE, run.memory().engine(), run.state(),
             run.memory().kernelState(), run.createdAt(), run.timing(), List.copyOf(inputs),
             run.memory().trace(),
-            "Prévia atual vinculada à memória, sem cópia para a narrativa ou versão congelada. "
+            "Prévia de leitura vinculada à memória, sem cópia para a narrativa ou versão congelada. "
                 + "Unidades normalizadas do contrato E8; origem limitada aos vínculos canônicos. "
                 + "Títulos, unidades originais, conversões e locators das fontes permanecem com seus owners. "
                 + "Sem conteúdo licenciado, revisão editorial, admissão normativa ou verificação externa. "

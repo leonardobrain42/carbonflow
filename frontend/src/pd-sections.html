@@ -47,6 +47,11 @@
     @if (item.calculation; as calculation) {
       <h4>Cálculo nomeado nesta seção · {{calculation.period}}</h4>
       <p>{{calculation.text}}</p>
+      @if (calculationRun()) {
+        <p class="energy-hash">Tentativa selecionada: {{calculationRun()}} · {{calculationPeriod()}}.</p>
+        <p>Consulta específica da memória, inclusive histórica. Atualizar seções mantém esta seleção.
+          Esta consulta não fixa suporte na narrativa nem aprova o documento.</p>
+      }
       @if (calculation.situation === 'MEMORY' && !calculation.usableForE8 && !calculation.marksDocumentReady) {
         <p>Estes números vieram da memória do servidor. Esta seção não recalcula.</p>
         <dl class="cf-tech-capabilities">
@@ -57,7 +62,7 @@
         </dl>
         @if (calculation.provenance; as provenance) {
           <p>Vínculo de leitura: memória → seção Quantificação do PD.
-            Prévia atual; não integra a narrativa salva.</p>
+            Prévia da tentativa consultada; não integra a narrativa salva.</p>
           <a class="cf-workspace-link" [href]="provenance.memoryHref">Ver memória canônica desta tentativa</a>
           <details>
             <summary>Conferir origem, unidades e revisão da memória</summary>

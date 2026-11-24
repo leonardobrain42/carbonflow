@@ -555,6 +555,22 @@ class OpenPeriodSupportIntegrationTest {
         assertFalse(quantification.at("/calculation/marksDocumentReady").asBoolean());
         assertTrue(quantification.at("/calculation/text").asText().contains("O PD não fica pronto"));
         assertFalse(quantification.at("/calculation").toString().contains("EF-SYN"));
+        String selectedPath=technical+"/pd-sections?period=M1&run="+rehearsal.path("id").asText();
+        var selected=calculationNote(json(call("GET",selectedPath,owner.cookie(),null,null)));
+        assertEquals(quantification.path("calculation"),selected);
+        // Selecting the preceding blocked attempt must not silently show the new memory.
+        var preceding=calculationNote(json(call("GET",technical+"/pd-sections?period=M1&run="
+            +json(authorRun).path("id").asText(),owner.cookie(),null,null)));
+        assertEquals("BLOCKED",preceding.path("situation").asText());
+        assertTrue(preceding.path("beTco2e").isNull());
+        assertEquals(404,call("GET",technical+"/pd-sections?period=M2&run="+rehearsal.path("id").asText(),
+            owner.cookie(),null,null).statusCode());
+        assertEquals(404,call("GET",technical+"/pd-sections?period=M1&run="+UUID.randomUUID(),
+            owner.cookie(),null,null).statusCode());
+        assertEquals(400,call("GET",technical+"/pd-sections?period=M1",owner.cookie(),null,null).statusCode());
+        assertEquals(400,call("GET",technical+"/pd-sections?run="+rehearsal.path("id").asText(),
+            owner.cookie(),null,null).statusCode());
+        assertEquals(404,call("GET",selectedPath,outside.cookie(),null,null).statusCode());
         JsonNode provenance=quantification.at("/calculation/provenance");
         assertEquals(rehearsal.path("id"),provenance.path("runId"));
         assertEquals(rehearsal.path("version"),provenance.path("runVersion"));
@@ -611,6 +627,7 @@ class OpenPeriodSupportIntegrationTest {
         });
         var hiddenResponse=call("GET",technical+"/pd-sections",documentationOnly.cookie(),null,null);
         assertTrue(hiddenResponse.headers().firstValue("Cache-Control").orElse("").contains("no-store"));
+        assertEquals(404,call("GET",selectedPath,documentationOnly.cookie(),null,null).statusCode());
         var hidden=json(hiddenResponse);
         assertFalse(hidden.toString().contains("\"situation\":\"MEMORY\""));
         assertFalse(hidden.toString().contains(rehearsal.path("id").asText()));
@@ -624,6 +641,9 @@ class OpenPeriodSupportIntegrationTest {
                 preparedCatalog[1]);
             return null;
         });
+        var expiredSelected=calculationNote(json(call("GET",selectedPath,owner.cookie(),null,null)));
+        assertEquals("BLOCKED",expiredSelected.path("situation").asText());
+        assertTrue(expiredSelected.path("provenance").isNull());
         var expired=calculationNote(json(call("GET",technical+"/pd-sections",owner.cookie(),null,null)));
         assertEquals("BLOCKED",expired.path("situation").asText());
         assertTrue(expired.path("provenance").isNull());
@@ -685,6 +705,10 @@ class OpenPeriodSupportIntegrationTest {
         addIrPin(project,org,staffManager.id(),2027,2);
         JsonNode old=json(call("GET",runDetail,owner.cookie(),null,null));
         assertEquals("STALE",old.path("state").asText());
+        var staleSelected=calculationNote(json(call("GET",selectedPath,owner.cookie(),null,null)));
+        assertEquals("BLOCKED",staleSelected.path("situation").asText());
+        assertTrue(staleSelected.path("beTco2e").isNull());
+        assertTrue(staleSelected.path("provenance").isNull());
         assertEquals(rehearsal.path("timing"),old.path("timing"));
         assertEquals(rehearsal.path("memory"),old.path("memory"));
         JsonNode annualStale=json(call("GET",annualUrl,owner.cookie(),null,null));

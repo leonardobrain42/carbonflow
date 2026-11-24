@@ -405,6 +405,7 @@
 
             @case ('redigir') {
               <carbonflow-pd-sections [projectId]="projectId" [initialGuide]="selectedGuide()"
+                [calculationRun]="calculationRun()" [calculationPeriod]="calculationPeriod()"
                 (review)="open('revisar', $event)" [editable]="can('PREPARE_DOSSIER')" />
               <p>{{ can('PREPARE_DOSSIER') ? 'Gere o roteiro das seções do dossiê a partir da revisão técnica salva.' : 'Consulte a prévia preparada para revisão.' }}</p>
               @if (dossier(); as prepared) {

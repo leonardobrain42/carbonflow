@@ -152,6 +152,8 @@ export class ProjectTechnicalComponent {
   private readonly heading = viewChild<ElementRef<HTMLHeadingElement>>('sectionHeading');
   private readonly query = toSignal(this.route.queryParamMap);
   readonly selectedGuide = computed(() => this.query()?.get('guia') ?? null);
+  readonly calculationRun = computed(() => this.query()?.get('run') ?? null);
+  readonly calculationPeriod = computed(() => this.query()?.get('period') ?? null);
   readonly projectId = this.route.snapshot.paramMap.get('projectId') ?? '';
   private readonly root = '/v1/projects/' + encodeURIComponent(this.projectId);
   private readonly technical = this.root + '/technical';
