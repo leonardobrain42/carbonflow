@@ -53,6 +53,7 @@ class OpenProjectParameterBindingsIntegrationTest {
             manager, null, null, null).statusCode());
         verify(manager);
         verify(reviewer);
+        verify(outsider);
         String fuel = reviewedFactor("/v1/platform/open-fossil-factors", manager, reviewer,
             "fa000000-0000-4000-8000-000000000008");
         String grid = reviewedFactor("/v1/platform/open-grid-factors", manager, reviewer,

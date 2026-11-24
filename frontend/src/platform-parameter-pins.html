@@ -65,6 +65,7 @@
 
     <section aria-labelledby="cf-dy-title" class="cf-journey-context">
       <h3 id="cf-dy-title">Avaliação de créditos concorrentes (Dy)</h3>
+      <button type="button" class="cf-workspace-outline" (click)="loadDyOptions()">Atualizar projetos de Dy</button>
       <p>Pesquise créditos emitidos por infraestrutura de recarga (ERC) e por projetos de frota (ERF)
         no ano anterior do projeto, no recorte nacional DCFC. Registre os programas, referências e
         limites da pesquisa. A equação 8 é calculada pelo servidor apenas como prévia declaratória.
@@ -72,7 +73,7 @@
       <label for="cf-dy-project">Projeto da avaliação</label>
       <select id="cf-dy-project" [value]="dyProject" (change)="dyProject=$any($event.target).value;resetDy()">
         <option value="">Selecione o rascunho</option>
-        @for (option of options(); track option.projectId) {
+        @for (option of dyOptions()?.projects ?? []; track option.projectId) {
           <option [value]="option.projectId">{{option.title}}</option>
         }
       </select>
@@ -90,6 +91,7 @@
         } @else {
           <p>Janela anterior canônica: {{history.priorStart}} até {{history.priorEndExclusive}} (fim exclusivo).</p>
         }
+        @if (dyOptions()?.canRecord) {
         <form (submit)="saveDy($event)">
           <label for="cf-dy-outcome">Resultado da pesquisa</label>
           <select id="cf-dy-outcome" [value]="dyOutcome" required
@@ -123,6 +125,7 @@
           <button type="submit" class="cf-workspace-primary" [disabled]="dyBusy()||!dyOutcome
             ||(!!history.calendarGate&&dyOutcome!=='INCONCLUSIVE')">Registrar avaliação de Dy</button>
         </form>
+        }
         <h4>Versões da avaliação · ano {{history.projectYear}}</h4>
         @for (item of history.assessments; track item.id) {
           <details>
@@ -138,7 +141,43 @@
               <dt>Cobertura e limites</dt><dd>{{item.coverageNote}}</dd>
               <dt>SHA-256 da avaliação</dt><dd class="energy-hash">{{item.assessmentSha256}}</dd>
             </dl>
-            <p>Avaliação declaratória, sem parecer independente. Não habilita o cálculo.</p>
+            @if (item.review; as opinion) {
+              <h5>Parecer interno desta versão</h5>
+              <p>{{opinion.outcome}} · {{opinion.reviewedAt}}</p>
+              <dl>
+                <dt>Regra revisada</dt><dd>{{opinion.ruleReference}}</dd>
+                <dt>Referências consultadas</dt><dd>{{opinion.evidenceReferences}}</dd>
+                <dt>Fundamentação</dt><dd>{{opinion.reason}}</dd>
+                <dt>Hash da avaliação revisada</dt><dd class="energy-hash">{{opinion.assessmentSha256}}</dd>
+              </dl>
+              <p>O parecer permanece histórico. Não admite fontes, não aprova Dy normativamente e não habilita o cálculo.</p>
+            } @else {
+              <p>Avaliação declaratória, sem parecer independente. Não habilita o cálculo.</p>
+              @if (dyOptions()?.canReview && !item.stale && item.version===history.latestVersion) {
+                <form (submit)="saveReview($event,item)">
+                  <label for="cf-dy-review-outcome">Parecer técnico interno</label>
+                  <select id="cf-dy-review-outcome" required [value]="reviewOutcome"
+                    (change)="reviewOutcome=$any($event.target).value">
+                    <option value="">Selecione</option>
+                    <option value="CHECKED_INTERNAL" [disabled]="item.outcome==='INCONCLUSIVE'">Checagem interna concluída</option>
+                    <option value="NEEDS_INFORMATION">Solicitar informação</option>
+                    <option value="REJECTED">Rejeitar declaração</option>
+                  </select>
+                  <label for="cf-dy-review-rule">Regra revisada</label>
+                  <input id="cf-dy-review-rule" required maxlength="300" [value]="reviewRule"
+                    (input)="reviewRule=$any($event.target).value">
+                  <label for="cf-dy-review-evidence">Referências consultadas no parecer</label>
+                  <textarea id="cf-dy-review-evidence" rows="2" required maxlength="2000" [value]="reviewEvidence"
+                    (input)="reviewEvidence=$any($event.target).value"></textarea>
+                  <label for="cf-dy-review-reason">Fundamentação do parecer</label>
+                  <textarea id="cf-dy-review-reason" rows="3" required maxlength="2500" [value]="reviewReason"
+                    (input)="reviewReason=$any($event.target).value"></textarea>
+                  <p>É obrigatória a independência do autor da avaliação. O servidor verifica o papel e a versão.</p>
+                  <button type="submit" class="cf-workspace-primary" [disabled]="dyBusy()||!reviewOutcome
+                    ||(reviewOutcome==='CHECKED_INTERNAL'&&item.outcome==='INCONCLUSIVE')">Registrar parecer interno de Dy</button>
+                </form>
+              }
+            }
           </details>
         } @empty {
           <p>Nenhuma avaliação registrada para este ano.</p>

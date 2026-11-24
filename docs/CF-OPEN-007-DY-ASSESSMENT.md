@@ -62,3 +62,5 @@ recebe novo parecer. Nenhuma decisão alimenta E8 nesta fatia.
 A V83 é aditiva. O CI de recuperação V79 retira apenas no banco descartável
 as tabelas e registros de migrations V82/V83 para simular o estado histórico,
 e exige reaplicação de ambas. A validação real não é afrouxada.
+
+Interface: a lista de projetos Dy tem endpoint próprio, acessível a gestores e revisores. O formulário de parecer aparece para o revisor na versão atual, não desatualizada e sem parecer. A autoria, o hash e o controle concorrente são rechecados no servidor. O teste de navegador cobre a transição de papéis e o pedido de informação para uma avaliação inconclusiva.

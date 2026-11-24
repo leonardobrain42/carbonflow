@@ -91,6 +91,11 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
       };
       await route.fulfill({status:201, json:{version:1, usableForE8:false}});
     });
+    let dyCanRecord=true,dyCanReview=false;
+    await page.route('**/v1/platform/open-dy-assessments/options',route=>route.fulfill({json:{
+      canRecord:dyCanRecord,canReview:dyCanReview,
+      projects:[{projectId:'20000000-0000-4000-8000-000000000097',title:'Rede aberta'}],
+    }}));
     await page.getByRole('button', {name:'Pinos do projeto'}).click();
     await page.getByRole('heading', {name:'Pino de parâmetros do projeto'}).waitFor();
     await page.getByLabel('Projeto', {exact:true}).selectOption({label:'Rede aberta'});
@@ -113,6 +118,7 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
     let dyMode='OPEN';
     await page.route('**/v1/platform/open-dy-assessments/**',async route=>{
       const path=new URL(route.request().url()).pathname;
+      if(path.endsWith('/options'))return route.fallback();
       if(route.request().method()==='GET'){
         if(dyMode==='DENIED')return route.fulfill({status:404,json:{}});
         const year=Number(path.split('/').at(-1));
@@ -122,6 +128,14 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
           calendarGate:year===1?'FIRST_YEAR_REVIEW_REQUIRED':null,assessments:dyRows}});
       }
       dyPost={body:route.request().postDataJSON(),match:route.request().headers()['if-match']};
+      if(path.endsWith('/review')){
+        const current=dyRows[0];
+        assert.equal(path.split('/').at(-2),current.id);
+        const review={...dyPost.body,reviewedAt:'2026-11-24T12:00:00Z'};
+        const saved={...current,review,state:'NEEDS_INFORMATION_NOT_ADMITTED'};
+        dyRows=[saved,...dyRows.slice(1)];
+        return route.fulfill({status:201,json:saved});
+      }
       const saved={id:'dy-test-'+(dyRows.length+1),projectId:dyProject,projectYear:dyPost.body.projectYear,
         version:dyRows.length+1,outcome:dyPost.body.outcome,erc:dyPost.body.erc,erf:dyPost.body.erf,
         dyPreview:dyPost.body.outcome==='INCONCLUSIVE'?null:'0.75',
@@ -162,6 +176,28 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
     assert.equal(dyPost.match,'"1"');
     assert.equal(dyPost.body.erc,null);
     assert.equal(dyPost.body.erf,null);
+    dyCanRecord=false;dyCanReview=true;
+    await page.getByRole('button',{name:'Atualizar projetos de Dy'}).click();
+    await outcome.waitFor({state:'detached'});
+    const latestSummary=page.getByText('Versão 2 · INCONCLUSIVE · Sem admissão');
+    if(!(await page.getByLabel('Parecer técnico interno').isVisible()))await latestSummary.click();
+    const opinion=page.getByLabel('Parecer técnico interno');
+    await opinion.waitFor();
+    assert.equal(await opinion.locator('option[value="CHECKED_INTERNAL"]').isDisabled(),true);
+    await opinion.selectOption('NEEDS_INFORMATION');
+    await page.getByLabel('Regra revisada',{exact:true}).fill('VM0038-1.1 EQ8');
+    await page.getByLabel('Referências consultadas no parecer').fill('TEST_ONLY registro fictício');
+    await page.getByLabel('Fundamentação do parecer').fill('Pesquisa inconclusiva exige informações adicionais');
+    await page.getByRole('button',{name:'Registrar parecer interno de Dy'}).click();
+    await page.getByText('Parecer interno registrado, sem admissão para E8.').waitFor();
+    await latestSummary.click();
+    await page.getByText('Parecer interno desta versão',{exact:true}).waitFor();
+    assert.equal(dyPost.match,'"2"');
+    assert.equal(dyPost.body.assessmentSha256,'a'.repeat(64));
+    assert.equal(dyPost.body.outcome,'NEEDS_INFORMATION');
+    dyCanRecord=true;dyCanReview=false;
+    await page.getByRole('button',{name:'Atualizar projetos de Dy'}).click();
+    await outcome.waitFor();
     dyRows=[];
     await page.getByLabel('Ano relativo do projeto',{exact:true}).fill('1');
     await firstDy.waitFor({state:'detached'});
