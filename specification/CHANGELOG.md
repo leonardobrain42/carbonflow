@@ -1,4 +1,6 @@
 # Changelog da especificação viva
+## 0.3.0-rc.15 — 24/11/2026 (proposta)
+- UX (fatia 4 do backlog): contador de ações desta conta por tela no menu da preparação técnica, derivado da projeção de requisitos existente. Só interface.
 ## 0.3.0-rc.14 — 24/11/2026 (proposta)
 - UX (fatia 3 do backlog): uma só lista de pendências em Situação do projeto e resumo na Visão geral. Só interface; projeção de requisitos, estados e regras inalterados.
 ## 0.3.0-rc.13 — 24/11/2026 (proposta)
