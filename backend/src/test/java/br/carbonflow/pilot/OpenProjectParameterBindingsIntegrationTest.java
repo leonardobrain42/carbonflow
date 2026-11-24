@@ -87,6 +87,21 @@ class OpenProjectParameterBindingsIntegrationTest {
         assertEquals(0L,database.read(c->first(c,"""
             SELECT count(*) FROM app_open_ir_assessment WHERE project_id=?
             """,r->r.getLong(1),project)).longValue());
+        String irOptions="/v1/platform/open-ir-assessments/options";
+        JsonNode irManager=json(call("GET",irOptions,manager,null,null,null),200);
+        assertTrue(irManager.path("canRecord").asBoolean());
+        assertFalse(irManager.path("canReview").asBoolean());
+        JsonNode irReviewer=json(call("GET",irOptions,reviewer,null,null,null),200);
+        assertTrue(irReviewer.path("canReview").asBoolean());
+        assertFalse(irReviewer.path("canRecord").asBoolean());
+        assertTrue(irReviewer.path("projects").toString().contains(project));
+        assertTrue(json(call("GET",irPath+"/period-options",manager,null,null,null),200).isEmpty());
+        assertEquals(404,call("GET",irPath+"/period-options",reviewer,null,null,null).statusCode());
+        assertTrue(json(call("GET",irPath,reviewer,null,null,null),200).isEmpty());
+        assertEquals(404,call("GET",irPath,outsider,null,null,null).statusCode());
+        String irRecent="/v1/projects/"+project+"/technical/open-ir-assessments";
+        assertTrue(json(call("GET",irRecent,owner,null,null,null),200).isEmpty());
+        assertEquals(404,call("GET",irRecent,outsider,null,null,null).statusCode());
         String irReview=irPath+"/"+UUID.randomUUID()+"/review";
         String irOpinion="""
             {"assessmentSha256":"%s","outcome":"CHECKED_INTERNAL",
