@@ -1,6 +1,7 @@
 import {Component, Input, OnChanges, SimpleChanges, computed, inject, output, signal, viewChild} from '@angular/core';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {firstValueFrom} from 'rxjs';
+import {OpenIrAssessmentsComponent} from './open-ir-assessments';
 import {TypedGuideComponent} from './typed-guide';
 import {PdTraceComponent} from './pd-trace';
 import {calculationGateTitle, plannedRole, preparatoryNote, plainTerm} from './calculation-language';
@@ -60,7 +61,7 @@ const STEPS:Record<WorkbenchKind,{id:string;label:string;detail:string}[]>={
  */
 @Component({
   selector:'carbonflow-decision-workbench',standalone:true,
-  imports:[TypedGuideComponent,PdTraceComponent],templateUrl:'./decision-workbench.html'
+  imports:[TypedGuideComponent,PdTraceComponent,OpenIrAssessmentsComponent],templateUrl:'./decision-workbench.html'
 })
 export class DecisionWorkbenchComponent implements OnChanges {
   @Input({required:true}) projectId='';
@@ -68,6 +69,7 @@ export class DecisionWorkbenchComponent implements OnChanges {
   @Input() requestedStep:string|null=null;
   @Input() canViewApplicability=false;
   @Input() canViewCalculation=false;
+  @Input() canViewIr=false;
   @Input() canViewMonitoring=false;
   @Input() canViewFleet=false;
   @Input() canViewPd=false;
