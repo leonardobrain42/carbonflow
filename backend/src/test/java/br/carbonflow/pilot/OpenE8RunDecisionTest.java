@@ -84,6 +84,41 @@ class OpenE8RunDecisionTest {
     }
 
     @Test
+    void checkedStructuredIrSupportsOnlySegregatedHourlyRehearsal() {
+        UUID author=UUID.randomUUID(),reviewer=UUID.randomUUID(),reader=UUID.randomUUID();
+        var context=OpenE8IrContext.of("P","M2",2,2028,UUID.randomUUID(),1,
+            "a".repeat(64),OpenE8IrContext.CHECKED,"b".repeat(64),"c".repeat(64),author,reviewer);
+        var start=java.time.Instant.parse("2028-01-01T00:00:00Z");
+        var series=new OpenHourlyProjectEmissions.Series(start,start.plusSeconds(7200),"SIN",List.of(
+            new OpenHourlyProjectEmissions.Hour(start,n("900"),n("1000"),n("0.0005")),
+            new OpenHourlyProjectEmissions.Hour(start.plusSeconds(3600),n("1800"),n("2000"),n("0.0004"))));
+        var input=new OpenGridCalculationMath.Input(OpenGridCalculationMath.BRANCH,2,List.of(
+            new OpenGridCalculationMath.FleetRow("BEV-B",8,n("23"),n("27")),
+            new OpenGridCalculationMath.FleetRow("BEV-A",12,n("18"),n("32"))),
+            n("2700"),n("3000"),n("0.009"),null,context.rehearsalValue(),
+            new OpenGridCalculationMath.Discount(n("0"),n("0"),true));
+        OpenE8RunDecision.Pins pins=actor->new OpenE8RunDecision.OperandSet(true,false,
+            context.authoredBy(actor),List.of(OpenE8RunDecision.gate("IR_STRUCTURED",context.state())),input,series);
+        for(UUID actor:List.of(author,reviewer)) {
+            var blocked=OpenE8RunDecision.decide(pins,actor);
+            assertEquals("BLOCKED",blocked.state());
+            assertNull(blocked.memory());
+            assertTrue(blocked.gates().stream().anyMatch(g->"ACTOR_SEGREGATION".equals(g.code())));
+        }
+        var rehearsal=OpenE8RunDecision.decide(pins,reader);
+        assertEquals("REVIEWED_INTERNAL",rehearsal.state());
+        assertFalse(rehearsal.canIssueVcu());
+        var memory=rehearsal.memory();
+        assertFalse(memory.usableForE8());
+        assertEquals("4.05",memory.beTco2e());
+        assertEquals("1.3",memory.peTco2e());
+        assertEquals("2.75",memory.erTco2e());
+        assertEquals("0.5",memory.hourlyPe().hours().get(0).peTco2e());
+        assertEquals("0.8",memory.hourlyPe().hours().get(1).peTco2e());
+        assertEquals(memory.hourlyPe(),OpenE8RunDecision.readTrace(OpenE8RunDecision.traceJson(memory)).hourlyPe());
+    }
+
+    @Test
     void movedLinksAreReportedWithoutRewritingTheStoredState() {
         assertEquals("STALE", OpenE8RunDecision.responseState("BLOCKED", true));
         assertEquals("REVIEWED_INTERNAL",
