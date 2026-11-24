@@ -145,10 +145,13 @@ test('UX-08: respostas fora de ordem, seletores persistidos, conflito e revogaç
     assert.equal(await page.getByLabel('O ponto fica em terreno particular?').inputValue(), 'false');
     assert.equal((await json(await session.request.get(applicability))).version, concurrent.version);
     await page.reload();
+    await page.waitForFunction(() => document.getElementById('cf-open-land')?.value === 'true');
     assert.equal(await page.getByLabel('O ponto fica em terreno particular?').inputValue(), 'true');
     assert.equal(await page.getByLabel('Qualquer BEV compatível pode utilizar?').inputValue(), 'false');
     assert.equal(await page.getByLabel('Restringe o uso a veículos identificados?').inputValue(), 'true');
     await page.goto(technical + 'direitos');
+    await page.waitForFunction(() => document.getElementById('cf-open-owner')?.value === 'HOLDER-UX08');
+    await page.waitForFunction(() => document.getElementById('cf-open-contract')?.value === 'CONTRACT-UX08');
     assert.equal(await page.getByLabel('Titular registrado', {exact: true}).inputValue(), 'HOLDER-UX08');
     assert.equal(await page.getByLabel('Contrato registrado', {exact: true}).inputValue(), 'CONTRACT-UX08');
     await page.goto(technical + 'analisar');
