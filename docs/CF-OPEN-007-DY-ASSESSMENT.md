@@ -45,3 +45,20 @@ Quarkus/PostgreSQL na fixture de pinos (histórico, calendário, precondição,
 replay, ACL, segregação do pino, rechecagem), teste de navegador com mocks
 do contrato (registro/versão, ano relativo, inconclusivo, acesso negado).
 A execução depende do CI, não constitui homologação normativa.
+
+## Fatia seguinte — parecer interno independente (V83)
+
+A revisão usa o mesmo roster técnico dos fatores, MFA e organização, e é
+separada da autoria da avaliação. A API oferece opções autorizadas, consulta
+para gestores/revisores e POST por projeto/ID de avaliação, com If-Match da
+versão vigente, hash exato, idempotência e um parecer imutável por versão.
+CHECKED_INTERNAL, NEEDS_INFORMATION ou REJECTED; pesquisa inconclusiva não
+pode receber checagem positiva. Revisão positiva é somente checagem interna
+da declaração, NÃO admissão de fontes ou comprovação da ausência. Revisão
+técnica registra regra, referências consultadas e razão; textos permanecem
+restritos a staff. Nova avaliação não herda parecer, avaliação stale não
+recebe novo parecer. Nenhuma decisão alimenta E8 nesta fatia.
+
+A V83 é aditiva. O CI de recuperação V79 retira apenas no banco descartável
+as tabelas e registros de migrations V82/V83 para simular o estado histórico,
+e exige reaplicação de ambas. A validação real não é afrouxada.

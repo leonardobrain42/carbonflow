@@ -123,6 +123,48 @@ class OpenProjectParameterBindingsIntegrationTest {
             .at("/assessments/0/evidenceLocator").asText());
         assertEquals(422,call("POST",dyPath,manager,key(),"\"0\"",
             dyFound.replace("\"projectYear\":2","\"projectYear\":1")).statusCode());
+        String reviewPath=dyPath+"/"+found.path("id").asText()+"/review";
+        String reviewBody="""
+            {"assessmentSha256":"%s","outcome":"CHECKED_INTERNAL",
+             "ruleReference":"VM0038-1.1 EQ8 internal check",
+             "evidenceReferences":"TEST_ONLY programme and project record",
+             "reason":"Independent internal check of declared totals only"}
+            """.formatted(found.path("assessmentSha256").asText());
+        assertEquals(404,call("POST",reviewPath,manager,key(),"\"2\"",reviewBody).statusCode());
+        assertEquals(404,call("GET",dyPath+"/2",outsider,null,null,null).statusCode());
+        JsonNode reviewerOptions=json(call("GET","/v1/platform/open-dy-assessments/options",
+            reviewer,null,null,null),200);
+        assertTrue(reviewerOptions.path("canReview").asBoolean());
+        assertFalse(reviewerOptions.path("canRecord").asBoolean());
+        assertTrue(reviewerOptions.path("projects").toString().contains(project));
+        assertEquals(200,call("GET",dyPath+"/2",reviewer,null,null,null).statusCode());
+        assertEquals(422,call("POST",reviewPath,reviewer,key(),"\"2\"",
+            reviewBody.replace(found.path("assessmentSha256").asText(),"0".repeat(64))).statusCode());
+        assertEquals(412,call("POST",reviewPath,reviewer,key(),"\"1\"",reviewBody).statusCode());
+        String reviewKey=key();
+        JsonNode reviewed=json(call("POST",reviewPath,reviewer,reviewKey,"\"2\"",reviewBody),201);
+        assertEquals("CHECKED_INTERNAL_NOT_ADMITTED",reviewed.path("state").asText());
+        assertFalse(reviewed.path("usableForE8").asBoolean());
+        assertEquals(found.path("assessmentSha256"),reviewed.at("/review/assessmentSha256"));
+        assertEquals(reviewed,json(call("POST",reviewPath,reviewer,reviewKey,"\"2\"",reviewBody),200));
+        assertEquals(409,call("POST",reviewPath,reviewer,key(),"\"2\"",reviewBody).statusCode());
+        assertEquals(409,call("POST",reviewPath,reviewer,reviewKey,"\"2\"",
+            reviewBody.replace("CHECKED_INTERNAL","REJECTED")).statusCode());
+        JsonNode visibleReview=json(call("GET",dyRead,owner,null,null,null),200).at("/assessments/0/review");
+        assertEquals("CHECKED_INTERNAL",visibleReview.path("outcome").asText());
+        assertTrue(visibleReview.path("reason").isNull());
+        assertTrue(visibleReview.path("evidenceReferences").isNull());
+        JsonNode revision=json(call("POST",dyPath,manager,key(),"\"2\"",inconclusive),201);
+        assertEquals(3,revision.path("version").asInt());
+        assertTrue(revision.path("review").isNull());
+        assertEquals(409,call("POST",reviewPath,reviewer,key(),"\"3\"",reviewBody).statusCode());
+        String incompleteReview=reviewBody.replace(found.path("assessmentSha256").asText(),
+            revision.path("assessmentSha256").asText());
+        String incompletePath=dyPath+"/"+revision.path("id").asText()+"/review";
+        assertEquals(422,call("POST",incompletePath,reviewer,key(),"\"3\"",incompleteReview).statusCode());
+        JsonNode needsInfo=json(call("POST",incompletePath,reviewer,key(),"\"3\"",
+            incompleteReview.replace("CHECKED_INTERNAL","NEEDS_INFORMATION")),201);
+        assertEquals("NEEDS_INFORMATION_NOT_ADMITTED",needsInfo.path("state").asText());
         assertEquals(0L,database.read(c->first(c,"SELECT count(*) FROM app_open_project_parameter_binding WHERE project_id=? AND parameter_kind='DY'",
             r->r.getLong(1),project)).longValue());
 
