@@ -96,11 +96,32 @@
                     <p class="energy-hash">Referência {{source.referenceId}} · v{{source.version}}</p>
                     @if (source.href) {
                       <a class="cf-workspace-link" [href]="source.href">Consultar origem de {{source.symbol}}</a>
+                      @if (source.symbol === 'EF_FUEL' || source.symbol === 'IR' || source.symbol === 'DY') {
+                        <button type="button" class="cf-workspace-outline" (click)="loadPin(source.symbol, source.referenceId)">
+                          Conferir pino {{source.symbol}} nesta seção</button>
+                      }
                     }
                   }
                 </li>
               }
             </ul>
+            @if (pinLoading()) { <p role="status">Conferindo o pino autorizado…</p> }
+            @if (pinError()) { <p role="alert">{{pinError()}}</p> }
+            @if (pinDetail(); as pin) {
+              <section aria-label="Detalhe do pino consultado" class="cf-journey-context">
+                <h5>Pino consultado · {{pin.parameterKind}}</h5>
+                <p class="energy-hash">{{pin.id}} · versão {{pin.version}} · vintage {{pin.vintageYear}}</p>
+                <dl>
+                  <dt>Método e edição</dt><dd>{{pin.methodology}} · {{pin.methodologyEdition}}</dd>
+                  <dt>Unidade normalizada registrada</dt><dd>{{pin.normalizedUnit || 'Não registrada neste pino'}}</dd>
+                  <dt>Tipo de origem</dt><dd>{{pin.valueKind === 'REFERENCE' ? 'Referência de catálogo' : 'Declaração explícita do projeto'}}</dd>
+                  <dt>Situação atual</dt><dd>{{pin.stale ? 'Desatualizado — requer rechecagem' : 'Vinculado, sem admissão normativa'}} · {{pin.state}}</dd>
+                  <dt>Conversão registrada</dt><dd>{{pin.conversionFormula || 'Não registrada neste pino'}}</dd>
+                </dl>
+                <p>Metadados da versão consultada. Não é parecer de aprovação nem fonte admitida.
+                  Nenhum fator licenciado é apresentado aqui. O documento não fica pronto.</p>
+              </section>
+            }
             <h5>Referências registradas pelo motor</h5>
             <ul class="cf-tech-gates">
               @for (reference of provenance.references; track reference.code) {

@@ -1,4 +1,4 @@
-import {Component, inject, input, output, OnInit, signal} from '@angular/core';
+import {Component, inject, input, output, OnInit, OnDestroy, signal} from '@angular/core';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {firstValueFrom} from 'rxjs';
 import {calculationGateTitle, equationTerm, monitoringGateTitle, plainTerm} from './calculation-language';
@@ -15,6 +15,11 @@ interface CalculationProvenance {
   inputs:{symbol:string;origin:string;unit:string|null;vintageYear:number|null;
     referenceId:string|null;version:number|null;href:string|null;access:string}[];
   references:{code:string;reference:string;unit:string;result:string}[];limits:string;
+}
+interface ParameterDetail {
+  id:string;projectId:string;parameterKind:string;version:number;vintageYear:number;
+  methodology:string;methodologyEdition:string;normalizedUnit:string|null;
+  conversionFormula:string|null;valueKind:string;state:string;stale:boolean;usableForE8:boolean;
 }
 interface CalculationNote {period:string;situation:string;causeCode:string|null;cause:string|null;
   beTco2e:string|null;peTco2e:string|null;leTco2e:string|null;erDisplay:string|null;
@@ -38,7 +43,7 @@ interface Section {guide:Guide;latest:Version | null;
   applicability?:ApplicabilityNote|null;baseline?:BaselineNote|null}
 
 @Component({selector:'carbonflow-pd-sections',templateUrl:'./pd-sections.html'})
-export class PdSectionsComponent implements OnInit {
+export class PdSectionsComponent implements OnInit, OnDestroy {
   readonly initialGuide = input<string|null>(null);
   readonly calculationRun = input<string|null>(null);
   readonly calculationPeriod = input<string|null>(null);
@@ -51,6 +56,46 @@ export class PdSectionsComponent implements OnInit {
   readonly text = signal('');
   readonly busy = signal(false);
   readonly message = signal('');
+  readonly pinDetail = signal<ParameterDetail|null>(null);
+  readonly pinLoading = signal(false);
+  readonly pinError = signal('');
+  private pinRequest = 0;
+  ngOnDestroy() { this.clearPin(); }
+
+  private clearPin() {
+    ++this.pinRequest;
+    this.pinDetail.set(null);
+    this.pinLoading.set(false);
+    this.pinError.set('');
+  }
+
+  async loadPin(symbol:string, id:string|null) {
+    const source=this.current()?.calculation?.provenance?.inputs.find(item =>
+      item.symbol===symbol && item.referenceId===id && item.access==='PROJECT_METADATA_ONLY');
+    if (!source || !id || !['EF_FUEL','IR','DY'].includes(symbol) || this.busy()) return;
+    this.clearPin();
+    const request=this.pinRequest;
+    const project=this.projectId();
+    this.pinLoading.set(true);
+    try {
+      const detail=await firstValueFrom(this.http.get<ParameterDetail>(
+        '/v1/projects/'+encodeURIComponent(project)+'/technical/open-parameter-bindings/'+encodeURIComponent(id)));
+      if (request!==this.pinRequest || project!==this.projectId()) return;
+      if (detail.id!==id || detail.projectId!==project || detail.parameterKind!==symbol
+          || detail.version!==source.version || detail.usableForE8)
+        throw new Error('Referência inconsistente');
+      this.pinDetail.set(detail);
+    } catch (cause) {
+      if (request===this.pinRequest) {
+        this.pinDetail.set(null);
+        this.pinError.set(cause instanceof HttpErrorResponse && [401,403,404].includes(cause.status)
+          ? 'Detalhe protegido ou indisponível para esta conta.'
+          : 'Não foi possível conferir o pino. Tente novamente.');
+      }
+    } finally {
+      if (request===this.pinRequest) this.pinLoading.set(false);
+    }
+  }
   readonly term = plainTerm;
   readonly gateTitle = monitoringGateTitle;
   readonly calculationTitle = calculationGateTitle;
@@ -64,6 +109,7 @@ export class PdSectionsComponent implements OnInit {
   async load() {
     if (!this.canLeave()) return;
     this.busy.set(true);
+    this.clearPin();
     this.message.set('');
     try {
       const items = await firstValueFrom(this.http.get<Section[]>(this.url, {params:{
@@ -81,6 +127,7 @@ export class PdSectionsComponent implements OnInit {
   }
 
   private show(item:Section | null) {
+    this.clearPin();
     this.current.set(item);
     this.text.set(item?.latest?.narrative ?? '');
     this.message.set('');
