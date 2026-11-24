@@ -6,8 +6,11 @@ type Option = {projectId:string; title:string; triageVersion:number;
   pins:{parameterKind:string; vintageYear:number; version:number}[]};
 type Factor = {id:string; periodYear:number; status:string; normalizedUnit:string};
 type Board = {candidates:Factor[]};
+type DyAllocation = {method:string;totalTco2e:string;shareNumerator:string;shareDenominator:string;basisUnit:string;
+  sourceId:string;sourceEdition:string;locator:string;rationale:string};
+type DyAllocationView = DyAllocation & {program:string;registryProject:string;issuanceId:string;brazilTco2e:string};
 type DyIssuance = {program:string;registryProject:string;issuanceId:string;creditKind:string;
-  issuedOn:string;geography:string;creditsTco2e:string;sourceId:string;sourceEdition:string;locator:string};
+  issuedOn:string;geography:string;creditsTco2e:string;sourceId:string;sourceEdition:string;locator:string;allocation?:DyAllocation};
 type DyCoverage = {program:string;creditKind:string;territory:string;result:string;
   searchedFrom:string;searchedUntilExclusive:string;searchedOn:string;sourceId:string;sourceEdition:string;
   locator:string;limitations:string};
@@ -22,7 +25,8 @@ type DyAssessment = {id:string;projectId:string;projectYear:number;version:numbe
   assessmentSha256:string;recordedAt:string;state:string;stale:boolean;usableForE8:boolean;review?:DyReview|null;
   issuanceCount?:number;issuanceState?:string;issuances?:DyIssuance[];
   sourceRightsState?:string;sourceLicenses?:DyLicensePin[];
-  coverageState?:string;coverageCount?:number;searchCoverage?:DyCoverage[]};
+  coverageState?:string;coverageCount?:number;searchCoverage?:DyCoverage[];
+  allocationState?:string;allocationCount?:number;allocations?:DyAllocationView[]};
 type DyHistory = {projectId:string;projectYear:number;latestVersion:number;
   priorStart:string|null;priorEndExclusive:string|null;calendarGate:string|null;
   assessments:DyAssessment[]};
@@ -58,6 +62,7 @@ export class PlatformParameterPinsComponent implements OnChanges, OnDestroy {
   dyNote='';
   dyIssuances:DyIssuance[]=[];
   dyCoverage:DyCoverage[]=[];
+  dyAllocate=false;
   dyBindLicenses=false;
   dyLicenseIds:Record<string,string>={};
   reviewOutcome='';
@@ -154,7 +159,7 @@ export class PlatformParameterPinsComponent implements OnChanges, OnDestroy {
     this.dyHistory.set(null);this.dyBusy.set(false);
     this.dyMessage.set('');this.dyError.set('');
     this.dyOutcome='';this.dyErc='';this.dyErf='';
-    this.dyPrograms='';this.dyReferences='';this.dyEvidence='';this.dyNote='';this.dyIssuances=[];this.dyCoverage=[];this.dyBindLicenses=false;this.dyLicenseIds={};
+    this.dyPrograms='';this.dyReferences='';this.dyEvidence='';this.dyNote='';this.dyIssuances=[];this.dyCoverage=[];this.dyAllocate=false;this.dyBindLicenses=false;this.dyLicenseIds={};
     this.reviewOutcome='';this.reviewRule='';this.reviewEvidence='';this.reviewReason='';
   }
 
@@ -165,18 +170,37 @@ export class PlatformParameterPinsComponent implements OnChanges, OnDestroy {
   }
 
   dyOutcomeChanged(value:string){
-    this.dyOutcome=value;this.dyErc='';this.dyErf='';this.dyIssuances=[];this.dyCoverage=[];this.dyBindLicenses=false;this.dyLicenseIds={};
+    this.dyOutcome=value;this.dyErc='';this.dyErf='';this.dyIssuances=[];this.dyCoverage=[];this.dyAllocate=false;this.dyBindLicenses=false;this.dyLicenseIds={};
   }
 
   addDyIssuance(){
     if(this.dyBusy()||this.dyIssuances.length>=100||this.dyOutcome==='INCONCLUSIVE')return;
     this.dyIssuances=[...this.dyIssuances,{program:'',registryProject:'',issuanceId:'',
-      creditKind:'ERC',issuedOn:'',geography:'BR',creditsTco2e:'',sourceId:'',sourceEdition:'',locator:''}];
+      creditKind:'ERC',issuedOn:'',geography:'BR',creditsTco2e:'',sourceId:'',sourceEdition:'',locator:'',allocation:this.emptyAllocation()}];
   }
 
   removeDyIssuance(index:number){
-    if(!this.dyBusy())this.dyIssuances=this.dyIssuances.filter((_,i)=>i!==index);
+    if(!this.dyBusy()){
+      this.dyIssuances=this.dyIssuances.filter((_,i)=>i!==index);
+      if(!this.dyIssuances.length)this.dyAllocate=false;
+    }
   }
+  private emptyAllocation():DyAllocation{
+    return {method:'',totalTco2e:'',shareNumerator:'',shareDenominator:'',basisUnit:'',sourceId:'',sourceEdition:'',locator:'',rationale:''};
+  }
+  setDyAllocate(enabled:boolean){
+    this.dyAllocate=enabled;
+    if(enabled){
+      this.dyBindLicenses=true;
+      for(const row of this.dyIssuances)row.allocation??=this.emptyAllocation();
+    }
+  }
+  dyAllocations(){
+    if(!this.dyAllocate)return [];
+    return this.dyIssuances.map(row=>({program:row.program,registryProject:row.registryProject,
+      issuanceId:row.issuanceId,...row.allocation!}));
+  }
+  dySourceRows(){return [...this.dyIssuances,...this.dyCoverage,...this.dyAllocations()];}
 
   addDyCoverage(){
     if(this.dyBusy()||!this.dyOutcome||this.dyCoverage.length>=100)return;
@@ -190,7 +214,7 @@ export class PlatformParameterPinsComponent implements OnChanges, OnDestroy {
   dySourceKey(sourceId:string,sourceEdition:string){return JSON.stringify([sourceId.trim(),sourceEdition.trim()]);}
   dySources(){
     const sources=new Map<string,{key:string;sourceId:string;sourceEdition:string}>();
-    for(const row of [...this.dyIssuances,...this.dyCoverage]){
+    for(const row of this.dySourceRows()){
       const sourceId=row.sourceId.trim(),sourceEdition=row.sourceEdition.trim();
       if(!sourceId||!sourceEdition)continue;
       const key=this.dySourceKey(sourceId,sourceEdition);
@@ -205,8 +229,8 @@ export class PlatformParameterPinsComponent implements OnChanges, OnDestroy {
     }));
   }
   dyRightsReady(){
-    const rows=[...this.dyIssuances,...this.dyCoverage];
-    return (!this.dyBindLicenses&&!this.dyCoverage.length)||(this.dyBindLicenses&&rows.length>0&&rows.every(r=>r.sourceId.trim()&&r.sourceEdition.trim())
+    const rows=this.dySourceRows();
+    return (!this.dyBindLicenses&&!this.dyCoverage.length&&!this.dyAllocate)||(this.dyBindLicenses&&rows.length>0&&rows.every(r=>r.sourceId.trim()&&r.sourceEdition.trim())
       &&this.dyLicenses().every(r=>/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(r.licenseId)));
   }
   private dyPath(project:string){
@@ -252,7 +276,8 @@ export class PlatformParameterPinsComponent implements OnChanges, OnDestroy {
         erf:this.dyOutcome==='INCONCLUSIVE'?null:this.dyErf,
         programs:this.dyPrograms,projectReferences:this.dyReferences,
         evidenceLocator:this.dyEvidence,coverageNote:this.dyNote,
-        issuances:this.dyOutcome==='INCONCLUSIVE'?[]:this.dyIssuances,
+        issuances:this.dyOutcome==='INCONCLUSIVE'?[]:this.dyIssuances.map(({allocation,...row})=>row),
+        allocations:this.dyAllocations(),
         sourceLicenses:this.dyLicenses(),searchCoverage:this.dyCoverage,
       },{headers:new HttpHeaders({'Idempotency-Key':crypto.randomUUID(),
         'If-Match':'"'+history.latestVersion+'"'})}));
