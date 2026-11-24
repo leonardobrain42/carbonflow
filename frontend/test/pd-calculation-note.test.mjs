@@ -14,6 +14,38 @@ test('a seção de quantificação nomeia a memória ou o bloqueio', async () =>
     let situation = 'MEMORY';
     let mutations = 0;
     const selectedRequests=[];
+    let memoryMode='OK';
+    let releaseMemory;
+    let memoryArrived;
+    await page.route('**/technical/open-monitoring/dossiers/*/e8-runs/*', async route => {
+      if (memoryMode==='DELAY') await new Promise(resolve => {
+        releaseMemory=resolve;
+        if (memoryArrived) memoryArrived();
+      });
+      if (memoryMode==='DENIED') return route.fulfill({status:404,json:{message:'Indisponível'}});
+      const hours=memoryMode==='EMPTY' ? [] : [
+        {hourStart:'2027-02-01T00:00:00Z',peTco2e:'0.5',factorTco2ePerKwh:'0.999999'},
+        {hourStart:'2027-02-01T01:00:00Z',peTco2e:'1',factorTco2ePerKwh:'0.999999'},
+      ];
+      if (memoryMode==='LARGE') while (hours.length<25) hours.push({...hours[0]});
+      return route.fulfill({json:{
+        id:'30000000-0000-4000-8000-000000000122',projectId:project,period:'M1',version:2,
+        inputSha256:memoryMode==='HASH' ? 'other-snapshot' : 'abcdef0123456789'.repeat(4),
+        engine:'vm0038-open-grid-arithmetic@2-hourly',state:memoryMode==='STALE' ? 'STALE' : 'REVIEWED_INTERNAL',
+        stale:memoryMode==='STALE',canIssueVcu:memoryMode==='ADMITTED',
+        memory:{engine:'vm0038-open-grid-arithmetic@2-hourly',usableForE8:false,
+          beTco2e:'4.05',peTco2e:memoryMode==='MISMATCH' ? '9' : '1.5',leTco2e:'0',erTco2e:'2.5500',erDisplay:'2.55',
+          afecKwhPer100Miles:'23.456789',mpgUs:'31.234567',
+          trace:[{code:'AFEC',reference:'PRIVATE-RATING-STEP',unit:'kWh/100 mi',result:'23.456789'},
+            {code:'BE',reference:'VM0038-1.1-EQ1',unit:'tCO2e',result:'4.05'},
+            {code:'PE',reference:'VM0038-1.1-EQ4',unit:'tCO2e',result:'1.5'},
+            {code:'LE',reference:'VM0038-1.1-SECTION-9.3',unit:'tCO2e',result:'0'},
+            {code:'ER',reference:'VM0038-1.1-EQ7',unit:'tCO2e',result:'2.55'}],
+          hourlyPe:memoryMode==='NO_HOURS' ? null : {windowStart:'2027-02-01T00:00:00Z',
+            windowEndExclusive:'2027-02-01T02:00:00Z',region:'SIN',peTco2e:'1.5',hours},
+        },
+      }});
+    });
     let fleetMode='OK';
     let fleetRequests=0;
     let releaseFleet;
@@ -89,7 +121,7 @@ test('a seção de quantificação nomeia a memória ou o bloqueio', async () =>
         runId:'30000000-0000-4000-8000-000000000122',runVersion:2,
         inputSha256:'abcdef0123456789'.repeat(4),method:'VM0038@1.1',
         memoryHref:'/v1/projects/'+project+'/technical/open-monitoring/dossiers/M1/e8-runs/30000000-0000-4000-8000-000000000122',
-        engine:'vm0038-open-grid-arithmetic@1',reviewStatus:'REVIEWED_INTERNAL',
+        engine:'vm0038-open-grid-arithmetic@2-hourly',reviewStatus:'REVIEWED_INTERNAL',
         kernelStatus:'PURE_MATH_TEST_ONLY_NOT_ADMITTED',recordedAt:'2026-11-23T12:00:00Z',
         timing:{sourceYear:2027,projectYear:1,windowStart:'2027-02-01T00:00:00Z',windowEndExclusive:'2027-02-01T01:00:00Z'},
         inputs:[
@@ -156,8 +188,45 @@ test('a seção de quantificação nomeia a memória ou o bloqueio', async () =>
     assert.equal(await page.getByText('Habilitada', {exact:true}).count(), 0);
     const memoryLink=page.getByRole('link', {name:'Ver memória canônica desta tentativa'});
     assert.equal(await memoryLink.getAttribute('href'), memory.provenance.memoryHref);
+    const memoryButton=page.getByRole('button', {name:'Conferir memória nesta seção'});
+    const memoryPanel=page.getByRole('region', {name:'Memória canônica consultada'});
+    await memoryButton.focus();
+    await page.keyboard.press('Enter');
+    await memoryPanel.getByRole('heading', {name:'Resultados registrados pelo motor · M1'}).waitFor();
+    await memoryPanel.getByText('2.5500 tCO2e', {exact:true}).waitFor();
+    await memoryPanel.getByText('PE total registrado: 1.5 tCO2e.', {exact:false}).waitFor();
+    await memoryPanel.getByRole('cell', {name:'0.5',exact:true}).waitFor();
+    await memoryPanel.getByRole('cell', {name:'1',exact:true}).waitFor();
+    for (const secret of ['23.456789','31.234567','PRIVATE-RATING-STEP','0.999999'])
+      assert.equal(await memoryPanel.getByText(secret, {exact:false}).count(),0);
+    await page.setViewportSize({width:390,height:844});
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1),false);
+    memoryMode='NO_HOURS';
+    await memoryButton.click();
+    await memoryPanel.getByText('Sem memória horária registrada nesta tentativa.', {exact:false}).waitFor();
+    memoryMode='EMPTY';
+    await memoryButton.click();
+    await memoryPanel.getByText('Sem parcelas horárias nesta resposta. Ausência não é zero.', {exact:true}).waitFor();
+    memoryMode='LARGE';
+    await memoryButton.click();
+    await memoryPanel.getByText('Esta prévia limita PE a 24 horas.', {exact:false}).waitFor();
+    assert.equal(await memoryPanel.getByRole('table').last().locator('tbody tr').count(),24);
+    memoryMode='STALE';
+    await memoryButton.click();
+    await page.getByRole('alert').filter({hasText:'Memória indisponível ou desatualizada'}).waitFor();
+    assert.equal(await memoryPanel.count(),0);
+    memoryMode='DENIED';
+    await memoryButton.click();
+    await page.getByRole('alert').filter({hasText:'Memória protegida ou indisponível'}).waitFor();
+    assert.equal(await memoryPanel.count(),0);
+    for (const mode of ['HASH','MISMATCH','ADMITTED']) {
+      memoryMode=mode;
+      await memoryButton.click();
+      await page.getByRole('alert').filter({hasText:'Não foi possível conferir a memória desta tentativa'}).waitFor();
+      assert.equal(await memoryPanel.count(),0);
+    }
     await page.getByText('Conferir origem, unidades e revisão da memória', {exact:true}).click();
-    await page.getByText('vm0038-open-grid-arithmetic@1', {exact:true}).waitFor();
+    await page.getByText('vm0038-open-grid-arithmetic@2-hourly', {exact:true}).waitFor();
     await page.getByText('VM0038@1.1', {exact:true}).waitFor();
     await page.getByText('BE · VM0038-1.1-EQ1 · tCO2e', {exact:true}).waitFor();
     await page.getByText('Referência protegida ou indisponível', {exact:true}).waitFor();
@@ -208,6 +277,16 @@ test('a seção de quantificação nomeia a memória ou o bloqueio', async () =>
     releaseFleet();
     await fleetResponse;
     assert.equal(await fleetPanel.count(),0);
+    memoryMode='DELAY';
+    const memoryArrival=new Promise(resolve => {memoryArrived=resolve;});
+    await memoryButton.click();
+    await memoryArrival;
+    const memoryResponse=page.waitForResponse(response => response.url().includes('/e8-runs/'));
+    await page.getByRole('button', {name:'Conferir energia ED/EC nesta seção'}).click();
+    await page.getByRole('region', {name:'Energia do vínculo consultado'}).waitFor();
+    releaseMemory();
+    await memoryResponse;
+    assert.equal(await memoryPanel.count(),0);
     const energyButton=page.getByRole('button', {name:'Conferir energia ED/EC nesta seção'});
     const energyPanel=page.getByRole('region', {name:'Energia do vínculo consultado'});
     await energyButton.focus();
@@ -297,7 +376,7 @@ test('a seção de quantificação nomeia a memória ou o bloqueio', async () =>
     await page.getByText('não escreve zero').waitFor();
     assert.equal(await page.getByText('4.05 tCO2e').count(), 0);
     assert.equal(await memoryLink.count(), 0);
-    assert.equal(await page.getByText('vm0038-open-grid-arithmetic@1', {exact:true}).count(), 0);
+    assert.equal(await page.getByText('vm0038-open-grid-arithmetic@2-hourly', {exact:true}).count(), 0);
     situation = 'RESTRICTED';
     await page.getByRole('button', {name:'Atualizar seções'}).click();
     await page.getByText('Memória protegida.', {exact:false}).waitFor();
