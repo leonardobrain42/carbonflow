@@ -148,6 +148,9 @@ test('a ficha OPEN permite preparar direitos sem fonte admitida nem cálculo E8'
     // 1. Network access: its own screen, one persisted revision.
     await page.goto(base+'/workspace/projects/'+project+'/technical?secao=rede');
     await page.getByRole('heading',{name:'Acesso aos carregadores'}).waitFor();
+    // The menu counts this account's own actions per screen, from the requirement projection.
+    await nav.getByRole('button',{name:/Situação do projeto.*1 ação sua/}).waitFor();
+    assert.equal(await nav.getByRole('button',{name:/Acesso à rede.*ação/}).count(),0);
     assert.equal(await page.getByLabel('Nome do titular neste projeto').count(),0,'rights do not belong to the network screen');
     // The owner's triage answers are offered for empty fields; nothing is saved until the person saves.
     const fromTriage=page.getByRole('group',{name:'Respostas da triagem'});

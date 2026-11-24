@@ -31,7 +31,7 @@ Mapa levantado em 24/11/2026 a partir do código (`frontend/src`, `ProjectTriage
 | 1 | Proteção contra perda de alterações em Acesso à rede, Direitos e Datas | Correção | **Feita** (este PR) |
 | 2 | Pré-preenchimento sugerido a partir da triagem | Duplicação | **Feita**: Preparar informações e Acesso à rede listam as respostas da triagem e oferecem "Usar respostas da triagem", que preenche só campos vazios e não salva. Só para o titular (a triagem é privada dele). Mapeamento apenas por equivalência exata; frota a combustão, quantidades, medição e direitos não são sugeridos |
 | 3 | Uma lista só em Situação do projeto; Visão geral mostra só o resumo | Duplicação | **Feita**: a ficha não repete os achados (todos já são pendências); "Requisitos do rascunho" vira "Dados iniciais pendentes" só quando houver item, com atalho; a Visão geral mostra até 3 ações (nome, situação, ação) e um link para a lista completa |
-| 4 | Contador de pendências no menu, substituindo os cartões do Painel | Melhoria | A fazer |
+| 4 | Contador de pendências no menu | Melhoria | **Feita**: cada item do menu mostra quantas ações desta conta (grupo MINE, ação do cliente, destino técnico) apontam para a tela; telas fora do menu somam na tela-mãe; leitura nova ao salvar; resposta antiga não substitui a nova. O cartão duplicado "Evidências" saiu do Painel. Os demais cartões ficam (há teste de jornada que navega por eles); reduzi-los fica para a revisão do Painel |
 | 5 | Desatualização só por resposta relevante (D15) | Regra | **Feita** (este PR) |
 | 6 | Triagem como hipótese inicial (D16) | Estrutura | Decidida; desenho a aprovar |
 | 7 | "Por que está bloqueado?" em Quantificação (IR, Dy, gates) | Linguagem | A fazer |

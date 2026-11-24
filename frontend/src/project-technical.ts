@@ -331,6 +331,7 @@ export class ProjectTechnicalComponent {
       }
       this.dossier.set(dossier);
       if (this.owner() && this.can('SAVE_INTAKE')) void this.loadTriage();
+      void this.loadPendingCounts();
     } catch (cause: unknown) {
       this.project.set(null);
       this.capabilities.set(null);
@@ -345,6 +346,35 @@ export class ProjectTechnicalComponent {
   /** Refresh the same backend-owned requirement projection after a canonical save. */
   refreshRequirements() {
     void this.requirementsPanel()?.load();
+    void this.loadPendingCounts();
+  }
+
+  /** Actions this account can take, per technical screen, from the same requirement projection. */
+  readonly pendingByScreen = signal<Record<string, number>>({});
+  menuCount(id: string) {
+    const counts = this.pendingByScreen();
+    let total = counts[id] ?? 0;
+    for (const [alias, parent] of Object.entries(MENU_ALIASES))
+      if (parent === id && !this.menu().some(item => item.id === alias)) total += counts[alias] ?? 0;
+    return total;
+  }
+  private pendingRead = 0;
+  private async loadPendingCounts() {
+    const read = ++this.pendingRead;
+    try {
+      const view = await firstValueFrom(this.http.get<{requirements?: {group:string; clientAction:boolean;
+        admitsE8:boolean; destination:{area:string; screen:string} | null}[]}>(this.technical + '/requirements'));
+      if (read !== this.pendingRead) return; // an older response never replaces a newer one
+      const counts: Record<string, number> = {};
+      for (const item of view.requirements ?? []) {
+        if (item.group !== 'MINE' || !item.clientAction || item.admitsE8) continue;
+        if (item.destination?.area !== 'technical' || !item.destination.screen) continue;
+        counts[item.destination.screen] = (counts[item.destination.screen] ?? 0) + 1;
+      }
+      this.pendingByScreen.set(counts);
+    } catch {
+      if (read === this.pendingRead) this.pendingByScreen.set({});
+    }
   }
 
   updateGuide(guide: {id:string; version:number; answers:Record<string,string>}) {
