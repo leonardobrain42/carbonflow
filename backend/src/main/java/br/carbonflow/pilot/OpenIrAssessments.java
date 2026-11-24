@@ -312,6 +312,8 @@ class OpenIrAssessments {
     }
 
     private static OpenIrAnnualEvidence.Snapshot annualSnapshot(Connection c,Stored row) throws SQLException {
+        Review opinion=readReview(c,row.id(),false);
+        boolean current=!stale(c,row) && (opinion==null || "CHECKED_INTERNAL".equals(opinion.outcome()));
         return first(c,"""
             SELECT f.fleet_snapshot_id,f.rating_snapshot_id,b.candidate_id,f.cycle
             FROM app_open_e8_fleet_selection f
@@ -320,7 +322,7 @@ class OpenIrAssessments {
                 AND f.observation_year=? AND b.vintage_year=?
             """,r->new OpenIrAnnualEvidence.Snapshot(row.id(),row.project(),row.year(),row.sourceYear(),
                 row.sha(),r.getObject(1,UUID.class),r.getObject(2,UUID.class),r.getObject(3,UUID.class),
-                r.getString(4),row.at(),!stale(c,row),"PENDING_REVIEW".equals(row.state())),
+                r.getString(4),row.at(),current,"PENDING_REVIEW".equals(row.state())),
             row.project(),row.fleet(),row.fuel(),row.sourceYear(),row.sourceYear());
     }
 
