@@ -82,6 +82,12 @@ class OpenProjectParameterBindingsIntegrationTest {
         assertTrue(research.path("dyPreview").isNull());
         assertFalse(research.path("usableForE8").asBoolean());
         assertEquals(research,json(call("POST",dyPath,manager,dyKey,"\"0\"",inconclusive),200));
+        String firstYearBody=inconclusive.replace("\"projectYear\":2","\"projectYear\":1");
+        String firstYearKey=key();
+        JsonNode unknownStart=json(call("POST",dyPath,manager,firstYearKey,"\"0\"",firstYearBody),201);
+        assertEquals("FIRST_YEAR_REVIEW_REQUIRED",unknownStart.path("calendarGate").asText());
+        assertEquals("CREDIT_START_MISSING",unknownStart.at("/firstYearContext/contextGate").asText());
+        assertTrue(unknownStart.path("dyPreview").isNull());
         String dyFound=inconclusive.replace("\"INCONCLUSIVE\"","\"FLEET_CREDITS_FOUND\",\"erc\":\"75\",\"erf\":\"25\"");
         assertEquals(422,call("POST",dyPath,manager,key(),"\"1\"",dyFound).statusCode());
         assertEquals(409,call("POST",dyPath,manager,dyKey,"\"0\"",
@@ -104,6 +110,22 @@ class OpenProjectParameterBindingsIntegrationTest {
                 """,project,ORG,OWNER);
             return null;
         });
+        JsonNode firstYearHistory=json(call("GET",dyPath+"/1",manager,null,null,null),200);
+        assertEquals("2034-07-01",firstYearHistory.at("/firstYearContext/creditStart").asText());
+        assertEquals("2033-07-01",firstYearHistory.at("/firstYearContext/exploratoryFrom").asText());
+        assertTrue(firstYearHistory.at("/assessments/0/stale").asBoolean());
+        assertTrue(firstYearHistory.path("priorStart").isNull());
+        JsonNode firstYear=json(call("POST",dyPath,manager,key(),"\"1\"",firstYearBody),201);
+        assertEquals("FIRST_YEAR_EXPLORATORY@1",firstYear.at("/firstYearContext/policyVersion").asText());
+        assertEquals("2034-07-01",firstYear.at("/firstYearContext/exploratoryUntilExclusive").asText());
+        assertTrue(firstYear.path("priorStart").isNull());
+        assertTrue(firstYear.path("erc").isNull());
+        assertTrue(firstYear.path("erf").isNull());
+        assertTrue(firstYear.path("dyPreview").isNull());
+        assertFalse(firstYear.path("usableForE8").asBoolean());
+        var firstYearReplay=json(call("POST",dyPath,manager,firstYearKey,"\"0\"",firstYearBody),200);
+        assertEquals(unknownStart.path("assessmentSha256"),firstYearReplay.path("assessmentSha256"));
+        assertTrue(firstYearReplay.path("stale").asBoolean());
         JsonNode found=json(call("POST",dyPath,manager,key(),"\"1\"",dyFound),201);
         assertEquals("0.75",found.path("dyPreview").asText());
         assertEquals(2,found.path("version").asInt());
@@ -363,6 +385,18 @@ class OpenProjectParameterBindingsIntegrationTest {
         assertEquals("100",attributed.at("/allocations/0/totalTco2e").asText());
         assertEquals("0.75",attributed.path("dyPreview").asText());
         assertFalse(attributed.path("usableForE8").asBoolean());
+        String exploratory=firstYearBody.strip().substring(0,firstYearBody.strip().length()-1)
+            +",\"sourceLicenses\":[{\"sourceId\":\"TEST-DY-REGISTRY\",\"sourceEdition\":\"1\",\"licenseId\":\""+dyLicense+"\"}]"
+            +",\"searchCoverage\":"+matrix.replace("2034-07-01","2033-07-01")
+                .replace("2035-07-01","2034-07-01").replace("2035-07-02","2034-07-02")
+                .replace("FOUND","NO_RESULTS")+"}";
+        assertEquals(422,call("POST",dyPath,manager,key(),"\"2\"",
+            exploratory.replace("2033-07-01","2033-06-30")).statusCode());
+        JsonNode preStart=json(call("POST",dyPath,manager,key(),"\"2\"",exploratory),201);
+        assertEquals("SEARCH_INCONCLUSIVE",preStart.path("coverageState").asText());
+        assertTrue(preStart.path("dyPreview").isNull());
+        assertFalse(preStart.path("usableForE8").asBoolean());
+
         assertEquals(attributed,json(call("POST",dyPath,manager,allocationKey,"\"9\"",allocated),200));
         assertEquals(409,call("POST",dyPath,manager,allocationKey,"\"9\"",
             allocated.replace("TEST_ONLY split A","TEST_ONLY split changed")).statusCode());

@@ -125,7 +125,10 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
         return route.fulfill({json:{projectId:dyProject,projectYear:year,
           latestVersion:dyRows[0]?.version??0,priorStart:year===1?null:'2034-07-01T03:00:00Z',
           priorEndExclusive:year===1?null:'2035-07-01T03:00:00Z',
-          calendarGate:year===1?'FIRST_YEAR_REVIEW_REQUIRED':null,assessments:dyRows}});
+          calendarGate:year===1?'FIRST_YEAR_REVIEW_REQUIRED':null,assessments:dyRows,
+          firstYearContext:year===1?{creditStart:dyMode==='MISSING'?null:'2034-07-01',
+            exploratoryFrom:dyMode==='MISSING'?null:'2033-07-01',exploratoryUntilExclusive:dyMode==='MISSING'?null:'2034-07-01',
+            contextGate:dyMode==='MISSING'?'CREDIT_START_MISSING':null,policyVersion:'FIRST_YEAR_EXPLORATORY@1'}:null}});
       }
       dyPost={body:route.request().postDataJSON(),match:route.request().headers()['if-match']};
       if(path.endsWith('/review')){
@@ -269,6 +272,17 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
     await page.getByRole('button',{name:'Consultar avaliações de Dy'}).click();
     await page.getByText('Janela anterior não resolvida:',{exact:false}).waitFor();
     assert.equal(await outcome.locator('option[value="FLEET_CREDITS_FOUND"]').isDisabled(),true);
+    assert.equal(await outcome.locator('option[value="NO_FLEET_CREDITS_DECLARED"]').isDisabled(),true);
+    await page.getByText('Janela exploratória pré-início: 2033-07-01 até 2034-07-01 (fim exclusivo).',{exact:true}).waitFor();
+    await outcome.selectOption('INCONCLUSIVE');
+    const addQuery=page.getByRole('button',{name:'Adicionar consulta de cobertura'});
+    await addQuery.waitFor();
+    assert.equal(await addQuery.isEnabled(),true);
+    assert.equal(await page.getByLabel('ERC emitidos · tCO2e').count(),0);
+    dyMode='MISSING';
+    await page.getByRole('button',{name:'Consultar avaliações de Dy'}).click();
+    await page.getByText('Início não resolvido: CREDIT_START_MISSING.',{exact:false}).waitFor();
+    assert.equal(await addQuery.isDisabled(),true);
     dyMode='DENIED';
     await page.getByRole('button',{name:'Consultar avaliações de Dy'}).click();
     await page.getByRole('alert').filter({hasText:'Avaliação indisponível para esta conta.'}).waitFor();

@@ -18,6 +18,8 @@ type DyLicensePin = {sourceId:string;sourceEdition:string;licenseId:string;decis
 type DyReview = {outcome:string;assessmentSha256:string;ruleReference:string|null;
   evidenceReferences:string|null;reason:string|null;reviewedAt:string};
 type DyOptions = {canRecord:boolean;canReview:boolean;projects:{projectId:string;title:string}[]};
+type DyFirstYearContext = {creditStart:string|null;exploratoryFrom:string|null;exploratoryUntilExclusive:string|null;
+  contextGate:string|null;policyVersion:string};
 type DyAssessment = {id:string;projectId:string;projectYear:number;version:number;outcome:string;
   priorStart:string|null;priorEndExclusive:string|null;calendarGate:string|null;
   erc:string|null;erf:string|null;dyPreview:string|null;programs:string|null;
@@ -26,10 +28,10 @@ type DyAssessment = {id:string;projectId:string;projectYear:number;version:numbe
   issuanceCount?:number;issuanceState?:string;issuances?:DyIssuance[];
   sourceRightsState?:string;sourceLicenses?:DyLicensePin[];
   coverageState?:string;coverageCount?:number;searchCoverage?:DyCoverage[];
-  allocationState?:string;allocationCount?:number;allocations?:DyAllocationView[]};
+  allocationState?:string;allocationCount?:number;allocations?:DyAllocationView[];firstYearContext?:DyFirstYearContext|null};
 type DyHistory = {projectId:string;projectYear:number;latestVersion:number;
   priorStart:string|null;priorEndExclusive:string|null;calendarGate:string|null;
-  assessments:DyAssessment[]};
+  assessments:DyAssessment[];firstYearContext?:DyFirstYearContext|null};
 
 /** Staff pin of a reviewed factor or an explicit IR/Dy. Not an E8 admission. */
 @Component({selector:'carbonflow-platform-parameter-pins', standalone:true,
@@ -202,8 +204,12 @@ export class PlatformParameterPinsComponent implements OnChanges, OnDestroy {
   }
   dySourceRows(){return [...this.dyIssuances,...this.dyCoverage,...this.dyAllocations()];}
 
+  dyCoverageAllowed(){
+    const history=this.dyHistory();
+    return !!history && (history.projectYear!==1 || (!!history.firstYearContext?.exploratoryFrom && !history.firstYearContext?.contextGate));
+  }
   addDyCoverage(){
-    if(this.dyBusy()||!this.dyOutcome||this.dyCoverage.length>=100)return;
+    if(this.dyBusy()||!this.dyOutcome||this.dyCoverage.length>=100||!this.dyCoverageAllowed())return;
     this.dyCoverage=[...this.dyCoverage,{program:'',creditKind:'',territory:'',result:'',
       searchedFrom:'',searchedUntilExclusive:'',searchedOn:'',sourceId:'',sourceEdition:'',locator:'',limitations:''}];
     this.dyBindLicenses=true;
@@ -265,6 +271,7 @@ export class PlatformParameterPinsComponent implements OnChanges, OnDestroy {
     event.preventDefault();
     const history=this.dyHistory();
     if(!this.dyOptions()?.canRecord||this.dyBusy()||!this.dyValid()||!history||!this.dyOutcome||!this.dyRightsReady()
+      ||(this.dyCoverage.length>0&&!this.dyCoverageAllowed())
       ||history.projectId!==this.dyProject||history.projectYear!==Number(this.dyYear)
       ||(history.calendarGate&&this.dyOutcome!=='INCONCLUSIVE'))return;
     const request=++this.dyRequest,project=this.dyProject,year=Number(this.dyYear);

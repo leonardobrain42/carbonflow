@@ -91,6 +91,23 @@
         } @else {
           <p>Janela anterior canônica: {{history.priorStart}} até {{history.priorEndExclusive}} (fim exclusivo).</p>
         }
+        @if (history.projectYear===1) {
+          <section aria-label="Contexto do primeiro ano">
+            <h5>Primeiro ano · interpretação normativa pendente</h5>
+            <p>A ausência de histórico próprio não comprova ausência de créditos concorrentes.
+              A equação 8 não recebe valor automático. O recorte exploratório abaixo não é janela normativa.
+              A divergência entre janela anual e acumulada exige esclarecimento.</p>
+            @if (history.firstYearContext; as context) {
+              @if (context.contextGate) {
+                <p>Início não resolvido: {{context.contextGate}}. Registre apenas pesquisa textual inconclusiva.</p>
+              } @else {
+                <p>Início da creditação: {{context.creditStart}}.</p>
+                <p>Janela exploratória pré-início: {{context.exploratoryFrom}} até {{context.exploratoryUntilExclusive}} (fim exclusivo).</p>
+                <p>Somente pesquisa inconclusiva, inclusive consultas sem resultados. ERC, ERF e Dy permanecem indisponíveis.</p>
+              }
+            } @else { <p>Contexto exploratório indisponível. Nenhuma janela será presumida.</p> }
+          </section>
+        }
         @if (dyOptions()?.canRecord) {
         <form (submit)="saveDy($event)">
           <label for="cf-dy-outcome">Resultado da pesquisa</label>
@@ -236,7 +253,7 @@
                   (click)="removeDyCoverage(i)">Remover consulta {{i+1}}</button>
               </fieldset>
             }
-            <button type="button" class="cf-workspace-outline" [disabled]="dyBusy()||dyCoverage.length>=100"
+            <button type="button" class="cf-workspace-outline" [disabled]="dyBusy()||dyCoverage.length>=100||!dyCoverageAllowed()"
               (click)="addDyCoverage()">Adicionar consulta de cobertura</button>
           }
           @if (dyIssuances.length || dyCoverage.length) {
@@ -276,6 +293,20 @@
         @for (item of history.assessments; track item.id) {
           <details>
             <summary>Versão {{item.version}} · {{item.outcome}} · {{item.stale?'Requer rechecagem':'Sem admissão'}}</summary>
+            @if (item.projectYear===1) {
+              <h5>Contexto histórico do ano inicial</h5>
+              @if (item.firstYearContext; as context) {
+                <p>Regra exploratória: {{context.policyVersion}}. Não constitui decisão normativa.</p>
+                @if (context.contextGate) {
+                  <p>Início não resolvido na versão: {{context.contextGate}}</p>
+                } @else {
+                  <p>Início registrado: {{context.creditStart}}. Janela exploratória original:
+                    {{context.exploratoryFrom}} até {{context.exploratoryUntilExclusive}} (fim exclusivo).</p>
+                }
+              } @else {
+                <p>Versão legada sem contexto fixado; requer nova avaliação.</p>
+              }
+            }
             @if (item.sourceRightsState==='LICENSE_RECHECK_REQUIRED') {
               <p role="status">Direitos da fonte exigem rechecagem. Números e referências protegidos estão ocultos. Registre uma nova versão com licença vigente.</p>
             } @else if (item.sourceRightsState==='LICENSE_DECISIONS_CURRENT') {
