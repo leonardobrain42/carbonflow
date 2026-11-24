@@ -36,6 +36,18 @@ class OpenE8ProjectRunIntegrationTest {
         String project = project(owner, org);
         String path = "/v1/projects/" + project + "/technical/open-monitoring/dossiers/M1/e8-runs";
 
+        String annualPath = "/v1/projects/" + project + "/technical/open-calculation-years/1";
+        assertEquals(401, call("GET", annualPath, null, null, null, null).statusCode());
+        assertEquals(404, call("GET", annualPath, outsider.cookie(), null, null, null).statusCode());
+        assertEquals(404, call("GET", "/v1/projects/PIL-SYN-BR-001/technical/open-calculation-years/1",
+            owner.cookie(), null, null, null).statusCode());
+        var annual = call("GET", annualPath, owner.cookie(), null, null, null);
+        assertEquals(200, annual.statusCode(), annual.body());
+        assertTrue(json(annual).path("totals").isNull());
+        assertTrue(json(annual).path("issues").toString().contains("CREDIT_START_MISSING"));
+        assertEquals(422, call("GET", annualPath.substring(0, annualPath.length() - 1) + "0",
+            owner.cookie(), null, null, null).statusCode());
+
         assertEquals(401, call("GET", path, null, null, null, null).statusCode());
         assertEquals(404, call("GET", path, outsider.cookie(), null, null, null).statusCode());
         assertEquals(404, call("POST", path, outsider.cookie(), key(), "\"0\"", "{}").statusCode());
@@ -112,6 +124,7 @@ class OpenE8ProjectRunIntegrationTest {
             return null;
         });
         assertEquals(404, call("POST", path, preparer.cookie(), key(), "\"1\"", "{}").statusCode());
+        assertEquals(404, call("GET", annualPath, preparer.cookie(), null, null, null).statusCode());
         assertEquals(0L, database.read(c -> first(c,
             "SELECT count(*) FROM pilot_selected_run WHERE project_id=?",
             r -> r.getLong(1), project)).longValue());

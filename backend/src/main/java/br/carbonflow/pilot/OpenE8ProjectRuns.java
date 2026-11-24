@@ -70,6 +70,19 @@ class OpenE8ProjectRuns {
         });
     }
 
+    /** One current attempt per period; historical revisions must not be summed twice. */
+    static List<Attempt> current(Connection c, String project) throws SQLException {
+        var rows = query(c, STORED + """
+            WHERE project_id=? AND (period_code,version) IN
+              (SELECT period_code,max(version) FROM app_open_e8_run
+               WHERE project_id=? GROUP BY period_code)
+            ORDER BY period_code
+            """, OpenE8ProjectRuns::stored, project, project);
+        var result = new ArrayList<Attempt>();
+        for (var row : rows) result.add(view(c, row));
+        return List.copyOf(result);
+    }
+
     Attempt detail(String cookie, String project, String period, UUID id) {
         return scope.read(cookie, project, "VIEW_OPEN_E8_RUN", (c, ctx) -> {
             String code = OpenMonitoringDossiers.code(period);

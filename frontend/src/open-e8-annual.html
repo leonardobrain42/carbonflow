@@ -1,0 +1,59 @@
+<section class="cf-journey-context" aria-labelledby="cf-e8-annual-title">
+  <h4 id="cf-e8-annual-title">Consolidação por ano do projeto</h4>
+  <p>O ano começa no aniversário do início de crédito. O servidor reúne a última tentativa de cada
+    período e verifica a cobertura integral. Lacunas, sobreposições e versões desatualizadas impedem o total.</p>
+  <label for="cf-e8-annual-year">Ano do projeto a consolidar</label>
+  <input id="cf-e8-annual-year" type="number" min="1" max="100" step="1" #yearInput [value]="year()">
+  <button type="button" class="cf-workspace-outline" (click)="load(yearInput.valueAsNumber)">
+    Consultar ano do projeto</button>
+  @if (loading()) {
+    <p role="status">Conferindo as janelas do ano {{year()}}…</p>
+  } @else if (error()) {
+    <p role="alert" class="cf-workspace-alert">{{error()}}</p>
+  } @else if (result(); as annual) {
+    @if (annual.windowStart) {
+      <p>Janela UTC: {{annual.windowStart}} até {{annual.windowEndExclusive}}, com fim exclusivo.</p>
+    }
+    @if (annual.totals; as totals) {
+      <p><strong>Ensaio interno consolidado · ano {{annual.projectYear}}</strong></p>
+      <dl class="cf-tech-capabilities">
+        <div><dt>BE anual</dt><dd>{{totals.beTco2e}} tCO2e</dd></div>
+        <div><dt>PE anual</dt><dd>{{totals.peTco2e}} tCO2e</dd></div>
+        <div><dt>LE anual</dt><dd>{{totals.leTco2e}} tCO2e</dd></div>
+        <div><dt>ER anual</dt><dd>{{totals.erDisplay}} tCO2e</dd></div>
+      </dl>
+      <p>ER soma os resultados sem arredondamento de apresentação de cada janela,
+        com seus parâmetros próprios. Este ensaio não é admissão normativa nem crédito emitido.</p>
+    } @else {
+      <p><strong>Total anual indisponível · ano {{annual.projectYear}}</strong></p>
+      <p>Não há um total anual calculado. Ausência não equivale a zero.</p>
+    }
+    <ul class="cf-tech-gates">
+      @for (issue of annual.issues; track $index) {
+        <li>
+          <p>@if (issue.period) {<strong>{{issue.period}} · </strong>}{{issue.detail}}</p>
+          @if (issue.from && issue.until) {<p>{{issue.from}} até {{issue.until}}, fim exclusivo.</p>}
+          <small>Referência: {{issue.code}}</small>
+        </li>
+      }
+    </ul>
+    <details>
+      <summary>Janelas e referências da consolidação · {{annual.members.length}} períodos</summary>
+      <ul class="cf-tech-gates">
+        @for (member of annual.members; track $index) {
+          <li>
+            <strong>{{member.period}} · @if (member.runId) {v{{member.version}}} @else {Sem tentativa}</strong>
+            <p>{{member.windowStart ?? 'Início desconhecido'}} até {{member.windowEndExclusive ?? 'Fim desconhecido'}}.</p>
+            @if (member.stale) {<p>Exige rechecagem.</p>}
+            @if (member.runId) {
+              <p>Tentativa: <code>{{member.runId}}</code></p>
+              <p>SHA-256 das entradas: <code>{{member.inputSha256}}</code></p>
+            }
+          </li>
+        }
+      </ul>
+      <p>SHA-256 desta consulta: <code>{{annual.manifestSha256}}</code></p>
+      <p>Esta consulta reflete as versões atuais. As memórias históricas de cada tentativa permanecem preservadas.</p>
+    </details>
+  }
+</section>

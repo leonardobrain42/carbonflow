@@ -15,6 +15,11 @@ final class OpenE8Timing {
     record Year(Integer projectYear, Integer sourceYear, String gate) {}
     record Context(String fingerprint, Window window, Year year) {}
 
+    record Calendar(LocalDate creditStart, Window window, String gate) {}
+
+    private record Credit(Declaration declaration, OpenProjectRights.Event operational,
+                          OpenProjectRights.Event credit, String gate) {}
+
     private record Declaration(int triageVersion, String operationalCode, LocalDate operationalDate,
                                String creditCode, LocalDate creditDate) {}
 
@@ -32,6 +37,35 @@ final class OpenE8Timing {
         if (window == null)
             return new Context(fingerprint("MISSING_WINDOW"), null, new Year(null, null, "RUN_WINDOW_MISSING"));
 
+        Credit context = credit(connection, project);
+        var declaration = context.declaration();
+        var operational = context.operational();
+        var credit = context.credit();
+        String gate = context.gate();
+        Year year = gate == null ? years(credit.eventOn(), window) : new Year(null, null, gate);
+        String digest = fingerprint("OPEN-E8-TIMING-V1|" + window.from().toInstant() + "|"
+            + window.until().toInstant() + "|" + declaration + "|" + eventKey(operational)
+            + "|" + eventKey(credit) + "|" + year);
+        return new Context(digest, window, year);
+    }
+
+    /** Same reviewed start and Brazilian anniversaries used by period runs. */
+    static Calendar calendar(Connection connection, String project, int year) throws SQLException {
+        if (year < 1 || year > 100) throw new IllegalArgumentException("Ano do projeto fora do contrato.");
+        Credit context = credit(connection, project);
+        if (context.gate() != null) return new Calendar(null, null, context.gate());
+        LocalDate start = context.credit().eventOn();
+        return new Calendar(start, yearWindow(start, year), null);
+    }
+
+    static Window yearWindow(LocalDate start, int year) {
+        if (start == null || year < 1 || year > 100) throw new IllegalArgumentException("Calendário inválido.");
+        return new Window(
+            start.plusYears(year - 1L).atStartOfDay(VintageWindows.ZONE).toOffsetDateTime(),
+            start.plusYears(year).atStartOfDay(VintageWindows.ZONE).toOffsetDateTime());
+    }
+
+    private static Credit credit(Connection connection, String project) throws SQLException {
         Declaration declaration = first(connection, """
             SELECT triage_version, operational_event_code, operational_event_on, vcs_event_code, vcs_event_on
             FROM app_project_open_applicability_revision WHERE project_id=?
@@ -55,11 +89,7 @@ final class OpenE8Timing {
                 gate = "CREDIT_START_MISMATCH";
             }
         }
-        Year year = gate == null ? years(credit.eventOn(), window) : new Year(null, null, gate);
-        String digest = fingerprint("OPEN-E8-TIMING-V1|" + window.from().toInstant() + "|"
-            + window.until().toInstant() + "|" + declaration + "|" + eventKey(operational)
-            + "|" + eventKey(credit) + "|" + year);
-        return new Context(digest, window, year);
+        return new Credit(declaration, operational, credit, gate);
     }
 
     static Year years(LocalDate creditStart, Window window) {
