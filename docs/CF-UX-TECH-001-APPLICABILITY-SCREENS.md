@@ -17,7 +17,7 @@ A seção **Analisar** misturava duas funções: mostrar a situação do projeto
 - Removidos da tela de situação: o bloco estático "Preparação / Evidências: A confirmar".
 
 ## Limites conhecidos
-- Pendências que exigem preencher algo ainda levam à tela de situação, que oferece os atalhos; levar direto à tela certa exigiria mudar o destino devolvido pelo backend (próxima fatia).
+- Pendências de preenchimento levam direto à tela que as resolve: declaração ausente, acesso indefinido, configuração pendente, triagem alterada e rede fechada → `rede`; comprovante de contrato ou divulgação → `direitos`. Os rótulos viram "Abrir acesso à rede" e "Abrir direitos do projeto". Itens de espera (revisão, fonte, lacuna de datas, dependência de direitos) e as lacunas de dados iniciais seguem como antes (`analisar`/`preparar`), pois não há campo a preencher ou a tela depende de outro módulo. O backend só altera o destino e o rótulo: estado, grupo e regra não mudam.
 - A proteção contra resposta antiga da lista de pendências continua no componente, mas o cenário "salvar com a lista aberta" deixou de existir na interface.
 - Outros textos de ajuda da aplicabilidade e o vocabulário de "não informado" (cinco variações) não foram unificados aqui.
 

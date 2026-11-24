@@ -82,7 +82,7 @@ final class ProjectRequirementProjection {
             items.put("NO_DECLARATION", mine(input, "NO_DECLARATION", "ABSENT", "Ainda não informado",
                 "A declaração de rede aberta ainda não foi registrada.",
                 "Preencher a declaração de acesso, tecnologia e direitos.",
-                "Abrir a declaração", destination(input.canOpenApplicability(), "analisar", null),
+                "Abrir acesso à rede", destination(input.canOpenApplicability(), "rede", null),
                 input.canOpenApplicability(), List.of("aplicabilidade")));
             return;
         }
@@ -105,13 +105,13 @@ final class ProjectRequirementProjection {
                 case "NO_DECLARATION", "ACCESS_UNDETERMINED", "CONFIGURATION_PENDING" ->
                     mine(input, finding.code(), "ABSENT", "Ainda não informado", finding.text(),
                         "Completar somente o que esta declaração pede.",
-                        "Abrir a declaração", destination(input.canOpenApplicability(), "analisar", null),
+                        "Abrir acesso à rede", destination(input.canOpenApplicability(), "rede", null),
                         input.canOpenApplicability(), List.of("aplicabilidade"));
                 case "OWNER_CONTRACT", "DRIVER_DISCLOSURE" -> rightsEvidence(input, finding);
                 case "CLOSED_NETWORK", "CONFIGURATION_BRANCH" ->
                     outside(input, finding.code(), finding.text(),
                         "Rever a declaração ou manter o projeto como hipótese fora deste recorte.",
-                        destination(input.canOpenApplicability(), "analisar", null),
+                        destination(input.canOpenApplicability(), "rede", null),
                         input.canOpenApplicability());
                 case "RIGHTS_DATE_GAP" -> review(input, finding.code(), "RECHECK_REQUIRED",
                     "Precisa rechecagem", finding.text(),
@@ -125,7 +125,7 @@ final class ProjectRequirementProjection {
                     List.of("direitos"));
                 case "TRIAGE_CHANGED" -> mine(input, finding.code(), "STALE", "Desatualizado",
                     finding.text(), "Reconfirmar a declaração depois da triagem.",
-                    "Abrir a declaração", destination(input.canOpenApplicability(), "analisar", null),
+                    "Abrir acesso à rede", destination(input.canOpenApplicability(), "rede", null),
                     input.canOpenApplicability(), List.of("aplicabilidade"));
                 default -> null;
             };
@@ -391,7 +391,7 @@ final class ProjectRequirementProjection {
         return mine(input, finding.code(), "NEEDS_EVIDENCE", "Falta comprovante", finding.text(),
             "Anexar ou indicar a referência do comprovante na declaração. "
                 + "O envio não admite o direito.",
-            "Abrir a declaração", destination(input.canOpenApplicability(), "analisar", null),
+            "Abrir direitos do projeto", destination(input.canOpenApplicability(), "direitos", null),
             input.canOpenApplicability(), List.of("direitos"));
     }
 
