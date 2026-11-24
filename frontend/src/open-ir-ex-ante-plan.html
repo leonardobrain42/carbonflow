@@ -1,0 +1,49 @@
+<section class="cf-journey-context" aria-label="Planejamento ex ante de IR">
+  <h4>Planejamento ex ante da linha de base · IR</h4>
+  <p>Planeje fontes, responsáveis e atualização anual antes de existirem medições ou dossiês MR.
+    Não informe valores de fatores neste formulário. Uma fonte prevista não é uma fonte admitida.</p>
+  <button type="button" class="cf-workspace-outline" [disabled]="busy()" (click)="load()">Atualizar planejamento de IR</button>
+  @if (busy()) { <p role="status">Consultando ou registrando o plano…</p> }
+  @if (error()) { <p role="alert" class="cf-workspace-alert">{{error()}}</p> }
+  @if (message()) { <p role="status">{{message()}}</p> }
+  @if (view();as data) {
+    <p>Contexto: {{label(data.context.state)}} · v{{data.latestVersion}}.</p>
+    @if (data.context.state==='SCOPE_PENDING') {
+      <p>O planejamento pode começar, mas o recorte brasileiro OPEN/LDV/DCFC/SIN deve ser confirmado.</p>
+    }
+    @if (editable && data.editable) {
+      <form (submit)="save($event)" aria-label="Registrar planejamento ex ante">
+        @for (field of fields;track field.key) {
+          <fieldset class="cf-journey-context">
+            <legend>{{field.label}}</legend>
+            <label [attr.for]="'cf-plan-source-'+field.key">Fonte prevista</label>
+            <input [id]="'cf-plan-source-'+field.key" [value]="form[field.key].source" (input)="form[field.key].source=$any($event.target).value" minlength="3" maxlength="500" [disabled]="busy()" required>
+            <label [attr.for]="'cf-plan-responsible-'+field.key">Responsável previsto</label>
+            <input [id]="'cf-plan-responsible-'+field.key" [value]="form[field.key].responsible" (input)="form[field.key].responsible=$any($event.target).value" minlength="3" maxlength="500" [disabled]="busy()" required>
+            <label [attr.for]="'cf-plan-procedure-'+field.key">Procedimento de atualização anual</label>
+            <textarea [id]="'cf-plan-procedure-'+field.key" [value]="form[field.key].procedure" (input)="form[field.key].procedure=$any($event.target).value" minlength="15" maxlength="2000" [disabled]="busy()" required></textarea>
+          </fieldset>
+        }
+        <label for="cf-plan-rationale">Justificativa da abordagem anual específica</label>
+        <textarea id="cf-plan-rationale" [value]="form.rationale" (input)="form.rationale=$any($event.target).value" minlength="15" maxlength="2500" [disabled]="busy()" required></textarea>
+        <button type="submit" class="cf-workspace-primary" [disabled]="!valid()">Registrar nova versão do planejamento</button>
+      </form>
+    } @else { <p>Consulta somente leitura ou recorte incompatível.</p> }
+    <h5>Histórico de planejamento</h5>
+    @for (revision of data.revisions;track revision.id) {
+      <details class="cf-journey-context" [open]="$first">
+        <summary>v{{revision.version}} · {{label(revision.state)}}</summary>
+        <p>Registrado: {{revision.recordedAt}}. SHA-256: <code>{{revision.planSha256}}</code></p>
+        <p>Contexto congelado: <code>{{revision.contextSha256}}</code></p>
+        @if (revision.stale) { <p>Reconfirme o plano em nova versão; o histórico permanece.</p> }
+        @for (field of fields;track field.key) {
+          <h6>{{field.label}}</h6>
+          <p>Fonte: {{revision.plan[field.key].source}} · Responsável previsto: {{revision.plan[field.key].responsible}}</p>
+          <p>Procedimento: {{revision.plan[field.key].procedure}}</p>
+        }
+        <p>Justificativa: {{revision.plan.rationale}}</p>
+      </details>
+    } @empty { <p>Nenhum planejamento registrado.</p> }
+  }
+  <p>Planejamento não atribui papéis jurídicos, não constitui parecer técnico, não comprova atualização observada e não libera E8.</p>
+</section>
