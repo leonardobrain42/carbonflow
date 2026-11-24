@@ -12,7 +12,8 @@ type View={projectId:string;context:{triageVersion:number;intakeVersion:number;
 const blank=():ParameterPlan=>({source:'',responsible:'',procedure:''});
 const empty=():Plan=>({evr:blank(),afec:blank(),mpg:blank(),fuel:blank(),rationale:''});
 
-@Component({selector:'carbonflow-open-ir-ex-ante-plan',standalone:true,templateUrl:'./open-ir-ex-ante-plan.html'})
+@Component({selector:'carbonflow-open-ir-ex-ante-plan',standalone:true,templateUrl:'./open-ir-ex-ante-plan.html',
+  styles:['fieldset{min-width:0} input,textarea{max-width:100%;box-sizing:border-box}']})
 export class OpenIrExAntePlanComponent implements OnChanges,OnDestroy {
   @Input({required:true}) projectId='';
   @Input() editable=false;
