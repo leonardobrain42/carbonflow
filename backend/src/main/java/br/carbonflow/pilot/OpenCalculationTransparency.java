@@ -69,7 +69,7 @@ final class OpenCalculationTransparency {
         // Status comes from actual per-project gates; a missing gate cannot be
         // interpreted as permission to run a calculation.
         for (String expected:dependencies) {
-            var actual=gates.stream().filter(g -> expected.equals(g.code())).findFirst();
+            var actual=gates.stream().filter(g -> expected.equals(g.code()) || ("IR".equals(expected) && "IR_STRUCTURED".equals(g.code()))).findFirst();
             if (actual.isPresent()) {
                 if (!"ADMITTED".equals(actual.get().state()))failures.add(expected);
             } else {
@@ -93,7 +93,7 @@ final class OpenCalculationTransparency {
         }
         var reasons = new ArrayList<String>();
         for (String code : blocked) {
-            var gate = gates.stream().filter(item -> code.equals(item.code())).findFirst();
+            var gate = gates.stream().filter(item -> code.equals(item.code()) || ("IR".equals(code) && "IR_STRUCTURED".equals(item.code()))).findFirst();
             reasons.add(gate.map(OpenCalculationPreflight.Gate::reason)
                 .orElse(code + " ainda não tem avaliação neste projeto."));
         }

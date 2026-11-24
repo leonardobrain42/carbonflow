@@ -152,6 +152,17 @@ final class OpenE8RunDecision {
                     "O fator fóssil vinculado não tem valor utilizável neste ensaio.";
                 default -> "Não há fator fóssil do projeto com valor armazenado.";
             };
+            case "RUN_IR_LEGACY" -> "Tentativa anterior ao vínculo estruturado de IR; memória histórica preservada.";
+            case "IR_STRUCTURED" -> switch (state) {
+                case "TIMING_UNRESOLVED" -> "O calendário da janela ainda não permite selecionar IR.";
+                case "FIRST_YEAR_REVIEW_REQUIRED" -> "Primeiro ano/ex ante requer fundamentação própria; expoente zero não autoriza presumir IR.";
+                case "MISSING_FOR_PROJECT_YEAR" -> "Falta avaliação estruturada de IR para os anos do projeto e da fonte.";
+                case "PERIOD_REFERENCE_MISMATCH" -> "A avaliação não corresponde aos vínculos exatos de frota, fator e janela deste período.";
+                case "STALE" -> "Avaliação de IR obsoleta ou referências sem vigência.";
+                case "ANNUAL_EVIDENCE_RECHECK_REQUIRED" -> "A continuidade anual deve ser reavaliada.";
+                case "CHECKED_INTERNAL_NOT_ADMITTED" -> "IR=1 conferido com referências anuais, apenas para ensaio interno; sem admissão normativa.";
+                default -> "IR precisa de parecer independente e evidências; pino escalar legado não substitui a avaliação.";
+            };
             case "IR" -> switch (state) {
                 case "MISSING_FOR_SOURCE_YEAR" -> "Falta a declaração de IR para o ano das fontes da janela.";
                 case "STALE" -> "A declaração de IR precisa de rechecagem.";
@@ -186,13 +197,14 @@ final class OpenE8RunDecision {
         };
         String action = switch (code) {
             case "ACTOR_SEGREGATION" -> "Outro ator precisa registrar a execução interna";
-            case "RUN_REFERENCES", "RUN_TIMING_LEGACY" -> "Registrar uma nova tentativa com as versões atuais";
+            case "RUN_REFERENCES", "RUN_TIMING_LEGACY", "RUN_IR_LEGACY" -> "Registrar uma nova tentativa com as versões atuais";
             case "RUN_WINDOW_MISSING" -> "Vincular o snapshot de QA e o fator elétrico à janela";
             case "CREDIT_START_MISSING", "CREDIT_START_RECHECK", "CREDIT_START_MISMATCH" ->
                 "Conferir os eventos de início e salvar a declaração de rede aberta";
             case "WINDOW_BEFORE_CREDIT_START" -> "Revisar a janela e a data documentada de início de crédito";
             case "WINDOW_PROJECT_YEAR_BOUNDARY", "WINDOW_SOURCE_YEAR_BOUNDARY" ->
                 "Preparar janelas separadas na mudança de ano";
+            case "IR_STRUCTURED" -> "Conferir avaliação estruturada e prova anual na linha de base";
             case "FLEET_WINDOW_MISMATCH" -> "Vincular a frota do ano das fontes ao pacote horário vigente";
             case "HOURLY_COVERAGE_INVALID" -> "Conferir as horas e os totais do pacote de energia";
             case "HOURLY_EFEL_NOT_UNIFORM" -> "Manter um único fator elétrico horário ou esperar o cálculo por hora";

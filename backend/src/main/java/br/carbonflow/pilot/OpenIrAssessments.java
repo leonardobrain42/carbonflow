@@ -376,6 +376,34 @@ class OpenIrAssessments {
         return new Refs(fleet,fuel,timing,OpenCalculationReadiness.triageRevision(c,project));
     }
 
+    static OpenE8IrContext forRun(Connection c,String project,String period,
+                                  UUID fleet,UUID fuel,OpenE8Timing.Context timing) throws SQLException {
+        Integer year=timing.year().projectYear(),source=timing.year().sourceYear();
+        boolean resolved=timing.year().gate()==null && year!=null && source!=null;
+        Stored row=resolved?first(c,SELECT+"""
+            WHERE project_id=? AND project_year=? AND source_year=?
+            ORDER BY version DESC LIMIT 1
+            """,OpenIrAssessments::stored,project,year,source):null;
+        if(row==null) {
+            String state=OpenE8IrContext.classify(year,source,resolved,false,false,false,false,false,false);
+            return OpenE8IrContext.of(project,period,year,source,null,null,null,state,null,null,null,null);
+        }
+        Review review=readReview(c,row.id(),true);
+        AnnualEvidence annual=annualEvidence(c,row,review);
+        boolean checked=review!=null && "CHECKED_INTERNAL".equals(review.outcome());
+        boolean proof=annual!=null && "CONSECUTIVE_REFERENCES_NOT_ADMITTED".equals(annual.state());
+        boolean matches=period.equals(row.period()) && Objects.equals(fleet,row.fleet())
+            && Objects.equals(fuel,row.fuel()) && timing.fingerprint().equals(row.timingSha());
+        String state=OpenE8IrContext.classify(year,source,resolved,true,stale(c,row),matches,
+            checked,proof,"1".equals(row.candidate()));
+        UUID author=first(c,"SELECT author_id FROM app_open_ir_assessment WHERE id=?",
+            r->r.getObject(1,UUID.class),row.id());
+        String reviewSha=first(c,"SELECT encode(command_sha256,'hex') FROM app_open_ir_review WHERE assessment_id=?",
+            r->r.getString(1),row.id());
+        return OpenE8IrContext.of(project,period,year,source,row.id(),row.version(),row.sha(),state,
+            reviewSha,annual==null?null:annual.evidenceSha256(),author,review==null?null:review.reviewerId());
+    }
+
     private static boolean stale(Connection c,Stored row) throws SQLException {
         Refs current=references(c,row.project(),row.period());
         Integer latest=first(c,"""

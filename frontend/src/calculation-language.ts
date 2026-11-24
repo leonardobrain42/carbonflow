@@ -11,6 +11,8 @@ const GATE_NAMES: Record<string, string> = {
   AFEC_MPG: 'Ratings e comparáveis',
   EF_FUEL: 'Fator fóssil',
   IR: 'Melhoria tecnológica',
+  IR_STRUCTURED: 'Avaliação estruturada de IR',
+  RUN_IR_LEGACY: 'Tentativa legada de IR',
   DY: 'Desconto por outro crédito',
   ED: 'Energia entregue',
   EC: 'Energia consumida',

@@ -188,7 +188,7 @@
             </tbody>
           </table>
         </div>
-        <p>EFel vem do pacote horário, não do pino anual. O Dy escalar legado é distinto
+        <p>EFel vem do pacote horário, não do pino anual. O IR estruturado usa a avaliação do ano do projeto e da fonte; o pino escalar de IR é histórico e não substitui essa avaliação. O Dy escalar legado é distinto
           da avaliação estruturada por ano do projeto. Nenhum valor licenciado é exibido
           por esta seleção. Não há admissão E8 nem emissão de créditos.</p>
       } @else {
@@ -224,6 +224,17 @@
             : 'Não calculados'}}</dd></div>
         <div><dt>Emissão de créditos</dt><dd>{{run.canIssueVcu?'Habilitada':'Não habilitada'}}</dd></div>
       </dl>
+      @if (run.irContext; as ir) {
+        <details class="cf-journey-context">
+          <summary>Referência de IR congelada na tentativa · {{stateLabel(ir.state)}}</summary>
+          @if (ir.assessmentId) {
+            <p>Versão {{ir.version}} · <code>{{ir.assessmentId}}</code></p>
+            <p class="energy-hash">SHA-256 da avaliação: {{ir.assessmentSha256}}</p>
+          } @else { <p>Sem avaliação selecionada.</p> }
+          <p class="energy-hash">SHA-256 do contexto: {{ir.contextSha256}}</p>
+          <p>Estado no registro, não admissão normativa nem situação atual.</p>
+        </details>
+      } @else { <p>Esta tentativa não apresenta contexto estruturado de IR.</p> }
       @if (rehearsal()) {
         <p>Os números estão na memória do ensaio interno, no topo desta página.
           Não é admissão normativa nem emissão de crédito.</p>

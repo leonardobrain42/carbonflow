@@ -117,7 +117,7 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
     const reference=(code,basis,id=null,state='MISSING')=>({code,basis,id,
       version:id?2:null,sha256:id?'c'.repeat(64):null,state});
     const selection=(period)=>({
-      policyVersion:'OPEN-E8-INPUT-SELECTION@1',projectId:project,
+      policyVersion:'OPEN-E8-INPUT-SELECTION@2',projectId:project,
       period:invalidSelection?'WRONG':period,usableForE8:false,canIssueVcu:false,
       timing:period==='M1'?{windowStart:null,windowEndExclusive:null,projectYear:null,sourceYear:null}:
         {windowStart:'2029-02-01T00:00:00Z',windowEndExclusive:'2029-02-01T02:00:00Z',projectYear:2,sourceYear:2029},
@@ -126,14 +126,16 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
         reference('ED_EC_EFEL','HOURLY_PERIOD_BINDING'),
         reference('EVR_RATINGS','FLEET_PERIOD_SELECTION'),
         reference('EF_FUEL','SOURCE_YEAR_PIN',null,period==='M1'?'TIMING_UNRESOLVED':'MISSING_FOR_SOURCE_YEAR'),
-        reference('IR','SOURCE_YEAR_PIN',period==='M1'?null:'30000000-0000-4000-8000-000000000099',
-          period==='M1'?'TIMING_UNRESOLVED':'NOT_ADMITTED'),
+        reference('IR','STRUCTURED_PROJECT_SOURCE_YEAR',period==='M1'?null:'30000000-0000-4000-8000-000000000099',
+          period==='M1'?'TIMING_UNRESOLVED':'ANNUAL_EVIDENCE_RECHECK_REQUIRED'),
         reference('DY','LEGACY_SOURCE_YEAR_PIN',null,period==='M1'?'TIMING_UNRESOLVED':'MISSING_FOR_SOURCE_YEAR')
       ]
     });
     const secondPeriod = {
       ...blocked, period:'M2', version:4, gates:[],
       timing:{projectYear:2, sourceYear:2029},
+      irContext:{assessmentId:'30000000-0000-4000-8000-000000000099',version:2,
+        assessmentSha256:'c'.repeat(64),contextSha256:'d'.repeat(64),state:'ANNUAL_EVIDENCE_RECHECK_REQUIRED'},
     };
     await page.route('**/v1/projects/*/technical/open-monitoring/dossiers/M2/e8-runs', async route => {
       if (route.request().method() === 'POST') {
@@ -267,7 +269,10 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
     await page.getByText('Bloqueado · v4').waitFor();
     await page.getByText('2029', {exact:true}).waitFor();
     await selectedInputs.getByText('Ano relativo do projeto: 2 · Ano das fontes: 2029.',{exact:true}).waitFor();
+    await selectedInputs.getByText('Prova anual requer rechecagem',{exact:true}).waitFor();
     await selectedInputs.getByText('Versão 2',{exact:true}).click();
+    await page.getByText('Referência de IR congelada na tentativa · Prova anual requer rechecagem',{exact:true}).click();
+    await page.getByText('SHA-256 do contexto: '+'d'.repeat(64),{exact:true}).waitFor();
     await selectedInputs.getByText('30000000-0000-4000-8000-000000000099',{exact:true}).waitFor();
     assert.equal(await page.getByRole('heading', {name:'Memória do ensaio interno · M1'}).count(), 0);
     await page.getByRole('button', {name:'Registrar tentativa de cálculo'}).click();
