@@ -131,7 +131,7 @@ for(const viewport of [{width:390,height:844},{width:1440,height:900}]){
       await page.goto(base+'/workspace/projects/'+project+'/overview');
       await page.getByRole('heading',{name:'Pendências do diagnóstico'}).waitFor();
       const disclosure=finding(after,'DRIVER_DISCLOSURE');
-      await page.getByText(disclosure.reason,{exact:true}).waitFor();
+      await page.getByText('Divulgação aos motoristas',{exact:true}).first().waitFor();
       const resume=page.getByRole('link',{name:'Retomar minha etapa'});
       const resumeUrl=new URL(await resume.getAttribute('href'),base);
       assert.equal(resumeUrl.pathname,'/workspace/projects/'+project+'/technical');

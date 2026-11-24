@@ -358,15 +358,16 @@
               }
 
 
-              <h3>Requisitos do rascunho</h3>
               @if (saved.outstandingGates.length) {
+                <h3>Dados iniciais pendentes</h3>
                 <ul class="cf-tech-gates">
                   @for (item of saved.outstandingGates; track item.code) {
                     <li>{{ item.message }} <small>{{ item.code }} · {{ item.rule }}</small></li>
                   }
                 </ul>
-              } @else {
-                <p>Nenhum requisito pendente foi devolvido para esta revisão.</p>
+                @if (can('VIEW_INTAKE')) {
+                  <button type="button" class="cf-workspace-outline" (click)="open('preparar')">Abrir Preparar informações</button>
+                }
               }
 
               @if ((owner() || capabilities()?.actions?.includes('GUIDE_INTAKE')) && capabilities()?.actions?.includes('VIEW_GUIDES') && saved.journey.candidate === 'VM0038') {

@@ -211,9 +211,13 @@ test('a visão geral mostra a mesma pendência de Analisar sem alterar o percent
   await page.route('**/v1/projects/'+project+'/journey',r=>r.fulfill({json:current}));
   await page.goto(base+overview);
   await page.getByRole('heading',{name:'Pendências do diagnóstico'}).waitFor();
-  await page.getByText('Falta a prova datada de divulgação aos motoristas.').waitFor();
+  // The overview is a summary: name, situation and action; reason, rule and reference stay in Situação.
   await page.getByText('Divulgação aos motoristas',{exact:true}).waitFor();
-  await page.getByText('Referência: DRIVER_DISCLOSURE',{exact:true}).waitFor();
+  await page.getByText('Falta comprovante',{exact:true}).waitFor();
+  assert.equal(await page.getByText('Falta a prova datada de divulgação aos motoristas.').count(),0);
+  assert.equal(await page.getByText('Referência: DRIVER_DISCLOSURE',{exact:true}).count(),0);
+  assert.equal(await page.getByRole('link',{name:'Ver todas as pendências, com motivo e regra, em Situação do projeto'})
+    .getAttribute('href'),'/workspace/projects/'+project+'/technical?secao=analisar');
   await page.getByText('1 de 4 tarefas com registro concluído').waitFor();
   assert.equal(await page.getByRole('link',{name:'Abrir a declaração'}).getAttribute('href'),
     '/workspace/projects/'+project+'/technical?secao=analisar');

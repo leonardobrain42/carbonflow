@@ -103,7 +103,7 @@
 
         @if (project.diagnosis; as diagnosis) {
           <section class="cf-workspace-card" aria-labelledby="overview-diagnosis">
-            <p class="cf-overview-eyebrow">MESMA LISTA DE ANALISAR</p>
+            <p class="cf-overview-eyebrow">RESUMO</p>
             <h2 id="overview-diagnosis">Pendências do diagnóstico</h2>
             <p>{{diagnosis.limits}}</p>
             @if (diagnosisActions().length) {
@@ -111,19 +111,8 @@
                 @for (item of diagnosisActions(); track item.requirementId) {
                   <li>
                     <div>
-                      <strong>{{item.situation}}</strong>
-                      @if (requirementName(item.requirementId); as name) {
-                        <p>{{name}}</p>
-                      }
-                      <p>{{item.reason}}</p>
-                      @if (editionLabel(item); as edition) {
-                        <p>Metodologia aplicável: {{edition}}</p>
-                      }
-                      <p>Próximo passo: {{item.nextAction}}</p>
-                      @if (item.ruleRef) {
-                        <small>Regra: {{item.ruleRef}}</small>
-                      }
-                      <small>Referência: {{item.requirementId}}</small>
+                      <strong>{{requirementName(item.requirementId) || item.situation}}</strong>
+                      <p>{{item.situation}}</p>
                     </div>
                     @if (item.destination && item.actionLabel) {
                       <a class="cf-workspace-link" [routerLink]="['/workspace/projects', project.projectId, 'technical']"
@@ -133,9 +122,10 @@
                 }
               </ul>
             } @else {
-              <p>Nenhuma pendência desta conta está pronta para registro.
-                O que depende da equipe ou está fora do recorte continua na tela Analisar.</p>
+              <p>Nenhuma pendência desta conta está pronta para registro.</p>
             }
+            <a class="cf-workspace-link" [routerLink]="['/workspace/projects', project.projectId, 'technical']"
+              [queryParams]="{secao:'analisar'}">Ver todas as pendências, com motivo e regra, em Situação do projeto</a>
             <p class="cf-workspace-helper">{{diagnosis.summary.mine}} ação(ões) desta conta
               · {{diagnosis.summary.awaitingSource}} aguardando fontes
               · {{diagnosis.summary.awaitingReview}} aguardando revisão
