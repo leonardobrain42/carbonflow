@@ -180,6 +180,12 @@ test('UX-07: monitoring collaborator opens permitted technical context without p
   await page.getByText('Dados iniciais restritos',{exact:false}).waitFor();
   await page.getByText('Inventário de estações e carregadores').waitFor();
   await page.getByText('Dados iniciais restritos',{exact:false}).waitFor();
+  // One glossary: terms first, then the acronyms used on the screens, without repeating a term.
+  await page.getByText('Glossário técnico',{exact:true}).click();
+  const acronyms=page.getByRole('definition').filter({hasText:'Sistema Interligado Nacional brasileiro'});
+  await acronyms.waitFor();
+  await page.getByText('Desconto por outro crédito',{exact:true}).waitFor();
+  assert.equal(await page.locator('abbr',{hasText:/^BE$/}).count(),0,'BE is already a glossary term');
   // The endpoint may be probed by older modules, but must never expose
   // a privileged intake response or render any of its private fields.
   assert.ok(intakeReads<=1);

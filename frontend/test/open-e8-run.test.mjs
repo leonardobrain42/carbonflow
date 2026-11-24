@@ -170,6 +170,7 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
     assert.equal(await blockers.count(),2);
     assert.match(await blockers.nth(0).innerText(),/Estoque nacional EVR[\s\S]*Selecionar fonte EVR e avaliar cobertura/);
     assert.match(await blockers.nth(1).innerText(),/Frota EVR e comparáveis · M1[\s\S]*Aguardar a avaliação da equipe/);
+    assert.equal(await page.locator('abbr[title="Sistema Interligado Nacional brasileiro"]',{hasText:'SIN'}).count(),1);
     await page.getByRole('heading', {name:'Última tentativa de cálculo · M1'}).waitFor();
     await page.getByRole('heading', {name:'Consolidação por ano do projeto'}).waitFor();
     await page.getByText('Total anual indisponível · ano 1', {exact:true}).waitFor();
