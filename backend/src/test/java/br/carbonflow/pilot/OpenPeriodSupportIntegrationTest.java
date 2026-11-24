@@ -594,6 +594,17 @@ class OpenPeriodSupportIntegrationTest {
         assertEquals(mapper.valueToTree(database.read(c -> first(c,"SELECT fuel_pin_id::text FROM app_open_e8_run WHERE project_id=? AND id=?", r -> r.getString(1),project,UUID.fromString(rehearsal.path("id").asText())))),provenance.at("/inputs/6/referenceId"));
         assertEquals("tCO2e/USgal",provenance.at("/inputs/6/unit").asText());
         assertEquals(2027,provenance.at("/inputs/6/vintageYear").asInt());
+        for (int index : new int[]{6,7,8}) {
+            JsonNode pinRef=provenance.at("/inputs/"+index);
+            assertEquals(technical+"/open-parameter-bindings/"+pinRef.path("referenceId").asText(),
+                pinRef.path("href").asText());
+            JsonNode pinDetail=json(call("GET",pinRef.path("href").asText(),owner.cookie(),null,null));
+            assertEquals(pinRef.path("referenceId"),pinDetail.path("id"));
+            assertEquals(pinRef.path("version"),pinDetail.path("version"));
+            assertFalse(pinDetail.path("usableForE8").asBoolean());
+            if (index==6) assertTrue(pinDetail.path("declaredValue").isNull());
+        }
+
         assertEquals("adimensional",provenance.at("/inputs/7/unit").asText());
         assertEquals("adimensional",provenance.at("/inputs/8/unit").asText());
         assertFalse(provenance.toString().contains("declaredValue"));

@@ -38,7 +38,7 @@ test('a seção de quantificação nomeia a memória ou o bloqueio', async () =>
             access:'PROJECT_METADATA_ONLY'},
           {symbol:'EF_FUEL',origin:'Referência de catálogo · pino publicado no projeto',unit:'tCO2e/USgal',
             vintageYear:2027,referenceId:'50000000-0000-4000-8000-000000000122',version:1,
-            href:null,access:'PROJECT_METADATA_ONLY'},
+            href:'/v1/projects/'+project+'/technical/open-parameter-bindings/50000000-0000-4000-8000-000000000122',access:'PROJECT_METADATA_ONLY'},
           {symbol:'EVR',origin:'Referência protegida ou indisponível',unit:null,
             vintageYear:null,referenceId:null,version:null,href:null,access:'RESTRICTED_OR_UNAVAILABLE'},
         ],
@@ -104,6 +104,10 @@ test('a seção de quantificação nomeia a memória ou o bloqueio', async () =>
     assert.equal(await page.getByRole('link', {name:'Consultar origem de ED'}).getAttribute('href'),
       memory.provenance.inputs[0].href);
     assert.equal(await page.getByRole('link', {name:'Consultar origem de EVR'}).count(), 0);
+    const pinLink=page.getByRole('link', {name:'Consultar origem de EF_FUEL'});
+    assert.equal(await pinLink.getAttribute('href'),memory.provenance.inputs[1].href);
+    await pinLink.focus();
+    assert.equal(await pinLink.evaluate(element => document.activeElement === element),true);
     await memoryLink.focus();
     assert.equal(await memoryLink.evaluate(element => document.activeElement === element), true);
     assert.equal(await page.locator('#pd-narrative').inputValue(), '');

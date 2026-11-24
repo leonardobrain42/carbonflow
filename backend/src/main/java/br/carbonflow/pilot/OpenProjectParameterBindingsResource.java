@@ -66,4 +66,15 @@ class OpenProjectParameterBindingsProjectResource {
             .header("X-Content-Type-Options", "nosniff")
             .build();
     }
+    @GET
+    @Path("/{pin}")
+    public Response detail(@CookieParam(AccountAccess.COOKIE) String cookie,
+                           @PathParam("project") String project,
+                           @PathParam("pin") java.util.UUID pin) {
+        return Response.ok(service.detail(cookie, project, pin))
+            .header("Cache-Control", "private, no-store")
+            .header("X-Content-Type-Options", "nosniff")
+            .build();
+    }
+
 }
