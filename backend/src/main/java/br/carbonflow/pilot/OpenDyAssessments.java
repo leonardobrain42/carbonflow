@@ -42,10 +42,12 @@ class OpenDyAssessments {
                 int issuanceCount, String issuanceState, List<OpenDyIssuances.Row> issuances,
                 String sourceRightsState, List<OpenDySourceRights.Pin> sourceLicenses,
                 String coverageState, int coverageCount, List<OpenDySearchCoverage.Row> searchCoverage,
-                String allocationState,int allocationCount,List<OpenDyAllocations.Row> allocations) {}
+                String allocationState,int allocationCount,List<OpenDyAllocations.Row> allocations,
+                OpenDyFirstYear.Context firstYearContext) {}
     record Result(View view, boolean created) {}
     record History(String projectId, int projectYear, int latestVersion, OffsetDateTime priorStart,
-                   OffsetDateTime priorEndExclusive, String calendarGate, List<View> assessments) {}
+                   OffsetDateTime priorEndExclusive, String calendarGate, List<View> assessments,
+                   OpenDyFirstYear.Context firstYearContext) {}
 
     private record Calendar(OffsetDateTime from, OffsetDateTime until, String gate) {}
     private record Stored(UUID id, String project, int year, int version, int triage,
@@ -197,11 +199,15 @@ class OpenDyAssessments {
                 return new Result(view(c,replay,true),false);
             }
             Calendar calendar=calendar(c,project,year);
+            var firstYear=year==1?OpenDyFirstYear.current(c,project):null;
+            if (firstYear!=null && firstYear.contextGate()!=null && !coverage.isEmpty())
+                throw invalid("Resolva o início do projeto antes de registrar a pesquisa exploratória estruturada do ano 1.");
             if (calendar.gate()!=null && !"INCONCLUSIVE".equals(values.outcome()))
                 throw invalid("O ano anterior não está resolvido. Registre pesquisa inconclusiva.");
             try {
                 OpenDyIssuances.reconcile(issuances,values,calendar.from(),calendar.until());
-                OpenDySearchCoverage.validate(coverage,issuances,values,calendar.from(),calendar.until());
+                OpenDySearchCoverage.validate(coverage,issuances,values,
+                    firstYear==null?calendar.from():firstYear.from(),firstYear==null?calendar.until():firstYear.until());
             }
             catch (IllegalArgumentException e) { throw invalid(e.getMessage()); }
             for (var row:issuances) requireSourceMetadata(c,row.sourceId(),row.sourceEdition());
@@ -224,6 +230,8 @@ class OpenDyAssessments {
                 for (var pin:pins) {parts.add(pin.sourceId());parts.add(pin.sourceEdition());parts.add(pin.licenseId());parts.add(pin.decisionVersion());}
                 hash=digest(parts.toArray());
             }
+            if (firstYear!=null) hash=digest("OPEN-DY-FIRST-YEAR@1",hash,firstYear.policyVersion(),
+                firstYear.creditStart(),firstYear.exploratoryFrom(),firstYear.exploratoryUntilExclusive(),firstYear.contextGate());
             update(c,"""
                 INSERT INTO app_open_dy_assessment
                 (id,project_id,organization_id,environment,project_year,version,triage_version,
@@ -249,6 +257,7 @@ class OpenDyAssessments {
             sourceRights.store(c,id,pins);
             OpenDySearchCoverage.store(c,id,coverage);
             OpenDyAllocations.store(c,id,allocations);
+            if (firstYear!=null) OpenDyFirstYear.store(c,id,firstYear);
             return new Result(view(c,first(c,SELECT+" WHERE id=?",OpenDyAssessments::stored,id),true),true);
         });
     }
@@ -356,12 +365,14 @@ class OpenDyAssessments {
         var views=new java.util.ArrayList<View>();
         for (var row:rows) views.add(view(c,row,staff));
         return new History(project,year,rows.isEmpty()?0:rows.get(0).version(),
-            calendar.from(),calendar.until(),calendar.gate(),List.copyOf(views));
+            calendar.from(),calendar.until(),calendar.gate(),List.copyOf(views),
+            year==1?OpenDyFirstYear.current(c,project):null);
     }
 
     private static boolean stale(Connection c,Stored row) throws SQLException {
         Calendar now=calendar(c,row.project(),row.year());
-        return OpenCalculationReadiness.triageRevision(c,row.project())!=row.triage()
+        return (row.year()==1 && !Objects.equals(OpenDyFirstYear.read(c,row.id()),OpenDyFirstYear.current(c,row.project())))
+            || OpenCalculationReadiness.triageRevision(c,row.project())!=row.triage()
             || !Objects.equals(now.gate(),row.gate()) || !same(now.from(),row.from()) || !same(now.until(),row.until());
     }
 
@@ -385,7 +396,8 @@ class OpenDyAssessments {
             row.sha(),row.at(),state,stale,false,review,items.size(),
             items.isEmpty()?"UNITEMIZED":"DECLARED_TOTALS_RECONCILED",details?List.copyOf(items):List.of(),
             check.state(),staff?check.pins():List.of(),coverageState,coverage.size(),details?List.copyOf(coverage):List.of(),
-            allocationState,allocations.size(),details?List.copyOf(allocations):List.of());
+            allocationState,allocations.size(),details?List.copyOf(allocations):List.of(),
+            row.year()==1?OpenDyFirstYear.read(c,row.id()):null);
     }
 
     private static Calendar calendar(Connection c,String project,int year) throws SQLException {

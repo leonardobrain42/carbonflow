@@ -140,3 +140,27 @@ Não há escolha automática de base por área, população ou frota. Adequaçã
 normativa, frações não representáveis e casos de parcela zero/exclusões ainda
 exigem decisão. Revogação oculta detalhes; parecer revisa hash exato sem admitir
 E8. V87 exclusivamente aditiva.
+
+## V88 — ano inicial: contexto exploratório sem admissão
+
+Referência pública: VM0038 v1.1 (19/08/2026), §9.4, pp.19–20, Eq.8, e §10.2,
+pp.32–34 (ERC/ERF). https://verra.org/documents/vm0038-electric-vehicle-charging-systems-v1-1/
+A definição usa o ano anterior; as descrições de monitoramento mencionam
+acumulação desde o ano 1. Não foi localizada regra específica que atribua
+Dy=1 automaticamente ao ano inicial. A condição de ausência de créditos de
+frota não equivale à ausência de histórico do próprio projeto. A divergência
+anual/acumulada permanece pendente de interpretação autorizada.
+
+A V88 mantém FIRST_YEAR_REVIEW_REQUIRED e os campos canônicos de janela nulos.
+O contexto separado, versionado no hash, deriva uma janela EXPLORATÓRIA de 12
+meses civis anteriores ao início de creditação do calendário existente; não
+é um ano zero normativo. O início precisa estar resolvido e o recorte aberto
+DCFC/BEV/SIN candidato válido. Sem início resolvido aceita apenas pesquisa
+inconclusiva textual; com início, permite matriz licenciada dentro da janela
+exploratória, sempre inconclusiva, sem ERC/ERF/Dy. A janela é proposta de
+investigação, não aplicação da Eq.8. Alteração do contexto ou falta de snapshot
+em avaliação histórica exige nova versão; replay preserva hash e identidade.
+Não promove parecer positivo, não altera executor, não usa texto normativo
+integral no produto e não presume autorização de uso comercial do documento.
+V88 aditiva. A escolha entre janela pré-início, acumulada ou outra solução
+exige esclarecimento metodológico formal antes da admissão.
