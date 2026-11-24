@@ -111,6 +111,7 @@ async function mock(page,actions,observed){
   ['/open-monitoring/dossiers', [{reference:{code:'P-2027',version:1},
     state:'READY_FOR_NORMATIVE_REVIEW',stale:false,gates:[]}]],
   ['/open-monitoring/dossiers/P-2027/e8-fleet-selections',baselineSelections],
+  ['/open-ir-ex-ante-plan',{projectId:project,context:{triageVersion:1,intakeVersion:1,applicabilityVersion:0,state:'SCOPE_PENDING',sha256:'c'.repeat(64)},latestVersion:0,editable:false,revisions:[]}],
   ['/pd-sections',pdSections]
  ];
  for(const [path,json] of routes){
@@ -297,5 +298,45 @@ test('UX-IR-01: authorized project sees IR history without staff mutation contro
   assert.equal(await panel.getByRole('button',{name:'Registrar avaliação de IR'}).count(),0);
   assert.equal(await panel.getByRole('button',{name:'Preparar parecer de IR'}).count(),0);
   assert.equal(reads,1);
+ }finally{await browser.close();}
+});
+
+test('UX-IR-EX-ANTE: preparer records planning without monitoring permissions',async()=>{
+ const browser=await chromium.launch({executablePath});
+ try{
+  const page=await browser.newPage({viewport:{width:1440,height:900}});
+  const observed=[];
+  await mock(page,['VIEW_INTAKE','VIEW_GUIDES','SAVE_GUIDE','GUIDE_BASELINE'],observed);
+  let revisions=[],posted=null;
+  await page.route('**'+root+'/technical/open-ir-ex-ante-plan',async r=>{
+    if(r.request().method()==='GET')return r.fulfill({json:{projectId:project,
+      context:{triageVersion:1,intakeVersion:1,applicabilityVersion:0,state:'SCOPE_PENDING',sha256:'c'.repeat(64)},
+      latestVersion:revisions.length,editable:true,revisions}});
+    posted={body:r.request().postDataJSON(),match:r.request().headers()['if-match']};
+    const row={id:'plan-1',version:1,plan:posted.body,planSha256:'d'.repeat(64),
+      contextSha256:'c'.repeat(64),state:'PLANNED_NOT_REVIEWED',stale:false,
+      recordedAt:'2027-01-01T00:00:00Z',usableForE8:false};
+    revisions=[row];return r.fulfill({status:201,json:row});
+  });
+  await page.goto(base+'/workspace/projects/'+project+'/technical?secao=linha-base&etapa=premissas');
+  const panel=page.getByRole('region',{name:'Planejamento ex ante de IR'});
+  await panel.getByText('Nenhum planejamento registrado.').waitFor();
+  const submit=panel.getByRole('button',{name:'Registrar nova versão do planejamento'});
+  assert.equal(await submit.isDisabled(),true);
+  for(const field of ['evr','afec','mpg','fuel']){
+    await panel.locator('#cf-plan-source-'+field).fill('Fonte prevista '+field);
+    await panel.locator('#cf-plan-responsible-'+field).fill('Equipe técnica');
+    await panel.locator('#cf-plan-procedure-'+field).fill('Atualizar e conferir versão anualmente.');
+  }
+  await panel.getByLabel('Justificativa da abordagem anual específica').fill('Planejamento da linha de base antes da operação.');
+  await submit.click();
+  await panel.getByText('Plano registrado como preparação, sem admissão normativa.').waitFor();
+  await panel.getByText('v1 · Planejado — sem parecer',{exact:true}).waitFor();
+  assert.equal(posted.match,'"0"');
+  assert.equal(posted.body.evr.source,'Fonte prevista evr');
+  assert.equal(posted.body.fuel.procedure,'Atualizar e conferir versão anualmente.');
+  assert.equal(posted.body.period,undefined);
+  assert.equal(posted.body.candidate,undefined);
+  assert.equal(observed.some(x=>x.includes('monitoring')||x.includes('calculation')),false);
  }finally{await browser.close();}
 });
