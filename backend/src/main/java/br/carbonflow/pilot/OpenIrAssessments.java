@@ -39,7 +39,9 @@ class OpenIrAssessments {
         }
     }
     record PlanLink(UUID id,int version,String sha256) {}
-    record ReviewReferences(UUID fleetSnapshotId,UUID ratingSnapshotId,UUID fuelCandidateId) {}
+    record SourceMetadata(String sourceId,String edition,String title,Integer referenceYear) {}
+    record ReviewReferences(UUID fleetSnapshotId,UUID ratingSnapshotId,UUID fuelCandidateId,
+                            List<SourceMetadata> evr,List<SourceMetadata> afec,List<SourceMetadata> mpg,List<SourceMetadata> fuel) {}
     record InitialContext(LocalDate followupOn,String planSha256,InitialPlan plan,PlanLink exAntePlan) {}
     record Review(UUID reviewerId, String outcome, String assessmentSha256, String ruleReference,
                   String annualUpdateBasis, String evidenceLocator, String reason, OffsetDateTime reviewedAt,
@@ -533,14 +535,45 @@ class OpenIrAssessments {
     }
 
     private static ReviewReferences reviewReferences(Connection c,Stored row)throws SQLException {
-        return first(c,"""
+        UUID[] ids=first(c,"""
             SELECT f.fleet_snapshot_id,f.rating_snapshot_id,b.candidate_id
             FROM app_open_e8_fleet_selection f
             JOIN app_open_project_parameter_binding b ON b.project_id=f.project_id
             WHERE f.project_id=? AND f.id=? AND b.id=? AND b.parameter_kind='EF_FUEL'
               AND f.fleet_snapshot_id IS NOT NULL AND f.rating_snapshot_id IS NOT NULL AND b.candidate_id IS NOT NULL
-            """,r->new ReviewReferences(r.getObject(1,UUID.class),r.getObject(2,UUID.class),r.getObject(3,UUID.class)),
+            """,r->new UUID[]{r.getObject(1,UUID.class),r.getObject(2,UUID.class),r.getObject(3,UUID.class)},
             row.project(),row.fleet(),row.fuel());
+        if(ids==null)return null;
+        var evr=query(c,"""
+            SELECT s.source_id,s.edition,s.title,s.reference_year
+            FROM app_fleet_composition_snapshot f JOIN app_fleet_ingestion i ON i.id=f.ingestion_id
+            JOIN app_platform_source_object o ON o.id=i.source_object_id
+            JOIN app_platform_source_submission s ON s.id=o.submission_id WHERE f.id=?
+            """,OpenIrAssessments::sourceMetadata,ids[0]);
+        var afec=ratingSources(c,ids[1],true);
+        var mpg=ratingSources(c,ids[1],false);
+        var fuel=query(c,"""
+            SELECT s.source_id,s.edition,s.title,s.reference_year
+            FROM app_open_parameter_candidate p JOIN app_platform_source_object o ON o.id=p.source_object_id
+            JOIN app_platform_source_submission s ON s.id=o.submission_id WHERE p.id=?
+            """,OpenIrAssessments::sourceMetadata,ids[2]);
+        if(evr.isEmpty()||afec.isEmpty()||mpg.isEmpty()||fuel.isEmpty())return null;
+        return new ReviewReferences(ids[0],ids[1],ids[2],evr,afec,mpg,fuel);
+    }
+
+    private static List<SourceMetadata> ratingSources(Connection c,UUID snapshot,boolean bev)throws SQLException {
+        return query(c,"""
+            SELECT DISTINCT s.source_id,s.edition,s.title,s.reference_year
+            FROM app_vehicle_rating_snapshot_line l JOIN app_vehicle_comparable_pair p ON p.id=l.pair_id
+            JOIN app_vehicle_rating r ON r.id=CASE WHEN ? THEN p.bev_rating_id ELSE p.fossil_rating_id END
+            JOIN app_platform_source_object o ON o.id=r.source_object_id
+            JOIN app_platform_source_submission s ON s.id=o.submission_id
+            WHERE l.snapshot_id=? ORDER BY s.source_id,s.edition,s.title,s.reference_year
+            """,OpenIrAssessments::sourceMetadata,bev,snapshot);
+    }
+
+    private static SourceMetadata sourceMetadata(ResultSet r)throws SQLException {
+        return new SourceMetadata(r.getString(1),r.getString(2),r.getString(3),r.getObject(4,Integer.class));
     }
 
     private static String initialLinkState(Connection c,Stored row,Review review)throws SQLException {
