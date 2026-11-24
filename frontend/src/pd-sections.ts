@@ -38,6 +38,18 @@ interface MemoryDetail {
     hourlyPe:{windowStart:string;windowEndExclusive:string;region:string;peTco2e:string;
       hours:{hourStart:string;peTco2e:string|null}[]}|null}|null;
 }
+interface AnnualTotals {
+  beTco2e:string;peTco2e:string;leTco2e:string;erTco2e:string;erDisplay:string;
+}
+interface AnnualDetail {
+  projectId:string;projectYear:number;windowStart:string|null;windowEndExclusive:string|null;
+  engine:string;state:string;usableForE8:boolean;canIssueVcu:boolean;manifestSha256:string;
+  totals:AnnualTotals|null;
+  members:{period:string;runId:string|null;version:number;inputSha256:string|null;
+    windowStart:string|null;windowEndExclusive:string|null;projectYear:number|null;
+    state:string;stale:boolean;totals:AnnualTotals|null}[];
+  issues:{code:string;period:string|null;from:string|null;until:string|null;detail:string}[];
+}
 interface CalculationNote {period:string;situation:string;causeCode:string|null;cause:string|null;
   beTco2e:string|null;peTco2e:string|null;leTco2e:string|null;erDisplay:string|null;
   usableForE8:boolean;marksDocumentReady:boolean;text:string;provenance?:CalculationProvenance|null}
@@ -85,6 +97,9 @@ export class PdSectionsComponent implements OnInit, OnDestroy {
   readonly memoryDetail = signal<MemoryDetail|null>(null);
   readonly memoryLoading = signal(false);
   readonly memoryError = signal('');
+  readonly annualDetail = signal<AnnualDetail|null>(null);
+  readonly annualLoading = signal(false);
+  readonly annualError = signal('');
   private sourceRequest = 0;
   ngOnDestroy() { this.clearDetails(); }
 
@@ -102,6 +117,9 @@ export class PdSectionsComponent implements OnInit, OnDestroy {
     this.memoryDetail.set(null);
     this.memoryLoading.set(false);
     this.memoryError.set('');
+    this.annualDetail.set(null);
+    this.annualLoading.set(false);
+    this.annualError.set('');
   }
 
   async loadPin(symbol:string, id:string|null) {
@@ -230,6 +248,72 @@ export class PdSectionsComponent implements OnInit, OnDestroy {
       }
     } finally {
       if (request===this.sourceRequest) this.memoryLoading.set(false);
+    }
+  }
+  // The year belongs to the named immutable run, not its civil vintage or M1/M2 label.
+  annualYear(): number|null {
+    const year=this.current()?.calculation?.provenance?.timing?.projectYear;
+    return typeof year==='number' && Number.isInteger(year) && year>=1 && year<=100 ? year : null;
+  }
+  async loadAnnual() {
+    const calculation=this.current()?.calculation;
+    const source=calculation?.provenance;
+    const year=this.annualYear();
+    if (!calculation || !source || year===null || calculation.situation!=='MEMORY'
+        || calculation.usableForE8 || calculation.marksDocumentReady || this.busy()) return;
+    this.clearDetails();
+    const request=this.sourceRequest;
+    const project=this.projectId();
+    this.annualLoading.set(true);
+    try {
+      const detail=await firstValueFrom(this.http.get<AnnualDetail>(
+        '/v1/projects/'+encodeURIComponent(project)+'/technical/open-calculation-years/'+year));
+      if (request!==this.sourceRequest || project!==this.projectId()) return;
+      if (detail.projectId!==project || detail.projectYear!==year
+          || detail.engine!=='vm0038-open-annual-consolidation@1'
+          || detail.usableForE8!==false || detail.canIssueVcu!==false
+          || !/^[a-f0-9]{64}$/.test(detail.manifestSha256)
+          || !Array.isArray(detail.members) || !Array.isArray(detail.issues)
+          || !['BLOCKED','REVIEWED_INTERNAL'].includes(detail.state))
+        throw new Error('Consolidação inconsistente');
+      // The annual endpoint is a current projection, not a historical snapshot
+      // selected by run. Never attach a replacement run's total to this PD preview.
+      const samePeriod=detail.members.filter(member=>member.period===calculation.period);
+      const member=samePeriod[0];
+      if (samePeriod.length!==1 || !member || member.runId!==source.runId
+          || member.version!==source.runVersion || member.inputSha256!==source.inputSha256
+          || member.projectYear!==year) {
+        this.annualError.set('A consolidação atual não contém a tentativa exata desta seção. Consulte a versão vigente sem substituir a memória histórica.');
+        return;
+      }
+      if (detail.state==='REVIEWED_INTERNAL') {
+        const totals=detail.totals;
+        const selected=member.totals;
+        const complete=detail.members.every(m=>m.runId && m.state==='REVIEWED_INTERNAL'
+          && m.stale===false && m.projectYear===year && m.totals
+          && m.windowStart && m.windowEndExclusive);
+        if (!totals || !selected || !complete || detail.issues.length!==0
+            || !detail.windowStart || !detail.windowEndExclusive
+            || new Set(detail.members.map(m=>m.period)).size!==detail.members.length
+            || new Set(detail.members.map(m=>m.runId)).size!==detail.members.length
+            || selected.beTco2e!==calculation.beTco2e || selected.peTco2e!==calculation.peTco2e
+            || selected.leTco2e!==calculation.leTco2e || selected.erDisplay!==calculation.erDisplay
+            || ![totals.beTco2e,totals.peTco2e,totals.leTco2e,totals.erTco2e,totals.erDisplay]
+                .every(value=>typeof value==='string' && /^-?\d+(\.\d+)?$/.test(value)))
+          throw new Error('Totais anuais inconsistentes');
+      } else if (detail.totals!==null || detail.issues.length===0) {
+        throw new Error('Bloqueio anual inconsistente');
+      }
+      this.annualDetail.set(detail);
+    } catch (cause) {
+      if (request===this.sourceRequest) {
+        this.annualDetail.set(null);
+        this.annualError.set(cause instanceof HttpErrorResponse && [401,403,404].includes(cause.status)
+          ? 'Consolidação anual protegida ou indisponível para esta conta.'
+          : 'Não foi possível conferir a consolidação anual. Atualize as seções e tente novamente.');
+      }
+    } finally {
+      if (request===this.sourceRequest) this.annualLoading.set(false);
     }
   }
   readonly term = plainTerm;
