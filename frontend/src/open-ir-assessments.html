@@ -88,7 +88,12 @@
           @if (opinion.initialContext;as initial) {
             <p>Plano inicial conferido; não comprova atualização observada nem libera E8.</p>
             <p>Data de acompanhamento interno (início do ano 2): {{initial.followupOn}}</p>
-            <p class="energy-hash">SHA-256 do plano: {{initial.planSha256}}</p>
+            <p class="energy-hash">SHA-256 do parecer inicial: {{initial.planSha256}}</p>
+            @if (initial.exAntePlan;as linked) {
+              <p>Plano ex ante v{{linked.version}}: <code>{{linked.id}}</code></p>
+              <p>SHA-256 do planejamento: <code>{{linked.sha256}}</code></p>
+            }
+            @if (row.initialLinkState) { <p>{{label(row.initialLinkState)}}</p> }
             @if (initial.plan;as plan) {
               <dl class="cf-tech-capabilities">
                 <div><dt>Plano EVR</dt><dd>{{plan.evr}}</dd></div>
@@ -125,15 +130,33 @@
                 <option value="OBSERVED_UPDATE">Atualização observada</option><option value="INSUFFICIENT">Insuficiente</option>
               </select>
               @if (outcome==='INITIAL_BASELINE_CHECKED') {
-                <p>Registre fonte prevista, responsável e procedimento de atualização de cada parâmetro. O servidor deriva o acompanhamento do calendário; não é prazo normativo Verra. Selecione "Somente plano".</p>
-                <label [attr.for]="'cf-ir-evr-plan-'+row.id">Plano de atualização EVR</label>
-                <textarea [id]="'cf-ir-evr-plan-'+row.id" [value]="initialPlan.evr" (input)="initialPlan.evr=$any($event.target).value" minlength="15" maxlength="2000" [disabled]="busy()" required></textarea>
-                <label [attr.for]="'cf-ir-afec-plan-'+row.id">Plano de atualização AFEC</label>
-                <textarea [id]="'cf-ir-afec-plan-'+row.id" [value]="initialPlan.afec" (input)="initialPlan.afec=$any($event.target).value" minlength="15" maxlength="2000" [disabled]="busy()" required></textarea>
-                <label [attr.for]="'cf-ir-mpg-plan-'+row.id">Plano de atualização MPG</label>
-                <textarea [id]="'cf-ir-mpg-plan-'+row.id" [value]="initialPlan.mpg" (input)="initialPlan.mpg=$any($event.target).value" minlength="15" maxlength="2000" [disabled]="busy()" required></textarea>
-                <label [attr.for]="'cf-ir-fuel-plan-'+row.id">Plano de atualização EFfuel</label>
-                <textarea [id]="'cf-ir-fuel-plan-'+row.id" [value]="initialPlan.fuel" (input)="initialPlan.fuel=$any($event.target).value" minlength="15" maxlength="2000" [disabled]="busy()" required></textarea>
+                <p>Compare cada fonte planejada com a referência efetiva. Classifique correspondência ou divergência justificada; cite a evidência da comparação. Não é admissão normativa. Selecione "Somente plano".</p>
+                @if (row.exAnteOption;as target) {
+                  <p>Plano ex ante vigente v{{target.version}}: <code>{{target.id}}</code></p>
+                  <p>Hash do plano: <code>{{target.sha256}}</code></p>
+                  <p>Justificativa do preparador: {{target.plan.rationale}}</p>
+                  @for (metric of metrics;track metric.key) {
+                    <fieldset class="cf-journey-context" style="min-width:0">
+                      <legend>{{metric.label}}</legend>
+                      <p>Fonte prevista: {{target.plan[metric.key].source}}</p>
+                      <p>Responsável previsto: {{target.plan[metric.key].responsible}}</p>
+                      <p>Procedimento previsto: {{target.plan[metric.key].procedure}}</p>
+                      <p>Referência efetiva: <code>{{actualReference(row,metric.key) ?? 'Indisponível'}}</code></p>
+                      <label [attr.for]="'cf-ir-match-'+metric.key+'-'+row.id">Conciliação {{metric.label}}</label>
+                      <select [id]="'cf-ir-match-'+metric.key+'-'+row.id" [value]="initialDecision[metric.key]"
+                        (change)="initialDecision[metric.key]=$any($event.target).value" [disabled]="busy()" required>
+                        <option value="">Selecione</option>
+                        <option value="MATCH">Correspondente</option>
+                        <option value="JUSTIFIED_DEVIATION">Divergência justificada</option>
+                      </select>
+                      <label [attr.for]="'cf-ir-note-'+metric.key+'-'+row.id">Justificativa da conciliação {{metric.label}}</label>
+                      <textarea [id]="'cf-ir-note-'+metric.key+'-'+row.id" [value]="initialPlan[metric.key]"
+                        (input)="initialPlan[metric.key]=$any($event.target).value" minlength="15" maxlength="1950" [disabled]="busy()" required></textarea>
+                    </fieldset>
+                  }
+                } @else {
+                  <p role="status">Não há plano ex ante vigente com recorte confirmado. Solicite complementação ao preparador.</p>
+                }
               }
               @if (outcome==='CHECKED_INTERNAL') {
                 <label [attr.for]="'cf-ir-prior-'+row.id">Avaliação do ano anterior</label>
