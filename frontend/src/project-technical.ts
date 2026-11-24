@@ -104,20 +104,23 @@ const SECTIONS = [
   {id:'inicio',title:'Painel de trabalho',group:'Começar'},
   {id:'entender',title:'Entender',group:'Começar'},
   {id:'preparar',title:'Preparar informações',group:'Começar'},
-  {id:'analisar',title:'Situação do projeto',group:'Fundamentação'},
-  {id:'rede',title:'Acesso à rede',group:'Fundamentação'},
-  {id:'direitos',title:'Direitos do projeto',group:'Fundamentação'},
-  {id:'estacoes',title:'Estações e fronteira',group:'Fundamentação'},
+  {id:'analisar',title:'Situação do projeto',group:'Aplicabilidade'},
+  {id:'rede',title:'Acesso à rede',group:'Aplicabilidade'},
+  {id:'direitos',title:'Direitos do projeto',group:'Aplicabilidade'},
+  {id:'estacoes',title:'Estações e fronteira',group:'Aplicabilidade'},
   {id:'linha-base',title:'Linha de base',group:'Fundamentação'},
   {id:'adicionalidade',title:'Adicionalidade',group:'Fundamentação'},
+  {id:'guias',title:'Guias técnicos',group:'Fundamentação'},
   {id:'monitorar',title:'Monitorar energia',group:'Medição'},
   {id:'evidencias',title:'Evidências',group:'Medição'},
   {id:'quantificar',title:'Quantificação',group:'Medição'},
   {id:'fontes',title:'Fontes e parâmetros',group:'Medição'},
-  {id:'guias',title:'Guias técnicos',group:'Documentação'},
   {id:'redigir',title:'Redigir',group:'Documentação'},
   {id:'revisar',title:'Revisar',group:'Documentação'},
 ] as const;
+/** Screens that stay reachable by URL and by a link inside their parent, but no longer take a menu slot.
+ * "Evidências" renders the same QA view as Monitorar, step 3; "Entender" and "Fontes" are reference pages. */
+const MENU_ALIASES: Record<string,string> = {entender:'inicio',evidencias:'monitorar',fontes:'quantificar'};
 type Section = (typeof SECTIONS)[number]['id'];
 type IntakeForm = Record<keyof IntakeData, string>;
 
@@ -184,6 +187,18 @@ export class ProjectTechnicalComponent {
     if (item.id === 'redigir' || item.id === 'revisar') return this.can('VIEW_DOSSIER');
     return this.can('VIEW_INTAKE');
   }));
+  /** Menu entries: an alias is hidden only while its parent is also available to this account. */
+  readonly menu = computed(() => {
+    const available = new Set<string>(this.sections().map(item => item.id));
+    return this.sections().filter(item => {
+      const parent = MENU_ALIASES[item.id];
+      return !parent || !available.has(parent);
+    });
+  });
+  isCurrent(id: string) {
+    const current = this.section().id;
+    return current === id || MENU_ALIASES[current] === id;
+  }
   readonly queryEtapa = computed(() => this.query()?.get('etapa'));
   readonly monitoringView = computed(() => {
     const selected=this.query()?.get('etapa');
