@@ -26,7 +26,7 @@ class OpenDyAssessments {
     record Input(Integer projectYear, String outcome, String erc, String erf,
                  String programs, String projectReferences, String evidenceLocator, String coverageNote,
                  List<OpenDyIssuances.Input> issuances, List<OpenDySourceRights.Input> sourceLicenses,
-                 List<OpenDySearchCoverage.Row> searchCoverage) {}
+                 List<OpenDySearchCoverage.Row> searchCoverage,List<OpenDyAllocations.Input> allocations) {}
     record ReviewInput(String assessmentSha256, String outcome, String ruleReference,
                        String evidenceReferences, String reason) {}
     record Review(UUID reviewerId, String outcome, String assessmentSha256, String ruleReference,
@@ -41,7 +41,8 @@ class OpenDyAssessments {
                 OffsetDateTime recordedAt, String state, boolean stale, boolean usableForE8, Review review,
                 int issuanceCount, String issuanceState, List<OpenDyIssuances.Row> issuances,
                 String sourceRightsState, List<OpenDySourceRights.Pin> sourceLicenses,
-                String coverageState, int coverageCount, List<OpenDySearchCoverage.Row> searchCoverage) {}
+                String coverageState, int coverageCount, List<OpenDySearchCoverage.Row> searchCoverage,
+                String allocationState,int allocationCount,List<OpenDyAllocations.Row> allocations) {}
     record Result(View view, boolean created) {}
     record History(String projectId, int projectYear, int latestVersion, OffsetDateTime priorStart,
                    OffsetDateTime priorEndExclusive, String calendarGate, List<View> assessments) {}
@@ -131,6 +132,7 @@ class OpenDyAssessments {
             List<OpenDyIssuances.Row> issuances;
             List<OpenDySourceRights.Input> licenses;
             List<OpenDySearchCoverage.Row> coverage;
+            List<OpenDyAllocations.Row> allocations;
             try {
                 programs=OpenDyAssessmentRules.text(input.programs(),3,1000);
                 refs=OpenDyAssessmentRules.text(input.projectReferences(),3,2000);
@@ -140,7 +142,8 @@ class OpenDyAssessments {
                 values=OpenDyAssessmentRules.values(input.outcome(),input.erc(),input.erf(),null);
                 issuances=OpenDyIssuances.normalize(input.issuances());
                 coverage=OpenDySearchCoverage.normalize(input.searchCoverage());
-                licenses=OpenDySourceRights.normalize(input.sourceLicenses(),issuances,coverage);
+                allocations=OpenDyAllocations.normalize(input.allocations(),issuances);
+                licenses=OpenDySourceRights.normalize(input.sourceLicenses(),issuances,coverage,allocations);
             } catch (IllegalArgumentException e) { throw invalid(e.getMessage()); }
             String erc=OpenDyAssessmentRules.number(values.erc());
             String erf=OpenDyAssessmentRules.number(values.erf());
@@ -176,6 +179,16 @@ class OpenDyAssessments {
                 }
                 fingerprint=digest(parts.toArray());
             }
+            if (!allocations.isEmpty()) {
+                var parts=new java.util.ArrayList<Object>();parts.add("OPEN-DY-ALLOCATION@1");parts.add(fingerprint);
+                for (var row:allocations) {
+                    parts.add(row.issuanceOrdinal());parts.add(row.method());parts.add(row.totalTco2e());
+                    parts.add(row.shareNumerator());parts.add(row.shareDenominator());parts.add(row.brazilTco2e());
+                    parts.add(row.basisUnit());parts.add(row.sourceId());parts.add(row.sourceEdition());
+                    parts.add(row.locator());parts.add(row.rationale());
+                }
+                fingerprint=digest(parts.toArray());
+            }
             Stored replay=first(c,SELECT+" WHERE author_id=? AND command_key=?",
                 OpenDyAssessments::stored,actor.id(),command);
             if (replay!=null) {
@@ -193,6 +206,7 @@ class OpenDyAssessments {
             catch (IllegalArgumentException e) { throw invalid(e.getMessage()); }
             for (var row:issuances) requireSourceMetadata(c,row.sourceId(),row.sourceEdition());
             for (var row:coverage) requireSourceMetadata(c,row.sourceId(),row.sourceEdition());
+            for (var row:allocations) requireSourceMetadata(c,row.sourceId(),row.sourceEdition());
             Integer current=first(c,"""
                 SELECT max(version) FROM app_open_dy_assessment WHERE project_id=? AND project_year=?
                 """,r->r.getObject(1,Integer.class),project,year);
@@ -234,6 +248,7 @@ class OpenDyAssessments {
             }
             sourceRights.store(c,id,pins);
             OpenDySearchCoverage.store(c,id,coverage);
+            OpenDyAllocations.store(c,id,allocations);
             return new Result(view(c,first(c,SELECT+" WHERE id=?",OpenDyAssessments::stored,id),true),true);
         });
     }
@@ -358,6 +373,8 @@ class OpenDyAssessments {
         Review review=readReview(c,row.id(),details);
         var items=issuances(c,row.id());
         var coverage=OpenDySearchCoverage.read(c,row.id());
+        var allocations=OpenDyAllocations.read(c,row.id());
+        String allocationState=allocations.isEmpty()?"NO_STRUCTURED_ALLOCATION":check.blocked()?"ALLOCATION_RIGHTS_RECHECK_REQUIRED":"DECLARED_ALLOCATION_RECONCILED";
         String coverageState=coverage.isEmpty()?"NO_SEARCH_MATRIX":check.blocked()?"SEARCH_RIGHTS_RECHECK_REQUIRED":
             "INCONCLUSIVE".equals(row.outcome())?"SEARCH_INCONCLUSIVE":"DECLARED_MATRIX_COMPLETE";
         String state=stale?"STALE_NOT_ADMITTED":review==null?"DECLARED_NOT_ADMITTED":
@@ -367,7 +384,8 @@ class OpenDyAssessments {
             details?row.programs():null,details?row.references():null,details?row.locator():null,details?row.note():null,
             row.sha(),row.at(),state,stale,false,review,items.size(),
             items.isEmpty()?"UNITEMIZED":"DECLARED_TOTALS_RECONCILED",details?List.copyOf(items):List.of(),
-            check.state(),staff?check.pins():List.of(),coverageState,coverage.size(),details?List.copyOf(coverage):List.of());
+            check.state(),staff?check.pins():List.of(),coverageState,coverage.size(),details?List.copyOf(coverage):List.of(),
+            allocationState,allocations.size(),details?List.copyOf(allocations):List.of());
     }
 
     private static Calendar calendar(Connection c,String project,int year) throws SQLException {

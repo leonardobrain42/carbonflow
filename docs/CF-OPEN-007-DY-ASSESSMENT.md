@@ -126,3 +126,17 @@ informados, não comprovação de que o universo de programas é exaustivo.
 A nota de cobertura deve fundamentar a seleção desse universo; nenhuma lista
 oficial completa ou verificação externa é inferida. Não admite E8 nem resolve
 rateio ou primeiro ano. V86 exclusivamente aditiva.
+
+## V87 — atribuição geográfica declarada
+
+O valor individualizado continua sendo exclusivamente a parcela BR. Opcionalmente,
+todas as emissões positivas recebem total original, base documentada (numerador,
+denominador, unidade), modalidade direta BR (1/1) ou fração documentada inferior
+a 1, localizador, justificativa e edição da fonte. Uma fonte distinta para a
+atribuição exige licença própria. O servidor confere exatamente BR × denominador
+= total × numerador, sem arredondamento implícito. Não soma o total internacional
+a ERC/ERF. Uma atribuição por emissão, hash da avaliação e replay preservados.
+Não há escolha automática de base por área, população ou frota. Adequação
+normativa, frações não representáveis e casos de parcela zero/exclusões ainda
+exigem decisão. Revogação oculta detalhes; parecer revisa hash exato sem admitir
+E8. V87 exclusivamente aditiva.
