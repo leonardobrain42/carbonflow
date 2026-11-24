@@ -379,7 +379,7 @@ jobs:
           dc=(docker compose -p "$CARBONFLOW_DEMO_PROJECT" -f compose.yaml -f compose.demo.yaml)
           "${dc[@]}" exec -T db psql -U carbonflow -d carbonflow -v ON_ERROR_STOP=1 -c "
             BEGIN;
-            DROP TABLE IF EXISTS app_open_ir_review;
+            DROP TABLE app_open_ir_review;
             DROP TABLE app_open_ir_assessment;
             DROP TABLE app_open_dy_first_year_context;
             DROP TABLE app_open_dy_allocation;
@@ -452,7 +452,8 @@ jobs:
               AND to_regclass('public.app_open_dy_allocation') IS NOT NULL
               AND to_regclass('public.app_open_dy_first_year_context') IS NOT NULL
               AND to_regclass('public.app_open_ir_assessment') IS NOT NULL
-              AND (SELECT count(*) FROM flyway_schema_history WHERE version IN ('82','83','84','85','86','87','88','89') AND success)=8
+              AND to_regclass('public.app_open_ir_review') IS NOT NULL
+              AND (SELECT count(*) FROM flyway_schema_history WHERE version IN ('82','83','84','85','86','87','88','89','90') AND success)=9
               AND (SELECT count(*) FROM app_identity i JOIN app_account_credential c ON c.identity_id=i.id
                    WHERE i.status='ACTIVE' AND i.email_normalized IN
                    ('demo@carbonflow.test','segunda@carbonflow.test','admin@carbonflow.test'))=3
