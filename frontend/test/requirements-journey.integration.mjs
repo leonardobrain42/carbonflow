@@ -145,7 +145,7 @@ for(const viewport of [{width:390,height:844},{width:1440,height:900}]){
       await page.goto(base+technical);
       await diagnosis.getByText(disclosure.reason,{exact:true}).waitFor();
       // The pending item leads straight to the screen that resolves it.
-      await diagnosis.getByRole('button',{name:'Abrir direitos do projeto'}).click();
+      await diagnosis.getByRole('button',{name:'Abrir direitos do projeto'}).first().click();
       await page.getByRole('heading',{name:'Titular, contrato e divulgação'}).waitFor();
 
       // A competing real write leaves the mounted form stale. Its rejected
