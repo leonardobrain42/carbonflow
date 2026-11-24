@@ -14,6 +14,24 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  flyway-guard:
+    name: Flyway / versions and published immutability
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check versions and base migrations
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          set -euo pipefail
+          if [ -n "$BASE_SHA" ] && [ "$BASE_SHA" != "0000000000000000000000000000000000000000" ]; then
+            python3 scripts/check_flyway_migrations.py "$BASE_SHA"
+          else
+            python3 scripts/check_flyway_migrations.py
+          fi
+
   angular-build:
     name: Angular / build
     runs-on: ubuntu-24.04
@@ -169,6 +187,7 @@ jobs:
           python3 -m unittest discover -s scripts -p 'test_admin_sandbox.py' -v
           python3 -m unittest discover -s scripts -p 'test_flyway_v69_compat.py' -v
           python3 -m unittest discover -s scripts -p 'test_demo_flyway_compat.py' -v
+          python3 -m unittest discover -s scripts -p 'test_demo_flyway_v79_compat.py' -v
           python3 -m unittest discover -s scripts -p 'test_inspect_senatran_stock_sample.py' -v
       - name: Start isolated sandbox and provision account
         run: python3 scripts/demo_sandbox.py start --quiet
@@ -199,7 +218,9 @@ jobs:
           docker compose -p "$CARBONFLOW_DEMO_PROJECT" -f compose.yaml -f compose.demo.yaml exec -T db \
             psql -U carbonflow -d carbonflow -v ON_ERROR_STOP=1 -c "
               ALTER TABLE app_open_asset_evidence DROP COLUMN submitted_file_name;
-              DELETE FROM flyway_schema_history WHERE version='69.1';
+              ALTER TABLE app_open_e8_run DROP COLUMN temporal_context;
+              ALTER TABLE app_open_e8_run_command DROP COLUMN request_sha256;
+              DELETE FROM flyway_schema_history WHERE version IN ('69.1','81');
               UPDATE flyway_schema_history SET checksum=167374965 WHERE version='71';"
           python3 scripts/demo_flyway_compat.py
           python3 scripts/demo_flyway_compat.py --apply
@@ -303,7 +324,7 @@ jobs:
               DROP TABLE app_open_e8_run_timing;
               DROP TABLE app_open_e8_run_command;
               DROP TABLE app_open_e8_run;
-              DELETE FROM flyway_schema_history WHERE version IN ('69.1', '78', '79');
+              DELETE FROM flyway_schema_history WHERE version IN ('69.1', '78', '79', '80', '81');
               UPDATE flyway_schema_history SET
                 description='asset evidence submitted filename backfill',
                 script='db/migration/V71__asset_evidence_submitted_filename_backfill.sql',
@@ -345,6 +366,79 @@ jobs:
               THEN 'LEGACY_UPGRADE_OK' ELSE 'LEGACY_UPGRADE_FAILED' END;" \
             | grep LEGACY_UPGRADE_OK
           python3 -c 'import sys; sys.path.insert(0, "scripts"); import demo_sandbox as d; d.compose("exec", "-T", "app", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:8080/health/ready")'
+      - name: Reproduce historical V79 Calendar collision on disposable demo
+        env:
+          CARBONFLOW_PORT: '18088'
+        run: |
+          set -euo pipefail
+          # Only CI's isolated demo: model the legacy schema with the exact
+          # Calendar SQL already applied by V81, retaining its actual checksum.
+          python3 -c 'import sys; sys.path.insert(0,"scripts"); import demo_sandbox as d; d.compose("stop","app")'
+          dc=(docker compose -p "$CARBONFLOW_DEMO_PROJECT" -f compose.yaml -f compose.demo.yaml)
+          "${dc[@]}" exec -T db psql -U carbonflow -d carbonflow -v ON_ERROR_STOP=1 -c "
+            BEGIN;
+            DROP TABLE app_open_e8_run_timing;
+            DELETE FROM flyway_schema_history WHERE version IN ('79','80');
+            UPDATE flyway_schema_history SET version='79',
+              script='db/migration/V79__open_e8_run_calendar.sql'
+              WHERE version='81' AND checksum=-898586753 AND success;
+            COMMIT;"
+          # Reset the V80 constraint to its earlier expression (no hourly rows
+          # are expected in this provisioning fixture); do not bypass checks.
+          python3 - <<'PY' | "${dc[@]}" exec -T db psql -U carbonflow -d carbonflow -v ON_ERROR_STOP=1
+          from pathlib import Path
+          sql = Path("backend/src/main/resources/db/migration/V80__open_e8_hourly_engine_constraint.sql").read_text()
+          print(sql.replace("engine IN ('vm0038-open-grid-arithmetic@1','vm0038-open-grid-arithmetic@2-hourly')", "engine='vm0038-open-grid-arithmetic@1'"))
+          PY
+          # A non-empty legacy run and its idempotency command exercise actual
+          # preserved column values, not merely an empty-table comparison.
+          "${dc[@]}" exec -T db psql -U carbonflow -d carbonflow -v ON_ERROR_STOP=1 -c "
+            INSERT INTO app_open_e8_run(id,project_id,organization_id,environment,
+              period_code,version,input_sha256,state,gate_codes,created_by,temporal_context)
+            SELECT 'f7900000-0000-4000-8000-000000000001',p.id,p.organization_id,p.environment,
+              'CI-V79-LEGACY',1,decode(repeat('ab',32),'hex'),'BLOCKED',
+              ARRAY['LEGACY_CI'],i.id,jsonb_build_object('fixture','historical calendar')
+            FROM app_project p CROSS JOIN app_identity i
+            WHERE p.environment='SANDBOX' AND i.email_normalized='demo@carbonflow.test'
+            ORDER BY p.id LIMIT 1;
+            INSERT INTO app_open_e8_run_command(actor_id,command_key,project_id,run_id,fingerprint,request_sha256)
+            SELECT created_by,'ci-v79-legacy-command',project_id,id,decode(repeat('cd',32),'hex'),
+              decode(repeat('ef',32),'hex') FROM app_open_e8_run
+            WHERE id='f7900000-0000-4000-8000-000000000001';
+            DO \$\$ BEGIN
+              IF NOT EXISTS (SELECT 1 FROM app_open_e8_run_command
+                              WHERE command_key='ci-v79-legacy-command') THEN
+                RAISE EXCEPTION 'Missing historical fixture';
+              END IF;
+            END \$\$;"
+          snapshot() {
+            "${dc[@]}" exec -T db psql -U carbonflow -d carbonflow -At -v ON_ERROR_STOP=1 -c "
+              SELECT md5(coalesce((SELECT jsonb_agg(to_jsonb(r) ORDER BY id)::text FROM app_open_e8_run r),'')) ||
+                     md5(coalesce((SELECT jsonb_agg(to_jsonb(c) ORDER BY actor_id,command_key)::text FROM app_open_e8_run_command c),''));"
+          }
+          before="$(snapshot)"
+          umask 077
+          dump="$(mktemp .carbonflow-demo/ci-v79.XXXXXX.dump)"
+          "${dc[@]}" exec -T db pg_dump -U carbonflow -d carbonflow -Fc > "$dump"
+          python3 scripts/demo_flyway_v79_compat.py | grep 'LEGACY'
+          python3 scripts/demo_flyway_v79_compat.py --apply --backup "$dump"
+          python3 scripts/demo_flyway_v79_compat.py | grep 'PENDING'
+          python3 -c 'import sys; sys.path.insert(0,"scripts"); import demo_sandbox as d; d.compose("up","-d","--wait","app")'
+          python3 scripts/demo_flyway_v79_compat.py | grep 'COMPLETE'
+          test "$before" = "$(snapshot)"
+          "${dc[@]}" exec -T db psql -U carbonflow -d carbonflow -At -v ON_ERROR_STOP=1 -c "
+            SELECT CASE WHEN
+              (SELECT count(*) FROM flyway_schema_history WHERE success AND
+                ((version='79' AND checksum=1403819066) OR
+                 (version='80' AND checksum=1264111112) OR
+                 (version='81' AND checksum=-898586753)))=3
+              AND to_regclass('public.app_open_e8_run_timing') IS NOT NULL
+              AND (SELECT count(*) FROM app_identity i JOIN app_account_credential c ON c.identity_id=i.id
+                   WHERE i.status='ACTIVE' AND i.email_normalized IN
+                   ('demo@carbonflow.test','segunda@carbonflow.test','admin@carbonflow.test'))=3
+              THEN 'V79_UPGRADE_OK' ELSE 'V79_UPGRADE_FAILED' END;" | grep V79_UPGRADE_OK
+          python3 -c 'import sys; sys.path.insert(0,"scripts"); import demo_sandbox as d; d.compose("exec","-T","app","curl","-fsS","-o","/dev/null","http://127.0.0.1:8080/health/ready")'
+          rm -f "$dump"
       - name: Destroy only the disposable demo environment
         if: always()
         run: |
