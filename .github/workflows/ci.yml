@@ -220,7 +220,21 @@ jobs:
               ALTER TABLE app_open_asset_evidence DROP COLUMN submitted_file_name;
               ALTER TABLE app_open_e8_run DROP COLUMN temporal_context;
               ALTER TABLE app_open_e8_run_command DROP COLUMN request_sha256;
-              DELETE FROM flyway_schema_history WHERE version IN ('69.1','81');
+              -- Restore the exact legacy run schema expected by the V71 guard.
+              ALTER TABLE app_open_e8_run
+                DROP CONSTRAINT app_open_e8_run_reviewed_pins,
+                DROP CONSTRAINT app_open_e8_ir_context_shape,
+                DROP CONSTRAINT app_open_e8_ir_assessment_fk,
+                DROP COLUMN ir_assessment_id,
+                DROP COLUMN ir_assessment_sha256,
+                DROP COLUMN ir_assessment_version,
+                DROP COLUMN ir_context_sha256,
+                DROP COLUMN ir_context_state,
+                ADD CONSTRAINT app_open_e8_run_reviewed_pins CHECK (
+                  state <> 'REVIEWED_INTERNAL' OR
+                  (fuel_pin_id IS NOT NULL AND ir_pin_id IS NOT NULL AND dy_pin_id IS NOT NULL));
+              ALTER TABLE app_open_ir_assessment DROP CONSTRAINT app_open_ir_run_target;
+              DELETE FROM flyway_schema_history WHERE version IN ('69.1','81','92');
               UPDATE flyway_schema_history SET checksum=167374965 WHERE version='71';"
           python3 scripts/demo_flyway_compat.py
           python3 scripts/demo_flyway_compat.py --apply
@@ -237,6 +251,9 @@ jobs:
                 AND EXISTS (SELECT 1 FROM information_schema.columns
                             WHERE table_name='app_open_asset_evidence'
                               AND column_name='submitted_file_name')
+                AND EXISTS (SELECT 1 FROM flyway_schema_history WHERE version='92' AND success)
+                AND EXISTS (SELECT 1 FROM pg_constraint
+                            WHERE conrelid='app_open_e8_run'::regclass AND conname='app_open_e8_ir_assessment_fk' AND convalidated)
                 THEN 'UPGRADE_OK' ELSE 'UPGRADE_FAILED' END;" | grep UPGRADE_OK
           # Docker's host forwarding may not rebind after stop/up on the CI runner.
           # The normal first-boot steps already validated real HTTP account logins.
@@ -324,7 +341,8 @@ jobs:
               DROP TABLE app_open_e8_run_timing;
               DROP TABLE app_open_e8_run_command;
               DROP TABLE app_open_e8_run;
-              DELETE FROM flyway_schema_history WHERE version IN ('69.1', '78', '79', '80', '81');
+              ALTER TABLE app_open_ir_assessment DROP CONSTRAINT app_open_ir_run_target;
+              DELETE FROM flyway_schema_history WHERE version IN ('69.1', '78', '79', '80', '81','92');
               UPDATE flyway_schema_history SET
                 description='asset evidence submitted filename backfill',
                 script='db/migration/V71__asset_evidence_submitted_filename_backfill.sql',
@@ -357,7 +375,9 @@ jobs:
                  AND to_regclass('public.app_open_e8_run_command') IS NOT NULL
                  AND to_regclass('public.app_open_e8_run_timing') IS NOT NULL
                  AND (SELECT count(*) FROM flyway_schema_history
-                      WHERE version IN ('78', '79') AND success)=2
+                      WHERE version IN ('78', '79','92') AND success)=3
+                 AND EXISTS (SELECT 1 FROM pg_constraint
+                             WHERE conrelid='app_open_e8_run'::regclass AND conname='app_open_e8_ir_assessment_fk' AND convalidated)
                  AND (SELECT count(*) FROM app_identity i
                       JOIN app_account_credential c ON c.identity_id=i.id
                       WHERE i.status='ACTIVE' AND i.email_verified_at IS NOT NULL
