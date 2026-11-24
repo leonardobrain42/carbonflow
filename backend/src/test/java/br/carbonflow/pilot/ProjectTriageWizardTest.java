@@ -320,6 +320,88 @@ class ProjectTriageWizardTest {
     }
 
     @Test
+    void d16CarriesRetiredAnswersForwardAndAnExplicitNullStillCounts() throws Exception {
+        Actor owner = actor();
+        String project = project(owner, organization(owner.id()));
+        String endpoint = "/v1/projects/" + project + "/triage";
+        String[] steps = {
+            "{\"answers\":{\"activityType\":\"MOBILIDADE_ELETRICA\",\"methodologyCandidate\":\"VM0038\"},\"nextStep\":2}",
+            "{\"answers\":{\"installsChargers\":\"YES\"},\"nextStep\":3}",
+            """
+            {"answers":{"vehicleClass":"LDV","propulsion":"BEV","chargerType":"DCFC","network":"CLOSED","access":"PRIVATE",
+              "electricitySource":"SIN","associatedInfrastructure":"NO","metering":"SEGREGATED","design":"INDIVIDUAL",
+              "vehicleCount":25,"chargerCount":1},"nextStep":4}
+            """,
+            """
+            {"answers":{"country":"BR","state":"DF","locality":"Brasília","referenceDate":"2027-09-27",
+              "investmentCommitted":"YES","carbonConsideredBeforeInvestment":"NO","rightsStatus":"DECLARADO"},"nextStep":5}
+            """
+        };
+        for (int index = 0; index < steps.length; index++) {
+            assertEquals(200, call("PUT", endpoint + "/steps/" + (index + 1), owner.cookie(),
+                    UUID.randomUUID().toString(), "\"" + index + "\"", steps[index]).statusCode());
+        }
+        // A step saved with only the answers that stay in the triage keeps the retired ones unchanged.
+        var scope = json(call("PUT", endpoint + "/steps/3", owner.cookie(), UUID.randomUUID().toString(), "\"4\"", """
+                {"answers":{"vehicleClass":"LDV","propulsion":"BEV","chargerType":"DCFC","design":"INDIVIDUAL"},"nextStep":4}
+                """));
+        assertEquals("CLOSED", scope.at("/answers/3/network").asText());
+        assertEquals("SEGREGATED", scope.at("/answers/3/metering").asText());
+        assertEquals(25, scope.at("/answers/3/vehicleCount").asInt());
+        assertEquals("SUPPORTED_MVP_CONFIGURATION", scope.at("/diagnosis/classification").asText());
+        var location = json(call("PUT", endpoint + "/steps/4", owner.cookie(), UUID.randomUUID().toString(), "\"5\"", """
+                {"answers":{"country":"BR","state":"DF","locality":"Brasília","referenceDate":"2027-09-27"},"nextStep":5}
+                """));
+        assertEquals("DECLARADO", location.at("/answers/4/rightsStatus").asText());
+        assertEquals("YES", location.at("/answers/4/investmentCommitted").asText());
+        assertTrue(location.at("/diagnosis/findings").findValuesAsText("code").contains("COMMITTED_INVESTMENT"));
+        // Clearing a retired answer on purpose is still recorded, and the scope is no longer called compatible.
+        var cleared = json(call("PUT", endpoint + "/steps/3", owner.cookie(), UUID.randomUUID().toString(), "\"6\"", """
+                {"answers":{"vehicleClass":"LDV","propulsion":"BEV","chargerType":"DCFC","design":"INDIVIDUAL",
+                  "metering":null},"nextStep":4}
+                """));
+        assertTrue(cleared.at("/answers/3/metering").isNull());
+        assertEquals("UNKNOWN_REVIEW_REQUIRED", cleared.at("/diagnosis/classification").asText());
+        var confirm = cleared.at("/diagnosis/findings").valueStream()
+                .filter(item -> "TECHNICAL_SCOPE_TO_CONFIRM".equals(item.path("code").asText())).findFirst().orElseThrow();
+        assertEquals(1, confirm.path("fields").size());
+        assertEquals("metering", confirm.at("/fields/0").asText());
+    }
+
+    @Test
+    void d16NewScopeWithoutRetiredAnswersIsNotCalledCompatibleNorAskedAgainInTheTriage() throws Exception {
+        Actor owner = actor();
+        String project = project(owner, organization(owner.id()));
+        String endpoint = "/v1/projects/" + project + "/triage";
+        String[] steps = {
+            "{\"answers\":{\"activityType\":\"MOBILIDADE_ELETRICA\",\"methodologyCandidate\":\"VM0038\"},\"nextStep\":2}",
+            "{\"answers\":{\"installsChargers\":\"YES\"},\"nextStep\":3}",
+            "{\"answers\":{\"vehicleClass\":\"LDV\",\"propulsion\":\"BEV\",\"chargerType\":\"DCFC\",\"design\":\"INDIVIDUAL\"},\"nextStep\":4}",
+            "{\"answers\":{\"country\":\"BR\",\"state\":\"DF\",\"locality\":\"Brasília\",\"referenceDate\":\"2027-09-27\"},\"nextStep\":5}"
+        };
+        JsonNode view = null;
+        for (int index = 0; index < steps.length; index++) {
+            var saved = call("PUT", endpoint + "/steps/" + (index + 1), owner.cookie(),
+                    UUID.randomUUID().toString(), "\"" + index + "\"", steps[index]);
+            assertEquals(200, saved.statusCode(), saved.body());
+            view = json(saved);
+        }
+        assertEquals("UNKNOWN_REVIEW_REQUIRED", view.at("/diagnosis/classification").asText());
+        var codes = view.at("/diagnosis/findings").findValuesAsText("code");
+        assertTrue(codes.contains("TECHNICAL_SCOPE_TO_CONFIRM"));
+        assertFalse(codes.stream().anyMatch(java.util.Set.of("CONFIGURATION", "INVESTMENT_DECLARATION",
+                "PRIOR_CARBON_DECLARATION", "RIGHTS_DECLARATION", "EVIDENCE_DECLARATION")::contains));
+        var confirm = view.at("/diagnosis/findings").valueStream()
+                .filter(item -> "TECHNICAL_SCOPE_TO_CONFIRM".equals(item.path("code").asText())).findFirst().orElseThrow();
+        var fields = java.util.stream.StreamSupport.stream(confirm.path("fields").spliterator(), false)
+                .map(JsonNode::asText).toList();
+        assertTrue(fields.containsAll(java.util.List.of("network", "access", "electricitySource",
+                "associatedInfrastructure", "metering", "vehicleCount", "chargerCount")));
+        assertEquals("TECHNICAL", confirm.path("kind").asText());
+        assertEquals(0, view.at("/guidance/outsidePilot").size(), "no limit is claimed from an answer nobody gave");
+    }
+
+    @Test
     void rejectsInvalidDatesCountsRightJustificationAndUndeclaredFields() throws Exception {
         Actor owner = actor();
         String project = project(owner, organization(owner.id()));

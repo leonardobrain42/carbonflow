@@ -3,6 +3,8 @@ package br.carbonflow.pilot;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -20,6 +22,20 @@ final class ProjectJourney {
         List<String> outsidePilot() {
             return pilotLimits.stream().map(PilotLimit::message).toList();
         }
+    }
+
+    /**
+     * D16: answers that leave the triage. Older revisions keep them and every new revision copies them unchanged;
+     * the technical screens own them from now on (Acesso à rede, Direitos do projeto, Adicionalidade, Estações, Monitorar).
+     */
+    static final Map<Integer, Set<String>> RETIRED = Map.of(
+            3, Set.of("network", "access", "electricitySource", "associatedInfrastructure", "metering",
+                    "vehicleCount", "chargerCount"),
+            4, Set.of("evidenceStatus", "rightsStatus", "rightsJustification", "investmentCommitted",
+                    "carbonConsideredBeforeInvestment"));
+
+    static boolean retired(int step, String key) {
+        return RETIRED.getOrDefault(step, Set.of()).contains(key);
     }
 
     private static final String UNKNOWN = "DESCONHECIDO";

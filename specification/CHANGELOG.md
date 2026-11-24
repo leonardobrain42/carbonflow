@@ -1,4 +1,6 @@
 # Changelog da especificação viva
+## 0.3.0-rc.20 — 24/11/2026 (proposta)
+- D16 fatia 6a: campos que saem da triagem copiados sem alteração ao salvar a etapa; diagnóstico `REG-E2 / CF-IMP-010 v3` lê a declaração de Acesso à rede quando existe e marca como "a confirmar na preparação técnica" o que não foi confirmado, sem chamar o recorte de compatível. Sem migração; revisões, D15 e guardas de versão inalterados.
 ## 0.3.0-rc.19 — 24/11/2026 (proposta)
 - UX (fatia 6 do backlog): desenho proposto para D16 (triagem como hipótese inicial), com inventário de consumidores, regra de cópia das respostas antigas e perguntas Q1–Q7. Só documentação; nenhum comportamento alterado.
 ## 0.3.0-rc.18 — 24/11/2026 (proposta)

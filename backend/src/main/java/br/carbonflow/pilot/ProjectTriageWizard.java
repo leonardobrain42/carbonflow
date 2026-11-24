@@ -90,10 +90,13 @@ class ProjectTriageWizard {
             PilotCommands.requireVersion(expected, previous.version());
             ObjectNode answers = previous.answers().deepCopy();
             validateJourneyStep(step, normalized, answers);
+            if (ProjectJourney.profile(answers) == ProjectJourney.VM0038) {
+                carryRetired(step, previous.answers().path(Integer.toString(step)), normalized);
+            }
             answers.set(Integer.toString(step), normalized);
             Snapshot next = new Snapshot(expected + 1, destination, answers);
             saveRevision(connection, actor, next);
-            JsonNode response = mapper.valueToTree(view(actor, next));
+            JsonNode response = mapper.valueToTree(view(connection, actor, next));
             remember(connection, actor, key, "SAVE_STEP", digest, response);
             return response;
         });
@@ -115,7 +118,7 @@ class ProjectTriageWizard {
             PilotCommands.requireVersion(expected, previous.version());
             Snapshot next = new Snapshot(expected + 1, destination, previous.answers().deepCopy());
             saveRevision(connection, actor, next);
-            JsonNode response = mapper.valueToTree(view(actor, next));
+            JsonNode response = mapper.valueToTree(view(connection, actor, next));
             remember(connection, actor, key, "MOVE_CURSOR", digest, response);
             return response;
         });
@@ -153,7 +156,7 @@ class ProjectTriageWizard {
             answers.put("_example", "25_BEV_BRASILIA_DF_2027_09_27");
             Snapshot next = new Snapshot(expected + 1, 5, answers);
             saveRevision(connection, actor, next);
-            JsonNode response = mapper.valueToTree(view(actor, next));
+            JsonNode response = mapper.valueToTree(view(connection, actor, next));
             remember(connection, actor, key, "APPLY_EXAMPLE", digest, response);
             return response;
         });
@@ -218,6 +221,16 @@ class ProjectTriageWizard {
         return result;
     }
 
+    /**
+     * D16: a step saved without a retired answer keeps the previous value unchanged, so no answer is lost and
+     * the canonical comparison of D15 does not see a change that nobody made. A value sent explicitly still counts.
+     */
+    static void carryRetired(int step, JsonNode previous, ObjectNode submitted) {
+        for (String key : ProjectJourney.RETIRED.getOrDefault(step, Set.of())) {
+            if (!submitted.has(key) && previous.has(key)) submitted.set(key, previous.get(key).deepCopy());
+        }
+    }
+
     private static Set<String> journeyFields() {
         var result = new java.util.HashSet<String>();
         result.add("notApplicableReason"); // Read and accept the previous generic step's explicit justification.
@@ -250,10 +263,12 @@ class ProjectTriageWizard {
         });
     }
 
-    private View view(DynamicProjectScope.Context context, Snapshot snapshot) {
+    private View view(Connection connection, DynamicProjectScope.Context context, Snapshot snapshot) throws SQLException {
         List<StepSummary> stages = new ArrayList<>();
         List<String> pending = new ArrayList<>();
         var answers = snapshot.answers();
+        // Diagnosis reads the technical declaration where it exists; stored answers are returned unchanged.
+        var effective = ProjectTriageTechnicalScope.effective(connection, context.id(), answers, mapper);
         var journey = ProjectJourney.profile(answers);
         for (int i = 1; i <= 4; i++) {
             JsonNode step = answers.path(Integer.toString(i));
@@ -285,17 +300,17 @@ class ProjectTriageWizard {
             stages.add(new StepSummary(i, title, state, missing));
         }
         stages.add(new StepSummary(5, TITLES.get(4), "RESUMO_SEM_PARECER", List.of()));
-        var guidance = ProjectJourney.guidance(answers);
+        var guidance = ProjectJourney.guidance(effective);
         return new View(context.id(), context.environment(), snapshot.version(), snapshot.currentStep(),
                 "NAO_AVALIADO", answers.path("_example").asText(null), answers.deepCopy(), List.copyOf(stages),
                 List.copyOf(pending), snapshot.currentStep() == 5
                     ? "Revise as respostas e organize na preparação técnica o que precisa ser comprovado."
                     : "Salve as respostas e deixe em aberto o que ainda precisa confirmar.",
-                journey, ProjectJourney.METHODOLOGIES, guidance, ProjectTriageDiagnosis.evaluate(answers, guidance));
+                journey, ProjectJourney.METHODOLOGIES, guidance, ProjectTriageDiagnosis.evaluate(effective, guidance));
     }
 
     View current(Connection connection, DynamicProjectScope.Context context) throws SQLException {
-        return view(context, latestOrEmpty(connection, context.id()));
+        return view(connection, context, latestOrEmpty(connection, context.id()));
     }
 
     static String savedCandidate(Connection connection, String projectId) throws SQLException {
