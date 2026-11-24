@@ -101,12 +101,13 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
     let irPost=null;
     const plannedMetric={source:'Fonte prevista',responsible:'Equipe técnica',procedure:'Revisar fontes anualmente'};
     const exAnteOption={id:'ex-ante-plan',version:3,sha256:'d'.repeat(64),plan:{evr:plannedMetric,afec:plannedMetric,mpg:plannedMetric,fuel:plannedMetric,rationale:'Plano ex ante para o primeiro ano'}};
+    const actualSource=[{sourceId:'actual-source',edition:'2035',title:'Fonte efetiva sintética',referenceYear:2035}];
     let irRows=[{id:'ir-prior',projectId:irProject,projectYear:1,sourceYear:2035,version:1,
       period:'M1',fleetSelectionId:'fleet-prior',fuelPinId:'fuel-prior',frequency:'ANNUAL',
       basis:'PROJECT_SPECIFIC',rationale:'Referência anual anterior',state:'PENDING_REVIEW',
       assessmentSha256:'a'.repeat(64),candidate:'1',stale:false,usableForE8:false,
       recordedAt:'2035-01-01T00:00:00Z',review:null,annualEvidence:null,exAnteOption,
-      reviewReferences:{fleetSnapshotId:'fleet-snapshot',ratingSnapshotId:'rating-snapshot',fuelCandidateId:'fuel-candidate'}}];
+      reviewReferences:{fleetSnapshotId:'fleet-snapshot',ratingSnapshotId:'rating-snapshot',fuelCandidateId:'fuel-candidate',evr:actualSource,afec:actualSource,mpg:actualSource,fuel:actualSource}}];
     await page.route('**/v1/platform/open-ir-assessments/options',r=>r.fulfill({json:{
       canRecord:true,canReview:true,projects:[{projectId:irProject,title:'Rede aberta'}]}}));
     await page.route('**'+irRoot+'/period-options',r=>r.fulfill({json:[{
