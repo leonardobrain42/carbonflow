@@ -10,7 +10,8 @@ import java.util.List;
 final class OpenPdCalculationNote {
     record Note(String period, String situation, String causeCode, String cause,
                 String beTco2e, String peTco2e, String leTco2e, String erDisplay,
-                boolean usableForE8, boolean marksDocumentReady, String text) {}
+                boolean usableForE8, boolean marksDocumentReady, String text,
+                OpenPdCalculationProvenance.View provenance) {}
 
     private OpenPdCalculationNote() {}
 
@@ -18,10 +19,20 @@ final class OpenPdCalculationNote {
         return new Note("M1", "ABSENT", null, null, null, null, null, null,
             false, false,
             "Nenhuma tentativa de cálculo está nomeada neste documento. "
-                + "Ausência não é zero. O PD não fica pronto.");
+                + "Ausência não é zero. O PD não fica pronto.", null);
+    }
+
+    static Note restricted() {
+        return new Note(null, "RESTRICTED", null, null, null, null, null, null,
+            false, false, "Memória protegida. Esta conta não tem acesso ao cálculo. "
+                + "O PD não fica pronto.", null);
     }
 
     static Note from(OpenE8ProjectRuns.Attempt run) {
+        return from(run, null);
+    }
+
+    static Note from(OpenE8ProjectRuns.Attempt run, OpenPdCalculationProvenance.View provenance) {
         if (run == null) return absent();
         var memory = run.memory();
         if ("REVIEWED_INTERNAL".equals(run.state()) && memory != null
@@ -30,14 +41,14 @@ final class OpenPdCalculationNote {
                 memory.beTco2e(), memory.peTco2e(), memory.leTco2e(), memory.erDisplay(),
                 false, false,
                 "Ensaio interno da memória do servidor. Não é resultado do documento "
-                    + "nem emissão de crédito. O PD não fica pronto.");
+                    + "nem emissão de crédito. O PD não fica pronto.", provenance);
         }
         var cause = cause(run.gates());
         return new Note(run.period(), "BLOCKED",
             cause == null ? null : cause.code(),
             cause == null ? "A tentativa não produziu número." : cause.reason(),
             null, null, null, null, false, false,
-            "O documento nomeia o bloqueio e não escreve zero. O PD não fica pronto.");
+            "O documento nomeia o bloqueio e não escreve zero. O PD não fica pronto.", null);
     }
 
     private static OpenCalculationPreflight.Gate cause(List<OpenCalculationPreflight.Gate> gates) {

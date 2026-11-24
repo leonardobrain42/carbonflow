@@ -55,6 +55,58 @@
           <div><dt>Fuga</dt><dd>{{calculation.leTco2e}} tCO2e</dd></div>
           <div><dt>Redução de emissões</dt><dd>{{calculation.erDisplay}} tCO2e</dd></div>
         </dl>
+        @if (calculation.provenance; as provenance) {
+          <p>Vínculo de leitura: memória → seção Quantificação do PD.
+            Prévia atual; não integra a narrativa salva.</p>
+          <a class="cf-workspace-link" [href]="provenance.memoryHref">Ver memória canônica desta tentativa</a>
+          <details>
+            <summary>Conferir origem, unidades e revisão da memória</summary>
+            <dl>
+              <dt>Método e edição</dt><dd>{{provenance.method}}</dd>
+              <dt>Motor e versão registrados</dt><dd>{{provenance.engine}}</dd>
+              <dt>Revisão do cálculo</dt><dd>Revisão interna do ensaio · {{provenance.reviewStatus}}</dd>
+              <dt>Natureza da memória</dt><dd>Ensaio interno, sem admissão · {{provenance.kernelStatus}}</dd>
+              <dt>Registro da tentativa</dt><dd>{{provenance.recordedAt}}</dd>
+              <dt>Tentativa e versão</dt><dd class="energy-hash">{{provenance.runId}} · v{{provenance.runVersion}}</dd>
+              <dt>SHA-256 do conjunto de entradas</dt><dd class="energy-hash">{{provenance.inputSha256}}</dd>
+            </dl>
+            @if (provenance.timing; as temporal) {
+              <p>Ano civil de referência: {{temporal.sourceYear ?? 'Não registrado'}} ·
+                ano do projeto: {{temporal.projectYear ?? 'Não registrado'}} · America/Sao_Paulo</p>
+              @if (temporal.windowStart) {
+                <p>Janela: {{temporal.windowStart}} até {{temporal.windowEndExclusive}} (fim exclusivo).</p>
+              }
+            } @else {
+              <p>Período/vintage detalhado não registrado nesta memória.</p>
+            }
+            <h5>Origem canônica das entradas</h5>
+            <ul class="cf-tech-gates">
+              @for (source of provenance.inputs; track source.symbol) {
+                <li>
+                  <strong>{{inputTitle(source.symbol)}} · {{source.symbol}}</strong>
+                  <p>{{source.origin}}</p>
+                  @if (source.access === 'PROJECT_METADATA_ONLY') {
+                    <p>Unidade normalizada: {{source.unit || 'Não registrada'}}.
+                      Vintage: {{source.vintageYear ?? 'Consultar janela do período'}}.</p>
+                    <p class="energy-hash">Referência {{source.referenceId}} · v{{source.version}}</p>
+                    @if (source.href) {
+                      <a class="cf-workspace-link" [href]="source.href">Consultar origem de {{source.symbol}}</a>
+                    }
+                  }
+                </li>
+              }
+            </ul>
+            <h5>Referências registradas pelo motor</h5>
+            <ul class="cf-tech-gates">
+              @for (reference of provenance.references; track reference.code) {
+                <li>{{reference.code}} · {{reference.reference}} · {{reference.unit}}</li>
+              } @empty {
+                <li>Esta memória não registrou referências de etapas.</li>
+              }
+            </ul>
+            <p>{{provenance.limits}}</p>
+          </details>
+        }
       } @else if (calculation.causeCode) {
         <p><strong>Bloqueio: {{calculationTitle(calculation.causeCode)}}.</strong> {{calculation.cause}}</p>
       }

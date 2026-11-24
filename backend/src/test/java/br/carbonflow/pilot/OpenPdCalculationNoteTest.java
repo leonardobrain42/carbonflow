@@ -45,6 +45,21 @@ class OpenPdCalculationNoteTest {
         assertFalse(missing.marksDocumentReady());
     }
 
+    @Test
+    void staleAndRestrictedReadsNeverExposeTheMemoryOrItsReferences() {
+        var stale = OpenPdCalculationNote.from(run("STALE", true, memory(false), List.of(
+            OpenE8RunDecision.gate("RUN_REFERENCES", "STALE"))));
+        assertEquals("BLOCKED", stale.situation());
+        assertNull(stale.beTco2e());
+        assertNull(stale.provenance());
+        var restricted = OpenPdCalculationNote.restricted();
+        assertEquals("RESTRICTED", restricted.situation());
+        assertNull(restricted.period());
+        assertNull(restricted.beTco2e());
+        assertNull(restricted.provenance());
+        assertFalse(restricted.marksDocumentReady());
+    }
+
     private static OpenE8RunDecision.Memory memory(boolean usable) {
         return new OpenE8RunDecision.Memory("engine", "PURE_MATH_TEST_ONLY_NOT_ADMITTED", usable,
             "20", "30", "4.05", "1.5", "0", "1", "2.55", "2.55", List.of(), null);
@@ -54,6 +69,7 @@ class OpenPdCalculationNoteTest {
             OpenE8RunDecision.Memory memory, List<OpenCalculationPreflight.Gate> gates) {
         return new OpenE8ProjectRuns.Attempt(UUID.randomUUID(), "project", "M1", 2,
             state, stale, false, "PURE_MATH_TEST_ONLY_NOT_ADMITTED",
-            null, null, "abc", gates, List.of(), memory, OffsetDateTime.parse("2026-11-22T12:00:00Z"), null);
+            null, null, "abc", gates, List.of(), memory, OffsetDateTime.parse("2026-11-22T12:00:00Z"),
+            null);
     }
 }

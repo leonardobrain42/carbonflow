@@ -96,6 +96,7 @@ interface OpenCalculationReadiness {
 })
 export class OpenCalculationReadinessComponent implements OnChanges {
   @Input({required:true}) projectId='';
+  @Input() canViewPd=false;
   private readonly http=inject(HttpClient);
   readonly loading=signal(true);
   readonly error=signal('');

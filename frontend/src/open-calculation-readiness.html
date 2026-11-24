@@ -160,6 +160,15 @@
       <p role="alert" class="cf-workspace-alert">{{runError()}}</p>
     }
     @if (latestRun(); as run) {
+      @if (canViewPd) {
+        <p class="energy-hash">Memória da tentativa {{run.id}} · v{{run.version}} · {{run.period}}.</p>
+        <a class="cf-workspace-link"
+           [href]="'/workspace/projects/' + projectId + '/technical?secao=redigir&guia=quantification'">
+          Consultar vínculo com a seção Quantificação do PD</a>
+        <p>A seção mostra a tentativa mais recente do projeto. Confira o período, o identificador e a versão.
+          É uma prévia de leitura; o documento não fica pronto.</p>
+      }
+
       <dl class="cf-tech-capabilities">
         <div><dt>Situação</dt><dd>{{stateLabel(run.state)}} · v{{run.version}}</dd></div>
         @if (run.timing?.projectYear; as projectYear) {

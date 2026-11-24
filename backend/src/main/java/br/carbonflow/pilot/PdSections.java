@@ -44,7 +44,10 @@ class PdSections {
     List<Section> list(String token, String project) {
         return scopes.read(token, project, "VIEW_DOSSIER", (c, scope) -> {
             var sections = new ArrayList<Section>();
-            OpenPdCalculationNote.Note calculation = OpenPdCalculationNote.from(runs.newest(c, project));
+            var run = scope.actions().contains("VIEW_OPEN_E8_RUN") ? runs.newest(c, project) : null;
+            OpenPdCalculationNote.Note calculation = scope.actions().contains("VIEW_OPEN_E8_RUN")
+                ? OpenPdCalculationNote.from(run, OpenPdCalculationProvenance.read(c, scope, run))
+                : OpenPdCalculationNote.restricted();
             OpenApplicability.Readiness readiness = applicability.readinessOf(c, project);
             OpenE8FleetSelections.View fleet = OpenE8FleetSelections.newest(c, project);
             for (var guide : guides.catalog(c, scope).guides()) {
