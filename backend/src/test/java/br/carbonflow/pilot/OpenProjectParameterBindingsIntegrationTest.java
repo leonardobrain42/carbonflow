@@ -67,6 +67,25 @@ class OpenProjectParameterBindingsIntegrationTest {
                 """, project, ORG, OWNER, "{\"1\":{\"methodologyCandidate\":\"VM0038\"}}");
             return null;
         });
+        // IR cannot be declared as an admitted scalar without a current canonical set.
+        String irPath="/v1/platform/open-ir-assessments/"+project;
+        String irBody="""
+            {"period":"M1","frequency":"ANNUAL","basis":"PROJECT_SPECIFIC",
+             "rationale":"TEST_ONLY annual baseline update declaration"}
+            """;
+        String irRead="/v1/projects/"+project+"/technical/open-ir-assessments/1/2036";
+        assertEquals(404,call("POST",irPath,reviewer,key(),"\"0\"",irBody).statusCode());
+        assertEquals(428,call("POST",irPath,manager,key(),null,irBody).statusCode());
+        assertEquals(409,call("POST",irPath,manager,key(),"\"0\"",irBody).statusCode());
+        assertEquals(404,call("GET",irRead,outsider,null,null,null).statusCode());
+        var irHistory=call("GET",irRead,owner,null,null,null);
+        assertTrue(irHistory.headers().firstValue("Cache-Control").orElse("").contains("no-store"));
+        assertTrue(json(irHistory,200).isEmpty());
+        assertTrue(json(call("GET",irPath+"/1/2036",manager,null,null,null),200).isEmpty());
+        assertEquals(422,call("GET",irPath+"/0/2036",manager,null,null,null).statusCode());
+        assertEquals(0L,database.read(c->first(c,"""
+            SELECT count(*) FROM app_open_ir_assessment WHERE project_id=?
+            """,r->r.getLong(1),project)).longValue());
         // Dy research is a versioned assessment, not another numerical pin.
         String dyPath="/v1/platform/open-dy-assessments/"+project;
         String inconclusive="""
