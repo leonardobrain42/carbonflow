@@ -29,7 +29,8 @@ import jakarta.enterprise.context.ApplicationScoped;
 class OpenIrAssessments {
     record Input(String period, String frequency, String basis, String rationale) {}
     record ReviewInput(String assessmentSha256, String outcome, String annualUpdateBasis,
-                       String evidenceLocator, String reason, UUID priorAssessmentId, InitialPlan initialPlan) {}
+                       String evidenceLocator, String reason, UUID priorAssessmentId, InitialPlan initialPlan,
+                       UUID exAntePlanId, Integer exAntePlanVersion, String exAntePlanSha256) {}
     record InitialPlan(String evr, String afec, String mpg, String fuel) {
         InitialPlan validated() {
             return new InitialPlan(OpenDyAssessmentRules.text(evr,15,2000),
@@ -37,7 +38,11 @@ class OpenIrAssessments {
                 OpenDyAssessmentRules.text(fuel,15,2000));
         }
     }
-    record InitialContext(LocalDate followupOn,String planSha256,InitialPlan plan) {}
+    record PlanLink(UUID id,int version,String sha256) {}
+    record SourceMetadata(String sourceId,String edition,String title,Integer referenceYear) {}
+    record ReviewReferences(UUID fleetSnapshotId,UUID ratingSnapshotId,UUID fuelCandidateId,
+                            List<SourceMetadata> evr,List<SourceMetadata> afec,List<SourceMetadata> mpg,List<SourceMetadata> fuel) {}
+    record InitialContext(LocalDate followupOn,String planSha256,InitialPlan plan,PlanLink exAntePlan) {}
     record Review(UUID reviewerId, String outcome, String assessmentSha256, String ruleReference,
                   String annualUpdateBasis, String evidenceLocator, String reason, OffsetDateTime reviewedAt,
                   InitialContext initialContext) {}
@@ -45,7 +50,8 @@ class OpenIrAssessments {
     record View(UUID id, String projectId, int projectYear, int sourceYear, int version,
                 String period, UUID fleetSelectionId, UUID fuelPinId, String frequency,
                 String basis, String rationale, String state, String assessmentSha256,
-                String candidate, boolean stale, boolean usableForE8, OffsetDateTime recordedAt, Review review, AnnualEvidence annualEvidence) {}
+                String candidate, boolean stale, boolean usableForE8, OffsetDateTime recordedAt, Review review, AnnualEvidence annualEvidence,
+                String initialLinkState, OpenIrExAntePlans.ReviewTarget exAnteOption, ReviewReferences reviewReferences) {}
     record Result(View view, boolean created) {}
     record ProjectOption(String projectId,String title) {}
     record Options(boolean canRecord,boolean canReview,List<ProjectOption> projects) {}
@@ -259,13 +265,20 @@ class OpenIrAssessments {
             String locator,reason;
             boolean initial="INITIAL_BASELINE_CHECKED".equals(input.outcome());
             InitialPlan plan;
+            boolean legacyInitial=initial && input.exAntePlanId()==null && input.exAntePlanVersion()==null && input.exAntePlanSha256()==null;
             try {
                 OpenIrReviewRules.validate(input.outcome(),input.annualUpdateBasis(),row.state(),row.year());
                 if(initial && (input.initialPlan()==null || input.priorAssessmentId()!=null))
                     throw new IllegalArgumentException("Informe os quatro planos de atualização, sem avaliação anterior.");
-                if(!initial && input.initialPlan()!=null)
+                if(initial && !legacyInitial && (input.exAntePlanId()==null || input.exAntePlanVersion()==null || input.exAntePlanSha256()==null))
+                    throw new IllegalArgumentException("Selecione a versão e o hash do plano ex ante vigente.");
+                if(!initial && (input.initialPlan()!=null || input.exAntePlanId()!=null || input.exAntePlanVersion()!=null || input.exAntePlanSha256()!=null))
                     throw new IllegalArgumentException("Plano inicial reservado ao parecer de primeiro ano.");
                 plan=initial?input.initialPlan().validated():null;
+                if(initial && !legacyInitial) {
+                    OpenIrHandoffRules.note(plan.evr()); OpenIrHandoffRules.note(plan.afec());
+                    OpenIrHandoffRules.note(plan.mpg()); OpenIrHandoffRules.note(plan.fuel());
+                }
                 locator=OpenDyAssessmentRules.text(input.evidenceLocator(),3,2000);
                 reason=OpenDyAssessmentRules.text(input.reason(),15,2500);
             } catch(IllegalArgumentException e) { throw invalid(e.getMessage()); }
@@ -273,7 +286,9 @@ class OpenIrAssessments {
                 input.outcome(),input.annualUpdateBasis(),locator,reason);
             if(input.priorAssessmentId()!=null)
                 fingerprint=digest("OPEN-IR-REVIEW-ANNUAL@1",fingerprint,input.priorAssessmentId());
-            if(plan!=null) fingerprint=digest("OPEN-IR-INITIAL-PLAN@1",fingerprint,plan.evr(),plan.afec(),plan.mpg(),plan.fuel());
+            if(legacyInitial) fingerprint=digest("OPEN-IR-INITIAL-PLAN@1",fingerprint,plan.evr(),plan.afec(),plan.mpg(),plan.fuel());
+            else if(plan!=null) fingerprint=digest("OPEN-IR-INITIAL-HANDOFF@1",fingerprint,plan.evr(),plan.afec(),plan.mpg(),plan.fuel(),
+                input.exAntePlanId(),input.exAntePlanVersion(),input.exAntePlanSha256());
             Object[] replay=first(c,"""
                 SELECT assessment_id,encode(command_sha256,'hex') FROM app_open_ir_review
                 WHERE reviewer_id=? AND command_key=?
@@ -283,6 +298,7 @@ class OpenIrAssessments {
                     throw conflict("Esta chave já identifica outro parecer.");
                 return new Result(view(c,row,true),false);
             }
+            if(legacyInitial) throw invalid("Selecione a versão e o hash do plano ex ante vigente.");
             Integer latest=first(c,"""
                 SELECT max(version) FROM app_open_ir_assessment
                 WHERE project_id=? AND project_year=? AND source_year=?
@@ -303,26 +319,37 @@ class OpenIrAssessments {
             } else if(input.priorAssessmentId()!=null) {
                 throw invalid("Vínculo de atualização observada é reservado à checagem interna.");
             }
+            OpenIrExAntePlans.ReviewTarget target=null;
             LocalDate followup=null;
             String planSha=null;
             if(initial) {
+                target=OpenIrExAntePlans.currentReviewTarget(c,project);
+                if(target==null || !target.id().equals(input.exAntePlanId()) || target.version()!=input.exAntePlanVersion()
+                    || !target.sha256().equals(input.exAntePlanSha256()))
+                    throw conflict("Plano ex ante ausente, obsoleto ou alterado. Reconfirme a versão vigente.");
+                if(actor.id().equals(target.author())) throw hidden();
+                if(reviewReferences(c,row)==null) throw conflict("Referências efetivas indisponíveis.");
                 var calendar=OpenE8Timing.calendar(c,project,2);
                 if(calendar.gate()!=null || calendar.window()==null)
                     throw conflict("Calendário inicial precisa de rechecagem.");
                 followup=calendar.window().from().atZoneSameInstant(VintageWindows.ZONE).toLocalDate();
-                planSha=digest("OPEN-IR-INITIAL-CONTEXT@1",row.sha(),row.timingSha(),followup,
+                planSha=digest("OPEN-IR-INITIAL-CONTEXT@2",row.sha(),row.timingSha(),followup,
+                    target.id(),target.version(),target.sha256(),
                     plan.evr(),plan.afec(),plan.mpg(),plan.fuel(),actor.id(),fingerprint);
             }
             update(c,"""
                 INSERT INTO app_open_ir_review
                 (assessment_id,assessment_sha256,author_id,reviewer_id,outcome,rule_reference,
                  annual_update_basis,evidence_locator,reason,command_key,command_sha256,
-                 initial_evr_plan,initial_afec_plan,initial_mpg_plan,initial_fuel_plan,initial_followup_on,initial_plan_sha256)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                 initial_evr_plan,initial_afec_plan,initial_mpg_plan,initial_fuel_plan,initial_followup_on,initial_plan_sha256,
+                 ex_ante_project_id,ex_ante_plan_id,ex_ante_plan_version,ex_ante_plan_sha256,ex_ante_plan_author)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 """,assessment,bytes(row.sha()),author,actor.id(),input.outcome(),
                 OpenIrAssessment.RULE_REFERENCE,input.annualUpdateBasis(),locator,reason,
                 command,bytes(fingerprint),plan==null?null:plan.evr(),plan==null?null:plan.afec(),
-                plan==null?null:plan.mpg(),plan==null?null:plan.fuel(),followup,bytes(planSha));
+                plan==null?null:plan.mpg(),plan==null?null:plan.fuel(),followup,bytes(planSha),
+                target==null?null:project,target==null?null:target.id(),target==null?null:target.version(),
+                target==null?null:bytes(target.sha256()),target==null?null:target.author());
             if(proof!=null) {
                 var prior=proof.previous();
                 update(c,"""
@@ -332,7 +359,7 @@ class OpenIrAssessments {
                      evidence_sha256,policy)
                     VALUES (?,?,?,?,?,?,?,?,?,?,?)
                     """,row.id(),prior.id(),project,row.year(),row.sourceYear(),prior.projectYear(),
-                    prior.sourceYear(),bytes(row.sha()),bytes(prior.assessmentSha()),bytes(proof.digest()),
+                    prior.sourceYear(),bytes(row.sha()),bytes(prior.assessmentSha()),bytes(annualDigest(c,proof)), 
                     OpenIrAnnualEvidence.POLICY);
             }
             return new Result(view(c,row,true),true);
@@ -343,13 +370,15 @@ class OpenIrAssessments {
         return first(c,"""
             SELECT reviewer_id,outcome,encode(assessment_sha256,'hex'),rule_reference,
                 annual_update_basis,evidence_locator,reason,reviewed_at,initial_followup_on,
-                encode(initial_plan_sha256,'hex'),initial_evr_plan,initial_afec_plan,initial_mpg_plan,initial_fuel_plan
+                encode(initial_plan_sha256,'hex'),initial_evr_plan,initial_afec_plan,initial_mpg_plan,initial_fuel_plan,
+                ex_ante_plan_id,ex_ante_plan_version,encode(ex_ante_plan_sha256,'hex')
             FROM app_open_ir_review WHERE assessment_id=?
             """,r->new Review(staff?r.getObject(1,UUID.class):null,r.getString(2),r.getString(3),
                 r.getString(4),r.getString(5),staff?r.getString(6):null,staff?r.getString(7):null,
                 r.getObject(8,OffsetDateTime.class),r.getString(10)==null?null:
                     new InitialContext(r.getObject(9,LocalDate.class),r.getString(10),staff?
-                        new InitialPlan(r.getString(11),r.getString(12),r.getString(13),r.getString(14)):null)),id);
+                        new InitialPlan(r.getString(11),r.getString(12),r.getString(13),r.getString(14)):null,
+                        r.getObject(15,UUID.class)==null?null:new PlanLink(r.getObject(15,UUID.class),r.getInt(16),r.getString(17)))),id);
     }
 
     private static List<View> historyRows(Connection c,String project,int year,int sourceYear,boolean staff)
@@ -433,6 +462,8 @@ class OpenIrAssessments {
             r->r.getObject(1,UUID.class),row.id());
         String reviewSha=first(c,"SELECT encode(command_sha256,'hex') FROM app_open_ir_review WHERE assessment_id=?",
             r->r.getString(1),row.id());
+        String linkState=initialLinkState(c,row,review);
+        if(linkState!=null) reviewSha=digest("OPEN-IR-INITIAL-LINK-STATE@1",reviewSha,linkState);
         return OpenE8IrContext.of(project,period,year,source,row.id(),row.version(),row.sha(),state,
             reviewSha,annual==null?null:annual.evidenceSha256(),author,review==null?null:review.reviewerId());
     }
@@ -451,8 +482,9 @@ class OpenIrAssessments {
 
     private static OpenIrAnnualEvidence.Snapshot annualSnapshot(Connection c,Stored row) throws SQLException {
         Review opinion=readReview(c,row.id(),false);
-        boolean current=!stale(c,row) && (opinion==null || "CHECKED_INTERNAL".equals(opinion.outcome())
-            || (row.year()==1 && "INITIAL_BASELINE_CHECKED".equals(opinion.outcome()) && opinion.initialContext()!=null));
+        boolean current=!stale(c,row) && (row.year()==1
+            ? "LINKED_CURRENT".equals(initialLinkState(c,row,opinion))
+            : (opinion==null || "CHECKED_INTERNAL".equals(opinion.outcome())));
         return first(c,"""
             SELECT f.fleet_snapshot_id,f.rating_snapshot_id,b.candidate_id,f.cycle
             FROM app_open_e8_fleet_selection f
@@ -477,7 +509,7 @@ class OpenIrAssessments {
             row.project(),pin.priorAssessmentId());
         try {
             if(prior!=null && pin.evidenceSha256().equals(
-                OpenIrAnnualEvidence.capture(annualSnapshot(c,prior),annualSnapshot(c,row)).digest()))
+                annualDigest(c,OpenIrAnnualEvidence.capture(annualSnapshot(c,prior),annualSnapshot(c,row)))))
                 return pin;
         } catch(IllegalArgumentException e) { /* immutable historical proof requires recheck */ }
         return new AnnualEvidence(pin.priorAssessmentId(),pin.evidenceSha256(),
@@ -489,13 +521,79 @@ class OpenIrAssessments {
         Review review=readReview(c,row.id(),staff);
         AnnualEvidence annual=annualEvidence(c,row,review);
         boolean evidenceMissing=annual!=null && !"CONSECUTIVE_REFERENCES_NOT_ADMITTED".equals(annual.state());
-        String state=stale?"STALE_NOT_ADMITTED":evidenceMissing?"ANNUAL_EVIDENCE_RECHECK_REQUIRED":
+        String linkState=initialLinkState(c,row,review);
+        boolean linkStale="LEGACY_LINK_MISSING".equals(linkState)||"LINK_STALE".equals(linkState);
+        String state=stale?"STALE_NOT_ADMITTED":linkStale?"INITIAL_LINK_RECHECK_REQUIRED":evidenceMissing?"ANNUAL_EVIDENCE_RECHECK_REQUIRED":
             review==null?row.state():review.outcome()+"_NOT_ADMITTED";
         return new View(row.id(),row.project(),row.year(),row.sourceYear(),row.version(),row.period(),
             row.fleet(),row.fuel(),row.frequency(),row.basis(),staff?row.rationale():null,
-            state,row.sha(),stale || evidenceMissing || (review!=null && !"CHECKED_INTERNAL".equals(review.outcome()))?
-                null:row.candidate(),stale || (annual!=null && "STALE_EVIDENCE_NOT_ADMITTED".equals(annual.state())),
-            false,row.at(),review,annual);
+            state,row.sha(),stale || linkStale || evidenceMissing || (review!=null && !"CHECKED_INTERNAL".equals(review.outcome()))?
+                null:row.candidate(),stale || linkStale || (annual!=null && "STALE_EVIDENCE_NOT_ADMITTED".equals(annual.state())),
+            false,row.at(),review,annual,linkState,
+            staff&&row.year()==1&&review==null&&!stale?OpenIrExAntePlans.currentReviewTarget(c,row.project()):null,
+            staff&&row.year()==1&&!stale?reviewReferences(c,row):null);
+    }
+
+    private static ReviewReferences reviewReferences(Connection c,Stored row)throws SQLException {
+        UUID[] ids=first(c,"""
+            SELECT f.fleet_snapshot_id,f.rating_snapshot_id,b.candidate_id
+            FROM app_open_e8_fleet_selection f
+            JOIN app_open_project_parameter_binding b ON b.project_id=f.project_id
+            WHERE f.project_id=? AND f.id=? AND b.id=? AND b.parameter_kind='EF_FUEL'
+              AND f.fleet_snapshot_id IS NOT NULL AND f.rating_snapshot_id IS NOT NULL AND b.candidate_id IS NOT NULL
+            """,r->new UUID[]{r.getObject(1,UUID.class),r.getObject(2,UUID.class),r.getObject(3,UUID.class)},
+            row.project(),row.fleet(),row.fuel());
+        if(ids==null)return null;
+        var evr=query(c,"""
+            SELECT s.source_id,s.edition,s.title,s.reference_year
+            FROM app_fleet_composition_snapshot f JOIN app_fleet_ingestion i ON i.id=f.ingestion_id
+            JOIN app_platform_source_object o ON o.id=i.source_object_id
+            JOIN app_platform_source_submission s ON s.id=o.submission_id WHERE f.id=?
+            """,OpenIrAssessments::sourceMetadata,ids[0]);
+        var afec=ratingSources(c,ids[1],true);
+        var mpg=ratingSources(c,ids[1],false);
+        var fuel=query(c,"""
+            SELECT s.source_id,s.edition,s.title,s.reference_year
+            FROM app_open_parameter_candidate p JOIN app_platform_source_object o ON o.id=p.source_object_id
+            JOIN app_platform_source_submission s ON s.id=o.submission_id WHERE p.id=?
+            """,OpenIrAssessments::sourceMetadata,ids[2]);
+        if(evr.isEmpty()||afec.isEmpty()||mpg.isEmpty()||fuel.isEmpty())return null;
+        return new ReviewReferences(ids[0],ids[1],ids[2],evr,afec,mpg,fuel);
+    }
+
+    private static List<SourceMetadata> ratingSources(Connection c,UUID snapshot,boolean bev)throws SQLException {
+        return query(c,"""
+            SELECT DISTINCT s.source_id,s.edition,s.title,s.reference_year
+            FROM app_vehicle_rating_snapshot_line l JOIN app_vehicle_comparable_pair p ON p.id=l.pair_id
+            JOIN app_vehicle_rating r ON r.id=CASE WHEN ? THEN p.bev_rating_id ELSE p.fossil_rating_id END
+            JOIN app_platform_source_object o ON o.id=r.source_object_id
+            JOIN app_platform_source_submission s ON s.id=o.submission_id
+            WHERE l.snapshot_id=? ORDER BY s.source_id,s.edition,s.title,s.reference_year
+            """,OpenIrAssessments::sourceMetadata,bev,snapshot);
+    }
+
+    private static SourceMetadata sourceMetadata(ResultSet r)throws SQLException {
+        return new SourceMetadata(r.getString(1),r.getString(2),r.getString(3),r.getObject(4,Integer.class));
+    }
+
+    private static String initialLinkState(Connection c,Stored row,Review review)throws SQLException {
+        if(row.year()!=1 || review==null || !"INITIAL_BASELINE_CHECKED".equals(review.outcome()))return null;
+        var link=review.initialContext()==null?null:review.initialContext().exAntePlan();
+        if(link==null)return "LEGACY_LINK_MISSING";
+        var current=OpenIrExAntePlans.currentReviewTarget(c,row.project());
+        return current!=null && current.id().equals(link.id()) && current.version()==link.version()
+            && current.sha256().equals(link.sha256())?"LINKED_CURRENT":"LINK_STALE";
+    }
+
+    private static String annualDigest(Connection c,OpenIrAnnualEvidence.Proof proof)throws SQLException {
+        if(proof.previous().projectYear()!=1)return proof.digest();
+        var opinion=readReview(c,proof.previous().id(),false);
+        if(opinion==null || opinion.initialContext()==null || opinion.initialContext().exAntePlan()==null)
+            throw invalid("Parecer inicial sem plano ex ante vinculado.");
+        var initial=opinion.initialContext();
+        var link=initial.exAntePlan();
+        return digest("OPEN-IR-ANNUAL-INITIAL-LINK@1",proof.digest(),initial.planSha256(),
+            link.id(),link.version(),link.sha256());
     }
 
     static String digest(Object... parts) {
