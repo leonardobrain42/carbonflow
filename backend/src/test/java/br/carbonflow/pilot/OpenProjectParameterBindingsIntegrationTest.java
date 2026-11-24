@@ -521,6 +521,19 @@ class OpenProjectParameterBindingsIntegrationTest {
         assertEquals(one,historicIr);
         assertEquals(2,revised.path("version").asInt());
         assertEquals("0.8",revised.path("declaredValue").asText());
+        JsonNode later=json(call("POST",pins,manager,key(),"\"0\"",
+            pin(project,"IR",null,"0.9").replace("\"vintageYear\":2036","\"vintageYear\":2037")),201);
+        var selectedIr=database.read(c->OpenE8ProjectRuns.sourcePinReference(c,project,"IR",2036));
+        assertEquals(revised.path("id").asText(),selectedIr.id().toString());
+        assertEquals(2,selectedIr.version());
+        assertEquals(revised.path("bindingSha256").asText(),selectedIr.sha256());
+        assertEquals("NOT_ADMITTED",selectedIr.state());
+        assertEquals(later.path("id").asText(),database.read(c->OpenE8ProjectRuns.sourcePinReference(c,project,"IR",2037)).id().toString());
+        assertEquals("MISSING_FOR_SOURCE_YEAR",database.read(c->OpenE8ProjectRuns.sourcePinReference(c,project,"IR",2035)).state());
+        assertNull(database.read(c->OpenE8ProjectRuns.sourcePinReference(c,project,"IR",null)).id());
+        assertEquals("REVIEW_REQUIRED",database.read(c->OpenE8ProjectRuns.sourcePinReference(c,project,"DY",2036)).state());
+        assertEquals("NOT_ADMITTED",database.read(c->OpenE8ProjectRuns.sourcePinReference(c,project,"EF_FUEL",2036)).state());
+
         // Losing derivative rights does not expose the licensed factor through detail.
         UUID license=database.read(c->first(c,"SELECT source_license_id FROM app_open_parameter_candidate WHERE id=?",
             row->row.getObject(1,UUID.class),UUID.fromString(fuel)));
@@ -534,6 +547,9 @@ class OpenProjectParameterBindingsIntegrationTest {
         assertEquals(fuelPin.path("version"),expired.path("version"));
         assertTrue(expired.path("declaredValue").isNull());
         assertFalse(expired.toString().contains("0.007570823568"));
+        var expiredSelection=database.read(c->OpenE8ProjectRuns.sourcePinReference(c,project,"EF_FUEL",2036));
+        assertEquals("STALE",expiredSelection.state());
+        assertEquals(fuelPin.path("id").asText(),expiredSelection.id().toString());
         database.transaction(c->{
             update(c,"UPDATE app_content_license SET ends_at=statement_timestamp()+interval '1 hour' WHERE id=?",license);
             return null;
