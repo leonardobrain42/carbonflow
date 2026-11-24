@@ -15,6 +15,7 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
     let secondPeriodMatch = null;
     let showRehearsal = false;
     let viewPd = false;
+    let invalidSelection=false;
     const annualYears = [];
     const rehearsal = {
       id:'30000000-0000-4000-8000-000000000098',
@@ -113,6 +114,23 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
     await page.route('**/v1/projects/*/technical/open-monitoring/dossiers', route => route.fulfill({json:[
       {reference:{code:'M1'}}, {reference:{code:'M2'}},
     ]}));
+    const reference=(code,basis,id=null,state='MISSING')=>({code,basis,id,
+      version:id?2:null,sha256:id?'c'.repeat(64):null,state});
+    const selection=(period)=>({
+      policyVersion:'OPEN-E8-INPUT-SELECTION@1',projectId:project,
+      period:invalidSelection?'WRONG':period,usableForE8:false,canIssueVcu:false,
+      timing:period==='M1'?{windowStart:null,windowEndExclusive:null,projectYear:null,sourceYear:null}:
+        {windowStart:'2029-02-01T00:00:00Z',windowEndExclusive:'2029-02-01T02:00:00Z',projectYear:2,sourceYear:2029},
+      timingGate:period==='M1'?'RUN_WINDOW_MISSING':null,
+      inputs:[
+        reference('ED_EC_EFEL','HOURLY_PERIOD_BINDING'),
+        reference('EVR_RATINGS','FLEET_PERIOD_SELECTION'),
+        reference('EF_FUEL','SOURCE_YEAR_PIN',null,period==='M1'?'TIMING_UNRESOLVED':'MISSING_FOR_SOURCE_YEAR'),
+        reference('IR','SOURCE_YEAR_PIN',period==='M1'?null:'30000000-0000-4000-8000-000000000099',
+          period==='M1'?'TIMING_UNRESOLVED':'NOT_ADMITTED'),
+        reference('DY','LEGACY_SOURCE_YEAR_PIN',null,period==='M1'?'TIMING_UNRESOLVED':'MISSING_FOR_SOURCE_YEAR')
+      ]
+    });
     const secondPeriod = {
       ...blocked, period:'M2', version:4, gates:[],
       timing:{projectYear:2, sourceYear:2029},
@@ -122,7 +140,7 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
         secondPeriodMatch = route.request().headers()['if-match'];
         await route.fulfill({status:201, json:{...secondPeriod, version:5}});
       } else {
-        await route.fulfill({json:{projectId:project, period:'M2', canRecord:true, runs:[secondPeriod]}});
+        await route.fulfill({json:{projectId:project, period:'M2', canRecord:true, runs:[secondPeriod],currentSelection:selection('M2')}});
       }
     });
     await page.route('**/v1/projects/*/technical/open-monitoring/dossiers/M1/e8-runs', async route => {
@@ -136,7 +154,7 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
       } else {
         await route.fulfill({json:{
           projectId:project, period:'M1', canRecord:true,
-          runs:showRehearsal ? [rehearsal] : [],
+          runs:showRehearsal ? [rehearsal] : [],currentSelection:selection('M1'),
         }});
       }
     });
@@ -168,6 +186,10 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
     await page.getByText('Energia entregue', {exact:true}).first().waitFor();
     await page.getByText('Referência: ED', {exact:true}).first().waitFor();
     await page.getByText('Nenhuma tentativa registrada neste período.').waitFor();
+    const selectedInputs=page.getByRole('region',{name:'Seleção contextual de entradas'});
+    await selectedInputs.getByText('Calendário não resolvido: RUN_WINDOW_MISSING.',{exact:false}).waitFor();
+    await selectedInputs.getByRole('rowheader',{name:'Dy — pino escalar legado'}).waitFor();
+    assert.equal(await selectedInputs.getByText('Versão 2',{exact:true}).count(),0);
     await page.getByRole('button', {name:'Registrar tentativa de cálculo'}).click();
     await page.getByText('Falta Melhoria tecnológica.').waitFor();
     await page.getByText('Bloqueado · v1').waitFor();
@@ -244,6 +266,9 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
     await page.getByRole('heading', {name:'Última tentativa de cálculo · M2'}).waitFor();
     await page.getByText('Bloqueado · v4').waitFor();
     await page.getByText('2029', {exact:true}).waitFor();
+    await selectedInputs.getByText('Ano relativo do projeto: 2 · Ano das fontes: 2029.',{exact:true}).waitFor();
+    await selectedInputs.getByText('Versão 2',{exact:true}).click();
+    await selectedInputs.getByText('30000000-0000-4000-8000-000000000099',{exact:true}).waitFor();
     assert.equal(await page.getByRole('heading', {name:'Memória do ensaio interno · M1'}).count(), 0);
     await page.getByRole('button', {name:'Registrar tentativa de cálculo'}).click();
     await page.getByText('Bloqueado · v5').waitFor();
@@ -254,6 +279,13 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
     assert.equal(await period.inputValue(), 'M2');
     await period.selectOption('M1');
     await page.getByRole('heading', {name:'Memória do ensaio interno · M1'}).waitFor();
+    await selectedInputs.getByText('Calendário não resolvido: RUN_WINDOW_MISSING.',{exact:false}).waitFor();
+    assert.equal(await selectedInputs.getByText('30000000-0000-4000-8000-000000000099',{exact:true}).count(),0);
+    invalidSelection=true;
+    await page.getByRole('button',{name:'Atualizar diagnóstico'}).click();
+    await page.getByRole('alert').filter({hasText:'Não foi possível consultar a última tentativa.'}).waitFor();
+    await selectedInputs.getByText('Seleção contextual indisponível;', {exact:false}).waitFor();
+    assert.equal(await page.getByRole('button',{name:'Registrar tentativa de cálculo'}).count(),0);
   } finally {
     await browser.close();
   }

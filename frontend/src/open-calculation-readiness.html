@@ -101,7 +101,7 @@
       }
     </ol>
     <h4>Pinos de fator, IR e Dy</h4>
-    <p>Um pino guarda a referência do fator ou o valor declarado de IR e Dy.
+    <p>Este é o catálogo geral dos pinos do projeto, não a seleção do período. Um pino guarda a referência do fator ou o valor declarado de IR e Dy.
       Ausência continua sem linha. Zero e 1 só aparecem quando foram digitados
       com regra e prova. Nenhum destes estados libera o cálculo.</p>
     @if (pins().length) {
@@ -152,6 +152,49 @@
         }
       </select>
     }
+    <section aria-label="Seleção contextual de entradas" class="cf-journey-context">
+      <h5>Seleção contextual de entradas · {{runPeriod()}}</h5>
+      <p>Referências padrão na última consulta, não a memória congelada da tentativa abaixo.
+        O servidor reavalia a seleção ao registrar uma tentativa; o diagnóstico não constitui admissão.</p>
+      @if (currentSelection(); as report) {
+        @if (report.timingGate) {
+          <p>Calendário não resolvido: {{report.timingGate}}. Não há seleção por ano de fonte.</p>
+        } @else {
+          <p>Ano relativo do projeto: {{report.timing.projectYear}} · Ano das fontes: {{report.timing.sourceYear}}.</p>
+        }
+        @if (report.timing.windowStart && report.timing.windowEndExclusive) {
+          <p>Janela: {{report.timing.windowStart}} até {{report.timing.windowEndExclusive}} (fim exclusivo).</p>
+        }
+        <div class="table-scroll" tabindex="0" aria-label="Referências de entrada do período">
+          <table>
+            <caption>Entradas consideradas na seleção padrão</caption>
+            <thead><tr><th scope="col">Entrada</th><th scope="col">Situação</th><th scope="col">Referência e versão</th></tr></thead>
+            <tbody>
+              @for (input of report.inputs; track input.code) {
+                <tr>
+                  <th scope="row">{{selectionLabel(input.code)}}</th>
+                  <td>{{stateLabel(input.state)}}</td>
+                  <td>
+                    @if (input.id) {
+                      <details>
+                        <summary>Versão {{input.version}}</summary>
+                        <p class="energy-hash">{{input.id}}</p>
+                        <p class="energy-hash">SHA-256: {{input.sha256}}</p>
+                      </details>
+                    } @else { Sem referência selecionada }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <p>EFel vem do pacote horário, não do pino anual. O Dy escalar legado é distinto
+          da avaliação estruturada por ano do projeto. Nenhum valor licenciado é exibido
+          por esta seleção. Não há admissão E8 nem emissão de créditos.</p>
+      } @else {
+        <p>Seleção contextual indisponível; não presuma parâmetros a partir dos pinos gerais.</p>
+      }
+    </section>
     <p>Registrar a tentativa grava o diagnóstico deste período.
       Nenhum número é enviado pelo navegador. Com o conjunto incompleto, BE, PE, LE e ER
       permanecem sem cálculo. Outro ator, que não seja o autor dos vínculos, pode registrar

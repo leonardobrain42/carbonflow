@@ -65,10 +65,19 @@ interface CalculationRun {
   timing?:{windowStart:string|null;windowEndExclusive:string|null;
     projectYear:number|null;sourceYear:number|null}|null;
 }
+interface InputReference {
+  code:string; basis:string; id:string|null; version:number|null; sha256:string|null; state:string;
+}
+interface CurrentSelection {
+  policyVersion:string;projectId:string;period:string;
+  timing:{windowStart:string|null;windowEndExclusive:string|null;projectYear:number|null;sourceYear:number|null};
+  timingGate:string|null;inputs:InputReference[];usableForE8:boolean;canIssueVcu:boolean;
+}
 interface RunListing {
   period:string;
   canRecord:boolean;
   runs:CalculationRun[];
+  currentSelection?:CurrentSelection;
 }
 interface OpenCalculationReadiness {
   projectId:string;
@@ -107,6 +116,7 @@ export class OpenCalculationReadinessComponent implements OnChanges {
   readonly runLoading=signal(false);
   readonly canRecord=signal(false);
   readonly latestRun=signal<CalculationRun|null>(null);
+  readonly currentSelection=signal<CurrentSelection|null>(null);
   readonly recording=signal(false);
   readonly runError=signal('');
   private requestId=0;
@@ -120,6 +130,7 @@ export class OpenCalculationReadinessComponent implements OnChanges {
       this.runPeriod.set('M1');
       this.runPeriods.set([]);
       this.latestRun.set(null);
+      this.currentSelection.set(null);
       this.canRecord.set(false);
       this.recording.set(false);
       void this.load();
@@ -171,12 +182,16 @@ export class OpenCalculationReadinessComponent implements OnChanges {
     this.runPeriod.set(period);
     this.runLoading.set(true);
     this.latestRun.set(null);
+    this.currentSelection.set(null);
     this.canRecord.set(false);
     this.runError.set('');
     try {
       const listing=await firstValueFrom(this.http.get<RunListing>(this.runUrl(project,period)));
       if(project!==this.projectId || current!==this.runRequestId)return;
       if(listing.period!==period)throw new Error('Inconsistent period');
+      if(listing.currentSelection!==undefined &&
+        !this.selectionMatches(listing.currentSelection,project,period))throw new Error('Inconsistent selection');
+      this.currentSelection.set(listing.currentSelection??null);
       this.canRecord.set(listing.canRecord);
       this.latestRun.set(listing.runs[0]??null);
     } catch (problem) {
@@ -186,6 +201,34 @@ export class OpenCalculationReadinessComponent implements OnChanges {
     } finally {
       if(current===this.runRequestId)this.runLoading.set(false);
     }
+  }
+
+  private selectionMatches(report:CurrentSelection,project:string,period:string){
+    if(!report||report.policyVersion!=='OPEN-E8-INPUT-SELECTION@1'||report.projectId!==project
+      ||report.period!==period||report.usableForE8!==false||report.canIssueVcu!==false||!report.timing
+      ||!Array.isArray(report.inputs))return false;
+    const t=report.timing;
+    const resolved=Number.isInteger(t.projectYear)&&Number(t.projectYear)>=1&&Number(t.projectYear)<=100
+      &&Number.isInteger(t.sourceYear)&&Number(t.sourceYear)>=1;
+    if(report.timingGate===null?!resolved||!t.windowStart||!t.windowEndExclusive:
+      typeof report.timingGate!=='string'||!report.timingGate||t.projectYear!==null||t.sourceYear!==null)return false;
+    const expected=[['ED_EC_EFEL','HOURLY_PERIOD_BINDING'],['EVR_RATINGS','FLEET_PERIOD_SELECTION'],
+      ['EF_FUEL','SOURCE_YEAR_PIN'],['IR','SOURCE_YEAR_PIN'],['DY','LEGACY_SOURCE_YEAR_PIN']];
+    return report.inputs.length===expected.length&&report.inputs.every((ref,i)=>{
+      if(!ref||ref.code!==expected[i][0]||ref.basis!==expected[i][1]
+        ||!['MISSING','MISSING_FOR_SOURCE_YEAR','TIMING_UNRESOLVED','STALE','REVIEW_REQUIRED','NOT_ADMITTED'].includes(ref.state))return false;
+      if(i>=2&&!resolved&&(ref.id!==null||ref.state!=='TIMING_UNRESOLVED'))return false;
+      if(ref.id===null)return ref.version===null&&ref.sha256===null&&
+        ['MISSING','MISSING_FOR_SOURCE_YEAR','TIMING_UNRESOLVED'].includes(ref.state);
+      return typeof ref.id==='string'&&/^[0-9a-f-]{36}$/i.test(ref.id)&&Number.isInteger(ref.version)
+        &&Number(ref.version)>0&&typeof ref.sha256==='string'&&/^[0-9a-f]{64}$/.test(ref.sha256)
+        &&['NOT_ADMITTED','STALE','TIMING_UNRESOLVED','REVIEW_REQUIRED'].includes(ref.state);
+    });
+  }
+
+  selectionLabel(code:string){
+    return ({ED_EC_EFEL:'ED / EC / EFel horário',EVR_RATINGS:'EVR e ratings comparáveis',
+      EF_FUEL:'EFfuel — fator fóssil',IR:'IR — melhoria tecnológica',DY:'Dy — pino escalar legado'} as Record<string,string>)[code]??code;
   }
 
   async record() {
@@ -311,6 +354,7 @@ export class OpenCalculationReadinessComponent implements OnChanges {
       BLOCKED_NOT_ADMISSIBLE:'Fora do recorte ou precisa de reavaliação',
       MISSING:'Não informado',
       MISSING_FOR_SOURCE_YEAR:'Ausente no ano das fontes',
+      TIMING_UNRESOLVED:'Calendário não resolvido',
       STALE:'Exige rechecagem',
       OUT_OF_SCOPE:'Fora do recorte inicial',
       NOT_ADMITTED:'Sem admissão normativa',
