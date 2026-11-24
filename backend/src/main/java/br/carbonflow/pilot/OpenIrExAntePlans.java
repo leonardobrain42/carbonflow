@@ -32,18 +32,27 @@ class OpenIrExAntePlans {
                     String state,boolean stale,OffsetDateTime recordedAt,boolean usableForE8) {}
     record View(String projectId,Context context,int latestVersion,boolean editable,List<Revision> revisions) {}
     record Result(Revision revision,boolean created) {}
-    record ReviewTarget(UUID id,int version,String sha256,UUID author,String planJson) {}
+    record ReviewTarget(UUID id,int version,String sha256,UUID author,Input plan) {}
 
     /** Called only inside an authorized staff transaction with the project lock. */
     static ReviewTarget currentReviewTarget(Connection c,String project) throws SQLException {
         Context context=context(c,project);
         if(!"OPEN_CANDIDATE".equals(context.state()))return null;
         return first(c,"""
-            SELECT id,version,encode(plan_sha256,'hex'),author_id,plan::text
+            SELECT id,version,encode(plan_sha256,'hex'),author_id,
+                plan #>> '{evr,source}',plan #>> '{evr,responsible}',plan #>> '{evr,procedure}',
+                plan #>> '{afec,source}',plan #>> '{afec,responsible}',plan #>> '{afec,procedure}',
+                plan #>> '{mpg,source}',plan #>> '{mpg,responsible}',plan #>> '{mpg,procedure}',
+                plan #>> '{fuel,source}',plan #>> '{fuel,responsible}',plan #>> '{fuel,procedure}',
+                plan->>'rationale'
             FROM app_open_ir_ex_ante_plan WHERE project_id=? AND context_sha256=?
               AND version=(SELECT max(version) FROM app_open_ir_ex_ante_plan WHERE project_id=?)
             """,r->new ReviewTarget(r.getObject(1,UUID.class),r.getInt(2),r.getString(3),
-                r.getObject(4,UUID.class),r.getString(5)),project,bytes(context.sha256()),project);
+                r.getObject(4,UUID.class),new Input(metric(r,5),metric(r,8),metric(r,11),metric(r,14),r.getString(17))),
+                project,bytes(context.sha256()),project);
+    }
+    private static ParameterPlan metric(ResultSet r,int i)throws SQLException {
+        return new ParameterPlan(r.getString(i),r.getString(i+1),r.getString(i+2));
     }
     private record Stored(UUID id,String project,int version,String json,String sha,String contextSha,
                           OffsetDateTime recordedAt,String commandSha) {}
