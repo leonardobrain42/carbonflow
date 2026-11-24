@@ -26,6 +26,10 @@ interface EnergyDetail {
   hourCount:number;slotCount:number;createdAt:string;
   hours:{hour:string|null;edKwh:string|null;ecKwh:string|null}[];
 }
+interface FleetDetail {
+  id:string;projectId:string;period:string;version:number;observationYear:number;
+  cycle:string|null;state:string;stale:boolean;usableForE8:boolean;publishedAt:string;
+}
 interface CalculationNote {period:string;situation:string;causeCode:string|null;cause:string|null;
   beTco2e:string|null;peTco2e:string|null;leTco2e:string|null;erDisplay:string|null;
   usableForE8:boolean;marksDocumentReady:boolean;text:string;provenance?:CalculationProvenance|null}
@@ -67,6 +71,9 @@ export class PdSectionsComponent implements OnInit, OnDestroy {
   readonly energyDetail = signal<EnergyDetail|null>(null);
   readonly energyLoading = signal(false);
   readonly energyError = signal('');
+  readonly fleetDetail = signal<FleetDetail|null>(null);
+  readonly fleetLoading = signal(false);
+  readonly fleetError = signal('');
   private sourceRequest = 0;
   ngOnDestroy() { this.clearDetails(); }
 
@@ -78,6 +85,9 @@ export class PdSectionsComponent implements OnInit, OnDestroy {
     this.energyDetail.set(null);
     this.energyLoading.set(false);
     this.energyError.set('');
+    this.fleetDetail.set(null);
+    this.fleetLoading.set(false);
+    this.fleetError.set('');
   }
 
   async loadPin(symbol:string, id:string|null) {
@@ -135,6 +145,37 @@ export class PdSectionsComponent implements OnInit, OnDestroy {
       }
     } finally {
       if (request===this.sourceRequest) this.energyLoading.set(false);
+    }
+  }
+  async loadFleet(id:string|null) {
+    const calculation=this.current()?.calculation;
+    const source=calculation?.provenance?.inputs.find(item => item.symbol==='EVR'
+      && item.referenceId===id && item.access==='PROJECT_METADATA_ONLY');
+    if (!source || !id || !calculation || this.busy()) return;
+    this.clearDetails();
+    const request=this.sourceRequest;
+    const project=this.projectId();
+    const period=calculation.period;
+    this.fleetLoading.set(true);
+    try {
+      const detail=await firstValueFrom(this.http.get<FleetDetail>(
+        '/v1/projects/'+encodeURIComponent(project)+'/technical/open-monitoring/dossiers/'
+        +encodeURIComponent(period)+'/e8-fleet-selections/'+encodeURIComponent(id)));
+      if (request!==this.sourceRequest || project!==this.projectId()) return;
+      if (detail.id!==id || detail.projectId!==project || detail.period!==period
+          || detail.version!==source.version || detail.usableForE8
+          || (source.vintageYear!==null && detail.observationYear!==source.vintageYear))
+        throw new Error('Referência inconsistente');
+      this.fleetDetail.set(detail);
+    } catch (cause) {
+      if (request===this.sourceRequest) {
+        this.fleetDetail.set(null);
+        this.fleetError.set(cause instanceof HttpErrorResponse && [401,403,404].includes(cause.status)
+          ? 'Seleção de frota protegida ou indisponível para esta conta.'
+          : 'Não foi possível conferir a seleção de frota. Tente novamente.');
+      }
+    } finally {
+      if (request===this.sourceRequest) this.fleetLoading.set(false);
     }
   }
   readonly term = plainTerm;
