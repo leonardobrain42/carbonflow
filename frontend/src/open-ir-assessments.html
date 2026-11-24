@@ -85,6 +85,19 @@
           <p>Parecer: {{label(opinion.outcome)}} · {{label(opinion.annualUpdateBasis)}} · {{opinion.reviewedAt}}</p>
           @if (opinion.evidenceLocator) { <p>Localizador: {{opinion.evidenceLocator}}</p> }
           @if (opinion.reason) { <p>Fundamentação: {{opinion.reason}}</p> }
+          @if (opinion.initialContext;as initial) {
+            <p>Plano inicial conferido; não comprova atualização observada nem libera E8.</p>
+            <p>Data de acompanhamento interno (início do ano 2): {{initial.followupOn}}</p>
+            <p class="energy-hash">SHA-256 do plano: {{initial.planSha256}}</p>
+            @if (initial.plan;as plan) {
+              <dl class="cf-tech-capabilities">
+                <div><dt>Plano EVR</dt><dd>{{plan.evr}}</dd></div>
+                <div><dt>Plano AFEC</dt><dd>{{plan.afec}}</dd></div>
+                <div><dt>Plano MPG</dt><dd>{{plan.mpg}}</dd></div>
+                <div><dt>Plano EFfuel</dt><dd>{{plan.fuel}}</dd></div>
+              </dl>
+            }
+          }
         } @else { <p>Sem parecer registrado.</p> }
         @if (row.annualEvidence;as proof) {
           <p>Continuidade anual: {{label(proof.state)}}.</p>
@@ -101,7 +114,8 @@
               <select [id]="'cf-ir-outcome-'+row.id" [value]="outcome" (change)="outcome=$any($event.target).value;priorId=''"
                 [disabled]="busy()" required>
                 <option value="">Selecione</option>
-                @if (row.state==='PENDING_REVIEW') { <option value="CHECKED_INTERNAL">Conferido internamente</option> }
+                @if (row.state==='PENDING_REVIEW' && row.projectYear===1) { <option value="INITIAL_BASELINE_CHECKED">Conferir plano inicial</option> }
+                @if (row.state==='PENDING_REVIEW' && row.projectYear>1) { <option value="CHECKED_INTERNAL">Conferido internamente</option> }
                 <option value="NEEDS_INFORMATION">Solicitar complementação</option>
                 <option value="REJECTED">Rejeitar</option>
               </select>
@@ -110,6 +124,17 @@
                 <option value="">Selecione</option><option value="PLAN_ONLY">Somente plano</option>
                 <option value="OBSERVED_UPDATE">Atualização observada</option><option value="INSUFFICIENT">Insuficiente</option>
               </select>
+              @if (outcome==='INITIAL_BASELINE_CHECKED') {
+                <p>Registre fonte prevista, responsável e procedimento de atualização de cada parâmetro. O servidor deriva o acompanhamento do calendário; não é prazo normativo Verra. Selecione "Somente plano".</p>
+                <label [attr.for]="'cf-ir-evr-plan-'+row.id">Plano de atualização EVR</label>
+                <textarea [id]="'cf-ir-evr-plan-'+row.id" [value]="initialPlan.evr" (input)="initialPlan.evr=$any($event.target).value" minlength="15" maxlength="2000" [disabled]="busy()" required></textarea>
+                <label [attr.for]="'cf-ir-afec-plan-'+row.id">Plano de atualização AFEC</label>
+                <textarea [id]="'cf-ir-afec-plan-'+row.id" [value]="initialPlan.afec" (input)="initialPlan.afec=$any($event.target).value" minlength="15" maxlength="2000" [disabled]="busy()" required></textarea>
+                <label [attr.for]="'cf-ir-mpg-plan-'+row.id">Plano de atualização MPG</label>
+                <textarea [id]="'cf-ir-mpg-plan-'+row.id" [value]="initialPlan.mpg" (input)="initialPlan.mpg=$any($event.target).value" minlength="15" maxlength="2000" [disabled]="busy()" required></textarea>
+                <label [attr.for]="'cf-ir-fuel-plan-'+row.id">Plano de atualização EFfuel</label>
+                <textarea [id]="'cf-ir-fuel-plan-'+row.id" [value]="initialPlan.fuel" (input)="initialPlan.fuel=$any($event.target).value" minlength="15" maxlength="2000" [disabled]="busy()" required></textarea>
+              }
               @if (outcome==='CHECKED_INTERNAL') {
                 <label [attr.for]="'cf-ir-prior-'+row.id">Avaliação do ano anterior</label>
                 <select [id]="'cf-ir-prior-'+row.id" [value]="priorId" (change)="priorId=$any($event.target).value" [disabled]="busy()" required>
