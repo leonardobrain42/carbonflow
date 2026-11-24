@@ -1,4 +1,6 @@
 # Changelog da especificação viva
+## 0.3.0-rc.7 — 24/11/2026 (proposta)
+- Registra a decisão Q05 (D14, quatro recomendações) e o contrato CF-OPEN-007-DY-Q05-POLICY: ano 1 de Dy por ausência comprovada na janela exploratória (migração aditiva V98), base única do rateio (EVs em circulação) com gate bloqueado até o EVR nacional, texto do gate `NORMATIVE_WINDOW`. A totalização acumulada e o consumo pelo executor ficam pendentes. Atualiza decisões, pendências G04, matriz S07, estado, E8 e o quadro de decisão.
 ## 0.3.0-rc.6 — 24/11/2026 (proposta)
 - Registra a decisão Q04 (opção B, D13) e o contrato CF-OPEN-007-IR-FIRST-YEAR-EX-ANTE: IR do ano 1 como estimativa ex ante; migração aditiva V97; `calculationBasis` na consolidação anual; CI de recuperação V79 inclui V97. Atualiza decisões, pendências G05, matriz S08, estado, E7 e E8. O ano 1 permanece bloqueado por Dy (Q05).
 ## 0.3.0-rc.5 — 24/11/2026 (proposta)

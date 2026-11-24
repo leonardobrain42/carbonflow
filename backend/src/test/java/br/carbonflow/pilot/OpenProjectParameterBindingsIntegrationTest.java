@@ -412,7 +412,7 @@ class OpenProjectParameterBindingsIntegrationTest {
         assertFalse(gap.path("usableForE8").asBoolean());
         String allocations="""
             [{"program":"TEST-PROGRAM","registryProject":"A","issuanceId":"ISS-1","method":"DOCUMENTED_SHARE",
-              "totalTco2e":"100","shareNumerator":"3","shareDenominator":"4","basisUnit":"TEST_ONLY activity",
+              "totalTco2e":"100","shareNumerator":"3","shareDenominator":"4","basisUnit":"EV_IN_CIRCULATION",
               "sourceId":"TEST-DY-REGISTRY","sourceEdition":"1","locator":"TEST_ONLY split A",
               "rationale":"Declared territorial attribution fixture"},
              {"program":"TEST-PROGRAM","registryProject":"B","issuanceId":"ISS-2","method":"DIRECT_BR",
@@ -460,11 +460,69 @@ class OpenProjectParameterBindingsIntegrationTest {
             attributed.path("assessmentSha256").asText());
         json(call("POST",dyPath+"/"+attributed.path("id").asText()+"/review",reviewer,key(),"\"10\"",attributionReview),201);
         JsonNode checkedReadiness=json(call("GET",dyPath+"/2",manager,null,null,null),200).path("readiness");
-        assertTrue(checkedReadiness.path("internalChecksComplete").asBoolean());
+        // Q05.3 (D14): a documented share (3/4 here) needs the national EVR denominator, not yet admitted (G03).
+        assertFalse(checkedReadiness.path("internalChecksComplete").asBoolean());
+        assertEquals("BLOCKED",gateStatus(checkedReadiness,"GEOGRAPHIC_ALLOCATION"));
+        assertTrue(checkedReadiness.toString().contains("denominador nacional de EVR"));
+        assertEquals("SATISFIED_INTERNAL",gateStatus(checkedReadiness,"INDEPENDENT_REVIEW"));
         assertFalse(checkedReadiness.path("usableForE8").asBoolean());
         assertEquals("BLOCKED",checkedReadiness.path("state").asText());
         assertEquals(checkedReadiness,json(call("GET",dyRead,owner,null,null,null),200).path("readiness"));
         assertFalse(checkedReadiness.toString().contains("TEST-DY-REGISTRY"));
+
+        // Q05 (D14): project year 1 accepts only a proven absence, through the exploratory window.
+        String y1Head="{\"projectYear\":1,\"outcome\":\"NO_FLEET_CREDITS_DECLARED\",\"erc\":\"0\",\"erf\":\"0\","
+            +"\"programs\":\"Programas fictícios A e B\",\"projectReferences\":\"Busca nacional completa na janela exploratória\","
+            +"\"evidenceLocator\":\"TEST_ONLY registro Y1\",\"coverageNote\":\"Matriz nacional declarada de teste\"";
+        String y1License=",\"sourceLicenses\":[{\"sourceId\":\"TEST-DY-REGISTRY\",\"sourceEdition\":\"1\",\"licenseId\":\""+dyLicense+"\"}]";
+        String y1Matrix=matrix.replace("FOUND","NO_RESULTS").replace("2034-07-01","2033-07-01")
+            .replace("2035-07-01","2034-07-01").replace("2035-07-02","2034-07-02");
+        String y1=y1Head+y1License+",\"searchCoverage\":"+y1Matrix+"}";
+        assertEquals(422,call("POST",dyPath,manager,key(),"\"3\"",y1Head+y1License+"}").statusCode(),
+            "absence without the national coverage matrix");
+        assertEquals(422,call("POST",dyPath,manager,key(),"\"3\"",
+            y1.replace("NO_FLEET_CREDITS_DECLARED","FLEET_CREDITS_FOUND").replace("\"erf\":\"0\"","\"erf\":\"25\""))
+            .statusCode(),"year 1 with fleet credits needs a specific decision");
+        assertEquals(422,call("POST",dyPath,manager,key(),"\"3\"",y1.replace("\"erc\":\"0\"","\"erc\":\"75\"")).statusCode(),
+            "year 1 absence keeps ERC at zero without itemised proof");
+        assertEquals(422,call("POST",dyPath,manager,key(),"\"3\"",y1.replace("NATIONAL_BR","PARTIAL_BR")).statusCode());
+        assertEquals(422,call("POST",dyPath,manager,key(),"\"3\"",y1.replace("2033-07-01","2033-08-01")).statusCode(),
+            "the search must cover the whole exploratory window");
+        assertEquals(422,call("POST",dyPath,manager,key(),"\"3\"",
+            y1.replace("\"result\":\"NO_RESULTS\"","\"result\":\"INCOMPLETE\"")).statusCode());
+        String y1Key=key();
+        assertEquals(3,json(call("GET",dyPath+"/1",manager,null,null,null),200).path("latestVersion").asInt(),"year-1 versions so far");
+        JsonNode absence=json(call("POST",dyPath,manager,y1Key,"\"3\"",y1),201);
+        assertEquals("FIRST_YEAR_EXPLORATORY_WINDOW",absence.path("calendarGate").asText());
+        assertEquals("NO_FLEET_CREDITS_DECLARED",absence.path("outcome").asText());
+        assertEquals("1",absence.path("dyPreview").asText());
+        assertTrue(absence.path("priorStart").isNull());
+        assertFalse(absence.path("stale").asBoolean());
+        assertFalse(absence.path("usableForE8").asBoolean());
+        assertEquals("DECLARED_MATRIX_COMPLETE",absence.path("coverageState").asText());
+        assertEquals("2033-07-01",absence.at("/firstYearContext/exploratoryFrom").asText());
+        assertEquals(absence,json(call("POST",dyPath,manager,y1Key,"\"3\"",y1),200));
+        JsonNode y1Open=json(call("GET",dyPath+"/1",manager,null,null,null),200).path("readiness");
+        assertEquals("SATISFIED_INTERNAL",gateStatus(y1Open,"CALENDAR"));
+        assertEquals("BLOCKED",gateStatus(y1Open,"INDEPENDENT_REVIEW"));
+        assertEquals("BLOCKED",gateStatus(y1Open,"NORMATIVE_WINDOW"));
+        assertFalse(y1Open.path("internalChecksComplete").asBoolean());
+        String y1Review=reviewBody.replace(found.path("assessmentSha256").asText(),absence.path("assessmentSha256").asText());
+        assertEquals(404,call("POST",dyPath+"/"+absence.path("id").asText()+"/review",manager,key(),"\"4\"",y1Review).statusCode());
+        json(call("POST",dyPath+"/"+absence.path("id").asText()+"/review",reviewer,key(),"\"4\"",y1Review),201);
+        JsonNode y1Checked=json(call("GET",dyPath+"/1",manager,null,null,null),200).path("readiness");
+        assertTrue(y1Checked.path("internalChecksComplete").asBoolean());
+        assertEquals("BLOCKED",y1Checked.path("state").asText());
+        assertFalse(y1Checked.path("usableForE8").asBoolean());
+        for (String code:java.util.List.of("NORMATIVE_WINDOW","EXTERNAL_EVIDENCE","E8_ADMISSION"))
+            assertEquals("BLOCKED",gateStatus(y1Checked,code));
+        assertEquals(y1Checked,json(call("GET","/v1/projects/"+project+"/technical/open-dy-assessments/1",owner,null,null,null),200)
+            .path("readiness"));
+        // An inconclusive record for year 1 stays blocked and never carries numbers.
+        JsonNode y1Inconclusive=json(call("POST",dyPath,manager,key(),"\"4\"",firstYearBody.replace("registro 1","registro Y1b")),201);
+        assertTrue(y1Inconclusive.path("dyPreview").isNull());
+        assertEquals("FIRST_YEAR_REVIEW_REQUIRED",y1Inconclusive.path("calendarGate").asText());
+        assertEquals("BLOCKED",gateStatus(json(call("GET",dyPath+"/1",manager,null,null,null),200).path("readiness"),"CALENDAR"));
 
 
         database.transaction(c->{
@@ -675,6 +733,11 @@ class OpenProjectParameterBindingsIntegrationTest {
             if (code.equals(gate.path("code").asText())) return gate.path("reason").asText();
         }
         return "";
+    }
+
+    private static String gateStatus(JsonNode readiness,String code) {
+        for (JsonNode gate:readiness.path("gates")) if (code.equals(gate.path("code").asText())) return gate.path("status").asText();
+        throw new AssertionError("gate "+code);
     }
 
     private void seed() {
