@@ -1,0 +1,136 @@
+<section class="cf-journey-context" aria-label="Avaliações de melhoria tecnológica (IR)">
+  <h4>Melhoria tecnológica (IR)</h4>
+  <p>VM0038 v1.1, seção 10.1. Na rota específica com atualização anual, o servidor
+    pode propor IR = 1. Não é um valor padrão: exige referências de EVR, AFEC, MPG
+    e EFfuel e conferência independente. <strong>E8 não liberado por esta avaliação.</strong></p>
+  @if (staff) {
+    <button type="button" class="cf-workspace-outline" [disabled]="busy()" (click)="loadOptions()">Atualizar projetos de IR</button>
+    @if (options(); as opt) {
+      <label for="cf-ir-project">Projeto da avaliação de IR</label>
+      <select id="cf-ir-project" [value]="selectedProject" [disabled]="busy()"
+        (change)="chooseProject($any($event.target).value)">
+        <option value="">Selecione o projeto</option>
+        @for (item of opt.projects; track item.projectId) {
+          <option [value]="item.projectId">{{item.title}}</option>
+        }
+      </select>
+      @if (!opt.projects.length) { <p>Nenhum projeto VM0038 autorizado.</p> }
+    }
+  } @else {
+    <p>Consulta do projeto. Registro e parecer são realizados pela equipe técnica autorizada na área de fontes.</p>
+  }
+  @if (selectedProject) {
+    <button type="button" class="cf-workspace-outline" [disabled]="busy()" (click)="load()">Atualizar histórico de IR</button>
+  }
+  @if (busy()) { <p role="status">Consultando ou registrando IR…</p> }
+  @if (error()) { <p class="cf-workspace-alert" role="alert">{{error()}}</p> }
+  @if (message()) { <p role="status">{{message()}}</p> }
+  @if (loaded()) {
+    @if (staff && options()?.canRecord) {
+      <form (submit)="record($event)" class="cf-journey-context" aria-label="Registrar avaliação de IR">
+        <h5>Registrar nova versão</h5>
+        <p>O período determina o ano relativo e o ano da fonte no servidor. Somente
+          períodos com conjunto preparatório vigente de frota, ratings e fator fóssil aparecem.</p>
+        <label for="cf-ir-period">Período com referências disponíveis</label>
+        <select id="cf-ir-period" [value]="selectedPeriod" [disabled]="busy()" (change)="selectedPeriod=$any($event.target).value" required>
+          <option value="">Selecione o período</option>
+          @for (p of periods();track p.period) {
+            <option [value]="p.period">{{p.period}} · Ano {{p.projectYear}} · Fonte {{p.sourceYear}} · última versão {{p.latestVersion}}</option>
+          }
+        </select>
+        @if (!periods().length) {
+          <p role="status">Nenhum conjunto vigente. Complete calendário, enquadramento OPEN, seleção de frota/ratings e pino EFfuel antes de registrar.</p>
+        }
+        @if (period();as p) {
+          <dl class="cf-tech-capabilities">
+            <div><dt>EVR, AFEC e MPG — seleção de frota/ratings</dt><dd><code>{{p.fleetSelectionId}}</code></dd></div>
+            <div><dt>EFfuel — pino do fator fóssil</dt><dd><code>{{p.fuelPinId}}</code></dd></div>
+          </dl>
+        }
+        <label for="cf-ir-frequency">Frequência de atualização da linha de base</label>
+        <select id="cf-ir-frequency" [value]="frequency" (change)="frequency=$any($event.target).value" [disabled]="busy()" required>
+          <option value="">Selecione</option><option value="ANNUAL">Anual</option>
+          <option value="NON_ANNUAL">Não anual</option><option value="UNKNOWN">Indeterminada</option>
+        </select>
+        <label for="cf-ir-basis">Fundamentação dos parâmetros</label>
+        <select id="cf-ir-basis" [value]="basis" (change)="basis=$any($event.target).value" [disabled]="busy()" required>
+          <option value="">Selecione</option><option value="PROJECT_SPECIFIC">Dados específicos do projeto</option>
+          <option value="DEFAULT_VALUES">Valores padrão</option><option value="UNKNOWN">Indeterminada</option>
+        </select>
+        <label for="cf-ir-rationale">Justificativa metodológica</label>
+        <textarea id="cf-ir-rationale" [value]="rationale" (input)="rationale=$any($event.target).value"
+          minlength="15" maxlength="2500" [disabled]="busy()" required></textarea>
+        <button type="submit" class="cf-workspace-primary" [disabled]="!canRecord()">Registrar avaliação de IR</button>
+      </form>
+    }
+    <h5>Histórico de avaliações de IR</h5>
+    <p>Até 50 registros recentes. Ano do projeto e ano da fonte não são equivalentes.
+      As revisões e seus pareceres são preservados.</p>
+    @for (row of rows();track row.id) {
+      <details class="cf-journey-context" [open]="$first">
+        <summary>Ano {{row.projectYear}} · fonte {{row.sourceYear}} · v{{row.version}} · {{label(row.state)}}</summary>
+        <dl class="cf-tech-capabilities">
+          <div><dt>Período</dt><dd>{{row.period}}</dd></div>
+          <div><dt>Frequência</dt><dd>{{label(row.frequency)}}</dd></div>
+          <div><dt>Fundamentação</dt><dd>{{label(row.basis)}}</dd></div>
+          <div><dt>IR proposto pelo servidor</dt><dd>{{row.candidate ?? 'Indisponível'}}</dd></div>
+          <div><dt>EVR, AFEC e MPG — referência</dt><dd><code>{{row.fleetSelectionId}}</code></dd></div>
+          <div><dt>EFfuel — referência</dt><dd><code>{{row.fuelPinId}}</code></dd></div>
+          <div><dt>Hash da avaliação</dt><dd><code>{{row.assessmentSha256}}</code></dd></div>
+          <div><dt>Registro</dt><dd>{{row.recordedAt}}</dd></div>
+        </dl>
+        @if (row.rationale) { <p>Justificativa: {{row.rationale}}</p> }
+        @if (row.stale) { <p role="status">Referências ou versão obsoletas. Nova avaliação necessária.</p> }
+        @if (row.review;as opinion) {
+          <p>Parecer: {{label(opinion.outcome)}} · {{label(opinion.annualUpdateBasis)}} · {{opinion.reviewedAt}}</p>
+          @if (opinion.evidenceLocator) { <p>Localizador: {{opinion.evidenceLocator}}</p> }
+          @if (opinion.reason) { <p>Fundamentação: {{opinion.reason}}</p> }
+        } @else { <p>Sem parecer registrado.</p> }
+        @if (row.annualEvidence;as proof) {
+          <p>Continuidade anual: {{label(proof.state)}}.</p>
+          @if (proof.priorAssessmentId) { <p>Avaliação anterior: <code>{{proof.priorAssessmentId}}</code></p> }
+          @if (proof.evidenceSha256) { <p>Hash da prova: <code>{{proof.evidenceSha256}}</code></p> }
+          <p>A continuidade entre referências não comprova atualização dentro do prazo metodológico.</p>
+        }
+        @if (canReview(row)) {
+          <button type="button" class="cf-workspace-outline" [disabled]="busy()" (click)="beginReview(row)">Preparar parecer de IR</button>
+          @if (reviewId===row.id) {
+            <form (submit)="review($event,row)" aria-label="Parecer independente de IR">
+              <p>Autor e revisor devem ser distintos; o servidor valida a autorização e a versão exata.</p>
+              <label [attr.for]="'cf-ir-outcome-'+row.id">Decisão técnica</label>
+              <select [id]="'cf-ir-outcome-'+row.id" [value]="outcome" (change)="outcome=$any($event.target).value;priorId=''"
+                [disabled]="busy()" required>
+                <option value="">Selecione</option>
+                @if (row.state==='PENDING_REVIEW') { <option value="CHECKED_INTERNAL">Conferido internamente</option> }
+                <option value="NEEDS_INFORMATION">Solicitar complementação</option>
+                <option value="REJECTED">Rejeitar</option>
+              </select>
+              <label [attr.for]="'cf-ir-annual-'+row.id">Tipo de evidência anual</label>
+              <select [id]="'cf-ir-annual-'+row.id" [value]="annualBasis" (change)="annualBasis=$any($event.target).value" [disabled]="busy()" required>
+                <option value="">Selecione</option><option value="PLAN_ONLY">Somente plano</option>
+                <option value="OBSERVED_UPDATE">Atualização observada</option><option value="INSUFFICIENT">Insuficiente</option>
+              </select>
+              @if (outcome==='CHECKED_INTERNAL') {
+                <label [attr.for]="'cf-ir-prior-'+row.id">Avaliação do ano anterior</label>
+                <select [id]="'cf-ir-prior-'+row.id" [value]="priorId" (change)="priorId=$any($event.target).value" [disabled]="busy()" required>
+                  <option value="">Selecione a referência anterior</option>
+                  @for (prior of priors(row);track prior.id) {
+                    <option [value]="prior.id">Ano {{prior.projectYear}} · fonte {{prior.sourceYear}} · v{{prior.version}} · {{prior.period}}</option>
+                  }
+                </select>
+                @if (!priors(row).length) { <p role="status">Não há avaliação anterior consecutiva no histórico recente. Solicite complementação; ano inicial permanece pendente.</p> }
+              }
+              <label [attr.for]="'cf-ir-locator-'+row.id">Localizador da evidência</label>
+              <input [id]="'cf-ir-locator-'+row.id" [value]="locator" (input)="locator=$any($event.target).value"
+                minlength="3" maxlength="2000" [disabled]="busy()" required>
+              <label [attr.for]="'cf-ir-reason-'+row.id">Fundamentação do parecer</label>
+              <textarea [id]="'cf-ir-reason-'+row.id" [value]="reason" (input)="reason=$any($event.target).value"
+                minlength="15" maxlength="2500" [disabled]="busy()" required></textarea>
+              <button type="submit" class="cf-workspace-primary" [disabled]="!reviewValid(row)">Registrar parecer de IR</button>
+            </form>
+          }
+        }
+      </details>
+    } @empty { <p role="status">Nenhuma avaliação de IR registrada neste projeto.</p> }
+  }
+</section>
