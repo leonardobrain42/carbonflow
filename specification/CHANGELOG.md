@@ -1,4 +1,6 @@
 # Changelog da especificação viva
+## 0.3.0-rc.4 — 24/11/2026 (proposta)
+- Reconcilia a entrada/conta (#145, já no código) com a matriz (CF-SPEC-S16), o estado e E9, citando contrato e testes existentes e os limites declarados. Somente documentação; sem alteração de regra, código, banco ou aceite.
 ## 0.3.0-rc.3 — 24/11/2026 (proposta)
 - Consolidação anual exige a mesma avaliação de IR em todas as janelas calculadas (`IR_REFERENCE_MISSING`/`IR_REFERENCE_MISMATCH`); atualiza contrato anual, matriz S11, estado e E8 P0.4 (parcial). Sem migração, API ou UI.
 ## 0.3.0-rc.2 — 24/11/2026 (proposta)
