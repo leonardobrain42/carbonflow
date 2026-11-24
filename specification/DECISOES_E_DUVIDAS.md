@@ -20,6 +20,7 @@ Este registro resume decisões **documentadas no repositório/backlog**, não re
 - Q01: recuperar kit 0.2.14 e reconciliar DEC/RF/CT/PEN por origem.
 - Q02: estratégia admissível EVR nacional, lacunas e ratings; decisão de dados e risco (#94/#95).
 - Q03: opção OM/TOOL07, gases, vintage e fonte SIN; revisão competente (#96).
+- Q04/Q05: ver [documento de decisão com alternativas e recomendação](../docs/CF-OPEN-007-DECISION-Q04-Q05.md) (aguarda decisão humana; nada implementado).
 - Q04: IR inicial/ex ante e prova anual além das guardas internas; confirmar se a política interna D12 de reuso intra-ano é suficiente para a revisão normativa (#96/#97).
 - Q05: Dy, interpretação de ERC/ERF e rateio/recorte nacional, ano inicial (#96/#97).
 - Q06: poderes, convites, competência, provas por ato, regime VCS e versões de templates (#24/#10/#122).
