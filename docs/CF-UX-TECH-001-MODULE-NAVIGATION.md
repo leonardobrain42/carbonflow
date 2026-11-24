@@ -64,3 +64,8 @@ Não há rotas ocultas: os valores são parâmetros da rota já existente, servi
 ## Próximas fatias de #124, não cobertas por esta PR
 
 A entrega realiza **navegação, organização e descoberta**. Ainda faltam: schema de formulário tipado e versionado por metodologia, editor de estações/ativos totalmente guiado, vínculo de papéis PP a contas e poderes, prova contextual por campo, composição do PD a partir dos campos canônicos e UX de progressão condicional com estados de review. Isso não deve ser apresentado como concluído com a simples mudança de menu.
+
+## Atualização (24/11/2026): menu em cinco grupos
+- Grupos: **Começar** (Painel de trabalho, Preparar informações), **Aplicabilidade** (Situação do projeto, Acesso à rede, Direitos do projeto, Estações e fronteira), **Fundamentação** (Linha de base, Adicionalidade, Guias técnicos), **Medição** (Monitorar energia, Quantificação) e **Documentação** (Redigir, Revisar).
+- **Entender**, **Evidências** e **Fontes e parâmetros** deixam de ocupar o menu, mas continuam com URL própria (`?secao=entender|evidencias|fontes`) e com acesso pela tela-mãe: o Painel de trabalho tem o cartão "Entender a metodologia"; Evidências é a mesma vista do Monitorar, etapa 3 (QA e evidências); Quantificação tem o botão "Fontes e parâmetros nacionais". Com uma delas aberta, o item da tela-mãe fica destacado no menu.
+- Se a conta não tiver acesso à tela-mãe, a tela continua no menu (nenhum acesso é perdido). Permissões, ponto de retomada e destinos de pendências não mudam.

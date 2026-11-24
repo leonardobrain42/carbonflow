@@ -27,13 +27,13 @@
         <div class="cf-tech-workbench">
           <nav class="cf-triage-steps cf-technical-steps cf-tech-module-nav"
                aria-label="Seções da preparação técnica">
-            @for (item of sections(); track item.id; let i=$index) {
-              @if (i === 0 || sections()[i-1].group !== item.group) {
+            @for (item of menu(); track item.id; let i=$index) {
+              @if (i === 0 || menu()[i-1].group !== item.group) {
                 <p class="cf-tech-module-group">{{item.group}}</p>
               }
               <button type="button" class="cf-triage-step" [disabled]="saving()"
-                [class.cf-triage-step-active]="section().id === item.id"
-                [attr.aria-current]="section().id === item.id ? 'page' : null"
+                [class.cf-triage-step-active]="isCurrent(item.id)"
+                [attr.aria-current]="isCurrent(item.id) ? 'page' : null"
                 (click)="open(item.id)">{{ item.title }}</button>
             }
           </nav>
@@ -64,6 +64,11 @@
                 <button type="button" (click)="open('direitos')">
                   <strong>Direitos do projeto</strong><span>Titular, contrato e divulgação aos motoristas.</span>
                 </button>
+                @if (can('VIEW_JOURNEY')) {
+                  <button type="button" (click)="open('entender')">
+                    <strong>Entender a metodologia</strong><span>O que a metodologia pede, glossário e o que preparar.</span>
+                  </button>
+                }
                 @if (can('VIEW_GUIDES')) {
                   <button type="button" (click)="open('linha-base')">
                     <strong>Linha de base</strong><span>Dados, referência contrafactual e justificativas.</span>
@@ -191,10 +196,14 @@
               } @else {
                 <p>Não existe execução E8 habilitada para esta metodologia e perfil.</p>
               }
-              @if (can('VIEW_OPEN_MONITORING')) {
+              <div class="cf-triage-actions">
+                @if (can('VIEW_OPEN_MONITORING')) {
+                  <button type="button" class="cf-workspace-outline"
+                    (click)="openMonitoring('dossies')">Consultar relatório, fator elétrico, VT0011 e TOOL07</button>
+                }
                 <button type="button" class="cf-workspace-outline"
-                  (click)="openMonitoring('dossies')">Consultar relatório, fator elétrico, VT0011 e TOOL07</button>
-              }
+                  (click)="open('fontes')">Fontes e parâmetros nacionais</button>
+              </div>
             }
 
             @case ('fontes') {

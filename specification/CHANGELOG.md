@@ -1,4 +1,6 @@
 # Changelog da especificação viva
+## 0.3.0-rc.11 — 24/11/2026 (proposta)
+- UX: menu da preparação técnica em cinco grupos (Começar, Aplicabilidade, Fundamentação, Medição, Documentação); Entender, Evidências e Fontes saem do menu e seguem acessíveis por URL e pela tela-mãe. Atualiza CF-UX-TECH-001-MODULE-NAVIGATION. Sem mudança de permissão, regra ou backend.
 ## 0.3.0-rc.10 — 24/11/2026 (proposta)
 - UX: vocabulário único para "não informado"/"a confirmar" na declaração de aplicabilidade e aviso normativo permanente no cabeçalho da preparação técnica, em lugar de frases repetidas. Só texto de interface; valores gravados, regras e permissões inalterados.
 ## 0.3.0-rc.9 — 24/11/2026 (proposta)

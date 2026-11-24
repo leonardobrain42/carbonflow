@@ -135,15 +135,20 @@ test('CF-IMP-008: rascunho da conta cruza intake e prévia sem adquirir autorida
     await page.getByText('Rascunho técnico ainda não iniciado').waitFor();
     await page.getByRole('heading',{name:'Painel de trabalho'}).waitFor();
     const groups=await sections.locator('.cf-tech-module-group').allTextContents();
-    assert.deepEqual(groups,['Começar','Fundamentação','Medição','Documentação']);
-    const labels=await sections.getByRole('button').allTextContents();
+    assert.deepEqual(groups,['Começar','Aplicabilidade','Fundamentação','Medição','Documentação']);
+    const labels=(await sections.getByRole('button').allTextContents()).map(label=>label.trim());
     assert.ok(labels.includes('Linha de base'));
     assert.ok(labels.includes('Adicionalidade'));
-    assert.ok(labels.includes('Evidências'));
     assert.ok(labels.includes('Quantificação'));
+    // Duplicate and reference screens keep their URL but no longer take a menu slot.
+    for (const alias of ['Evidências','Entender','Fontes e parâmetros'])
+      assert.ok(!labels.includes(alias),alias+' should be reached from its parent screen');
     assert.equal(await page.getByLabel('Atividade planejada').count(), 0);
-    await sections.getByRole('button',{name:'Fontes e parâmetros'}).click();
+    await sections.getByRole('button',{name:'Quantificação'}).click();
+    await page.getByRole('button',{name:'Fontes e parâmetros nacionais'}).click();
     await page.getByRole('link',{name:'Abrir gestão de fontes (requer permissão staff)'}).waitFor();
+    assert.equal(await sections.getByRole('button',{name:'Quantificação'}).getAttribute('aria-current'),'page',
+      'the parent stays highlighted while an alias screen is open');
     assert.equal(await page.getByRole('link',
       {name:'Abrir gestão de fontes (requer permissão staff)'}).getAttribute('href'),
       '/workspace/platform/sources');
