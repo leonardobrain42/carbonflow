@@ -14,7 +14,9 @@ No navegador, substitua `PROJECT_ID` pelo identificador do seu projeto:
 |---|---|
 | Painel e próximos passos | `?secao=inicio` (também é o padrão para titulares com acesso a intake) |
 | Dados iniciais | `?secao=preparar` |
-| Enquadramento, fronteira, titularidade | `?secao=analisar` |
+| Situação do projeto (leitura; atualizada em [APPLICABILITY-SCREENS](CF-UX-TECH-001-APPLICABILITY-SCREENS.md)) | `?secao=analisar` |
+| Acesso à rede | `?secao=rede` |
+| Direitos do projeto | `?secao=direitos` |
 | Guia de linha de base | `?secao=linha-base` |
 | Guia de adicionalidade | `?secao=adicionalidade` |
 | Inventário de carregadores/medidores | `?secao=monitorar&etapa=inventario` |

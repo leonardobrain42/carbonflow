@@ -55,7 +55,13 @@
                   <strong>Dados iniciais</strong><span>Atividade, localização e marco de referência.</span>
                 </button>
                 <button type="button" (click)="open('analisar')">
-                  <strong>Aplicabilidade</strong><span>Fronteira, elegibilidade e direitos.</span>
+                  <strong>Situação do projeto</strong><span>O que já está declarado e o que ainda falta.</span>
+                </button>
+                <button type="button" (click)="open('rede')">
+                  <strong>Acesso à rede</strong><span>Quem pode usar os carregadores e como a energia chega.</span>
+                </button>
+                <button type="button" (click)="open('direitos')">
+                  <strong>Direitos do projeto</strong><span>Titular, contrato e divulgação aos motoristas.</span>
                 </button>
                 @if (can('VIEW_GUIDES')) {
                   <button type="button" (click)="open('linha-base')">
@@ -96,15 +102,21 @@
             @case ('estacoes') {
               <p>Cadastre uma ou mais estações e selecione carregadores DCFC/SIN na fronteira;
                 os dados são preparatórios e mantêm histórico por versão.
-                Cadastro operacional e data de início VCS são coisas diferentes.</p>
+                Abaixo, registre também as datas do projeto: o início operacional e o início de crédito VCS são coisas diferentes.</p>
               @if (saved.journey.candidate === 'VM0038' && can('VIEW_OPEN_MONITORING')) {
                 <carbonflow-project-stations [projectId]="projectId"
                   [editable]="can('SAVE_OPEN_MONITORING')" />
+                @if (can('VIEW_OPEN_APPLICABILITY')) {
+                  <carbonflow-open-applicability [projectId]="projectId" part="dates"
+                    [editable]="can('SAVE_OPEN_APPLICABILITY')"
+                    (saved)="refreshRequirements()">
+                  </carbonflow-open-applicability>
+                }
                 <div class="cf-triage-actions">
                   <button type="button" class="cf-workspace-outline"
                     (click)="openMonitoring('inventario')">Medidores e configuração avançada</button>
                   <button type="button" class="cf-workspace-outline"
-                    (click)="open('analisar')">Ver aplicabilidade e direitos</button>
+                    (click)="open('analisar')">Ver situação do projeto</button>
                 </div>
               } @else {
                 <p>O cadastro de estações deste recorte só está disponível para a VM0038 com acesso
@@ -294,8 +306,14 @@
             }
 
             @case ('analisar') {
-              <p>Declare o acesso à rede e os direitos sobre as reduções.
-                O diagnóstico diz o que ainda falta. Estações, quantificação e o guia ficam nas telas próprias.</p>
+              <p>Aqui você só acompanha: o que já foi declarado e o que ainda falta.
+                Para preencher, use <strong>Acesso à rede</strong>, <strong>Direitos do projeto</strong>
+                ou <strong>Estações e fronteira</strong>.</p>
+              <div class="cf-triage-actions">
+                <button type="button" class="cf-workspace-primary" (click)="open('rede')">Preencher acesso à rede</button>
+                <button type="button" class="cf-workspace-outline" (click)="open('direitos')">Preencher direitos</button>
+                <button type="button" class="cf-workspace-outline" (click)="open('estacoes')">Estações e datas</button>
+              </div>
               @if (saved.experienceMode === 'TECHNICAL') {
                 <div class="cf-journey-context">
                   <strong>Modo técnico</strong>
@@ -306,15 +324,12 @@
                   </dl>
                 </div>
               }
-              <dl class="cf-tech-capabilities">
-                <div><dt>Preparação</dt><dd>{{ saved.version ? 'Rascunho salvo' : 'A iniciar' }}</dd></div>
-                <div><dt>Evidências</dt><dd>{{ capabilities()?.modules?.['evidence'] === 'NOT_ENABLED' ? 'Coleta indisponível neste projeto' : 'A confirmar' }}</dd></div>
-              </dl>
+              <carbonflow-project-requirements [projectId]="projectId"
+                [canQuantify]="can('VIEW_OPEN_CALCULATION')"
+                (openSection)="open($any($event))" />
 
               @if (saved.journey.candidate === 'VM0038' && can('VIEW_OPEN_APPLICABILITY')) {
-                <carbonflow-open-applicability [projectId]="projectId"
-                  [editable]="can('SAVE_OPEN_APPLICABILITY')"
-                  (saved)="refreshRequirements()">
+                <carbonflow-open-applicability [projectId]="projectId" part="summary">
                 </carbonflow-open-applicability>
               } @else if (saved.journey.candidate !== 'VM0038') {
                 <p>A ficha de rede aberta vale para a VM0038. Nenhuma outra metodologia é tratada como equivalente.</p>
@@ -322,9 +337,6 @@
                 <p>A declaração de aplicabilidade não está disponível para esta conta.</p>
               }
 
-              <carbonflow-project-requirements [projectId]="projectId"
-                [canQuantify]="can('VIEW_OPEN_CALCULATION')"
-                (openSection)="open($any($event))" />
 
               <h3>Requisitos do rascunho</h3>
               @if (saved.outstandingGates.length) {
@@ -364,6 +376,39 @@
                 @if (owner()) {
                   <a [routerLink]="['/workspace/projects',projectId,'triage']" class="cf-workspace-link">Consultar respostas da triagem</a>
                 }
+              </div>
+            }
+
+            @case ('rede') {
+              <p>Responda como funciona o acesso aos carregadores. Cada resposta vira uma revisão
+                da declaração; nada aqui aprova a rede como aberta.</p>
+              @if (saved.journey.candidate === 'VM0038' && can('VIEW_OPEN_APPLICABILITY')) {
+                <carbonflow-open-applicability [projectId]="projectId" part="network"
+                  [editable]="can('SAVE_OPEN_APPLICABILITY')" (saved)="refreshRequirements()">
+                </carbonflow-open-applicability>
+              } @else {
+                <p>A ficha de rede aberta vale para a VM0038 e para contas com acesso à declaração.
+                  Nenhuma outra metodologia é tratada como equivalente.</p>
+              }
+              <div class="cf-triage-actions">
+                <button type="button" class="cf-workspace-outline" (click)="open('direitos')">Seguir para direitos</button>
+                <button type="button" class="cf-workspace-outline" (click)="open('analisar')">Ver situação do projeto</button>
+              </div>
+            }
+
+            @case ('direitos') {
+              <p>Registre quem declara os direitos sobre as reduções, o contrato e a divulgação aos motoristas.
+                Registrar o titular não cria poder jurídico nem admite o direito.</p>
+              @if (saved.journey.candidate === 'VM0038' && can('VIEW_OPEN_APPLICABILITY')) {
+                <carbonflow-open-applicability [projectId]="projectId" part="rights"
+                  [editable]="can('SAVE_OPEN_APPLICABILITY')" (saved)="refreshRequirements()">
+                </carbonflow-open-applicability>
+              } @else {
+                <p>A declaração de direitos vale para a VM0038 e para contas com acesso à declaração.</p>
+              }
+              <div class="cf-triage-actions">
+                <button type="button" class="cf-workspace-outline" (click)="open('estacoes')">Seguir para estações e datas</button>
+                <button type="button" class="cf-workspace-outline" (click)="open('analisar')">Ver situação do projeto</button>
               </div>
             }
 

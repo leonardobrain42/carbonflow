@@ -94,7 +94,7 @@ class ProjectWork {
         boolean permitted=switch(screen) {
             case "inicio","entender","preparar","fontes" ->
                 actions.contains("VIEW_INTAKE");
-            case "analisar" -> actions.contains("VIEW_INTAKE")
+            case "analisar","rede","direitos" -> actions.contains("VIEW_INTAKE")
                 || actions.contains("VIEW_OPEN_APPLICABILITY");
             case "guias","linha-base","adicionalidade" -> actions.contains("VIEW_GUIDES");
             case "monitorar","estacoes","evidencias" -> actions.contains("VIEW_OPEN_MONITORING");

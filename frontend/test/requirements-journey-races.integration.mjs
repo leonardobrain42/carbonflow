@@ -95,35 +95,30 @@ test('UX-08: respostas fora de ordem, seletores persistidos, conflito e revogaç
     });
     const panel = page.locator('carbonflow-project-requirements');
     const closedNetwork = panel.locator('li').filter({hasText: 'Referência: CLOSED_NETWORK'});
-    let firstRead = true;
-    // Delay a real, pre-save HTTP response. No API response bodies are invented.
-    await page.route(requirements, async route => {
-      if (!firstRead) return route.continue();
-      firstRead = false;
-      const response = await route.fetch();
-      oldRead.resolve();
-      await releaseOldRead.promise;
-      await route.fulfill({response});
-      oldDelivered.resolve();
-    });
-    await page.goto(base + '/workspace/projects/' + project.projectId + '/technical?secao=analisar');
+    const technical = base + '/workspace/projects/' + project.projectId + '/technical?secao=';
+    // The form lives in dedicated screens now: network and rights each persist a complete revision.
+    await page.goto(technical + 'rede');
     await page.getByLabel('Qualquer BEV compatível pode utilizar?').waitFor();
-    await oldRead.promise;
     await page.getByLabel('Qualquer BEV compatível pode utilizar?').selectOption('false');
     await page.getByLabel('Restringe o uso a veículos identificados?').selectOption('true');
+    const networkSaved = page.waitForResponse(response =>
+      response.url() === applicability && response.request().method() === 'PUT');
+    await page.getByRole('button', {name: 'Salvar acesso sem aprovação automática'}).click();
+    assert.equal((await json(await networkSaved)).version, 1);
+    await page.goto(technical + 'direitos');
     await page.getByLabel('Titular registrado', {exact: true}).selectOption('HOLDER-UX08');
     await page.getByLabel('Contrato registrado', {exact: true}).selectOption('CONTRACT-UX08');
     const savedResponse = page.waitForResponse(response =>
       response.url() === applicability && response.request().method() === 'PUT');
-    await page.getByRole('button', {name: 'Salvar declaração sem aprovação automática'}).click();
+    await page.getByRole('button', {name: 'Salvar direitos sem aprovação automática'}).click();
     const saved = await json(await savedResponse);
-    assert.equal(saved.version, 1);
+    assert.equal(saved.version, 2);
+    assert.equal(saved.latest.answers.unrestrictedBevAccess, false);
+    assert.equal(saved.latest.answers.rightsContractCode, 'CONTRACT-UX08');
+    // The diagnosis is read fresh when the status screen opens: no pre-save answer may appear.
+    await page.goto(technical + 'analisar');
     await closedNetwork.waitFor();
-    releaseOldRead.resolve();
-    await oldDelivered.promise;
-    await page.evaluate(() => new Promise(resolve =>
-      requestAnimationFrame(() => requestAnimationFrame(resolve))));
-    assert.equal(await closedNetwork.count(), 1, 'A resposta anterior ao save não pode substituir a revisão atual');
+    assert.equal(await closedNetwork.count(), 1, 'A situação do projeto deve refletir a revisão atual');
     assert.equal(await panel.locator('li').filter({hasText: 'Referência: NO_DECLARATION'}).count(), 0);
 
     const canonical = await json(await session.request.get(requirements));
@@ -133,29 +128,33 @@ test('UX-08: respostas fora de ordem, seletores persistidos, conflito e revogaç
     assert.equal(canonical.canRunE8, false);
     assert.equal(canonical.canIssueVcu, false);
     assert.equal(sql(`SELECT count(*) FROM app_project_open_applicability_revision
-      WHERE project_id='${project.projectId}' AND version=1 AND unrestricted_bev_access=false;`), '1');
+      WHERE project_id='${project.projectId}' AND version=2 AND unrestricted_bev_access=false;`), '1');
 
-    // A second editor persists v2. The stale tab must keep its draft and report 412.
+    // A second editor persists v3. The stale tab must keep its draft and report 412.
+    await page.goto(technical + 'rede');
+    await page.getByLabel('O ponto fica em terreno particular?').waitFor();
     const concurrent = await json(await session.request.put(applicability,
-      mutation(1, {...saved.latest.answers, privateLand: true})));
+      mutation(2, {...saved.latest.answers, privateLand: true})));
     assert.equal(concurrent.latest.answers.privateLand, true);
     await page.getByLabel('O ponto fica em terreno particular?').selectOption('false');
     const conflictResponse = page.waitForResponse(response =>
       response.url() === applicability && response.request().method() === 'PUT');
-    await page.getByRole('button', {name: 'Salvar declaração sem aprovação automática'}).click();
+    await page.getByRole('button', {name: 'Salvar acesso sem aprovação automática'}).click();
     assert.equal((await conflictResponse).status(), 412);
     await page.getByRole('alert').filter({hasText: 'Outra revisão foi salva'}).waitFor();
     assert.equal(await page.getByLabel('O ponto fica em terreno particular?').inputValue(), 'false');
     assert.equal((await json(await session.request.get(applicability))).version, concurrent.version);
     await page.reload();
-    await closedNetwork.waitFor();
-    await page.getByRole('region', {name: 'Aplicabilidade de rede aberta'})
-      .getByText('Revisão 2', {exact: true}).waitFor();
     assert.equal(await page.getByLabel('O ponto fica em terreno particular?').inputValue(), 'true');
     assert.equal(await page.getByLabel('Qualquer BEV compatível pode utilizar?').inputValue(), 'false');
     assert.equal(await page.getByLabel('Restringe o uso a veículos identificados?').inputValue(), 'true');
+    await page.goto(technical + 'direitos');
     assert.equal(await page.getByLabel('Titular registrado', {exact: true}).inputValue(), 'HOLDER-UX08');
     assert.equal(await page.getByLabel('Contrato registrado', {exact: true}).inputValue(), 'CONTRACT-UX08');
+    await page.goto(technical + 'analisar');
+    await closedNetwork.waitFor();
+    await page.getByRole('region', {name: 'Aplicabilidade de rede aberta'})
+      .getByText('Revisão 3', {exact: true}).waitFor();
 
     // Real checkpoint, route transition, page reload and return from the overview.
     const checkpoint = await json(await session.request.get(root + '/journey'));
@@ -172,12 +171,12 @@ test('UX-08: respostas fora de ordem, seletores persistidos, conflito e revogaç
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
       if (process.env.CARBONFLOW_TEST_SCREENSHOTS) {
         await mkdir(process.env.CARBONFLOW_TEST_SCREENSHOTS, {recursive: true});
-        await page.getByLabel('O ponto fica em terreno particular?').scrollIntoViewIfNeeded();
+        await panel.scrollIntoViewIfNeeded();
         await page.screenshot({path: process.env.CARBONFLOW_TEST_SCREENSHOTS + '/ux08-' + viewport.width + '.png'});
       }
     }
     assert.equal((await foreign.request.get(requirements)).status(), 404);
-    assert.equal((await foreign.request.put(applicability, mutation(2, saved.latest.answers))).status(), 404);
+    assert.equal((await foreign.request.put(applicability, mutation(3, saved.latest.answers))).status(), 404);
     const foreignPage = await foreign.newPage();
     await foreignPage.goto(base + '/workspace/projects/' + project.projectId + '/technical?secao=analisar');
     await foreignPage.getByRole('link', {name: 'Voltar a meus projetos'}).waitFor();
@@ -206,7 +205,7 @@ test('UX-08: respostas fora de ordem, seletores persistidos, conflito e revogaç
     assert.equal(await panel.count(), 0);
     assert.equal((await session.request.put(applicability, mutation(2, saved.latest.answers))).status(), 404);
     assert.equal(sql(`SELECT count(*) FROM app_project_open_applicability_revision
-      WHERE project_id='${project.projectId}';`), '2');
+      WHERE project_id='${project.projectId}';`), '3');
     assert.deepEqual(pilotRequests, []);
     assert.equal(sql("SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY id)::text,'[]') FROM synthetic_run s;"), pilotBefore);
   } finally {

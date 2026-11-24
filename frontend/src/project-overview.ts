@@ -164,7 +164,8 @@ export class ProjectOverviewComponent {
     if(r.area==='triage')return 'Triagem guiada';
     const names:Record<string,string>={
       inicio:'Painel de trabalho',entender:'Entender a metodologia',
-      preparar:'Informações iniciais',analisar:'Aplicabilidade',
+      preparar:'Informações iniciais',analisar:'Situação do projeto',
+      rede:'Acesso à rede',direitos:'Direitos do projeto',
       estacoes:'Estações e fronteira', 'linha-base':'Linha de base',
       adicionalidade:'Adicionalidade', monitorar:'Monitoramento',
       evidencias:'Evidências',quantificar:'Quantificação',

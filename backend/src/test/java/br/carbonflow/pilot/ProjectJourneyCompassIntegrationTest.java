@@ -128,6 +128,10 @@ class ProjectJourneyCompassIntegrationTest {
         assertEquals("qa",json(call("GET",endpoint,prep.cookie(),null)).at("/resume/step").asText());
         assertTrue(json(call("GET",endpoint,owner.cookie(),null)).path("resume").isNull(),
             "The owner's personal resume cannot contain the preparer's checkpoint.");
+        for (String screen:java.util.List.of("rede","direitos"))
+            assertEquals(200,call("PUT",endpoint+"/resume",owner.cookie(),
+                "{\"area\":\"technical\",\"screen\":\""+screen+"\",\"guide\":null,\"step\":null}").statusCode(),screen);
+        assertEquals("direitos",json(call("GET",endpoint,owner.cookie(),null)).at("/resume/screen").asText());
         database.transaction(c->{
             update(c,"""
                 UPDATE app_project_collaborator_grant

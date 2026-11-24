@@ -33,7 +33,8 @@ test('a ficha OPEN permite preparar direitos sem fonte admitida nem cálculo E8'
     await page.route('**/v1/projects/*/technical/capabilities',r=>r.fulfill({json:{
       projectId:project,environment:'SANDBOX',owner:true,
       modules:{intake:'PREPARATORY_ONLY',evidence:'NOT_ENABLED',calculation:'NOT_ENABLED'},
-      actions:['VIEW_INTAKE','SAVE_INTAKE','VIEW_OPEN_APPLICABILITY','SAVE_OPEN_APPLICABILITY'],
+      actions:['VIEW_INTAKE','SAVE_INTAKE','VIEW_OPEN_APPLICABILITY','SAVE_OPEN_APPLICABILITY',
+        'VIEW_OPEN_MONITORING','SAVE_OPEN_MONITORING'],
     }}));
     await page.route('**/v1/projects/*/technical/intake',r=>r.fulfill({json:{
       projectId:project,organizationId:organization,environment:'SANDBOX',version:1,
@@ -130,9 +131,19 @@ test('a ficha OPEN permite preparar direitos sem fonte admitida nem cálculo E8'
     }});
     });
     await page.route('**/v1/projects/*/journey/resume',r=>r.fulfill({status:204}));
-    await page.goto(base+'/workspace/projects/'+project+'/technical?secao=analisar');
-    await page.getByRole('heading',{name:'Rede aberta — aplicabilidade VM0038 v1.1 (preparação)'}).waitFor();
-    await page.getByText('Falta comprovante',{exact:true}).waitFor();
+    await page.route('**/v1/projects/*/technical/open-sites',r=>r.fulfill({json:{
+      projectId:project,environment:'SANDBOX',sites:[],chargers:[],
+      boundary:{version:0,selected:[],state:'NO_SELECTION',findings:[],usableForE8:false},
+    }}));
+    const nav=page.getByRole('navigation',{name:'Seções da preparação técnica'});
+    const saved=async label=>{
+      await page.getByRole('button',{name:label}).click();
+      await page.getByText('Declaração versionada salva. A jornada pode continuar',{exact:false}).waitFor();
+    };
+    // 1. Network access: its own screen, one persisted revision.
+    await page.goto(base+'/workspace/projects/'+project+'/technical?secao=rede');
+    await page.getByRole('heading',{name:'Acesso aos carregadores'}).waitFor();
+    assert.equal(await page.getByLabel('Nome do titular neste projeto').count(),0,'rights do not belong to the network screen');
     await page.getByLabel('Qualquer BEV compatível pode utilizar?').selectOption('true');
     await page.getByLabel('Restringe o uso a veículos identificados?').selectOption('false');
     await page.getByLabel('O ponto fica em terreno particular?').selectOption('true');
@@ -141,6 +152,13 @@ test('a ficha OPEN permite preparar direitos sem fonte admitida nem cálculo E8'
     await page.getByLabel('Energia do sistema').selectOption('SIN');
     await page.getByLabel('Existe armazenamento/geração associada?').selectOption('false');
     await page.getByLabel('O carregador devolve energia à rede (V2G)?').selectOption('false');
+    await saved('Salvar acesso sem aprovação automática');
+    assert.equal(revision,1);
+
+    // 2. Rights: holder, contract, files and disclosure, without the network questions.
+    await nav.getByRole('button',{name:'Direitos do projeto'}).click();
+    await page.getByRole('heading',{name:'Titular, contrato e divulgação'}).waitFor();
+    assert.equal(await page.getByLabel('Qualquer BEV compatível pode utilizar?').count(),0,'network questions do not belong to the rights screen');
     await page.getByLabel('Nome do titular neste projeto').fill('Operador hipotético');
     await page.getByRole('button',{name:'Registrar titular'}).click();
     await page.getByLabel('Titular registrado').selectOption({label:'Operador hipotético'});
@@ -157,6 +175,19 @@ test('a ficha OPEN permite preparar direitos sem fonte admitida nem cálculo E8'
       name:'divulgacao.pdf',mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.4\n%EOF\n'),
     });
     await disclosureFile;
+    await saved('Salvar direitos sem aprovação automática');
+    assert.equal(revision,2);
+    await page.getByText('Como estes campos entrariam no PD',{exact:true}).click();
+    await page.getByText('não é copiada',{exact:false}).waitFor();
+    await page.getByText('O PD não fica pronto.',{exact:false}).waitFor();
+    await page.getByText('Ver origem do titular',{exact:true}).click();
+    await page.getByText('CF-IMP-013',{exact:true}).waitFor();
+    await page.getByText('não designa uma pessoa',{exact:false}).waitFor();
+
+    // 3. Dates live with stations and boundary.
+    await nav.getByRole('button',{name:'Estações e fronteira'}).click();
+    await page.getByRole('heading',{name:'Datas do projeto'}).waitFor();
+    assert.equal(await page.getByLabel('Nome do titular neste projeto').count(),0);
     await page.getByLabel('Data do início operacional da estação').fill('2027-02-01');
     await page.getByLabel('Referência do documento do início operacional').fill('ATO-OP-1');
     const operationalEvent=page.waitForResponse(response=>
@@ -169,17 +200,16 @@ test('a ficha OPEN permite preparar direitos sem fonte admitida nem cálculo E8'
       response.url().includes('/events/') && response.request().method()==='PUT');
     await page.getByRole('button',{name:'Registrar início de crédito VCS',exact:true}).click();
     await vcsEvent;
-    await page.getByRole('button',{name:'Salvar declaração sem aprovação automática'}).click();
-    await page.getByText('Declaração versionada salva. A jornada pode continuar',{exact:false}).waitFor();
+    await saved('Salvar datas sem aprovação automática');
+    assert.equal(revision,3);
+
+    // 4. The status screen only reads: no form, one diagnosis, rereads after the saves.
+    await nav.getByRole('button',{name:'Situação do projeto'}).click();
     await page.getByText('Atualizado após salvar declaração',{exact:true}).waitFor();
-    assert.ok(requirementReads>=2,'A projeção de requisitos deve ser relida após o PUT persistido');
-    await page.getByText('Como estes campos entrariam no PD',{exact:true}).click();
-    await page.getByText('não é copiada',{exact:false}).waitFor();
-    await page.getByText('O PD não fica pronto.',{exact:false}).waitFor();
-    await page.getByText('Ver origem do titular',{exact:true}).click();
-    await page.getByText('CF-IMP-013',{exact:true}).waitFor();
-    await page.getByText('não designa uma pessoa',{exact:false}).waitFor();
-    assert.equal(revision,1);
+    assert.ok(requirementReads>=1,'A projeção de requisitos deve ser lida ao abrir a situação do projeto');
+    assert.equal(await page.getByLabel('Qualquer BEV compatível pode utilizar?').count(),0);
+    assert.equal(await page.getByLabel('Nome do titular neste projeto').count(),0);
+    assert.equal(await page.getByRole('button',{name:/^Salvar /}).count(),0,'a tela de situação não grava nada');
     assert.equal(answers.privateLand,true);
     assert.equal(answers.restrictedToIdentifiedVehicles,false);
     assert.equal(answers.rightsPartyCode,parties[0].code);
@@ -192,6 +222,7 @@ test('a ficha OPEN permite preparar direitos sem fonte admitida nem cálculo E8'
     const ficha=page.getByRole('region',{name:'Aplicabilidade de rede aberta'});
     await ficha.getByText('Rede aberta candidata',{exact:false}).waitFor();
     await ficha.getByText('Referência: OPEN_CANDIDATE',{exact:true}).waitFor();
+    await ficha.getByText('O que ainda precisa ser comprovado?',{exact:true}).click();
     await ficha.getByText('Divulgação aos motoristas',{exact:true}).waitFor();
     await ficha.getByText('Referência: DRIVER_DISCLOSURE',{exact:false}).waitFor();
     await ficha.getByRole('heading',{name:'Teste de mercado §4 e citação da lista positiva'}).waitFor();
@@ -203,7 +234,6 @@ test('a ficha OPEN permite preparar direitos sem fonte admitida nem cálculo E8'
     const closes=ficha.locator('dt',{hasText:'Fecha a aplicabilidade'}).locator('xpath=..');
     assert.equal((await closes.locator('dd').innerText()).trim(),'Não');
     await ficha.getByText('Dados oficiais pendentes',{exact:false}).waitFor();
-    await page.getByText('Nenhuma linha está liberada para o E8.',{exact:false}).count().then(_=>{});
     await page.getByText('Não liberado enquanto faltarem fontes',{exact:false}).waitFor();
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
     await page.setViewportSize({width:1440,height:900});

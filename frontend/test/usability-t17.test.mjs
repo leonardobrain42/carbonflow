@@ -119,8 +119,9 @@ test('o roteiro observado acha a ação, cadastra a estação, anexa o arquivo, 
     await page.getByLabel('Município').fill('Brasília');
     await page.getByRole('button',{name:'Salvar versão da estação'}).click();
     await page.getByText('Estação cadastrada em nova revisão.',{exact:false}).waitFor();
-    await page.getByRole('button',{name:'Ver aplicabilidade e direitos'}).click();
-    await page.getByRole('heading',{name:'Rede aberta — aplicabilidade VM0038 v1.1 (preparação)'}).waitFor();
+    await page.getByRole('navigation',{name:'Seções da preparação técnica'})
+      .getByRole('button',{name:'Direitos do projeto'}).click();
+    await page.getByRole('heading',{name:'Titular, contrato e divulgação'}).waitFor();
     await page.getByLabel('Nome do titular neste projeto').fill('Operador hipotético');
     await page.getByRole('button',{name:'Registrar titular'}).click();
     await page.getByLabel('Titular registrado').selectOption({label:'Operador hipotético'});
@@ -135,6 +136,7 @@ test('o roteiro observado acha a ação, cadastra a estação, anexa o arquivo, 
     await page.getByText('Como estes campos entrariam no PD',{exact:true}).click();
     await page.getByText('não é copiada',{exact:false}).waitFor();
     await page.getByText('O PD não fica pronto.',{exact:false}).waitFor();
+    await page.getByRole('button',{name:'Ver situação do projeto'}).click();
     await page.getByText('Não liberado enquanto faltarem fontes',{exact:false}).waitFor();
     assert.deepEqual(seen,['station','party','contract','file']);
     assert.equal(sites[0].details.name,'Estação Norte');

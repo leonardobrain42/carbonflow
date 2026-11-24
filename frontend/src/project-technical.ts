@@ -104,7 +104,9 @@ const SECTIONS = [
   {id:'inicio',title:'Painel de trabalho',group:'Começar'},
   {id:'entender',title:'Entender',group:'Começar'},
   {id:'preparar',title:'Preparar informações',group:'Começar'},
-  {id:'analisar',title:'Analisar',group:'Fundamentação'},
+  {id:'analisar',title:'Situação do projeto',group:'Fundamentação'},
+  {id:'rede',title:'Acesso à rede',group:'Fundamentação'},
+  {id:'direitos',title:'Direitos do projeto',group:'Fundamentação'},
   {id:'estacoes',title:'Estações e fronteira',group:'Fundamentação'},
   {id:'linha-base',title:'Linha de base',group:'Fundamentação'},
   {id:'adicionalidade',title:'Adicionalidade',group:'Fundamentação'},
@@ -174,7 +176,7 @@ export class ProjectTechnicalComponent {
     if (item.id === 'inicio') return this.can('VIEW_INTAKE');
     if (item.id === 'guias' || item.id === 'linha-base' || item.id === 'adicionalidade')
       return this.can('VIEW_GUIDES');
-    if (item.id === 'analisar') return this.can('VIEW_OPEN_APPLICABILITY') || this.can('VIEW_INTAKE');
+    if (item.id === 'analisar' || item.id === 'rede' || item.id === 'direitos') return this.can('VIEW_OPEN_APPLICABILITY') || this.can('VIEW_INTAKE');
     if (item.id === 'entender') return this.can('VIEW_JOURNEY');
     if (item.id === 'monitorar' || item.id === 'evidencias' || item.id === 'estacoes')
       return this.can('VIEW_OPEN_MONITORING');

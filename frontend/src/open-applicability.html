@@ -1,17 +1,29 @@
 <section class="cf-journey-context" aria-label="Aplicabilidade de rede aberta">
-  <h3>Rede aberta — aplicabilidade VM0038 v1.1 (preparação)</h3>
-  <p>Registre como o acesso funciona e quem declara os direitos.
-    Terreno particular e cobrança não fecham a rede: o que importa é se o uso fica restrito a veículos identificados.</p>
-  <details class="cf-journey-context">
-    <summary>O que esta declaração não substitui</summary>
-    <p>As respostas são hipóteses versionadas. Elas não substituem provas, parecer normativo, Verra ou VVB.
-      A quantificação fica na tela própria e não usa esta ficha como cálculo.</p>
-  </details>
+  @if (summary()) {
+    <h3>Rede aberta — aplicabilidade VM0038 v1.1 (preparação)</h3>
+    <p>Leitura da declaração versionada. Para alterar as respostas, use as telas
+      <strong>Acesso à rede</strong>, <strong>Direitos do projeto</strong> e
+      <strong>Estações e fronteira</strong>.</p>
+    <details class="cf-journey-context">
+      <summary>O que esta declaração não substitui</summary>
+      <p>As respostas são hipóteses versionadas. Elas não substituem provas, parecer normativo, Verra ou VVB.
+        A quantificação fica na tela própria e não usa esta ficha como cálculo.</p>
+    </details>
+  } @else if (part==='network') {
+    <h3>Acesso aos carregadores</h3>
+    <p>Terreno particular e cobrança não fecham a rede: o que importa é se o uso fica restrito a veículos identificados.</p>
+  } @else if (part==='rights') {
+    <h3>Titular, contrato e divulgação</h3>
+    <p>As respostas são hipóteses versionadas e não substituem provas, parecer normativo, Verra ou VVB.</p>
+  } @else {
+    <h3>Datas do projeto</h3>
+  }
 
   @if (loading()){<p role="status">Carregando a ficha de aplicabilidade…</p>}
   @if (error()){<p role="alert" class="cf-workspace-alert">{{error()}}</p>}
   @if (notice()){<p role="status" class="cf-workspace-note">{{notice()}}</p>}
   @if (view();as state){
+    @if (summary()) {
     <dl class="cf-tech-capabilities">
       <div><dt>Declaração</dt><dd>{{state.version ? 'Revisão '+state.version : 'Não iniciada'}}</dd></div>
       <div><dt>Rede</dt><dd>{{term(state.readiness.network)}} <small>Referência: {{state.readiness.network}}</small></dd></div>
@@ -19,11 +31,23 @@
       <div><dt>Análise normativa</dt><dd>{{term(state.readiness.norm)}} <small>Referência: {{state.readiness.norm}}</small></dd></div>
       <div><dt>Cálculo real</dt><dd>Não liberado enquanto faltarem fontes, provas e revisão</dd></div>
     </dl>
+    }
+    @if (part==='network') {
+      <p class="cf-workspace-helper">Situação: {{term(state.readiness.network)}}.
+        <small>Referência: {{state.readiness.network}}</small></p>
+    } @else if (part==='rights') {
+      <p class="cf-workspace-helper">Situação: {{term(state.readiness.rights)}}.
+        <small>Referência: {{state.readiness.rights}}</small></p>
+    }
     @if (state.readiness.stale){
       <p role="alert" class="cf-workspace-alert">A triagem foi alterada após esta revisão. Confirme a declaração e salve outra versão antes de avaliar o projeto.</p>
     }
-    @if (editable) {
+    @if (!summary() && !editable) {
+      <p class="cf-workspace-note">Esta conta pode consultar a declaração, mas não alterá-la.</p>
+    }
+    @if (!summary() && editable) {
       <form (submit)="save($event)" class="cf-open-applicability-form">
+        @if (part==='network') {
         <fieldset [disabled]="busy()">
           <legend>Como funciona o acesso aos carregadores?</legend>
           <p>As informações abaixo são independentes: terreno privado não equivale a frota fechada.</p>
@@ -94,6 +118,8 @@
             </div>
           </div>
         </fieldset>
+        }
+        @if (part==='rights') {
         <fieldset [disabled]="busy()">
           <legend>Quem possui os direitos sobre as reduções?</legend>
           <p>Contrato com o proprietário não substitui a prova de divulgação aos motoristas.
@@ -168,6 +194,23 @@
                 (change)="update('driverDisclosureEffectiveOn',$any($event.target).value)"/>
             </div>
           </div>
+          <label for="cf-open-overlap">Risco de dupla reivindicação de créditos</label>
+          <select id="cf-open-overlap" [value]="form().doubleClaimingCheck ?? 'UNKNOWN'"
+            (change)="update('doubleClaimingCheck',$any($event.target).value)">
+            <option value="UNKNOWN">Não avaliado</option>
+            <option value="REVIEW_REQUIRED">Exige consulta jurídica</option>
+            <option value="POTENTIAL_OVERLAP">Possível sobreposição identificada</option>
+            <option value="NO_OVERLAP_DECLARED">Declaração de ausência de sobreposição (revisão pendente)</option>
+          </select>
+          <label for="cf-open-explanation">Observações e limitações da declaração</label>
+          <textarea id="cf-open-explanation" rows="3" maxlength="1500"
+            [value]="form().explanation ?? ''"
+            (input)="update('explanation',$any($event.target).value)"></textarea>
+        </fieldset>
+        }
+        @if (part==='dates') {
+        <fieldset [disabled]="busy()">
+          <legend>Início operacional e início de crédito VCS</legend>
           <p>O início operacional da estação e o início de crédito VCS são eventos diferentes.
             A referência do documento não comprova a data.</p>
           <label for="cf-op-date">Data do início operacional da estação</label>
@@ -202,19 +245,9 @@
               <option [value]="event.code" [selected]="event.code === form().vcsEventCode">{{event.eventOn}} · referência não admitida</option>
             }
           </select>
-          <label for="cf-open-overlap">Risco de dupla reivindicação de créditos</label>
-          <select id="cf-open-overlap" [value]="form().doubleClaimingCheck ?? 'UNKNOWN'"
-            (change)="update('doubleClaimingCheck',$any($event.target).value)">
-            <option value="UNKNOWN">Não avaliado</option>
-            <option value="REVIEW_REQUIRED">Exige consulta jurídica</option>
-            <option value="POTENTIAL_OVERLAP">Possível sobreposição identificada</option>
-            <option value="NO_OVERLAP_DECLARED">Declaração de ausência de sobreposição (revisão pendente)</option>
-          </select>
-          <label for="cf-open-explanation">Observações e limitações da declaração</label>
-          <textarea id="cf-open-explanation" rows="3" maxlength="1500"
-            [value]="form().explanation ?? ''"
-            (input)="update('explanation',$any($event.target).value)"></textarea>
         </fieldset>
+        }
+        @if (part==='rights') {
         @if (state.pdFields?.length){
           <details>
             <summary>Como estes campos entrariam no PD</summary>
@@ -230,11 +263,13 @@
             }
           </details>
         }
+        }
         <button type="submit" class="cf-workspace-primary" [disabled]="busy()">
-          {{busy() ? 'Salvando…' : 'Salvar declaração sem aprovação automática'}}
+          {{busy() ? 'Salvando…' : saveLabel()}}
         </button>
       </form>
     }
+    @if (summary()) {
     @if (state.readiness.market; as market) {
       <h4>Teste de mercado §4 e citação da lista positiva</h4>
       <p>{{market.reason}}</p>
@@ -249,7 +284,7 @@
         <div><dt>Cálculo</dt><dd>{{market.usableForE8 ? 'Liberado' : 'Não liberado'}}</dd></div>
       </dl>
     }
-    <details class="cf-journey-context" open>
+    <details class="cf-journey-context">
       <summary>O que ainda precisa ser comprovado?</summary>
       <ul class="cf-tech-gates">
         @for (item of state.readiness.findings;track item.code){
@@ -265,5 +300,6 @@
       <p>O preenchimento não depende de todas essas fontes estarem disponíveis; a habilitação
         para cálculo real continua separada e não usa dados sintéticos como fallback.</p>
     </details>
+    }
   }
 </section>
