@@ -62,6 +62,7 @@ interface CalculationRun {
   canIssueVcu:boolean;
   gates:RunGate[];
   memory:RunMemory|null;
+  irContext?:{assessmentId:string|null;version:number|null;assessmentSha256:string|null;contextSha256:string;state:string}|null;
   timing?:{windowStart:string|null;windowEndExclusive:string|null;
     projectYear:number|null;sourceYear:number|null}|null;
 }
@@ -204,7 +205,7 @@ export class OpenCalculationReadinessComponent implements OnChanges {
   }
 
   private selectionMatches(report:CurrentSelection,project:string,period:string){
-    if(!report||report.policyVersion!=='OPEN-E8-INPUT-SELECTION@1'||report.projectId!==project
+    if(!report||!['OPEN-E8-INPUT-SELECTION@1','OPEN-E8-INPUT-SELECTION@2'].includes(report.policyVersion)||report.projectId!==project
       ||report.period!==period||report.usableForE8!==false||report.canIssueVcu!==false||!report.timing
       ||!Array.isArray(report.inputs))return false;
     const t=report.timing;
@@ -213,16 +214,21 @@ export class OpenCalculationReadinessComponent implements OnChanges {
     if(report.timingGate===null?!resolved||!t.windowStart||!t.windowEndExclusive:
       typeof report.timingGate!=='string'||!report.timingGate||t.projectYear!==null||t.sourceYear!==null)return false;
     const expected=[['ED_EC_EFEL','HOURLY_PERIOD_BINDING'],['EVR_RATINGS','FLEET_PERIOD_SELECTION'],
-      ['EF_FUEL','SOURCE_YEAR_PIN'],['IR','SOURCE_YEAR_PIN'],['DY','LEGACY_SOURCE_YEAR_PIN']];
+      ['EF_FUEL','SOURCE_YEAR_PIN'],['IR',report.policyVersion==='OPEN-E8-INPUT-SELECTION@2'?'STRUCTURED_PROJECT_SOURCE_YEAR':'SOURCE_YEAR_PIN'],['DY','LEGACY_SOURCE_YEAR_PIN']];
+    const irStates=['FIRST_YEAR_REVIEW_REQUIRED','MISSING_FOR_PROJECT_YEAR','PERIOD_REFERENCE_MISMATCH',
+      'ANNUAL_EVIDENCE_RECHECK_REQUIRED','CHECKED_INTERNAL_NOT_ADMITTED'];
     return report.inputs.length===expected.length&&report.inputs.every((ref,i)=>{
       if(!ref||ref.code!==expected[i][0]||ref.basis!==expected[i][1]
-        ||!['MISSING','MISSING_FOR_SOURCE_YEAR','TIMING_UNRESOLVED','STALE','REVIEW_REQUIRED','NOT_ADMITTED'].includes(ref.state))return false;
+        ||!['MISSING','MISSING_FOR_SOURCE_YEAR','TIMING_UNRESOLVED','STALE','REVIEW_REQUIRED','NOT_ADMITTED',
+          ...(i===3&&report.policyVersion==='OPEN-E8-INPUT-SELECTION@2'?irStates:[])].includes(ref.state))return false;
       if(i>=2&&!resolved&&(ref.id!==null||ref.state!=='TIMING_UNRESOLVED'))return false;
       if(ref.id===null)return ref.version===null&&ref.sha256===null&&
-        ['MISSING','MISSING_FOR_SOURCE_YEAR','TIMING_UNRESOLVED'].includes(ref.state);
+        ['MISSING','MISSING_FOR_SOURCE_YEAR','TIMING_UNRESOLVED',
+          ...(i===3&&report.policyVersion==='OPEN-E8-INPUT-SELECTION@2'?['FIRST_YEAR_REVIEW_REQUIRED','MISSING_FOR_PROJECT_YEAR']:[])].includes(ref.state);
       return typeof ref.id==='string'&&/^[0-9a-f-]{36}$/i.test(ref.id)&&Number.isInteger(ref.version)
         &&Number(ref.version)>0&&typeof ref.sha256==='string'&&/^[0-9a-f]{64}$/.test(ref.sha256)
-        &&['NOT_ADMITTED','STALE','TIMING_UNRESOLVED','REVIEW_REQUIRED'].includes(ref.state);
+        &&['NOT_ADMITTED','STALE','TIMING_UNRESOLVED','REVIEW_REQUIRED',
+          ...(i===3&&report.policyVersion==='OPEN-E8-INPUT-SELECTION@2'?irStates.filter(s=>s!=='MISSING_FOR_PROJECT_YEAR'):[])].includes(ref.state);
     });
   }
 
@@ -355,6 +361,11 @@ export class OpenCalculationReadinessComponent implements OnChanges {
       MISSING:'Não informado',
       MISSING_FOR_SOURCE_YEAR:'Ausente no ano das fontes',
       TIMING_UNRESOLVED:'Calendário não resolvido',
+      FIRST_YEAR_REVIEW_REQUIRED:'Primeiro ano / ex ante — fundamentação pendente',
+      MISSING_FOR_PROJECT_YEAR:'Avaliação estruturada ausente para os anos aplicáveis',
+      PERIOD_REFERENCE_MISMATCH:'Referências incompatíveis com o período',
+      ANNUAL_EVIDENCE_RECHECK_REQUIRED:'Prova anual requer rechecagem',
+      CHECKED_INTERNAL_NOT_ADMITTED:'Conferido internamente — não admitido',
       STALE:'Exige rechecagem',
       OUT_OF_SCOPE:'Fora do recorte inicial',
       NOT_ADMITTED:'Sem admissão normativa',
