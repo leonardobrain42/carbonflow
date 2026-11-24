@@ -82,6 +82,22 @@ class OpenIrAssessmentPersistenceTest {
     }
 
     @Test
+    void exAnteHandoffHasValidatedCompositeForeignKeyAndInsertGuard() {
+        assertEquals(1,database.read(c->first(c,"""
+            SELECT count(*)::int FROM flyway_schema_history WHERE version='95' AND success
+            """,r->r.getInt(1))).intValue());
+        assertEquals(2,database.read(c->first(c,"""
+            SELECT count(*)::int FROM pg_constraint
+            WHERE conrelid='app_open_ir_review'::regclass AND convalidated
+              AND conname IN ('app_open_ir_ex_ante_review_fk','app_open_ir_ex_ante_review_shape')
+            """,r->r.getInt(1))).intValue());
+        assertEquals("O",database.read(c->first(c,"""
+            SELECT tgenabled::text FROM pg_trigger WHERE tgrelid='app_open_ir_review'::regclass
+              AND tgname='app_open_ir_ex_ante_review_scope'
+            """,r->r.getString(1))));
+    }
+
+    @Test
     void digestSeparatesTextBoundariesNullAndRevision() {
         assertNotEquals(OpenIrAssessments.digest("ab","c"),OpenIrAssessments.digest("a","bc"));
         assertNotEquals(OpenIrAssessments.digest("a",null),OpenIrAssessments.digest("a",""));
