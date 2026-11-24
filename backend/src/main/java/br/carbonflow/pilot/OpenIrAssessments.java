@@ -37,6 +37,10 @@ class OpenIrAssessments {
                 String basis, String rationale, String state, String assessmentSha256,
                 String candidate, boolean stale, boolean usableForE8, OffsetDateTime recordedAt, Review review, AnnualEvidence annualEvidence) {}
     record Result(View view, boolean created) {}
+    record ProjectOption(String projectId,String title) {}
+    record Options(boolean canRecord,boolean canReview,List<ProjectOption> projects) {}
+    record PeriodOption(String period,int projectYear,int sourceYear,int latestVersion,
+                        UUID fleetSelectionId,UUID fuelPinId) {}
     private record Fleet(UUID id, UUID binding, int version, int year, String sha) {}
     private record Refs(Fleet fleet, OpenE8ProjectRuns.InputReference fuel, OpenE8Timing.Context timing,
                         int triage) {}
@@ -130,6 +134,79 @@ class OpenIrAssessments {
                 actor.id(),command,bytes(commandSha));
             return new Result(view(c,first(c,SELECT+" WHERE id=?",OpenIrAssessments::stored,id),true),true);
         });
+    }
+
+    Options options(String token) {
+        return database.transaction(c->{
+            var actor=staff(c,token);
+            var organizations=c.createArrayOf("uuid",actor.organizations().toArray(UUID[]::new));
+            try {
+                var rows=query(c,"""
+                    SELECT id,title FROM app_project
+                    WHERE organization_id=ANY(?) AND environment='SANDBOX' AND state='DRAFT'
+                    ORDER BY title,id
+                    """,r->new ProjectOption(r.getString(1),r.getString(2)),organizations);
+                var projects=new ArrayList<ProjectOption>();
+                for(var row:rows) {
+                    if(ProjectJourney.profile(ProjectGuides.candidate(c,row.projectId()))==ProjectJourney.VM0038)
+                        projects.add(row);
+                    if(projects.size()>=80) break;
+                }
+                return new Options(managers.canManage(actor.id()),reviewers.contains(actor.id()),List.copyOf(projects));
+            } finally { organizations.free(); }
+        });
+    }
+
+    private static void requireStaffProject(Connection c,String project,Set<UUID> organizations) throws SQLException {
+        UUID org=first(c,"""
+            SELECT organization_id FROM app_project
+            WHERE id=? AND environment='SANDBOX' AND state='DRAFT' FOR SHARE
+            """,r->r.getObject(1,UUID.class),project);
+        if(org==null || !organizations.contains(org) ||
+           ProjectJourney.profile(ProjectGuides.candidate(c,project))!=ProjectJourney.VM0038)
+            throw hidden();
+    }
+
+    List<PeriodOption> periodOptions(String token,String project) {
+        return database.transaction(c->{
+            var actor=managers.requireManager(c,token);
+            requireStaffProject(c,project,actor.organizations());
+            var periods=query(c,"""
+                SELECT DISTINCT period_code FROM app_open_e8_fleet_selection
+                WHERE project_id=? ORDER BY period_code LIMIT 100
+                """,r->r.getString(1),project);
+            var result=new ArrayList<PeriodOption>();
+            for(String period:periods) {
+                Refs refs=references(c,project,period);
+                if(refs==null) continue;
+                int year=refs.timing().year().projectYear(),source=refs.timing().year().sourceYear();
+                Integer latest=first(c,"""
+                    SELECT coalesce(max(version),0) FROM app_open_ir_assessment
+                    WHERE project_id=? AND project_year=? AND source_year=?
+                    """,r->r.getInt(1),project,year,source);
+                result.add(new PeriodOption(period,year,source,latest,refs.fleet().id(),refs.fuel().id()));
+            }
+            return List.copyOf(result);
+        });
+    }
+
+    List<View> recent(String token,String project,boolean staffView) {
+        if(!staffView) return scope.read(token,project,"VIEW_OPEN_PARAMETER_BINDING",
+            (c,ctx)->recentRows(c,project,false));
+        return database.transaction(c->{
+            var actor=staff(c,token);
+            requireStaffProject(c,project,actor.organizations());
+            return recentRows(c,project,true);
+        });
+    }
+
+    private static List<View> recentRows(Connection c,String project,boolean staff) throws SQLException {
+        var result=new ArrayList<View>();
+        for(var row:query(c,SELECT+"""
+            WHERE project_id=? ORDER BY recorded_at DESC,id LIMIT 50
+            """,OpenIrAssessments::stored,project))
+            result.add(view(c,row,staff));
+        return List.copyOf(result);
     }
 
     List<View> history(String token,String project,int year,int sourceYear) {
