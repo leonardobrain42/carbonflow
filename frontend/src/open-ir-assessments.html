@@ -142,6 +142,9 @@
                       <p>Responsável previsto: {{target.plan[metric.key].responsible}}</p>
                       <p>Procedimento previsto: {{target.plan[metric.key].procedure}}</p>
                       <p>Referência efetiva: <code>{{actualReference(row,metric.key) ?? 'Indisponível'}}</code></p>
+                      @for (source of row.reviewReferences?.[metric.key] ?? [];track $index) {
+                        <p>Fonte efetiva: {{source.title}} · edição {{source.edition}} · ano {{source.referenceYear ?? 'Não informado'}} · <code>{{source.sourceId}}</code></p>
+                      } @empty { <p>Metadados efetivos indisponíveis.</p> }
                       <label [attr.for]="'cf-ir-match-'+metric.key+'-'+row.id">Conciliação {{metric.label}}</label>
                       <select [id]="'cf-ir-match-'+metric.key+'-'+row.id" [value]="initialDecision[metric.key]"
                         (change)="initialDecision[metric.key]=$any($event.target).value" [disabled]="busy()" required>
