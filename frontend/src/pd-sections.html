@@ -120,6 +120,74 @@
             }
           }
 
+          @if (annualYear(); as year) {
+            <button type="button" class="cf-workspace-outline" [disabled]="busy()" (click)="loadAnnual()">
+              Conferir consolidação anual nesta seção</button>
+            <p>Consulta do ano {{year}} do projeto, conforme a tentativa nomeada. Não é o ano civil da fonte.</p>
+          } @else {
+            <p>Ano do projeto não registrado nesta tentativa. Não é possível vinculá-la a uma consolidação anual.</p>
+          }
+          @if (annualLoading()) { <p role="status">Conferindo a consolidação anual autorizada…</p> }
+          @if (annualError()) { <p role="alert">{{annualError()}}</p> }
+          @if (annualDetail(); as annual) {
+            <section aria-label="Consolidação anual consultada" class="cf-journey-context">
+              <h5>Consolidação atual · ano {{annual.projectYear}} do projeto</h5>
+              <p>A tentativa desta seção integra a consulta atual. As referências e valores são do servidor.
+                A consulta não congela o ano na narrativa nem substitui a memória por período.</p>
+              @if (annual.windowStart && annual.windowEndExclusive) {
+                <p>Janela UTC: {{annual.windowStart}} até {{annual.windowEndExclusive}} (fim exclusivo).</p>
+              }
+              @if (annual.totals; as totals) {
+                <p><strong>Ensaio interno anual, sem admissão normativa.</strong></p>
+                <dl class="cf-tech-capabilities">
+                  <div><dt>BE anual</dt><dd>{{totals.beTco2e}} tCO2e</dd></div>
+                  <div><dt>PE anual</dt><dd>{{totals.peTco2e}} tCO2e</dd></div>
+                  <div><dt>LE anual</dt><dd>{{totals.leTco2e}} tCO2e</dd></div>
+                  <div><dt>ER anual bruto</dt><dd>{{totals.erTco2e}} tCO2e</dd></div>
+                  <div><dt>ER anual apresentado</dt><dd>{{totals.erDisplay}} tCO2e</dd></div>
+                </dl>
+              } @else {
+                <p><strong>Total anual indisponível. Ausência não é zero.</strong></p>
+                <ul class="cf-tech-gates">
+                  @for (issue of annual.issues; track $index) {
+                    <li>
+                      <p>{{issue.period ? issue.period + ' · ' : ''}}{{issue.detail}}</p>
+                      @if (issue.from && issue.until) { <p>{{issue.from}} até {{issue.until}} (fim exclusivo).</p> }
+                      <small>Referência: {{issue.code}}</small>
+                    </li>
+                  }
+                </ul>
+              }
+              <details>
+                <summary>Períodos e versões da consulta anual · {{annual.members.length}}</summary>
+                <div class="table-scroll" tabindex="0" aria-label="Referências das janelas anuais">
+                  <table>
+                    <caption>Tentativas atuais consideradas pelo servidor</caption>
+                    <thead><tr><th scope="col">Período</th><th scope="col">Janela (fim exclusivo)</th><th scope="col">Referência</th><th scope="col">Estado</th></tr></thead>
+                    <tbody>
+                      @for (member of annual.members; track $index) {
+                        <tr>
+                          <th scope="row">{{member.period}} @if (member.runId === provenance.runId) { · desta seção }</th>
+                          <td>{{member.windowStart ?? 'Início desconhecido'}} até {{member.windowEndExclusive ?? 'Fim desconhecido'}}</td>
+                          <td>
+                            @if (member.runId) {
+                              <p class="energy-hash">{{member.runId}} · v{{member.version}}</p>
+                              <p class="energy-hash">SHA-256: {{member.inputSha256 ?? 'Não registrado'}}</p>
+                            } @else { Sem tentativa }
+                          </td>
+                          <td>{{member.state}} @if (member.stale) { · Requer rechecagem }</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </details>
+              <p class="energy-hash">SHA-256 da consulta atual: {{annual.manifestSha256}}</p>
+              <p>Motor da consolidação: {{annual.engine}}. Não há soma, arredondamento ou reconstrução no PD.
+                O documento não fica pronto e nenhum crédito é emitido.</p>
+            </section>
+          }
+
           <details>
             <summary>Conferir origem, unidades e revisão da memória</summary>
             <dl>

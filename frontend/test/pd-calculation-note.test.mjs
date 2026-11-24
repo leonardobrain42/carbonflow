@@ -46,6 +46,48 @@ test('a seção de quantificação nomeia a memória ou o bloqueio', async () =>
         },
       }});
     });
+    let annualMode='OK';
+    let annualRequests=0;
+    let releaseAnnual;
+    let annualArrived;
+    const yearlyRun='30000000-0000-4000-8000-000000000122';
+    const yearlyHash='abcdef0123456789'.repeat(4);
+    await page.route('**/technical/open-calculation-years/*', async route => {
+      annualRequests++;
+      assert.equal(new URL(route.request().url()).pathname,
+        '/v1/projects/'+project+'/technical/open-calculation-years/1');
+      const mode=annualMode;
+      if (mode==='DELAY') await new Promise(resolve => {
+        releaseAnnual=resolve;
+        if (annualArrived) annualArrived();
+      });
+      if (mode==='DENIED') return route.fulfill({status:404,json:{message:'Indisponível'}});
+      const blocked=mode==='BLOCKED'||mode==='BLOCKED_TOTAL';
+      const selected={
+        period:'M1',runId:mode==='REPLACED'?'new-run':yearlyRun,
+        version:mode==='VERSION'?3:2,inputSha256:mode==='HASH'?'other-snapshot':yearlyHash,
+        projectYear:1,windowStart:'2027-02-01T00:00:00Z',windowEndExclusive:'2027-02-01T01:00:00Z',
+        state:'REVIEWED_INTERNAL',stale:mode==='STALE',
+        totals:{beTco2e:'4.05',peTco2e:mode==='MISMATCH'?'8':'1.5',leTco2e:'0',erTco2e:'2.5500',erDisplay:'2.55'},
+      };
+      const second={period:'M2',runId:'30000000-0000-4000-8000-000000000123',version:1,
+        inputSha256:'0'.repeat(64),projectYear:1,windowStart:'2027-02-01T01:00:00Z',
+        windowEndExclusive:'2028-02-01T00:00:00Z',state:'REVIEWED_INTERNAL',stale:false,
+        totals:{beTco2e:'7',peTco2e:'3',leTco2e:'0',erTco2e:'4.0050',erDisplay:'4.00'}};
+      const totals={beTco2e:'11.05',peTco2e:'4.5',leTco2e:'0',erTco2e:'6.5550',erDisplay:'6.56'};
+      return route.fulfill({json:{
+        projectId:mode==='PROJECT'?'other-project':project,projectYear:mode==='YEAR'?2:1,
+        engine:'vm0038-open-annual-consolidation@1',
+        state:blocked?'BLOCKED':'REVIEWED_INTERNAL',usableForE8:mode==='ADMITTED',canIssueVcu:mode==='ISSUED',
+        windowStart:'2027-02-01T00:00:00Z',windowEndExclusive:'2028-02-01T00:00:00Z',
+        manifestSha256:'b'.repeat(64),
+        totals:mode==='BLOCKED'?null:totals,
+        members:mode==='DUPLICATE'?[selected,selected]:[selected,second],
+        issues:blocked?[{code:'COVERAGE_GAP',period:'M2',from:'2027-03-01T00:00:00Z',
+          until:'2027-04-01T00:00:00Z',detail:'Falta uma janela de monitoramento.'}]:[],
+        privateRating:'PRIVATE-ANNUAL-RATING',
+      }});
+    });
     let fleetMode='OK';
     let fleetRequests=0;
     let releaseFleet;
@@ -190,6 +232,62 @@ test('a seção de quantificação nomeia a memória ou o bloqueio', async () =>
     assert.equal(await memoryLink.getAttribute('href'), memory.provenance.memoryHref);
     const memoryButton=page.getByRole('button', {name:'Conferir memória nesta seção'});
     const memoryPanel=page.getByRole('region', {name:'Memória canônica consultada'});
+    const annualButton=page.getByRole('button', {name:'Conferir consolidação anual nesta seção'});
+    const annualPanel=page.getByRole('region', {name:'Consolidação anual consultada'});
+    assert.equal(annualRequests,0,'Annual projection must be explicitly requested');
+    await annualButton.focus();
+    await page.keyboard.press('Enter');
+    await annualPanel.getByRole('heading',{name:'Consolidação atual · ano 1 do projeto'}).waitFor();
+    for (const value of ['11.05','4.5','6.5550','6.56']) {
+      await annualPanel.getByText(value+' tCO2e',{exact:true}).waitFor();
+    }
+    await annualPanel.getByText('Períodos e versões da consulta anual · 2').click();
+    await annualPanel.getByRole('rowheader',{name:'M1 · desta seção'}).waitFor();
+    await annualPanel.getByRole('rowheader',{name:'M2',exact:true}).waitFor();
+    await annualPanel.getByText(yearlyHash,{exact:false}).waitFor();
+    assert.equal(await annualPanel.getByText('PRIVATE-ANNUAL-RATING',{exact:false}).count(),0);
+    await page.setViewportSize({width:390,height:844});
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
+    annualMode='BLOCKED';
+    await annualButton.click();
+    await annualPanel.getByText('Total anual indisponível. Ausência não é zero.',{exact:true}).waitFor();
+    await annualPanel.getByText('Referência: COVERAGE_GAP',{exact:true}).waitFor();
+    assert.equal(await annualPanel.getByText('6.56 tCO2e',{exact:true}).count(),0);
+    for (const mode of ['REPLACED','VERSION','HASH','DUPLICATE']) {
+      annualMode=mode;
+      await annualButton.click();
+      await page.getByRole('alert').filter({hasText:'não contém a tentativa exata'}).waitFor();
+      assert.equal(await annualPanel.count(),0);
+    }
+    for (const mode of ['PROJECT','YEAR','ADMITTED','ISSUED','MISMATCH','STALE','BLOCKED_TOTAL']) {
+      annualMode=mode;
+      await annualButton.click();
+      await page.getByRole('alert').filter({hasText:'Não foi possível conferir a consolidação anual'}).waitFor();
+      assert.equal(await annualPanel.count(),0);
+    }
+    annualMode='DENIED';
+    await annualButton.click();
+    await page.getByRole('alert').filter({hasText:'Consolidação anual protegida ou indisponível'}).waitFor();
+    assert.equal(await annualPanel.count(),0);
+    annualMode='DELAY';
+    const annualArrival=new Promise(resolve=>{annualArrived=resolve;});
+    await annualButton.click();
+    await annualArrival;
+    const annualResponse=page.waitForResponse(response=>response.url().includes('/open-calculation-years/'));
+    await memoryButton.click();
+    await memoryPanel.getByRole('heading',{name:'Resultados registrados pelo motor · M1'}).waitFor();
+    releaseAnnual();
+    await annualResponse;
+    assert.equal(await annualPanel.count(),0);
+    assert.equal(await page.getByText('Conferindo a consolidação anual autorizada…',{exact:true}).count(),0);
+    const timing=memory.provenance.timing;
+    memory.provenance.timing=null;
+    await page.getByRole('button',{name:'Atualizar seções'}).click();
+    await page.getByText('Ano do projeto não registrado nesta tentativa.',{exact:false}).waitFor();
+    assert.equal(await annualButton.count(),0);
+    memory.provenance.timing=timing;
+    await page.getByRole('button',{name:'Atualizar seções'}).click();
+    await annualButton.waitFor();
     await memoryButton.focus();
     await page.keyboard.press('Enter');
     await memoryPanel.getByRole('heading', {name:'Resultados registrados pelo motor · M1'}).waitFor();
@@ -376,6 +474,8 @@ test('a seção de quantificação nomeia a memória ou o bloqueio', async () =>
     await page.getByText('não escreve zero').waitFor();
     assert.equal(await page.getByText('4.05 tCO2e').count(), 0);
     assert.equal(await memoryLink.count(), 0);
+    assert.equal(await annualButton.count(),0);
+    assert.equal(await annualPanel.count(),0);
     assert.equal(await page.getByText('vm0038-open-grid-arithmetic@2-hourly', {exact:true}).count(), 0);
     situation = 'RESTRICTED';
     await page.getByRole('button', {name:'Atualizar seções'}).click();
@@ -383,6 +483,8 @@ test('a seção de quantificação nomeia a memória ou o bloqueio', async () =>
     assert.equal(await memoryLink.count(), 0);
     assert.equal(await page.getByText('4.05 tCO2e').count(), 0);
     assert.equal(await page.locator('#pd-narrative').inputValue(), '');
+    assert.equal(await annualButton.count(),0);
+    assert.equal(await annualPanel.count(),0);
     assert.equal(mutations, 0);
     assert.ok(selectedRequests.length >= 3);
     for (const params of selectedRequests) {
