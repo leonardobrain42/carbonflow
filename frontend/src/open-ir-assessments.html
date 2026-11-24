@@ -108,7 +108,16 @@
           <p>Continuidade anual: {{label(proof.state)}}.</p>
           @if (proof.priorAssessmentId) { <p>Avaliação anterior: <code>{{proof.priorAssessmentId}}</code></p> }
           @if (proof.evidenceSha256) { <p>Hash da prova: <code>{{proof.evidenceSha256}}</code></p> }
-          <p>A continuidade entre referências não comprova atualização dentro do prazo metodológico.</p>
+          @if (proof.window;as w) {
+            <p>Janela anual congelada: {{w.yearFrom}} até {{w.yearUntil}} (exclusivo).</p>
+            <p>Período coberto: {{w.periodFrom}} até {{w.periodUntil}} (exclusivo). Parecer: {{w.reviewedOn}}.</p>
+          }
+          @for (item of proof.temporalItems ?? [];track item.evidence.metric) {
+            <p>{{item.evidence.metric}} · atualização {{item.evidence.updatedOn}} · vigência {{item.evidence.validFrom}} até {{item.evidence.validUntil}} (exclusivo).</p>
+            @if (item.evidence.evidenceLocator) { <p>Localizador: {{item.evidence.evidenceLocator}}</p> }
+            <p>Referência vinculada: <code>{{item.referenceSha256}}</code></p>
+          }
+          <p>Datas e localizadores são conferidos internamente; não constituem certificação documental ou prazo normativo Verra.</p>
         }
         @if (canReview(row)) {
           <button type="button" class="cf-workspace-outline" [disabled]="busy()" (click)="beginReview(row)">Preparar parecer de IR</button>
@@ -169,7 +178,32 @@
                     <option [value]="prior.id">Ano {{prior.projectYear}} · fonte {{prior.sourceYear}} · v{{prior.version}} · {{prior.period}}</option>
                   }
                 </select>
-                @if (!priors(row).length) { <p role="status">Não há avaliação anterior consecutiva no histórico recente. Solicite complementação; ano inicial permanece pendente.</p> }
+                @if (!priors(row).length) { <p role="status">Não há avaliação anterior consecutiva com prova vigente no histórico recente. Solicite complementação.</p> }
+                @if (row.temporalWindow;as w) {
+                  <p>Janela anual do projeto: {{w.yearFrom}} até {{w.yearUntil}} (exclusivo). Período: {{w.periodFrom}} até {{w.periodUntil}} (exclusivo).</p>
+                  <p>Controle interno: data observada dentro do ano e não futura; vigência deve cobrir o período. Não é um prazo normativo Verra.</p>
+                  @for (metric of metrics;track metric.key) {
+                    <fieldset class="cf-journey-context" style="min-width:0">
+                      <legend>{{metric.label}}</legend>
+                      <p>Referência efetiva: <code>{{actualReference(row,metric.key) ?? 'Indisponível'}}</code></p>
+                      @for (source of row.reviewReferences?.[metric.key] ?? [];track $index) {
+                        <p>{{source.title}} · edição {{source.edition}} · ano {{source.referenceYear ?? 'Não informado'}}</p>
+                      }
+                      <label [attr.for]="'cf-ir-updated-'+metric.key+'-'+row.id">Data de atualização {{metric.label}}</label>
+                      <input type="date" [id]="'cf-ir-updated-'+metric.key+'-'+row.id" [value]="temporal[metric.key].updatedOn"
+                        (input)="temporal[metric.key].updatedOn=$any($event.target).value" [min]="w.yearFrom" [max]="w.reviewedOn" [disabled]="busy()" required>
+                      <label [attr.for]="'cf-ir-valid-from-'+metric.key+'-'+row.id">Vigência inicial {{metric.label}}</label>
+                      <input type="date" [id]="'cf-ir-valid-from-'+metric.key+'-'+row.id" [value]="temporal[metric.key].validFrom"
+                        (input)="temporal[metric.key].validFrom=$any($event.target).value" [max]="w.periodFrom" [disabled]="busy()" required>
+                      <label [attr.for]="'cf-ir-valid-until-'+metric.key+'-'+row.id">Vigência final exclusiva {{metric.label}}</label>
+                      <input type="date" [id]="'cf-ir-valid-until-'+metric.key+'-'+row.id" [value]="temporal[metric.key].validUntil"
+                        (input)="temporal[metric.key].validUntil=$any($event.target).value" [min]="w.periodUntil" [disabled]="busy()" required>
+                      <label [attr.for]="'cf-ir-temporal-ref-'+metric.key+'-'+row.id">Localizador da atualização {{metric.label}}</label>
+                      <input [id]="'cf-ir-temporal-ref-'+metric.key+'-'+row.id" [value]="temporal[metric.key].evidenceLocator"
+                        (input)="temporal[metric.key].evidenceLocator=$any($event.target).value" minlength="3" maxlength="2000" [disabled]="busy()" required>
+                    </fieldset>
+                  }
+                } @else { <p role="status">Janela temporal indisponível. Reconfirme calendário e período.</p> }
               }
               <label [attr.for]="'cf-ir-locator-'+row.id">Localizador da evidência</label>
               <input [id]="'cf-ir-locator-'+row.id" [value]="locator" (input)="locator=$any($event.target).value"
