@@ -25,7 +25,8 @@ import java.util.stream.Collectors;
 class OpenDyAssessments {
     record Input(Integer projectYear, String outcome, String erc, String erf,
                  String programs, String projectReferences, String evidenceLocator, String coverageNote,
-                 List<OpenDyIssuances.Input> issuances, List<OpenDySourceRights.Input> sourceLicenses) {}
+                 List<OpenDyIssuances.Input> issuances, List<OpenDySourceRights.Input> sourceLicenses,
+                 List<OpenDySearchCoverage.Row> searchCoverage) {}
     record ReviewInput(String assessmentSha256, String outcome, String ruleReference,
                        String evidenceReferences, String reason) {}
     record Review(UUID reviewerId, String outcome, String assessmentSha256, String ruleReference,
@@ -39,7 +40,8 @@ class OpenDyAssessments {
                 String evidenceLocator, String coverageNote, String assessmentSha256,
                 OffsetDateTime recordedAt, String state, boolean stale, boolean usableForE8, Review review,
                 int issuanceCount, String issuanceState, List<OpenDyIssuances.Row> issuances,
-                String sourceRightsState, List<OpenDySourceRights.Pin> sourceLicenses) {}
+                String sourceRightsState, List<OpenDySourceRights.Pin> sourceLicenses,
+                String coverageState, int coverageCount, List<OpenDySearchCoverage.Row> searchCoverage) {}
     record Result(View view, boolean created) {}
     record History(String projectId, int projectYear, int latestVersion, OffsetDateTime priorStart,
                    OffsetDateTime priorEndExclusive, String calendarGate, List<View> assessments) {}
@@ -128,6 +130,7 @@ class OpenDyAssessments {
             OpenDyAssessmentRules.Values values;
             List<OpenDyIssuances.Row> issuances;
             List<OpenDySourceRights.Input> licenses;
+            List<OpenDySearchCoverage.Row> coverage;
             try {
                 programs=OpenDyAssessmentRules.text(input.programs(),3,1000);
                 refs=OpenDyAssessmentRules.text(input.projectReferences(),3,2000);
@@ -136,7 +139,8 @@ class OpenDyAssessments {
                 // Replay identity does not depend on the *current* calendar.
                 values=OpenDyAssessmentRules.values(input.outcome(),input.erc(),input.erf(),null);
                 issuances=OpenDyIssuances.normalize(input.issuances());
-                licenses=OpenDySourceRights.normalize(input.sourceLicenses(),issuances);
+                coverage=OpenDySearchCoverage.normalize(input.searchCoverage());
+                licenses=OpenDySourceRights.normalize(input.sourceLicenses(),issuances,coverage);
             } catch (IllegalArgumentException e) { throw invalid(e.getMessage()); }
             String erc=OpenDyAssessmentRules.number(values.erc());
             String erf=OpenDyAssessmentRules.number(values.erf());
@@ -162,6 +166,16 @@ class OpenDyAssessments {
                 }
                 fingerprint=digest(parts.toArray());
             }
+            if (!coverage.isEmpty()) {
+                var parts=new java.util.ArrayList<Object>();
+                parts.add("OPEN-DY-COVERAGE@1");parts.add(fingerprint);
+                for (var row:coverage) {
+                    parts.add(row.program());parts.add(row.creditKind());parts.add(row.territory());parts.add(row.result());
+                    parts.add(row.searchedFrom());parts.add(row.searchedUntilExclusive());parts.add(row.searchedOn());
+                    parts.add(row.sourceId());parts.add(row.sourceEdition());parts.add(row.locator());parts.add(row.limitations());
+                }
+                fingerprint=digest(parts.toArray());
+            }
             Stored replay=first(c,SELECT+" WHERE author_id=? AND command_key=?",
                 OpenDyAssessments::stored,actor.id(),command);
             if (replay!=null) {
@@ -172,9 +186,13 @@ class OpenDyAssessments {
             Calendar calendar=calendar(c,project,year);
             if (calendar.gate()!=null && !"INCONCLUSIVE".equals(values.outcome()))
                 throw invalid("O ano anterior não está resolvido. Registre pesquisa inconclusiva.");
-            try { OpenDyIssuances.reconcile(issuances,values,calendar.from(),calendar.until()); }
+            try {
+                OpenDyIssuances.reconcile(issuances,values,calendar.from(),calendar.until());
+                OpenDySearchCoverage.validate(coverage,issuances,values,calendar.from(),calendar.until());
+            }
             catch (IllegalArgumentException e) { throw invalid(e.getMessage()); }
-            for (var row:issuances) requireSourceMetadata(c,row);
+            for (var row:issuances) requireSourceMetadata(c,row.sourceId(),row.sourceEdition());
+            for (var row:coverage) requireSourceMetadata(c,row.sourceId(),row.sourceEdition());
             Integer current=first(c,"""
                 SELECT max(version) FROM app_open_dy_assessment WHERE project_id=? AND project_year=?
                 """,r->r.getObject(1,Integer.class),project,year);
@@ -215,6 +233,7 @@ class OpenDyAssessments {
                     row.sourceId(),row.sourceEdition(),row.locator());
             }
             sourceRights.store(c,id,pins);
+            OpenDySearchCoverage.store(c,id,coverage);
             return new Result(view(c,first(c,SELECT+" WHERE id=?",OpenDyAssessments::stored,id),true),true);
         });
     }
@@ -271,14 +290,14 @@ class OpenDyAssessments {
         });
     }
 
-    private static void requireSourceMetadata(Connection c,OpenDyIssuances.Row row) throws SQLException {
+    private static void requireSourceMetadata(Connection c,String source,String edition) throws SQLException {
         // Metadata reference only, not a license to retrieve or process source content.
         Boolean found=first(c,"""
             SELECT true FROM app_source_version
             WHERE source_id=? AND edition=? AND category='EXTERNAL_SOURCE'
               AND origin='EXTERNAL' AND official_uri IS NOT NULL AND btrim(official_uri)<>''
             FOR SHARE
-            """,r->true,row.sourceId(),row.sourceEdition());
+            """,r->true,source,edition);
         if (!Boolean.TRUE.equals(found))
             throw invalid("A edição de fonte externa com URI oficial precisa estar cadastrada.");
     }
@@ -338,6 +357,9 @@ class OpenDyAssessments {
         boolean details=staff && !check.blocked();
         Review review=readReview(c,row.id(),details);
         var items=issuances(c,row.id());
+        var coverage=OpenDySearchCoverage.read(c,row.id());
+        String coverageState=coverage.isEmpty()?"NO_SEARCH_MATRIX":check.blocked()?"SEARCH_RIGHTS_RECHECK_REQUIRED":
+            "INCONCLUSIVE".equals(row.outcome())?"SEARCH_INCONCLUSIVE":"DECLARED_MATRIX_COMPLETE";
         String state=stale?"STALE_NOT_ADMITTED":review==null?"DECLARED_NOT_ADMITTED":
             review.outcome()+"_NOT_ADMITTED";
         return new View(row.id(),row.project(),row.year(),row.version(),"VM0038","1.1","BR",
@@ -345,7 +367,7 @@ class OpenDyAssessments {
             details?row.programs():null,details?row.references():null,details?row.locator():null,details?row.note():null,
             row.sha(),row.at(),state,stale,false,review,items.size(),
             items.isEmpty()?"UNITEMIZED":"DECLARED_TOTALS_RECONCILED",details?List.copyOf(items):List.of(),
-            check.state(),staff?check.pins():List.of());
+            check.state(),staff?check.pins():List.of(),coverageState,coverage.size(),details?List.copyOf(coverage):List.of());
     }
 
     private static Calendar calendar(Connection c,String project,int year) throws SQLException {

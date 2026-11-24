@@ -102,3 +102,27 @@ originais e pareceres permanecem imutáveis. Nova decisão exige nova avaliaçã
 A licença vigente não verifica a emissão, a cobertura nacional, rateio ou a
 admissibilidade metodológica. Não há acesso automático a fonte externa, nem
 habilitação de E8. A V85 é aditiva; o CI de upgrade histórico é atualizado.
+
+## V86 — matriz declarada de cobertura nacional
+
+Uma avaliação pode incluir até 100 consultas individualizadas por programa e
+categoria ERC/ERF: território nacional BR ou parcial BR, resultado positivo,
+sem resultados ou inconclusivo, janela consultada com fim exclusivo, data da
+consulta, edição da fonte, localizador e limites. A consulta concluída deve ser
+posterior ao fechamento da janela. Para avaliações conclusivas com matriz,
+exige ambos os tipos por programa declarado, janela canônica completa,
+abrangência nacional declarada, nenhum resultado incompleto e relação exata
+entre resultados positivos e emissões individualizadas na mesma fonte/edição.
+Totais positivos não podem existir sem itens. Lacunas só são registradas com
+resultado geral inconclusivo, sem números. Zero não é ausência comprovada.
+
+Todas as fontes da matriz (inclusive buscas negativas sem emissões) exigem
+licença exata vigente, junto às fontes dos itens. Nenhuma licença é inferida.
+Matriz, decisões e hashes integram a avaliação imutável. Revogação oculta
+conteúdo e exige nova avaliação. A leitura do projeto recebe somente estado
+agregado e contagem. A pesquisa histórica sem matriz mantém seu hash original.
+DECLARED_MATRIX_COMPLETE significa apenas consistência dos programas
+informados, não comprovação de que o universo de programas é exaustivo.
+A nota de cobertura deve fundamentar a seleção desse universo; nenhuma lista
+oficial completa ou verificação externa é inferida. Não admite E8 nem resolve
+rateio ou primeiro ano. V86 exclusivamente aditiva.

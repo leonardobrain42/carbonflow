@@ -8,6 +8,9 @@ type Factor = {id:string; periodYear:number; status:string; normalizedUnit:strin
 type Board = {candidates:Factor[]};
 type DyIssuance = {program:string;registryProject:string;issuanceId:string;creditKind:string;
   issuedOn:string;geography:string;creditsTco2e:string;sourceId:string;sourceEdition:string;locator:string};
+type DyCoverage = {program:string;creditKind:string;territory:string;result:string;
+  searchedFrom:string;searchedUntilExclusive:string;searchedOn:string;sourceId:string;sourceEdition:string;
+  locator:string;limitations:string};
 type DyLicensePin = {sourceId:string;sourceEdition:string;licenseId:string;decisionVersion?:number};
 type DyReview = {outcome:string;assessmentSha256:string;ruleReference:string|null;
   evidenceReferences:string|null;reason:string|null;reviewedAt:string};
@@ -18,7 +21,8 @@ type DyAssessment = {id:string;projectId:string;projectYear:number;version:numbe
   projectReferences:string|null;evidenceLocator:string|null;coverageNote:string|null;
   assessmentSha256:string;recordedAt:string;state:string;stale:boolean;usableForE8:boolean;review?:DyReview|null;
   issuanceCount?:number;issuanceState?:string;issuances?:DyIssuance[];
-  sourceRightsState?:string;sourceLicenses?:DyLicensePin[]};
+  sourceRightsState?:string;sourceLicenses?:DyLicensePin[];
+  coverageState?:string;coverageCount?:number;searchCoverage?:DyCoverage[]};
 type DyHistory = {projectId:string;projectYear:number;latestVersion:number;
   priorStart:string|null;priorEndExclusive:string|null;calendarGate:string|null;
   assessments:DyAssessment[]};
@@ -53,6 +57,7 @@ export class PlatformParameterPinsComponent implements OnChanges, OnDestroy {
   dyEvidence='';
   dyNote='';
   dyIssuances:DyIssuance[]=[];
+  dyCoverage:DyCoverage[]=[];
   dyBindLicenses=false;
   dyLicenseIds:Record<string,string>={};
   reviewOutcome='';
@@ -149,7 +154,7 @@ export class PlatformParameterPinsComponent implements OnChanges, OnDestroy {
     this.dyHistory.set(null);this.dyBusy.set(false);
     this.dyMessage.set('');this.dyError.set('');
     this.dyOutcome='';this.dyErc='';this.dyErf='';
-    this.dyPrograms='';this.dyReferences='';this.dyEvidence='';this.dyNote='';this.dyIssuances=[];this.dyBindLicenses=false;this.dyLicenseIds={};
+    this.dyPrograms='';this.dyReferences='';this.dyEvidence='';this.dyNote='';this.dyIssuances=[];this.dyCoverage=[];this.dyBindLicenses=false;this.dyLicenseIds={};
     this.reviewOutcome='';this.reviewRule='';this.reviewEvidence='';this.reviewReason='';
   }
 
@@ -160,7 +165,7 @@ export class PlatformParameterPinsComponent implements OnChanges, OnDestroy {
   }
 
   dyOutcomeChanged(value:string){
-    this.dyOutcome=value;this.dyErc='';this.dyErf='';this.dyIssuances=[];this.dyBindLicenses=false;this.dyLicenseIds={};
+    this.dyOutcome=value;this.dyErc='';this.dyErf='';this.dyIssuances=[];this.dyCoverage=[];this.dyBindLicenses=false;this.dyLicenseIds={};
   }
 
   addDyIssuance(){
@@ -173,10 +178,19 @@ export class PlatformParameterPinsComponent implements OnChanges, OnDestroy {
     if(!this.dyBusy())this.dyIssuances=this.dyIssuances.filter((_,i)=>i!==index);
   }
 
+  addDyCoverage(){
+    if(this.dyBusy()||!this.dyOutcome||this.dyCoverage.length>=100)return;
+    this.dyCoverage=[...this.dyCoverage,{program:'',creditKind:'',territory:'',result:'',
+      searchedFrom:'',searchedUntilExclusive:'',searchedOn:'',sourceId:'',sourceEdition:'',locator:'',limitations:''}];
+    this.dyBindLicenses=true;
+  }
+  removeDyCoverage(index:number){
+    if(!this.dyBusy())this.dyCoverage=this.dyCoverage.filter((_,i)=>i!==index);
+  }
   dySourceKey(sourceId:string,sourceEdition:string){return JSON.stringify([sourceId.trim(),sourceEdition.trim()]);}
   dySources(){
     const sources=new Map<string,{key:string;sourceId:string;sourceEdition:string}>();
-    for(const row of this.dyIssuances){
+    for(const row of [...this.dyIssuances,...this.dyCoverage]){
       const sourceId=row.sourceId.trim(),sourceEdition=row.sourceEdition.trim();
       if(!sourceId||!sourceEdition)continue;
       const key=this.dySourceKey(sourceId,sourceEdition);
@@ -191,7 +205,8 @@ export class PlatformParameterPinsComponent implements OnChanges, OnDestroy {
     }));
   }
   dyRightsReady(){
-    return !this.dyBindLicenses||(this.dyIssuances.length>0&&this.dyIssuances.every(r=>r.sourceId.trim()&&r.sourceEdition.trim())
+    const rows=[...this.dyIssuances,...this.dyCoverage];
+    return (!this.dyBindLicenses&&!this.dyCoverage.length)||(this.dyBindLicenses&&rows.length>0&&rows.every(r=>r.sourceId.trim()&&r.sourceEdition.trim())
       &&this.dyLicenses().every(r=>/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(r.licenseId)));
   }
   private dyPath(project:string){
@@ -238,7 +253,7 @@ export class PlatformParameterPinsComponent implements OnChanges, OnDestroy {
         programs:this.dyPrograms,projectReferences:this.dyReferences,
         evidenceLocator:this.dyEvidence,coverageNote:this.dyNote,
         issuances:this.dyOutcome==='INCONCLUSIVE'?[]:this.dyIssuances,
-        sourceLicenses:this.dyLicenses(),
+        sourceLicenses:this.dyLicenses(),searchCoverage:this.dyCoverage,
       },{headers:new HttpHeaders({'Idempotency-Key':crypto.randomUUID(),
         'If-Match':'"'+history.latestVersion+'"'})}));
       if(request!==this.dyRequest)return;

@@ -151,22 +151,77 @@
             }
             <button type="button" class="cf-workspace-outline" [disabled]="dyBusy()||dyIssuances.length>=100"
               (click)="addDyIssuance()">Adicionar emissão declarada</button>
-            @if (dyIssuances.length) {
-              <label>
-                <input type="checkbox" [checked]="dyBindLicenses"
-                  (change)="dyBindLicenses=$any($event.target).checked">
-                Vincular licenças das fontes
-              </label>
-              <p>Sem vínculo, os itens continuam declarações manuais. Com vínculo, informe a licença
-                organizacional aprovada de cada edição; o servidor verifica a decisão vigente e os direitos
-                de extração, visualização e derivados. Não há admissão de E8.</p>
-              @if (dyBindLicenses) {
-                @for (source of dySources(); track source.key; let i=$index) {
-                  <label [for]="'cf-dy-license-'+i">ID da licença · {{source.sourceId}} / {{source.sourceEdition}}</label>
-                  <input [id]="'cf-dy-license-'+i" required maxlength="36"
-                    [value]="dyLicenseIds[source.key]??''"
-                    (input)="dyLicenseIds[source.key]=$any($event.target).value">
-                }
+          }
+          @if (dyOutcome) {
+            <h5>Matriz de cobertura da pesquisa (opcional)</h5>
+            <p>Registre uma consulta por programa e categoria. Para uma conclusão, declare a janela anterior
+              completa, o recorte nacional e ambas as categorias de cada programa informado. Uma lacuna
+              exige resultado geral inconclusivo. A matriz não prova que todos os programas existentes foram consultados.</p>
+            @for (row of dyCoverage; track row; let i=$index) {
+              <fieldset>
+                <legend>Consulta {{i+1}}</legend>
+                <label [for]="'cf-dy-query-program-'+i">Programa consultado {{i+1}}</label>
+                <input [id]="'cf-dy-query-program-'+i" required maxlength="120" [value]="row.program"
+                  (input)="row.program=$any($event.target).value">
+                <label [for]="'cf-dy-query-kind-'+i">Categoria consultada {{i+1}}</label>
+                <select [id]="'cf-dy-query-kind-'+i" required [value]="row.creditKind"
+                  (change)="row.creditKind=$any($event.target).value">
+                  <option value="">Selecione</option><option value="ERC">ERC — Recarga</option><option value="ERF">ERF — Frota</option>
+                </select>
+                <label [for]="'cf-dy-query-territory-'+i">Abrangência da consulta {{i+1}}</label>
+                <select [id]="'cf-dy-query-territory-'+i" required [value]="row.territory"
+                  (change)="row.territory=$any($event.target).value">
+                  <option value="">Selecione</option><option value="NATIONAL_BR">Brasil nacional (declarado)</option>
+                  <option value="PARTIAL_BR">Brasil parcial</option>
+                </select>
+                <label [for]="'cf-dy-query-result-'+i">Resultado da consulta {{i+1}}</label>
+                <select [id]="'cf-dy-query-result-'+i" required [value]="row.result"
+                  (change)="row.result=$any($event.target).value">
+                  <option value="">Selecione</option><option value="FOUND">Emissões encontradas</option>
+                  <option value="NO_RESULTS">Busca concluída sem resultados</option><option value="INCOMPLETE">Consulta inconclusiva</option>
+                </select>
+                <label [for]="'cf-dy-query-from-'+i">Início da janela consultada {{i+1}}</label>
+                <input [id]="'cf-dy-query-from-'+i" type="date" required [value]="row.searchedFrom"
+                  (input)="row.searchedFrom=$any($event.target).value">
+                <label [for]="'cf-dy-query-until-'+i">Fim exclusivo da janela consultada {{i+1}}</label>
+                <input [id]="'cf-dy-query-until-'+i" type="date" required [value]="row.searchedUntilExclusive"
+                  (input)="row.searchedUntilExclusive=$any($event.target).value">
+                <label [for]="'cf-dy-query-day-'+i">Data da consulta {{i+1}}</label>
+                <input [id]="'cf-dy-query-day-'+i" type="date" required [value]="row.searchedOn"
+                  (input)="row.searchedOn=$any($event.target).value">
+                <label [for]="'cf-dy-query-source-'+i">ID da fonte da consulta {{i+1}}</label>
+                <input [id]="'cf-dy-query-source-'+i" required maxlength="160" [value]="row.sourceId"
+                  (input)="row.sourceId=$any($event.target).value">
+                <label [for]="'cf-dy-query-edition-'+i">Edição da fonte da consulta {{i+1}}</label>
+                <input [id]="'cf-dy-query-edition-'+i" required maxlength="160" [value]="row.sourceEdition"
+                  (input)="row.sourceEdition=$any($event.target).value">
+                <label [for]="'cf-dy-query-locator-'+i">Localizador da consulta {{i+1}}</label>
+                <input [id]="'cf-dy-query-locator-'+i" required maxlength="1000" [value]="row.locator"
+                  (input)="row.locator=$any($event.target).value">
+                <label [for]="'cf-dy-query-limits-'+i">Limites e filtros da consulta {{i+1}}</label>
+                <textarea [id]="'cf-dy-query-limits-'+i" rows="2" required maxlength="2000" [value]="row.limitations"
+                  (input)="row.limitations=$any($event.target).value"></textarea>
+                <button type="button" class="cf-workspace-outline" [disabled]="dyBusy()"
+                  (click)="removeDyCoverage(i)">Remover consulta {{i+1}}</button>
+              </fieldset>
+            }
+            <button type="button" class="cf-workspace-outline" [disabled]="dyBusy()||dyCoverage.length>=100"
+              (click)="addDyCoverage()">Adicionar consulta de cobertura</button>
+          }
+          @if (dyIssuances.length || dyCoverage.length) {
+            <label>
+              <input type="checkbox" [checked]="dyBindLicenses" [disabled]="!!dyCoverage.length"
+                (change)="dyBindLicenses=$any($event.target).checked">
+              Vincular licenças das fontes
+            </label>
+            <p>A matriz exige licença vigente de todas as edições consultadas, inclusive buscas negativas.
+              Sem matriz, os itens não vinculados continuam declarações manuais. Não há admissão de E8.</p>
+            @if (dyBindLicenses) {
+              @for (source of dySources(); track source.key; let i=$index) {
+                <label [for]="'cf-dy-license-'+i">ID da licença · {{source.sourceId}} / {{source.sourceEdition}}</label>
+                <input [id]="'cf-dy-license-'+i" required maxlength="36"
+                  [value]="dyLicenseIds[source.key]??''"
+                  (input)="dyLicenseIds[source.key]=$any($event.target).value">
               }
             }
           }
@@ -227,6 +282,29 @@
               }
             } @else {
               <p>Totais não individualizados; a ausência de itens não comprova ausência de créditos.</p>
+            }
+            @if (item.coverageCount) {
+              <h5>Matriz de cobertura · {{item.coverageCount}} consultas</h5>
+              @if (item.coverageState==='DECLARED_MATRIX_COMPLETE') {
+                <p>Matriz consistente para os programas declarados; não comprova cobertura nacional exaustiva.</p>
+              } @else if (item.coverageState==='SEARCH_RIGHTS_RECHECK_REQUIRED') {
+                <p>Consulta protegida: revalide direitos das fontes.</p>
+              } @else {
+                <p>Pesquisa inconclusiva, sem total inferido.</p>
+              }
+              @for (query of item.searchCoverage ?? []; track $index) {
+                <dl>
+                  <dt>Programa e categoria</dt><dd>{{query.program}} / {{query.creditKind}}</dd>
+                  <dt>Abrangência e resultado</dt><dd>{{query.territory}} · {{query.result}}</dd>
+                  <dt>Janela consultada</dt><dd>{{query.searchedFrom}} até {{query.searchedUntilExclusive}} (fim exclusivo)</dd>
+                  <dt>Data da consulta</dt><dd>{{query.searchedOn}}</dd>
+                  <dt>Fonte / edição</dt><dd>{{query.sourceId}} / {{query.sourceEdition}}</dd>
+                  <dt>Localizador</dt><dd>{{query.locator}}</dd>
+                  <dt>Limites e filtros</dt><dd>{{query.limitations}}</dd>
+                </dl>
+              }
+            } @else {
+              <p>Sem matriz estruturada de cobertura. A declaração não comprova ausência de créditos.</p>
             }
             @if (item.review; as opinion) {
               <h5>Parecer interno desta versão</h5>
