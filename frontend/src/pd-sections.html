@@ -96,6 +96,10 @@
                     <p class="energy-hash">Referência {{source.referenceId}} · v{{source.version}}</p>
                     @if (source.href) {
                       <a class="cf-workspace-link" [href]="source.href">Consultar origem de {{source.symbol}}</a>
+                      @if (source.symbol === 'EVR') {
+                        <button type="button" class="cf-workspace-outline" (click)="loadFleet(source.referenceId)">
+                          Conferir seleção de frota nesta seção</button>
+                      }
                       @if (source.symbol === 'ED') {
                         <button type="button" class="cf-workspace-outline" (click)="loadEnergy(source.referenceId)">
                           Conferir energia ED/EC nesta seção</button>
@@ -154,6 +158,25 @@
                 }
                 <p>O fator elétrico não é apresentado neste painel. Leituras e vínculo candidato não
                   comprovam admissão, resultado do PD ou crédito. O documento não fica pronto.</p>
+              </section>
+            }
+            @if (fleetLoading()) { <p role="status">Conferindo a seleção de frota autorizada…</p> }
+            @if (fleetError()) { <p role="alert">{{fleetError()}}</p> }
+            @if (fleetDetail(); as fleet) {
+              <section aria-label="Seleção de frota consultada" class="cf-journey-context">
+                <h5>Frota e ratings por referência · {{fleet.period}}</h5>
+                <p class="energy-hash">{{fleet.id}} · versão {{fleet.version}}</p>
+                <dl>
+                  <dt>Ano de observação registrado</dt><dd>{{fleet.observationYear}}</dd>
+                  <dt>Ciclo registrado</dt><dd>{{fleet.cycle || 'Não registrado nesta seleção'}}</dd>
+                  <dt>Publicação da seleção</dt><dd>{{fleet.publishedAt}}</dd>
+                  <dt>Situação atual</dt><dd>{{fleet.stale ? 'Seleção desatualizada — requer rechecagem' : 'Seleção preparatória, sem admissão normativa'}} · {{fleet.state}}</dd>
+                </dl>
+                <p>Esta é a seleção exata referenciada pela memória. O ano de observação
+                  e o ciclo identificam o recorte registrado; não comprovam cobertura nacional.</p>
+                <p>Estoque EVR, pesos, modelos e valores de AFEC/MPG licenciados permanecem
+                  com os owners de frota e ratings. Este painel não calcula nem admite a linha de base.</p>
+                <p>O documento não fica pronto.</p>
               </section>
             }
             <h5>Referências registradas pelo motor</h5>

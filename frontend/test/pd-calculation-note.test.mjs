@@ -14,6 +14,27 @@ test('a seção de quantificação nomeia a memória ou o bloqueio', async () =>
     let situation = 'MEMORY';
     let mutations = 0;
     const selectedRequests=[];
+    let fleetMode='OK';
+    let fleetRequests=0;
+    let releaseFleet;
+    let fleetArrived;
+    await page.route('**/technical/open-monitoring/dossiers/*/e8-fleet-selections/*', async route => {
+      fleetRequests++;
+      if (fleetMode==='DELAY') await new Promise(resolve => {
+        releaseFleet=resolve;
+        if (fleetArrived) fleetArrived();
+      });
+      if (fleetMode==='DENIED') return route.fulfill({status:404,json:{message:'Indisponível'}});
+      return route.fulfill({json:{
+        id:'60000000-0000-4000-8000-000000000122',projectId:project,
+        period:fleetMode==='INVALID' ? 'M2' : 'M1',version:4,
+        observationYear:fleetMode==='YEAR' ? 2026 : 2027,cycle:'COMBINED',
+        stale:fleetMode==='STALE',state:fleetMode==='STALE' ? 'STALE_NOT_ADMITTED' : 'PREPARATORY_NOT_ADMITTED',
+        usableForE8:fleetMode==='ADMITTED',publishedAt:'2026-11-23T12:00:00Z',
+        models:['FLEET-PRIVATE-MODEL'],afecKwhPer100Miles:'23.456789',evrTotal:987654321,
+        fleetSourceSha256:'SOURCE-HASH-NOT-FOR-CONTEXT',
+      }});
+    });
     let energyMode='OK';
     let releaseEnergy;
     let energyArrived;
@@ -144,6 +165,49 @@ test('a seção de quantificação nomeia a memória ou o bloqueio', async () =>
     assert.equal(await page.getByRole('link', {name:'Consultar origem de ED'}).getAttribute('href'),
       memory.provenance.inputs[0].href);
     assert.equal(await page.getByRole('link', {name:'Consultar origem de EVR'}).count(), 0);
+    const fleetButton=page.getByRole('button', {name:'Conferir seleção de frota nesta seção'});
+    const fleetPanel=page.getByRole('region', {name:'Seleção de frota consultada'});
+    assert.equal(await fleetButton.count(),0);
+    assert.equal(fleetRequests,0);
+    memory.provenance.inputs[2]={symbol:'EVR',origin:'Estoque EVR · seleção de frota e ratings',
+      unit:'veículos',vintageYear:2027,referenceId:'60000000-0000-4000-8000-000000000122',version:4,
+      href:'/v1/projects/'+project+'/technical/open-monitoring/dossiers/M1/e8-fleet-selections/60000000-0000-4000-8000-000000000122',
+      access:'PROJECT_METADATA_ONLY'};
+    await page.getByRole('button', {name:'Atualizar seções'}).click();
+    await fleetButton.waitFor();
+    await fleetButton.focus();
+    await page.keyboard.press('Enter');
+    await fleetPanel.getByRole('heading', {name:'Frota e ratings por referência · M1'}).waitFor();
+    await fleetPanel.getByText('COMBINED', {exact:true}).waitFor();
+    await fleetPanel.getByText('2027', {exact:true}).waitFor();
+    await fleetPanel.getByText('Seleção preparatória, sem admissão normativa', {exact:false}).waitFor();
+    for (const secret of ['FLEET-PRIVATE-MODEL','23.456789','987654321','SOURCE-HASH-NOT-FOR-CONTEXT'])
+      assert.equal(await page.getByText(secret, {exact:false}).count(),0);
+    await page.setViewportSize({width:390,height:844});
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1),false);
+    fleetMode='STALE';
+    await fleetButton.click();
+    await fleetPanel.getByText('Seleção desatualizada — requer rechecagem', {exact:false}).waitFor();
+    fleetMode='DENIED';
+    await fleetButton.click();
+    await page.getByRole('alert').filter({hasText:'Seleção de frota protegida ou indisponível'}).waitFor();
+    assert.equal(await fleetPanel.count(),0);
+    for (const mode of ['INVALID','YEAR','ADMITTED']) {
+      fleetMode=mode;
+      await fleetButton.click();
+      await page.getByRole('alert').filter({hasText:'Não foi possível conferir a seleção de frota'}).waitFor();
+      assert.equal(await fleetPanel.count(),0);
+    }
+    fleetMode='DELAY';
+    const fleetArrival=new Promise(resolve => {fleetArrived=resolve;});
+    await fleetButton.click();
+    await fleetArrival;
+    const fleetResponse=page.waitForResponse(response => response.url().includes('/e8-fleet-selections/'));
+    await page.getByRole('button', {name:'Conferir energia ED/EC nesta seção'}).click();
+    await page.getByRole('region', {name:'Energia do vínculo consultado'}).waitFor();
+    releaseFleet();
+    await fleetResponse;
+    assert.equal(await fleetPanel.count(),0);
     const energyButton=page.getByRole('button', {name:'Conferir energia ED/EC nesta seção'});
     const energyPanel=page.getByRole('region', {name:'Energia do vínculo consultado'});
     await energyButton.focus();
