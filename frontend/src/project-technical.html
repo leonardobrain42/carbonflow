@@ -117,6 +117,7 @@
                 <carbonflow-decision-workbench [projectId]="projectId" kind="baseline"
                   [requestedStep]="queryEtapa() ?? null" [canViewApplicability]="can('VIEW_OPEN_APPLICABILITY')"
                   [canViewCalculation]="can('VIEW_OPEN_CALCULATION')"
+                  [canViewIr]="can('VIEW_OPEN_PARAMETER_BINDING')"
                   [canViewMonitoring]="can('VIEW_OPEN_MONITORING')"
                   [canViewFleet]="can('VIEW_OPEN_E8_FLEET_SELECTION')"
                   [canViewPd]="can('VIEW_DOSSIER')" [canSaveGuide]="can('SAVE_GUIDE')"
