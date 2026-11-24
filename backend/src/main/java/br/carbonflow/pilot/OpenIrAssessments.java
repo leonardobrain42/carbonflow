@@ -13,6 +13,11 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.Set;
+import java.util.Optional;
+import java.util.Arrays;
+import java.util.stream.Collectors;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
@@ -22,10 +27,14 @@ import jakarta.enterprise.context.ApplicationScoped;
 @ApplicationScoped
 class OpenIrAssessments {
     record Input(String period, String frequency, String basis, String rationale) {}
+    record ReviewInput(String assessmentSha256, String outcome, String annualUpdateBasis,
+                       String evidenceLocator, String reason) {}
+    record Review(UUID reviewerId, String outcome, String assessmentSha256, String ruleReference,
+                  String annualUpdateBasis, String evidenceLocator, String reason, OffsetDateTime reviewedAt) {}
     record View(UUID id, String projectId, int projectYear, int sourceYear, int version,
                 String period, UUID fleetSelectionId, UUID fuelPinId, String frequency,
                 String basis, String rationale, String state, String assessmentSha256,
-                String candidate, boolean stale, boolean usableForE8, OffsetDateTime recordedAt) {}
+                String candidate, boolean stale, boolean usableForE8, OffsetDateTime recordedAt, Review review) {}
     record Result(View view, boolean created) {}
     private record Fleet(UUID id, UUID binding, int version, int year, String sha) {}
     private record Refs(Fleet fleet, OpenE8ProjectRuns.InputReference fuel, OpenE8Timing.Context timing,
@@ -39,9 +48,22 @@ class OpenIrAssessments {
     private final PilotDatabase database;
     private final PlatformSourceWork managers;
     private final DynamicProjectScope scope;
+    private final PlatformSourceReadiness readiness;
+    private final Set<UUID> reviewers;
 
-    OpenIrAssessments(PilotDatabase database, PlatformSourceWork managers, DynamicProjectScope scope) {
-        this.database=database; this.managers=managers; this.scope=scope;
+    OpenIrAssessments(PilotDatabase database, PlatformSourceWork managers, DynamicProjectScope scope,
+                      PlatformSourceReadiness readiness,
+                      @ConfigProperty(name="carbonflow.platform.source-technical.reviewers") Optional<String> roster) {
+        this.database=database; this.managers=managers; this.scope=scope; this.readiness=readiness;
+        reviewers=roster.map(value->Arrays.stream(value.split(",")).map(String::strip)
+            .filter(v->!v.isBlank()).map(UUID::fromString).collect(Collectors.toUnmodifiableSet()))
+            .orElse(Set.of());
+    }
+
+    private ComplianceStaff.Staff staff(Connection c,String token) throws SQLException {
+        var actor=readiness.requireViewer(c,token);
+        if(!managers.canManage(actor.id()) && !reviewers.contains(actor.id())) throw hidden();
+        return actor;
     }
 
     Result record(String token, String project, String key, String match, Input input) {
@@ -116,7 +138,7 @@ class OpenIrAssessments {
 
     List<View> staffHistory(String token,String project,int year,int sourceYear) {
         return database.transaction(c -> {
-            var actor=managers.requireManager(c,token);
+            var actor=staff(c,token);
             UUID org=first(c,"""
                 SELECT organization_id FROM app_project
                 WHERE id=? AND environment='SANDBOX' AND state='DRAFT' FOR SHARE
@@ -124,6 +146,72 @@ class OpenIrAssessments {
             if(org==null || !actor.organizations().contains(org)) throw hidden();
             return historyRows(c,project,year,sourceYear,true);
         });
+    }
+
+    Result review(String token,String project,UUID assessment,String key,String match,ReviewInput input) {
+        return database.transaction(c->{
+            var actor=staff(c,token);
+            if(!reviewers.contains(actor.id())) throw hidden();
+            String command=PilotCommands.key(key);
+            int expected=PilotCommands.expected(match);
+            first(c,"SELECT pg_advisory_xact_lock(hashtextextended(?,0))",r->true,
+                "OPEN-IR-REVIEW:"+actor.id()+":"+command);
+            UUID org=first(c,"""
+                SELECT organization_id FROM app_project
+                WHERE id=? AND environment='SANDBOX' AND state='DRAFT' FOR UPDATE
+                """,r->r.getObject(1,UUID.class),project);
+            if(org==null || !actor.organizations().contains(org)) throw hidden();
+            Stored row=first(c,SELECT+" WHERE project_id=? AND id=?",OpenIrAssessments::stored,project,assessment);
+            if(row==null) throw hidden();
+            UUID author=first(c,"SELECT author_id FROM app_open_ir_assessment WHERE id=?",
+                r->r.getObject(1,UUID.class),assessment);
+            if(actor.id().equals(author)) throw hidden();
+            if(input==null || !row.sha().equals(input.assessmentSha256()))
+                throw invalid("Informe o hash exato da avaliação.");
+            String locator,reason;
+            try {
+                OpenIrReviewRules.validate(input.outcome(),input.annualUpdateBasis(),row.state());
+                locator=OpenDyAssessmentRules.text(input.evidenceLocator(),3,2000);
+                reason=OpenDyAssessmentRules.text(input.reason(),15,2500);
+            } catch(IllegalArgumentException e) { throw invalid(e.getMessage()); }
+            String fingerprint=digest("OPEN-IR-REVIEW@1",project,assessment,row.sha(),expected,
+                input.outcome(),input.annualUpdateBasis(),locator,reason);
+            Object[] replay=first(c,"""
+                SELECT assessment_id,encode(command_sha256,'hex') FROM app_open_ir_review
+                WHERE reviewer_id=? AND command_key=?
+                """,r->new Object[]{r.getObject(1,UUID.class),r.getString(2)},actor.id(),command);
+            if(replay!=null) {
+                if(!assessment.equals(replay[0]) || !fingerprint.equals(replay[1]))
+                    throw conflict("Esta chave já identifica outro parecer.");
+                return new Result(view(c,row,true),false);
+            }
+            Integer latest=first(c,"""
+                SELECT max(version) FROM app_open_ir_assessment
+                WHERE project_id=? AND project_year=? AND source_year=?
+                """,r->r.getInt(1),project,row.year(),row.sourceYear());
+            PilotCommands.requireVersion(expected,latest);
+            if(view(c,row,true).stale()) throw conflict("Avaliação desatualizada. Registre nova versão.");
+            if(readReview(c,assessment,true)!=null) throw conflict("Já existe parecer nesta versão.");
+            update(c,"""
+                INSERT INTO app_open_ir_review
+                (assessment_id,assessment_sha256,author_id,reviewer_id,outcome,rule_reference,
+                 annual_update_basis,evidence_locator,reason,command_key,command_sha256)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?)
+                """,assessment,bytes(row.sha()),author,actor.id(),input.outcome(),
+                OpenIrAssessment.RULE_REFERENCE,input.annualUpdateBasis(),locator,reason,
+                command,bytes(fingerprint));
+            return new Result(view(c,row,true),true);
+        });
+    }
+
+    private static Review readReview(Connection c,UUID id,boolean staff) throws SQLException {
+        return first(c,"""
+            SELECT reviewer_id,outcome,encode(assessment_sha256,'hex'),rule_reference,
+                annual_update_basis,evidence_locator,reason,reviewed_at
+            FROM app_open_ir_review WHERE assessment_id=?
+            """,r->new Review(staff?r.getObject(1,UUID.class):null,r.getString(2),r.getString(3),
+                r.getString(4),r.getString(5),staff?r.getString(6):null,staff?r.getString(7):null,
+                r.getObject(8,OffsetDateTime.class)),id);
     }
 
     private static List<View> historyRows(Connection c,String project,int year,int sourceYear,boolean staff)
@@ -193,9 +281,12 @@ class OpenIrAssessments {
             || !row.timingSha().equals(current.timing().fingerprint())
             || !row.fleet().equals(current.fleet().id()) || !row.fleetSha().equals(current.fleet().sha())
             || !row.fuel().equals(current.fuel().id()) || !row.fuelSha().equals(current.fuel().sha256());
+        Review review=readReview(c,row.id(),staff);
+        String state=stale?"STALE_NOT_ADMITTED":review==null?row.state():review.outcome()+"_NOT_ADMITTED";
         return new View(row.id(),row.project(),row.year(),row.sourceYear(),row.version(),row.period(),
             row.fleet(),row.fuel(),row.frequency(),row.basis(),staff?row.rationale():null,
-            stale?"STALE_NOT_ADMITTED":row.state(),row.sha(),stale?null:row.candidate(),stale,false,row.at());
+            state,row.sha(),stale || (review!=null && !"CHECKED_INTERNAL".equals(review.outcome()))?
+                null:row.candidate(),stale,false,row.at(),review);
     }
 
     static String digest(Object... parts) {
