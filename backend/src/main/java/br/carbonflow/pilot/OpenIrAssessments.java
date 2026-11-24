@@ -476,7 +476,7 @@ class OpenIrAssessments {
             ORDER BY version DESC LIMIT 1
             """,OpenIrAssessments::stored,project,year,source):null;
         if(row==null) {
-            String state=OpenE8IrContext.classify(year,source,resolved,false,false,false,false,false,false);
+            String state=OpenE8IrContext.classify(year,source,resolved,false,false,false,false,false,false,false);
             return OpenE8IrContext.of(project,period,year,source,null,null,null,state,null,null,null,null);
         }
         Review review=readReview(c,row.id(),true);
@@ -493,13 +493,15 @@ class OpenIrAssessments {
             proof=reuse==OpenIrIntraYearReuse.Outcome.REUSABLE;
             if(proof) reusedSpan=periodSpan(timing);
         }
+        String linkState=initialLinkState(c,row,review);
+        boolean planLinked=review!=null && "INITIAL_BASELINE_CHECKED".equals(review.outcome())
+            && "LINKED_CURRENT".equals(linkState);
         String state=OpenE8IrContext.classify(year,source,resolved,true,stale(c,row),matches,
-            checked,proof,"1".equals(row.candidate()));
+            checked,proof,"1".equals(row.candidate()),planLinked);
         UUID author=first(c,"SELECT author_id FROM app_open_ir_assessment WHERE id=?",
             r->r.getObject(1,UUID.class),row.id());
         String reviewSha=first(c,"SELECT encode(command_sha256,'hex') FROM app_open_ir_review WHERE assessment_id=?",
             r->r.getString(1),row.id());
-        String linkState=initialLinkState(c,row,review);
         if(linkState!=null) reviewSha=digest("OPEN-IR-INITIAL-LINK-STATE@1",reviewSha,linkState);
         if(reusedSpan!=null && OpenE8IrContext.CHECKED.equals(state))
             reviewSha=OpenIrIntraYearReuse.marker(reviewSha,row.period(),reusedSpan,row.id(),row.sha());

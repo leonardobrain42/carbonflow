@@ -155,7 +155,8 @@ final class OpenE8RunDecision {
             case "RUN_IR_LEGACY" -> "Tentativa anterior ao vínculo estruturado de IR; memória histórica preservada.";
             case "IR_STRUCTURED" -> switch (state) {
                 case "TIMING_UNRESOLVED" -> "O calendário da janela ainda não permite selecionar IR.";
-                case "FIRST_YEAR_REVIEW_REQUIRED" -> "Primeiro ano/ex ante requer fundamentação própria; mesmo o plano inicial conferido não comprova atualização observada nem autoriza presumir IR.";
+                case "FIRST_YEAR_REVIEW_REQUIRED" -> "Primeiro ano/ex ante requer avaliação da rota anual com parecer inicial independente vinculado ao plano ex ante vigente; sem isso não se presume IR.";
+                case "FIRST_YEAR_EX_ANTE_CHECKED_NOT_ADMITTED" -> "Primeiro ano: IR=1 pela rota de atualização anual, apenas como estimativa ex ante com plano conferido; não comprova atualização observada nem admite parâmetro ou crédito.";
                 case "MISSING_FOR_PROJECT_YEAR" -> "Falta avaliação estruturada de IR para os anos do projeto e da fonte.";
                 case "PERIOD_REFERENCE_MISMATCH" -> "A avaliação não corresponde aos vínculos exatos de frota, fator e janela deste período.";
                 case "STALE" -> "Avaliação de IR obsoleta ou referências sem vigência.";

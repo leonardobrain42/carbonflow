@@ -98,6 +98,27 @@ class OpenIrAssessmentPersistenceTest {
     }
 
     @Test
+    void firstYearExAnteMigrationWidensStatesWithoutDroppingValidatedGuards() {
+        assertEquals(1,database.read(c->first(c,"""
+            SELECT count(*)::int FROM flyway_schema_history WHERE version='97' AND success
+            """,r->r.getInt(1))).intValue());
+        assertEquals(2,database.read(c->first(c,"""
+            SELECT count(*)::int FROM pg_constraint
+            WHERE conrelid='app_open_e8_run'::regclass AND convalidated
+                AND conname IN ('app_open_e8_ir_context_shape','app_open_e8_run_reviewed_pins')
+                AND pg_get_constraintdef(oid) LIKE '%FIRST_YEAR_EX_ANTE_CHECKED_NOT_ADMITTED%'
+            """,r->r.getInt(1))).intValue());
+        assertEquals(1,database.read(c->first(c,"""
+            SELECT count(*)::int FROM pg_constraint
+            WHERE conrelid='app_open_e8_run'::regclass AND convalidated AND conname='app_open_e8_ir_assessment_fk'
+            """,r->r.getInt(1))).intValue());
+        assertEquals(0,database.read(c->first(c,"""
+            SELECT count(*)::int FROM app_open_e8_run
+            WHERE ir_context_state='FIRST_YEAR_EX_ANTE_CHECKED_NOT_ADMITTED' AND ir_assessment_id IS NULL
+            """,r->r.getInt(1))).intValue());
+    }
+
+    @Test
     void temporalEvidenceMigrationHasValidatedConstraintsAndImmutableTrigger() {
         assertEquals(1,database.read(c->first(c,"""
             SELECT count(*)::int FROM flyway_schema_history WHERE version='96' AND success

@@ -1,5 +1,5 @@
 # Catálogo de contratos e evidências incrementais
-Inventário de 87 arquivos em docs/ (86 no corte `507bf268d6955cd0c317d2ff404a905009985907` + CF-OPEN-007-IR-INTRA-YEAR-REUSE). A classificação serve para navegação; o documento de cada fatia pode ter limites superados por fatias posteriores. Não mover/renomear os originais nem interpretá-los isoladamente como estado atual. Consulte [estado](ESTADO_DO_TRABALHO.md), issue dona e changelog.
+Inventário de 88 arquivos em docs/ (86 no corte `507bf268d6955cd0c317d2ff404a905009985907` + CF-OPEN-007-IR-INTRA-YEAR-REUSE e CF-OPEN-007-IR-FIRST-YEAR-EX-ANTE). A classificação serve para navegação; o documento de cada fatia pode ter limites superados por fatias posteriores. Não mover/renomear os originais nem interpretá-los isoladamente como estado atual. Consulte [estado](ESTADO_DO_TRABALHO.md), issue dona e changelog.
 
 ## Núcleo, operação e segurança
 - [CF-ADMIN-LOCAL-SANDBOX.md](../docs/CF-ADMIN-LOCAL-SANDBOX.md)
@@ -47,6 +47,7 @@ Inventário de 87 arquivos em docs/ (86 no corte `507bf268d6955cd0c317d2ff404a90
 - [CF-OPEN-007-IR-ASSESSMENT.md](../docs/CF-OPEN-007-IR-ASSESSMENT.md)
 - [CF-OPEN-007-IR-EX-ANTE-HANDOFF.md](../docs/CF-OPEN-007-IR-EX-ANTE-HANDOFF.md)
 - [CF-OPEN-007-IR-EX-ANTE-PLAN.md](../docs/CF-OPEN-007-IR-EX-ANTE-PLAN.md)
+- [CF-OPEN-007-IR-FIRST-YEAR-EX-ANTE.md](../docs/CF-OPEN-007-IR-FIRST-YEAR-EX-ANTE.md)
 - [CF-OPEN-007-IR-INITIAL-BASELINE.md](../docs/CF-OPEN-007-IR-INITIAL-BASELINE.md)
 - [CF-OPEN-007-IR-INTRA-YEAR-REUSE.md](../docs/CF-OPEN-007-IR-INTRA-YEAR-REUSE.md)
 - [CF-OPEN-007-IR-JOURNEY.md](../docs/CF-OPEN-007-IR-JOURNEY.md)

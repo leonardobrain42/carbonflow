@@ -11,3 +11,5 @@ A avaliação inicial conferida pode servir de referência anterior em uma anál
 Esta fatia registra a fundamentação inicial **quando já existem referências canônicas do primeiro período**; não oferece ainda registro ex ante independente do monitoramento. Não comprova tempestividade nem que os textos correspondem a documentos examinados externamente. A prova anual anterior ainda não contém o hash separado do plano inicial. O E8 mantém FIRST_YEAR_REVIEW_REQUIRED, sem número e sem VCU; o contexto muda quando o parecer é registrado. Não introduz defaults brasileiros, nem muda Dy. A homologação positiva em PostgreSQL com dois anos e o consumo da proveniência estruturada no PD permanecem pendentes.
 
 Testes: regra de decisão e campos obrigatórios, catálogo e trigger V93, restauração de fixture V79, jornada Angular simulada do plano inicial e parecer anual. O CI deve confirmar a suíte.
+
+> Atualização (Q04, opção B): o estado do primeiro ano passou a admitir `FIRST_YEAR_EX_ANTE_CHECKED_NOT_ADMITTED` com plano vinculado e vigente; ver [CF-OPEN-007-IR-FIRST-YEAR-EX-ANTE](CF-OPEN-007-IR-FIRST-YEAR-EX-ANTE.md).

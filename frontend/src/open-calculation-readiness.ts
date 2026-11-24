@@ -216,7 +216,7 @@ export class OpenCalculationReadinessComponent implements OnChanges {
     const expected=[['ED_EC_EFEL','HOURLY_PERIOD_BINDING'],['EVR_RATINGS','FLEET_PERIOD_SELECTION'],
       ['EF_FUEL','SOURCE_YEAR_PIN'],['IR',report.policyVersion==='OPEN-E8-INPUT-SELECTION@2'?'STRUCTURED_PROJECT_SOURCE_YEAR':'SOURCE_YEAR_PIN'],['DY','LEGACY_SOURCE_YEAR_PIN']];
     const irStates=['FIRST_YEAR_REVIEW_REQUIRED','MISSING_FOR_PROJECT_YEAR','PERIOD_REFERENCE_MISMATCH',
-      'ANNUAL_EVIDENCE_RECHECK_REQUIRED','CHECKED_INTERNAL_NOT_ADMITTED'];
+      'ANNUAL_EVIDENCE_RECHECK_REQUIRED','CHECKED_INTERNAL_NOT_ADMITTED','FIRST_YEAR_EX_ANTE_CHECKED_NOT_ADMITTED'];
     return report.inputs.length===expected.length&&report.inputs.every((ref,i)=>{
       if(!ref||ref.code!==expected[i][0]||ref.basis!==expected[i][1]
         ||!['MISSING','MISSING_FOR_SOURCE_YEAR','TIMING_UNRESOLVED','STALE','REVIEW_REQUIRED','NOT_ADMITTED',
@@ -362,6 +362,7 @@ export class OpenCalculationReadinessComponent implements OnChanges {
       MISSING_FOR_SOURCE_YEAR:'Ausente no ano das fontes',
       TIMING_UNRESOLVED:'Calendário não resolvido',
       FIRST_YEAR_REVIEW_REQUIRED:'Primeiro ano / ex ante — fundamentação pendente',
+      FIRST_YEAR_EX_ANTE_CHECKED_NOT_ADMITTED:'Primeiro ano — estimativa ex ante conferida, não admitida',
       MISSING_FOR_PROJECT_YEAR:'Avaliação estruturada ausente para os anos aplicáveis',
       PERIOD_REFERENCE_MISMATCH:'Referências incompatíveis com o período',
       ANNUAL_EVIDENCE_RECHECK_REQUIRED:'Prova anual requer rechecagem',
