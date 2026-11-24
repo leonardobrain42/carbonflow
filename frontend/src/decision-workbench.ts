@@ -1,6 +1,7 @@
 import {Component, Input, OnChanges, SimpleChanges, computed, inject, output, signal, viewChild} from '@angular/core';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {firstValueFrom} from 'rxjs';
+import {OpenIrExAntePlanComponent} from './open-ir-ex-ante-plan';
 import {OpenIrAssessmentsComponent} from './open-ir-assessments';
 import {TypedGuideComponent} from './typed-guide';
 import {PdTraceComponent} from './pd-trace';
@@ -55,13 +56,12 @@ const STEPS:Record<WorkbenchKind,{id:string;label:string;detail:string}[]>={
 };
 
 /**
- * Read-only orchestration of existing project-scoped owner APIs. The only editor
- * is the canonical typed guide. No EVR, rating, normative opinion, rights or PD
+ * Read-only orchestration of existing project-scoped owner APIs. Editors delegate to the canonical typed guide and ex ante planning APIs. No EVR, rating, normative opinion, rights or PD
  * document is reconstructed or persisted by this component.
  */
 @Component({
   selector:'carbonflow-decision-workbench',standalone:true,
-  imports:[TypedGuideComponent,PdTraceComponent,OpenIrAssessmentsComponent],templateUrl:'./decision-workbench.html'
+  imports:[TypedGuideComponent,PdTraceComponent,OpenIrAssessmentsComponent,OpenIrExAntePlanComponent],templateUrl:'./decision-workbench.html'
 })
 export class DecisionWorkbenchComponent implements OnChanges {
   @Input({required:true}) projectId='';
