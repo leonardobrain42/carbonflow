@@ -330,6 +330,8 @@ class OpenIrAssessments {
                     if(previous.year()>1 && !annualCurrent(c,previous))
                         throw new IllegalArgumentException("A prova anual anterior precisa estar vigente.");
                     proof=OpenIrAnnualEvidence.capture(annualSnapshot(c,previous),annualSnapshot(c,row));
+                    if(reviewReferences(c,row)==null)
+                        throw new IllegalArgumentException("Metadados das fontes efetivas indisponíveis.");
                     temporal=OpenIrAnnualTemporalEvidence.capture(temporalWindow(c,row,reviewedAt),proof.current(),temporalInputs);
                 } catch(IllegalArgumentException e) { throw invalid(e.getMessage()); }
             } else if(input.priorAssessmentId()!=null) {
@@ -603,7 +605,7 @@ class OpenIrAssessments {
             false,row.at(),review,annual,linkState,
             staff&&row.year()==1&&review==null&&!stale?OpenIrExAntePlans.currentReviewTarget(c,row.project()):null,
             staff&&!stale&&review==null?reviewReferences(c,row):null,
-            staff&&row.year()>1&&review==null&&!stale?temporalWindow(c,row,first(c,"SELECT statement_timestamp()",r->r.getObject(1,OffsetDateTime.class))):null);
+            staff&&row.year()>1&&review==null&&!stale&&reviewReferences(c,row)!=null?temporalWindow(c,row,first(c,"SELECT statement_timestamp()",r->r.getObject(1,OffsetDateTime.class))):null);
     }
 
     private static ReviewReferences reviewReferences(Connection c,Stored row)throws SQLException {
