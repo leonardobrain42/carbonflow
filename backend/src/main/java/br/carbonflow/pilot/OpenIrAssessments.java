@@ -381,9 +381,12 @@ class OpenIrAssessments {
                     var e=item.evidence();
                     update(c,"""
                         INSERT INTO app_open_ir_annual_temporal_evidence
-                        (assessment_id,metric,updated_on,valid_from,valid_until,evidence_locator,reference_sha256)
-                        VALUES (?,?,?,?,?,?,?)
-                        """,row.id(),e.metric().name(),e.updatedOn(),e.validFrom(),e.validUntil(),e.evidenceLocator(),bytes(item.referenceSha256()));
+                        (assessment_id,metric,updated_on,valid_from,valid_until,evidence_locator,reference_sha256,
+                         year_from,year_until,period_from,period_until,reviewed_on)
+                        VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+                        """,row.id(),e.metric().name(),e.updatedOn(),e.validFrom(),e.validUntil(),e.evidenceLocator(),bytes(item.referenceSha256()),
+                        temporal.window().yearFrom(),temporal.window().yearUntil(),temporal.window().periodFrom(),
+                        temporal.window().periodUntil(),temporal.window().reviewedOn());
                 }
             }
             return new Result(view(c,row,true),true);
@@ -531,7 +534,10 @@ class OpenIrAssessments {
 
     private static String temporalDigest(Connection c,OpenIrAnnualEvidence.Proof proof,
                                           OpenIrAnnualTemporalEvidence.Proof temporal)throws SQLException {
-        return digest(OpenIrAnnualTemporalEvidence.POLICY,annualDigest(c,proof),temporal.digest());
+        String priorDigest=proof.previous().projectYear()==1?null:first(c,"""
+            SELECT encode(evidence_sha256,'hex') FROM app_open_ir_annual_evidence WHERE assessment_id=?
+            """,r->r.getString(1),proof.previous().id());
+        return digest(OpenIrAnnualTemporalEvidence.POLICY,annualDigest(c,proof),priorDigest,temporal.digest());
     }
 
     private static boolean annualCurrent(Connection c,Stored row)throws SQLException {
@@ -561,9 +567,15 @@ class OpenIrAssessments {
                 i.evidence().validUntil(),null),i.referenceSha256())).toList();
         Stored prior=first(c,SELECT+" WHERE project_id=? AND id=?",OpenIrAssessments::stored,
             row.project(),pin.priorAssessmentId());
-        var window=temporalWindow(c,row,review.reviewedAt());
+        var frozen=query(c,"""
+            SELECT DISTINCT year_from,year_until,period_from,period_until,reviewed_on
+            FROM app_open_ir_annual_temporal_evidence WHERE assessment_id=?
+            """,r->new OpenIrAnnualTemporalEvidence.Window(r.getObject(1,LocalDate.class),r.getObject(2,LocalDate.class),
+                r.getObject(3,LocalDate.class),r.getObject(4,LocalDate.class),r.getObject(5,LocalDate.class)),row.id());
+        var window=frozen.size()==1?frozen.getFirst():null;
+        var currentWindow=temporalWindow(c,row,review.reviewedAt());
         try {
-            if(prior!=null && (prior.year()==1 || annualCurrent(c,prior))) {
+            if(window!=null && window.equals(currentWindow) && prior!=null && (prior.year()==1 || annualCurrent(c,prior))) {
                 var proof=OpenIrAnnualEvidence.capture(annualSnapshot(c,prior),annualSnapshot(c,row));
                 var temporal=OpenIrAnnualTemporalEvidence.capture(window,proof.current(),
                     ordered.stream().map(OpenIrAnnualTemporalEvidence.Item::evidence).toList());
