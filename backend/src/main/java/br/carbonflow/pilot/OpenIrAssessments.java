@@ -263,16 +263,17 @@ class OpenIrAssessments {
             String locator,reason;
             boolean initial="INITIAL_BASELINE_CHECKED".equals(input.outcome());
             InitialPlan plan;
+            boolean legacyInitial=initial && input.exAntePlanId()==null && input.exAntePlanVersion()==null && input.exAntePlanSha256()==null;
             try {
                 OpenIrReviewRules.validate(input.outcome(),input.annualUpdateBasis(),row.state(),row.year());
                 if(initial && (input.initialPlan()==null || input.priorAssessmentId()!=null))
                     throw new IllegalArgumentException("Informe os quatro planos de atualização, sem avaliação anterior.");
-                if(initial && (input.exAntePlanId()==null || input.exAntePlanVersion()==null || input.exAntePlanSha256()==null))
+                if(initial && !legacyInitial && (input.exAntePlanId()==null || input.exAntePlanVersion()==null || input.exAntePlanSha256()==null))
                     throw new IllegalArgumentException("Selecione a versão e o hash do plano ex ante vigente.");
                 if(!initial && (input.initialPlan()!=null || input.exAntePlanId()!=null || input.exAntePlanVersion()!=null || input.exAntePlanSha256()!=null))
                     throw new IllegalArgumentException("Plano inicial reservado ao parecer de primeiro ano.");
                 plan=initial?input.initialPlan().validated():null;
-                if(initial) {
+                if(initial && !legacyInitial) {
                     OpenIrHandoffRules.note(plan.evr()); OpenIrHandoffRules.note(plan.afec());
                     OpenIrHandoffRules.note(plan.mpg()); OpenIrHandoffRules.note(plan.fuel());
                 }
@@ -283,7 +284,8 @@ class OpenIrAssessments {
                 input.outcome(),input.annualUpdateBasis(),locator,reason);
             if(input.priorAssessmentId()!=null)
                 fingerprint=digest("OPEN-IR-REVIEW-ANNUAL@1",fingerprint,input.priorAssessmentId());
-            if(plan!=null) fingerprint=digest("OPEN-IR-INITIAL-HANDOFF@1",fingerprint,plan.evr(),plan.afec(),plan.mpg(),plan.fuel(),
+            if(legacyInitial) fingerprint=digest("OPEN-IR-INITIAL-PLAN@1",fingerprint,plan.evr(),plan.afec(),plan.mpg(),plan.fuel());
+            else if(plan!=null) fingerprint=digest("OPEN-IR-INITIAL-HANDOFF@1",fingerprint,plan.evr(),plan.afec(),plan.mpg(),plan.fuel(),
                 input.exAntePlanId(),input.exAntePlanVersion(),input.exAntePlanSha256());
             Object[] replay=first(c,"""
                 SELECT assessment_id,encode(command_sha256,'hex') FROM app_open_ir_review
@@ -294,6 +296,7 @@ class OpenIrAssessments {
                     throw conflict("Esta chave já identifica outro parecer.");
                 return new Result(view(c,row,true),false);
             }
+            if(legacyInitial) throw invalid("Selecione a versão e o hash do plano ex ante vigente.");
             Integer latest=first(c,"""
                 SELECT max(version) FROM app_open_ir_assessment
                 WHERE project_id=? AND project_year=? AND source_year=?
