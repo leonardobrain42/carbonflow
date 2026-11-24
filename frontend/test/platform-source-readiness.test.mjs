@@ -142,7 +142,8 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
         priorStart:'2034-07-01T03:00:00Z',priorEndExclusive:'2035-07-01T03:00:00Z',
         programs:dyPost.body.programs,projectReferences:dyPost.body.projectReferences,
         evidenceLocator:dyPost.body.evidenceLocator,coverageNote:dyPost.body.coverageNote,
-        assessmentSha256:'a'.repeat(64),state:'DECLARED_NOT_ADMITTED',stale:false,usableForE8:false};
+        assessmentSha256:'a'.repeat(64),state:'DECLARED_NOT_ADMITTED',stale:false,usableForE8:false,
+        issuanceCount:dyPost.body.issuances?.length??0,issuances:dyPost.body.issuances??[]};
       dyRows=[saved,...dyRows];
       return route.fulfill({status:201,json:saved});
     });
@@ -154,6 +155,18 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
     await outcome.selectOption('FLEET_CREDITS_FOUND');
     await page.getByLabel('ERC emitidos · tCO2e').fill('75');
     await page.getByLabel('ERF emitidos · tCO2e').fill('25');
+    for (const [i,kind,amount] of [[1,'ERC','75'],[2,'ERF','25']]) {
+      await page.getByRole('button',{name:'Adicionar emissão declarada'}).click();
+      await page.getByLabel('Programa da emissão '+i,{exact:true}).fill('TEST-PROGRAM');
+      await page.getByLabel('ID do projeto no registro '+i,{exact:true}).fill('PROJECT-'+i);
+      await page.getByLabel('ID da emissão '+i,{exact:true}).fill('ISS-'+i);
+      await page.getByLabel('Categoria da emissão '+i,{exact:true}).selectOption(kind);
+      await page.getByLabel('Data da emissão '+i,{exact:true}).fill('2034-08-01');
+      await page.getByLabel('Quantidade da emissão '+i+' · tCO2e',{exact:true}).fill(amount);
+      await page.getByLabel('ID da fonte '+i,{exact:true}).fill('TEST-REGISTRY');
+      await page.getByLabel('Edição da fonte '+i,{exact:true}).fill('1');
+      await page.getByLabel('Localizador da emissão '+i,{exact:true}).fill('TEST_ONLY item '+i);
+    }
     await page.getByLabel('Programas pesquisados').fill('Programa fictício');
     await page.getByLabel('Projetos e categorias pesquisados').fill('Projeto fictício da frota');
     await page.getByLabel('Localizador da evidência').fill('TEST_ONLY página 1');
@@ -168,6 +181,9 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
     assert.equal(dyPost.body.erc,'75');
     assert.equal(dyPost.body.erf,'25');
     assert.equal(dyPost.body.dyPreview,undefined);
+    assert.equal(dyPost.body.issuances.length,2);
+    assert.equal(dyPost.body.issuances[1].creditKind,'ERF');
+    await page.getByText('Emissões declaradas · 2',{exact:true}).waitFor();
     await outcome.selectOption('INCONCLUSIVE');
     await page.getByLabel('ERC emitidos · tCO2e').waitFor({state:'detached'});
     await page.getByRole('button',{name:'Registrar avaliação de Dy'}).click();
@@ -176,6 +192,7 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
     assert.equal(dyPost.match,'"1"');
     assert.equal(dyPost.body.erc,null);
     assert.equal(dyPost.body.erf,null);
+    assert.deepEqual(dyPost.body.issuances,[]);
     dyCanRecord=false;dyCanReview=true;
     await page.getByRole('button',{name:'Atualizar projetos de Dy'}).click();
     await outcome.waitFor({state:'detached'});

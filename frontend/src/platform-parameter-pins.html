@@ -109,6 +109,48 @@
             <input id="cf-dy-erf" inputmode="decimal" [value]="dyErf" required
               (input)="dyErf=$any($event.target).value">
             <p>Informe explicitamente zero quando aplicável. Não há total presumido nem rateio automático.</p>
+            <h5>Emissões individualizadas (opcional)</h5>
+            <p>Referencie a edição cadastrada da fonte externa. Informe somente metadados e valores
+              declarados que você esteja autorizado a registrar. O servidor concilia as quantidades com os totais;
+              isso não comprova cobertura nacional, validade da fonte ou direitos de uso.</p>
+            @for (row of dyIssuances; track row; let i=$index) {
+              <fieldset>
+                <legend>Emissão {{i+1}} · Brasil</legend>
+                <label [for]="'cf-dy-program-'+i">Programa da emissão {{i+1}}</label>
+                <input [id]="'cf-dy-program-'+i" maxlength="120" required [value]="row.program"
+                  (input)="row.program=$any($event.target).value">
+                <label [for]="'cf-dy-registry-'+i">ID do projeto no registro {{i+1}}</label>
+                <input [id]="'cf-dy-registry-'+i" maxlength="160" required [value]="row.registryProject"
+                  (input)="row.registryProject=$any($event.target).value">
+                <label [for]="'cf-dy-issuance-'+i">ID da emissão {{i+1}}</label>
+                <input [id]="'cf-dy-issuance-'+i" maxlength="160" required [value]="row.issuanceId"
+                  (input)="row.issuanceId=$any($event.target).value">
+                <label [for]="'cf-dy-type-'+i">Categoria da emissão {{i+1}}</label>
+                <select [id]="'cf-dy-type-'+i" [value]="row.creditKind"
+                  (change)="row.creditKind=$any($event.target).value">
+                  <option value="ERC">ERC — Recarga</option><option value="ERF">ERF — Frota</option>
+                </select>
+                <label [for]="'cf-dy-issued-'+i">Data da emissão {{i+1}}</label>
+                <input [id]="'cf-dy-issued-'+i" type="date" required [value]="row.issuedOn"
+                  (input)="row.issuedOn=$any($event.target).value">
+                <label [for]="'cf-dy-amount-'+i">Quantidade da emissão {{i+1}} · tCO2e</label>
+                <input [id]="'cf-dy-amount-'+i" inputmode="decimal" required [value]="row.creditsTco2e"
+                  (input)="row.creditsTco2e=$any($event.target).value">
+                <label [for]="'cf-dy-source-'+i">ID da fonte {{i+1}}</label>
+                <input [id]="'cf-dy-source-'+i" maxlength="160" required [value]="row.sourceId"
+                  (input)="row.sourceId=$any($event.target).value">
+                <label [for]="'cf-dy-edition-'+i">Edição da fonte {{i+1}}</label>
+                <input [id]="'cf-dy-edition-'+i" maxlength="160" required [value]="row.sourceEdition"
+                  (input)="row.sourceEdition=$any($event.target).value">
+                <label [for]="'cf-dy-locator-'+i">Localizador da emissão {{i+1}}</label>
+                <input [id]="'cf-dy-locator-'+i" maxlength="1000" required [value]="row.locator"
+                  (input)="row.locator=$any($event.target).value">
+                <button type="button" class="cf-workspace-outline" [disabled]="dyBusy()"
+                  (click)="removeDyIssuance(i)">Remover emissão {{i+1}}</button>
+              </fieldset>
+            }
+            <button type="button" class="cf-workspace-outline" [disabled]="dyBusy()||dyIssuances.length>=100"
+              (click)="addDyIssuance()">Adicionar emissão declarada</button>
           }
           <label for="cf-dy-programs">Programas pesquisados</label>
           <textarea id="cf-dy-programs" rows="2" maxlength="1000" required [value]="dyPrograms"
@@ -141,6 +183,21 @@
               <dt>Cobertura e limites</dt><dd>{{item.coverageNote}}</dd>
               <dt>SHA-256 da avaliação</dt><dd class="energy-hash">{{item.assessmentSha256}}</dd>
             </dl>
+            @if (item.issuanceCount) {
+              <h5>Emissões declaradas · {{item.issuanceCount}}</h5>
+              <p>Totais conciliados pelo servidor, sem verificação oficial ou admissão normativa.</p>
+              @for (issuance of item.issuances ?? []; track $index) {
+                <dl>
+                  <dt>Programa / projeto</dt><dd>{{issuance.program}} / {{issuance.registryProject}}</dd>
+                  <dt>Emissão</dt><dd>{{issuance.issuanceId}} · {{issuance.issuedOn}}</dd>
+                  <dt>Categoria e quantidade</dt><dd>{{issuance.creditKind}} · {{issuance.creditsTco2e}} tCO2e</dd>
+                  <dt>Fonte / edição</dt><dd>{{issuance.sourceId}} / {{issuance.sourceEdition}}</dd>
+                  <dt>Localizador</dt><dd>{{issuance.locator}}</dd>
+                </dl>
+              }
+            } @else {
+              <p>Totais não individualizados; a ausência de itens não comprova ausência de créditos.</p>
+            }
             @if (item.review; as opinion) {
               <h5>Parecer interno desta versão</h5>
               <p>{{opinion.outcome}} · {{opinion.reviewedAt}}</p>

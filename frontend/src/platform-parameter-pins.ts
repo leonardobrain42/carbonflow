@@ -6,6 +6,8 @@ type Option = {projectId:string; title:string; triageVersion:number;
   pins:{parameterKind:string; vintageYear:number; version:number}[]};
 type Factor = {id:string; periodYear:number; status:string; normalizedUnit:string};
 type Board = {candidates:Factor[]};
+type DyIssuance = {program:string;registryProject:string;issuanceId:string;creditKind:string;
+  issuedOn:string;geography:string;creditsTco2e:string;sourceId:string;sourceEdition:string;locator:string};
 type DyReview = {outcome:string;assessmentSha256:string;ruleReference:string|null;
   evidenceReferences:string|null;reason:string|null;reviewedAt:string};
 type DyOptions = {canRecord:boolean;canReview:boolean;projects:{projectId:string;title:string}[]};
@@ -13,7 +15,8 @@ type DyAssessment = {id:string;projectId:string;projectYear:number;version:numbe
   priorStart:string|null;priorEndExclusive:string|null;calendarGate:string|null;
   erc:string|null;erf:string|null;dyPreview:string|null;programs:string|null;
   projectReferences:string|null;evidenceLocator:string|null;coverageNote:string|null;
-  assessmentSha256:string;recordedAt:string;state:string;stale:boolean;usableForE8:boolean;review?:DyReview|null};
+  assessmentSha256:string;recordedAt:string;state:string;stale:boolean;usableForE8:boolean;review?:DyReview|null;
+  issuanceCount?:number;issuanceState?:string;issuances?:DyIssuance[]};
 type DyHistory = {projectId:string;projectYear:number;latestVersion:number;
   priorStart:string|null;priorEndExclusive:string|null;calendarGate:string|null;
   assessments:DyAssessment[]};
@@ -47,6 +50,7 @@ export class PlatformParameterPinsComponent implements OnChanges, OnDestroy {
   dyReferences='';
   dyEvidence='';
   dyNote='';
+  dyIssuances:DyIssuance[]=[];
   reviewOutcome='';
   reviewRule='';
   reviewEvidence='';
@@ -141,7 +145,7 @@ export class PlatformParameterPinsComponent implements OnChanges, OnDestroy {
     this.dyHistory.set(null);this.dyBusy.set(false);
     this.dyMessage.set('');this.dyError.set('');
     this.dyOutcome='';this.dyErc='';this.dyErf='';
-    this.dyPrograms='';this.dyReferences='';this.dyEvidence='';this.dyNote='';
+    this.dyPrograms='';this.dyReferences='';this.dyEvidence='';this.dyNote='';this.dyIssuances=[];
     this.reviewOutcome='';this.reviewRule='';this.reviewEvidence='';this.reviewReason='';
   }
 
@@ -152,7 +156,17 @@ export class PlatformParameterPinsComponent implements OnChanges, OnDestroy {
   }
 
   dyOutcomeChanged(value:string){
-    this.dyOutcome=value;this.dyErc='';this.dyErf='';
+    this.dyOutcome=value;this.dyErc='';this.dyErf='';this.dyIssuances=[];
+  }
+
+  addDyIssuance(){
+    if(this.dyBusy()||this.dyIssuances.length>=100||this.dyOutcome==='INCONCLUSIVE')return;
+    this.dyIssuances=[...this.dyIssuances,{program:'',registryProject:'',issuanceId:'',
+      creditKind:'ERC',issuedOn:'',geography:'BR',creditsTco2e:'',sourceId:'',sourceEdition:'',locator:''}];
+  }
+
+  removeDyIssuance(index:number){
+    if(!this.dyBusy())this.dyIssuances=this.dyIssuances.filter((_,i)=>i!==index);
   }
 
   private dyPath(project:string){
@@ -198,6 +212,7 @@ export class PlatformParameterPinsComponent implements OnChanges, OnDestroy {
         erf:this.dyOutcome==='INCONCLUSIVE'?null:this.dyErf,
         programs:this.dyPrograms,projectReferences:this.dyReferences,
         evidenceLocator:this.dyEvidence,coverageNote:this.dyNote,
+        issuances:this.dyOutcome==='INCONCLUSIVE'?[]:this.dyIssuances,
       },{headers:new HttpHeaders({'Idempotency-Key':crypto.randomUUID(),
         'If-Match':'"'+history.latestVersion+'"'})}));
       if(request!==this.dyRequest)return;
