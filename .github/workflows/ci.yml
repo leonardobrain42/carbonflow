@@ -425,6 +425,7 @@ jobs:
             DROP TABLE app_open_dy_issuance;
             DROP TABLE app_open_dy_review;
             DROP TABLE app_open_dy_assessment;
+            DROP FUNCTION app_open_dy_first_year_absence_guard();
             DROP TABLE app_open_e8_run_timing;
             DELETE FROM flyway_schema_history WHERE version IN ('79','80','82','83','84','85','86','87','88','89','90','91','92','93','94','95','96','97','98');
             UPDATE flyway_schema_history SET version='79',
