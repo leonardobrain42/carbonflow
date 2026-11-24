@@ -40,6 +40,8 @@ interface Section {guide:Guide;latest:Version | null;
 @Component({selector:'carbonflow-pd-sections',templateUrl:'./pd-sections.html'})
 export class PdSectionsComponent implements OnInit {
   readonly initialGuide = input<string|null>(null);
+  readonly calculationRun = input<string|null>(null);
+  readonly calculationPeriod = input<string|null>(null);
   readonly review = output<string>();
   ngOnInit() { if (this.initialGuide()) void this.load(); }
   readonly projectId = input.required<string>();
@@ -64,7 +66,10 @@ export class PdSectionsComponent implements OnInit {
     this.busy.set(true);
     this.message.set('');
     try {
-      const items = await firstValueFrom(this.http.get<Section[]>(this.url));
+      const items = await firstValueFrom(this.http.get<Section[]>(this.url, {params:{
+        ...(this.calculationRun() ? {run:this.calculationRun()!} : {}),
+        ...(this.calculationPeriod() ? {period:this.calculationPeriod()!} : {}),
+      }}));
       this.items.set(items);
       this.show(items.find(item => item.guide.id === (this.current()?.guide.id ?? this.initialGuide())) ?? items[0] ?? null);
     } catch (cause) { this.failed(cause); }

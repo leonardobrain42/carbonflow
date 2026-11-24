@@ -11,8 +11,9 @@ public class PdSectionsResource {
     PdSectionsResource(PdSections sections) { this.sections = sections; }
 
     @GET
-    public Response list(@CookieParam(AccountAccess.COOKIE) String token,@PathParam("project") String project) {
-        return Response.ok(sections.list(token,project)).header("Cache-Control","private, no-store").build();
+    public Response list(@CookieParam(AccountAccess.COOKIE) String token,@PathParam("project") String project,
+                         @QueryParam("period") String period,@QueryParam("run") java.util.UUID run) {
+        return Response.ok(sections.list(token,project,period,run)).header("Cache-Control","private, no-store").build();
     }
 
     @PUT @Path("/{id}") @Consumes(MediaType.APPLICATION_JSON)

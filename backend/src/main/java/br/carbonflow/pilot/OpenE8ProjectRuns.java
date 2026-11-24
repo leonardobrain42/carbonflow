@@ -85,13 +85,18 @@ class OpenE8ProjectRuns {
 
     Attempt detail(String cookie, String project, String period, UUID id) {
         return scope.read(cookie, project, "VIEW_OPEN_E8_RUN", (c, ctx) -> {
-            String code = OpenMonitoringDossiers.code(period);
-            Stored row = first(c, STORED + """
-                WHERE project_id=? AND period_code=? AND id=?
-                """, OpenE8ProjectRuns::stored, project, code, id);
-            if (row == null) throw unavailable();
-            return view(c, row);
+            return find(c, project, period, id);
         });
+    }
+
+    /** Caller must already hold VIEW_OPEN_E8_RUN for this project. */
+    static Attempt find(Connection c, String project, String period, UUID id) throws SQLException {
+        String code = OpenMonitoringDossiers.code(period);
+        Stored row = first(c, STORED + """
+            WHERE project_id=? AND period_code=? AND id=?
+            """, OpenE8ProjectRuns::stored, project, code, id);
+        if (row == null) throw unavailable();
+        return view(c, row);
     }
 
     Outcome record(String cookie, String project, String period, String key,

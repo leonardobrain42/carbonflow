@@ -13,6 +13,7 @@ test('a seção de quantificação nomeia a memória ou o bloqueio', async () =>
     const page = await browser.newPage({viewport:{width:1440, height:900}});
     let situation = 'MEMORY';
     let mutations = 0;
+    const selectedRequests=[];
     page.on('request', request => {
       if (request.url().includes('/technical/pd-sections') && request.method() !== 'GET') mutations++;
     });
@@ -80,11 +81,13 @@ test('a seção de quantificação nomeia a memória ou o bloqueio', async () =>
     }}));
     await page.route('**/v1/projects/*/technical/preliminary-dossier', route => route.fulfill({status:204}));
     await page.route('**/v1/projects/*/journey/resume', route => route.fulfill({status:204}));
-    await page.route('**/v1/projects/*/technical/pd-sections', route => route.fulfill({json:[{
+    await page.route('**/v1/projects/*/technical/pd-sections*', route => {
+      selectedRequests.push(new URL(route.request().url()).searchParams);
+      return route.fulfill({json:[{
       guide, latest:null, monitoringDependency:null,
       calculation:situation === 'MEMORY' ? memory : situation === 'RESTRICTED' ? restricted : block,
-    }]}));
-    await page.goto(base + '/workspace/projects/' + project + '/technical?secao=redigir&guia=quantification');
+    }]}); });
+    await page.goto(base + '/workspace/projects/' + project + '/technical?secao=redigir&guia=quantification&run='+memory.provenance.runId+'&period=M1');
     await page.getByRole('heading', {name:'Cálculo nomeado nesta seção · M1'}).waitFor();
     await page.getByText('4.05 tCO2e').waitFor();
     await page.getByText('Esta seção não recalcula.').waitFor();
@@ -121,6 +124,12 @@ test('a seção de quantificação nomeia a memória ou o bloqueio', async () =>
     assert.equal(await page.getByText('4.05 tCO2e').count(), 0);
     assert.equal(await page.locator('#pd-narrative').inputValue(), '');
     assert.equal(mutations, 0);
+    assert.ok(selectedRequests.length >= 3);
+    for (const params of selectedRequests) {
+      assert.equal(params.get('run'),memory.provenance.runId);
+      assert.equal(params.get('period'),'M1');
+    }
+    await page.getByText('Consulta específica da memória, inclusive histórica.').waitFor();
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1), false);
   } finally {
     await browser.close();
