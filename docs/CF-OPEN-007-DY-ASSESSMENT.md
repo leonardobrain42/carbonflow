@@ -64,3 +64,22 @@ as tabelas e registros de migrations V82/V83 para simular o estado histórico,
 e exige reaplicação de ambas. A validação real não é afrouxada.
 
 Interface: a lista de projetos Dy tem endpoint próprio, acessível a gestores e revisores. O formulário de parecer aparece para o revisor na versão atual, não desatualizada e sem parecer. A autoria, o hash e o controle concorrente são rechecados no servidor. O teste de navegador cobre a transição de papéis e o pedido de informação para uma avaliação inconclusiva.
+
+## Fatia V84 — individualização de emissões declaradas
+
+Uma avaliação pode registrar até 100 emissões com programa, ID do projeto
+no registro, ID da emissão, categoria ERC/ERF, data de emissão, BR, quantidade
+em tCO2e, ID/edição de fonte externa cadastrada e localizador. O servidor
+exige janela do ano anterior (fim exclusivo), ausência de duplicatas e soma
+exata por categoria igual aos totais declarados. A lista canônica integra o
+hash da avaliação e do comando; avaliações anteriores mantêm o hash original.
+O acesso do projeto recebe apenas contagem e estado de conciliação, não os
+registros detalhados. A checagem interna não vira admissão normativa.
+
+A fonte é referência de metadados (edição cadastrada com URI oficial), NÃO
+importação de números licenciados, validação de registros ou licença de uso.
+Os números são declarações manuais. Não registrar conteúdo de acesso restrito.
+Ainda não há comprovação de cobertura, ingestão oficial, decisão de direitos
+por emissão, rateio nem integração ao executor. Uma avaliação sem itens
+permanece UNITEMIZED; zero não comprova ausência. Não há migração de dados
+históricos. V84 aditiva; CI reconstitui banco histórico apenas no fixture.

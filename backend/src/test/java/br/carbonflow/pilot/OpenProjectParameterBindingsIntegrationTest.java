@@ -166,6 +166,48 @@ class OpenProjectParameterBindingsIntegrationTest {
         JsonNode needsInfo=json(call("POST",incompletePath,reviewer,key(),"\"3\"",
             incompleteReview.replace("CHECKED_INTERNAL","NEEDS_INFORMATION")),201);
         assertEquals("NEEDS_INFORMATION_NOT_ADMITTED",needsInfo.path("state").asText());
+        // Issuance references are declared, never imported or admitted.
+        database.transaction(c->{
+            update(c,"""
+                INSERT INTO app_source_version(source_id,edition,category,title,rights_holder,official_uri,origin)
+                VALUES ('TEST-DY-REGISTRY','1','EXTERNAL_SOURCE','Registro fictício','Teste',
+                        'https://example.invalid/registry','EXTERNAL') ON CONFLICT DO NOTHING
+                """);
+            return null;
+        });
+        String items="""
+            [{"program":"TEST-PROGRAM","registryProject":"A","issuanceId":"ISS-1",
+              "creditKind":"ERC","issuedOn":"2034-07-01","geography":"BR","creditsTco2e":"75",
+              "sourceId":"TEST-DY-REGISTRY","sourceEdition":"1","locator":"TEST_ONLY item A"},
+             {"program":"TEST-PROGRAM","registryProject":"B","issuanceId":"ISS-2",
+              "creditKind":"ERF","issuedOn":"2035-06-30","geography":"BR","creditsTco2e":"25",
+              "sourceId":"TEST-DY-REGISTRY","sourceEdition":"1","locator":"TEST_ONLY item B"}]
+            """;
+        String itemized=dyFound.strip().substring(0,dyFound.strip().length()-1)+",\"issuances\":"+items+"}";
+        assertEquals(422,call("POST",dyPath,manager,key(),"\"3\"",
+            itemized.replace("\"creditsTco2e\":\"25\"","\"creditsTco2e\":\"24\"")).statusCode());
+        assertEquals(422,call("POST",dyPath,manager,key(),"\"3\"",
+            itemized.replace("2035-06-30","2035-07-01")).statusCode());
+        assertEquals(422,call("POST",dyPath,manager,key(),"\"3\"",
+            itemized.replace("\"sourceEdition\":\"1\"","\"sourceEdition\":\"2\"")).statusCode());
+        assertEquals(422,call("POST",dyPath,manager,key(),"\"3\"",
+            itemized.replace("\"registryProject\":\"B\",\"issuanceId\":\"ISS-2\"",
+                "\"registryProject\":\"A\",\"issuanceId\":\"ISS-1\"")).statusCode());
+        String itemKey=key();
+        JsonNode itemizedView=json(call("POST",dyPath,manager,itemKey,"\"3\"",itemized),201);
+        assertEquals(4,itemizedView.path("version").asInt());
+        assertEquals(2,itemizedView.path("issuanceCount").asInt());
+        assertEquals("DECLARED_TOTALS_RECONCILED",itemizedView.path("issuanceState").asText());
+        assertEquals("0.75",itemizedView.path("dyPreview").asText());
+        assertFalse(itemizedView.path("usableForE8").asBoolean());
+        assertTrue(itemizedView.path("review").isNull());
+        assertEquals(itemizedView,json(call("POST",dyPath,manager,itemKey,"\"3\"",itemized),200));
+        assertEquals(409,call("POST",dyPath,manager,itemKey,"\"3\"",
+            itemized.replace("TEST_ONLY item B","TEST_ONLY outra referência")).statusCode());
+        var projectItem=json(call("GET",dyRead,owner,null,null,null),200).at("/assessments/0");
+        assertEquals(2,projectItem.path("issuanceCount").asInt());
+        assertEquals(0,projectItem.path("issuances").size());
+        assertFalse(projectItem.toString().contains("TEST-DY-REGISTRY"));
         assertEquals(0L,database.read(c->first(c,"SELECT count(*) FROM app_open_project_parameter_binding WHERE project_id=? AND parameter_kind='DY'",
             r->r.getLong(1),project)).longValue());
 
