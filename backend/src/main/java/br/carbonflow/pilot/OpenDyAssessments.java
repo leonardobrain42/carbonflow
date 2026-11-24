@@ -160,8 +160,12 @@ class OpenDyAssessments {
         // First-year/pre-start treatment requires a distinct normative decision.
         if (year==1) return new Calendar(null,null,"FIRST_YEAR_REVIEW_REQUIRED");
         var calendar=OpenE8Timing.calendar(c,project,year-1);
-        return calendar.gate()!=null?new Calendar(null,null,calendar.gate()):
-            new Calendar(calendar.window().from(),calendar.window().until(),null);
+        if (calendar.gate()!=null) return new Calendar(null,null,calendar.gate());
+        var readiness=OpenApplicability.currentReadiness(c,project);
+        if (readiness.stale() || !"OPEN_CANDIDATE".equals(readiness.network())
+                || !"OPEN_LDV_DCFC_SIN_BR_CANDIDATE".equals(readiness.category()))
+            return new Calendar(null,null,"OPEN_BRANCH_REVIEW_REQUIRED");
+        return new Calendar(calendar.window().from(),calendar.window().until(),null);
     }
 
     private static boolean same(OffsetDateTime a,OffsetDateTime b) {

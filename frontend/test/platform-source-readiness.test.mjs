@@ -95,7 +95,7 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
     await page.getByRole('heading', {name:'Pino de parâmetros do projeto'}).waitFor();
     await page.getByLabel('Projeto', {exact:true}).selectOption({label:'Rede aberta'});
     await page.getByLabel('Parâmetro', {exact:true}).selectOption('IR');
-    await page.getByLabel('Ano').fill('2036');
+    await page.getByLabel('Ano', {exact:true}).fill('2036');
     await page.getByLabel('Valor declarado').fill('1');
     await page.getByLabel('Regra').fill('VM0038-1.1 regra explícita do projeto');
     await page.getByLabel('Prova').fill('prova ficticia do parametro');
@@ -107,6 +107,72 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
     assert.equal(posted.body.useDefault, undefined);
     assert.equal(posted.match, '"0"');
     await page.getByText('Nenhum pino admite o cálculo nem emite crédito.').waitFor();
+    const dyProject='20000000-0000-4000-8000-000000000097';
+    let dyRows=[];
+    let dyPost=null;
+    let dyMode='OPEN';
+    await page.route('**/v1/platform/open-dy-assessments/**',async route=>{
+      const path=new URL(route.request().url()).pathname;
+      if(route.request().method()==='GET'){
+        if(dyMode==='DENIED')return route.fulfill({status:404,json:{}});
+        const year=Number(path.split('/').at(-1));
+        return route.fulfill({json:{projectId:dyProject,projectYear:year,
+          latestVersion:dyRows[0]?.version??0,priorStart:year===1?null:'2034-07-01T03:00:00Z',
+          priorEndExclusive:year===1?null:'2035-07-01T03:00:00Z',
+          calendarGate:year===1?'FIRST_YEAR_REVIEW_REQUIRED':null,assessments:dyRows}});
+      }
+      dyPost={body:route.request().postDataJSON(),match:route.request().headers()['if-match']};
+      const saved={id:'dy-test-'+(dyRows.length+1),projectId:dyProject,projectYear:dyPost.body.projectYear,
+        version:dyRows.length+1,outcome:dyPost.body.outcome,erc:dyPost.body.erc,erf:dyPost.body.erf,
+        dyPreview:dyPost.body.outcome==='INCONCLUSIVE'?null:'0.75',
+        priorStart:'2034-07-01T03:00:00Z',priorEndExclusive:'2035-07-01T03:00:00Z',
+        programs:dyPost.body.programs,projectReferences:dyPost.body.projectReferences,
+        evidenceLocator:dyPost.body.evidenceLocator,coverageNote:dyPost.body.coverageNote,
+        assessmentSha256:'a'.repeat(64),state:'DECLARED_NOT_ADMITTED',stale:false,usableForE8:false};
+      dyRows=[saved,...dyRows];
+      return route.fulfill({status:201,json:saved});
+    });
+    await page.getByLabel('Projeto da avaliação',{exact:true}).selectOption(dyProject);
+    await page.getByLabel('Ano relativo do projeto',{exact:true}).fill('2');
+    await page.getByRole('button',{name:'Consultar avaliações de Dy'}).click();
+    await page.getByText('Nenhuma avaliação registrada para este ano.').waitFor();
+    const outcome=page.getByLabel('Resultado da pesquisa',{exact:true});
+    await outcome.selectOption('FLEET_CREDITS_FOUND');
+    await page.getByLabel('ERC emitidos · tCO2e').fill('75');
+    await page.getByLabel('ERF emitidos · tCO2e').fill('25');
+    await page.getByLabel('Programas pesquisados').fill('Programa fictício');
+    await page.getByLabel('Projetos e categorias pesquisados').fill('Projeto fictício da frota');
+    await page.getByLabel('Localizador da evidência').fill('TEST_ONLY página 1');
+    await page.getByLabel('Cobertura, fontes e limitações da pesquisa').fill('Pesquisa declaratória de teste');
+    await page.getByRole('button',{name:'Registrar avaliação de Dy'}).click();
+    await page.getByText('Avaliação registrada em nova versão, sem admissão para E8.').waitFor();
+    const firstDy=page.getByText('Versão 1 · FLEET_CREDITS_FOUND · Sem admissão');
+    await firstDy.click();
+    await page.getByText('0.75',{exact:true}).waitFor();
+    assert.equal(dyPost.match,'"0"');
+    assert.equal(dyPost.body.projectYear,2);
+    assert.equal(dyPost.body.erc,'75');
+    assert.equal(dyPost.body.erf,'25');
+    assert.equal(dyPost.body.dyPreview,undefined);
+    await outcome.selectOption('INCONCLUSIVE');
+    assert.equal(await page.getByLabel('ERC emitidos · tCO2e').count(),0);
+    await page.getByRole('button',{name:'Registrar avaliação de Dy'}).click();
+    await page.getByText('Versão 2 · INCONCLUSIVE · Sem admissão').click();
+    await page.getByText('Indisponível — ausência não é zero',{exact:true}).waitFor();
+    assert.equal(dyPost.match,'"1"');
+    assert.equal(dyPost.body.erc,null);
+    assert.equal(dyPost.body.erf,null);
+    dyRows=[];
+    await page.getByLabel('Ano relativo do projeto',{exact:true}).fill('1');
+    assert.equal(await firstDy.count(),0);
+    await page.getByRole('button',{name:'Consultar avaliações de Dy'}).click();
+    await page.getByText('Janela anterior não resolvida:',{exact:false}).waitFor();
+    assert.equal(await outcome.locator('option[value="FLEET_CREDITS_FOUND"]').isDisabled(),true);
+    dyMode='DENIED';
+    await page.getByRole('button',{name:'Consultar avaliações de Dy'}).click();
+    await page.getByRole('alert').filter({hasText:'Avaliação indisponível para esta conta.'}).waitFor();
+    assert.equal(await outcome.count(),0);
+
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth),false);
   } finally {
     await browser.close();

@@ -30,7 +30,7 @@
         <option value="EF_FUEL">Fator fóssil (linha de base)</option>
         <option value="EF_GRID">Fator elétrico anual (emissão do projeto)</option>
         <option value="IR">Melhoria tecnológica (IR)</option>
-        <option value="DY">Desconto por outro crédito (Dy)</option>
+        <option value="DY">Desconto por outro crédito (Dy) — declaração legada</option>
       </select>
       <label for="cf-pin-year">Ano</label>
       <input id="cf-pin-year" [value]="year" (input)="year=$any($event.target).value"
@@ -62,5 +62,88 @@
       }
       <button type="submit" class="cf-workspace-primary" [disabled]="busy()">Gravar pino</button>
     </form>
+
+    <section aria-labelledby="cf-dy-title" class="cf-journey-context">
+      <h3 id="cf-dy-title">Avaliação de créditos concorrentes (Dy)</h3>
+      <p>Pesquise créditos emitidos por infraestrutura de recarga (ERC) e por projetos de frota (ERF)
+        no ano anterior do projeto, no recorte nacional DCFC. Registre os programas, referências e
+        limites da pesquisa. A equação 8 é calculada pelo servidor apenas como prévia declaratória.
+        Uma ausência declarada não comprova ausência de créditos; esta avaliação não substitui o pino nem admite E8.</p>
+      <label for="cf-dy-project">Projeto da avaliação</label>
+      <select id="cf-dy-project" [value]="dyProject" (change)="dyProject=$any($event.target).value;resetDy()">
+        <option value="">Selecione o rascunho</option>
+        @for (option of options(); track option.projectId) {
+          <option [value]="option.projectId">{{option.title}}</option>
+        }
+      </select>
+      <label for="cf-dy-year">Ano relativo do projeto</label>
+      <input id="cf-dy-year" type="number" min="1" max="100" step="1" [value]="dyYear"
+        (input)="dyYear=$any($event.target).value;resetDy()">
+      <button type="button" class="cf-workspace-outline" [disabled]="!dyValid()||dyBusy()" (click)="loadDy()">
+        Consultar avaliações de Dy</button>
+      @if (dyBusy()) { <p role="status">Conferindo a avaliação de Dy…</p> }
+      @if (dyError()) { <p role="alert">{{dyError()}}</p> }
+      @if (dyMessage()) { <p role="status">{{dyMessage()}}</p> }
+      @if (dyHistory(); as history) {
+        @if (history.calendarGate) {
+          <p>Janela anterior não resolvida: {{history.calendarGate}}. Somente pesquisa inconclusiva pode ser registrada.</p>
+        } @else {
+          <p>Janela anterior canônica: {{history.priorStart}} até {{history.priorEndExclusive}} (fim exclusivo).</p>
+        }
+        <form (submit)="saveDy($event)">
+          <label for="cf-dy-outcome">Resultado da pesquisa</label>
+          <select id="cf-dy-outcome" [value]="dyOutcome" required
+            (change)="dyOutcomeChanged($any($event.target).value)">
+            <option value="">Selecione o resultado</option>
+            <option value="INCONCLUSIVE">Pesquisa inconclusiva</option>
+            <option value="FLEET_CREDITS_FOUND" [disabled]="!!history.calendarGate">Créditos de frota encontrados</option>
+            <option value="NO_FLEET_CREDITS_DECLARED" [disabled]="!!history.calendarGate">Ausência de créditos de frota declarada</option>
+          </select>
+          @if (dyOutcome && dyOutcome!=='INCONCLUSIVE') {
+            <label for="cf-dy-erc">ERC emitidos · tCO2e</label>
+            <input id="cf-dy-erc" inputmode="decimal" [value]="dyErc" required
+              (input)="dyErc=$any($event.target).value">
+            <label for="cf-dy-erf">ERF emitidos · tCO2e</label>
+            <input id="cf-dy-erf" inputmode="decimal" [value]="dyErf" required
+              (input)="dyErf=$any($event.target).value">
+            <p>Informe explicitamente zero quando aplicável. Não há total presumido nem rateio automático.</p>
+          }
+          <label for="cf-dy-programs">Programas pesquisados</label>
+          <textarea id="cf-dy-programs" rows="2" maxlength="1000" required [value]="dyPrograms"
+            (input)="dyPrograms=$any($event.target).value"></textarea>
+          <label for="cf-dy-refs">Projetos e categorias pesquisados</label>
+          <textarea id="cf-dy-refs" rows="2" maxlength="2000" required [value]="dyReferences"
+            (input)="dyReferences=$any($event.target).value"></textarea>
+          <label for="cf-dy-evidence">Localizador da evidência</label>
+          <input id="cf-dy-evidence" maxlength="1000" required [value]="dyEvidence"
+            (input)="dyEvidence=$any($event.target).value">
+          <label for="cf-dy-note">Cobertura, fontes e limitações da pesquisa</label>
+          <textarea id="cf-dy-note" rows="3" maxlength="2000" required [value]="dyNote"
+            (input)="dyNote=$any($event.target).value"></textarea>
+          <button type="submit" class="cf-workspace-primary" [disabled]="dyBusy()||!dyOutcome
+            ||(!!history.calendarGate&&dyOutcome!=='INCONCLUSIVE')">Registrar avaliação de Dy</button>
+        </form>
+        <h4>Versões da avaliação · ano {{history.projectYear}}</h4>
+        @for (item of history.assessments; track item.id) {
+          <details>
+            <summary>Versão {{item.version}} · {{item.outcome}} · {{item.stale?'Requer rechecagem':'Sem admissão'}}</summary>
+            <dl>
+              <dt>Janela original</dt><dd>{{item.priorStart ?? 'Não resolvida'}} até {{item.priorEndExclusive ?? 'Não resolvida'}}</dd>
+              <dt>ERC declarados</dt><dd>{{item.erc ?? 'Não determinados'}}</dd>
+              <dt>ERF declarados</dt><dd>{{item.erf ?? 'Não determinados'}}</dd>
+              <dt>Prévia histórica de Dy</dt><dd>{{item.dyPreview ?? 'Indisponível — ausência não é zero'}}</dd>
+              <dt>Programas</dt><dd>{{item.programs}}</dd>
+              <dt>Projetos e categorias</dt><dd>{{item.projectReferences}}</dd>
+              <dt>Referência de evidência</dt><dd>{{item.evidenceLocator}}</dd>
+              <dt>Cobertura e limites</dt><dd>{{item.coverageNote}}</dd>
+              <dt>SHA-256 da avaliação</dt><dd class="energy-hash">{{item.assessmentSha256}}</dd>
+            </dl>
+            <p>Avaliação declaratória, sem parecer independente. Não habilita o cálculo.</p>
+          </details>
+        } @empty {
+          <p>Nenhuma avaliação registrada para este ano.</p>
+        }
+      }
+    </section>
   }
 </section>
