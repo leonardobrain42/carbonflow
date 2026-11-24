@@ -116,6 +116,14 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
         fleetSelectionId:'fleet-current',fuelPinId:'fuel-current',assessmentSha256:'b'.repeat(64)};
       irRows=[saved,...irRows];return r.fulfill({status:201,json:saved});
     });
+    let initialReview=null;
+    await page.route('**'+irRoot+'/ir-prior/review',async r=>{
+      initialReview={body:r.request().postDataJSON(),match:r.request().headers()['if-match']};
+      const saved={...irRows.find(p=>p.id==='ir-prior'),state:'INITIAL_BASELINE_CHECKED_NOT_ADMITTED',
+        candidate:null,review:{...initialReview.body,reviewedAt:'2035-01-01T00:00:00Z',
+          initialContext:{followupOn:'2036-01-01',planSha256:'e'.repeat(64),plan:initialReview.body.initialPlan}}};
+      irRows=irRows.map(p=>p.id==='ir-prior'?saved:p);return r.fulfill({status:201,json:saved});
+    });
     let irReview=null;
     await page.route('**'+irRoot+'/ir-current/review',async r=>{
       irReview={body:r.request().postDataJSON(),match:r.request().headers()['if-match']};
@@ -152,6 +160,26 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
     assert.equal(irPost.match,'"0"');
     assert.deepEqual(irPost.body,{period:'M2',frequency:'ANNUAL',basis:'PROJECT_SPECIFIC',
       rationale:'Atualização anual das referências canônicas.'});
+    const initial=irPanel.locator('details').filter({hasText:'Ano 1 · fonte 2035'});
+    await initial.locator('summary').click();
+    await initial.getByRole('button',{name:'Preparar parecer de IR'}).click();
+    await initial.getByLabel('Decisão técnica').selectOption('INITIAL_BASELINE_CHECKED');
+    await initial.getByLabel('Tipo de evidência anual').selectOption('PLAN_ONLY');
+    await initial.getByLabel('Localizador da evidência').fill('INITIAL-PLAN');
+    await initial.getByLabel('Fundamentação do parecer').fill('Conferência independente do plano inicial anual.');
+    assert.equal(await initial.getByRole('button',{name:'Registrar parecer de IR'}).isDisabled(),true);
+    for(const [label,text] of [['EVR','Fonte de frota e responsável pela atualização anual'],
+      ['AFEC','Fonte de consumo e responsável pela atualização anual'],
+      ['MPG','Fonte de comparáveis e responsável pela atualização anual'],
+      ['EFfuel','Fonte fóssil e responsável pela atualização anual']]){
+      await initial.getByLabel('Plano de atualização '+label,{exact:true}).fill(text);
+    }
+    await initial.getByRole('button',{name:'Registrar parecer de IR'}).click();
+    await initial.locator('summary').filter({hasText:'Plano inicial conferido — não admitido'}).waitFor();
+    assert.equal(initialReview.match,'"1"');
+    assert.equal(initialReview.body.priorAssessmentId,null);
+    assert.equal(initialReview.body.annualUpdateBasis,'PLAN_ONLY');
+    assert.ok(initialReview.body.initialPlan.fuel.includes('Fonte fóssil'));
     const current=irPanel.locator('details').filter({hasText:'Ano 2 · fonte 2036'});
     await current.getByRole('button',{name:'Preparar parecer de IR'}).click();
     await current.getByLabel('Decisão técnica').selectOption('CHECKED_INTERNAL');

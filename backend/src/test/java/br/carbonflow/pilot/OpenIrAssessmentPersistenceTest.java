@@ -66,6 +66,22 @@ class OpenIrAssessmentPersistenceTest {
     }
 
     @Test
+    void initialPlanMigrationPreservesImmutableReviewAndScopeGuard() {
+        assertEquals(1,database.read(c->first(c,"""
+            SELECT count(*)::int FROM flyway_schema_history WHERE version='93' AND success
+            """,r->r.getInt(1))).intValue());
+        assertEquals(2,database.read(c->first(c,"""
+            SELECT count(*)::int FROM pg_constraint
+            WHERE conrelid='app_open_ir_review'::regclass AND convalidated
+              AND conname IN ('app_open_ir_initial_plan_shape','app_open_ir_review_outcome_check')
+            """,r->r.getInt(1))).intValue());
+        assertEquals(2,database.read(c->first(c,"""
+            SELECT count(*)::int FROM pg_trigger WHERE tgrelid='app_open_ir_review'::regclass
+              AND tgenabled='O' AND tgname IN ('app_open_ir_review_immutable','app_open_ir_initial_review_scope')
+            """,r->r.getInt(1))).intValue());
+    }
+
+    @Test
     void digestSeparatesTextBoundariesNullAndRevision() {
         assertNotEquals(OpenIrAssessments.digest("ab","c"),OpenIrAssessments.digest("a","bc"));
         assertNotEquals(OpenIrAssessments.digest("a",null),OpenIrAssessments.digest("a",""));
