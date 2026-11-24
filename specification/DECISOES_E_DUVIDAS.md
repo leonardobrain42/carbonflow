@@ -1,0 +1,27 @@
+# Decisões e dúvidas
+Este registro resume decisões **documentadas no repositório/backlog**, não reconstitui o texto de DEC-001…012. CF-SPEC-D* são novos identificadores de navegação. Aprovação de nova decisão substantiva deve indicar responsável, alternativa, fonte, impacto e PR.
+
+| ID | Decisão ou política documentada | Autoridade/evidência | Limite |
+|---|---|---|---|
+| CF-SPEC-D01 | Preservar piloto sintético e separar projetos dinâmicos | DEC-012 citado em [E8-013](../evidencias/e8-013/VERIFICACAO.md); [CF-IMP-008-ADAPTERS-PROJETO-DINAMICO](../docs/CF-IMP-008-ADAPTERS-PROJETO-DINAMICO.md) | Texto integral de DEC-012 ausente |
+| CF-SPEC-D02 | Quarkus + Angular + PostgreSQL, mesma origem HTTP, persistência e migrações | [README](../README.md) | Não afirmar que ADR original foi recuperado |
+| CF-SPEC-D03 | Primeiro ramo OPEN BR LDV BEV DCFC SIN GRID_ONLY | [#89](https://github.com/leonardobrain42/carbonflow/issues/89), [#97](https://github.com/leonardobrain42/carbonflow/issues/97), [#122](https://github.com/leonardobrain42/carbonflow/issues/122) | Fora do recorte não é necessariamente fora da metodologia |
+| CF-SPEC-D04 | Preparação pode avançar com lacunas; prontidão e atos dependentes não | [CF-OPEN-004-OPEN-APPLICABILITY](../docs/CF-OPEN-004-OPEN-APPLICABILITY.md), [#13](https://github.com/leonardobrain42/carbonflow/issues/13) | Sem aprovação automática |
+| CF-SPEC-D05 | Fonte/edição/licença/ato/finalidade separados; IA não é autoridade de regra | [ECA-001-POLITICA-DE-FONTES](../docs/ECA-001-POLITICA-DE-FONTES.md), [#92](https://github.com/leonardobrain42/carbonflow/issues/92) | Autorizações reais ainda precisam de prova |
+| CF-SPEC-D06 | Calendário de aniversários America/Sao_Paulo, fonte UTC, fim exclusivo | [CF-OPEN-008-E8-PROJECT-RUN](../docs/CF-OPEN-008-E8-PROJECT-RUN.md) | Janelas cruzando fronteira bloqueadas; não inferir ano do código M1/M2 |
+| CF-SPEC-D07 | IR escalar legado não serve a novas tentativas; avaliação estruturada é referência | [CF-OPEN-008-STRUCTURED-IR](../docs/CF-OPEN-008-STRUCTURED-IR.md), [PR #236](https://github.com/leonardobrain42/carbonflow/pull/236) | Primeiro ano exige fundamentação própria |
+| CF-SPEC-D08 | Plano ex ante separado de atualização observada; conciliado por revisor independente | [PR #239](https://github.com/leonardobrain42/carbonflow/pull/239), [PR #240](https://github.com/leonardobrain42/carbonflow/pull/240), [PR #241](https://github.com/leonardobrain42/carbonflow/pull/241) | Plano não comprova atualização; versionamento e rechecagem |
+| CF-SPEC-D09 | Controle temporal V96: atualização no ano do projeto, não futura ao parecer, validade cobre período | [CF-OPEN-007-IR-ANNUAL-TEMPORAL](../docs/CF-OPEN-007-IR-ANNUAL-TEMPORAL.md), [PR #242](https://github.com/leonardobrain42/carbonflow/pull/242) | **Política interna**, não prazo normativo Verra; revisão retrospectiva permitida |
+| CF-SPEC-D10 | UI/PD projetam fatos e cálculo canônicos; não criam outra fonte de verdade | [#122](https://github.com/leonardobrain42/carbonflow/issues/122), [#128](https://github.com/leonardobrain42/carbonflow/issues/128), [CF-UX-TECH-001-UX08-REQUIREMENT-PROJECTION](../docs/CF-UX-TECH-001-UX08-REQUIREMENT-PROJECTION.md) | Sem aprovação documental inferida de uma projeção |
+| CF-SPEC-D11 | Estado de revisão interna distinto de VVB, Verra e emissão | [#101](https://github.com/leonardobrain42/carbonflow/issues/101), [E8-014](../evidencias/e8-014/VERIFICACAO.md) | Evidência externa e autoridade necessárias |
+
+## Questões que exigem decisão, não suposição
+- Q01: recuperar kit 0.2.14 e reconciliar DEC/RF/CT/PEN por origem.
+- Q02: estratégia admissível EVR nacional, lacunas e ratings; decisão de dados e risco (#94/#95).
+- Q03: opção OM/TOOL07, gases, vintage e fonte SIN; revisão competente (#96).
+- Q04: IR inicial/ex ante e prova anual além das guardas internas; consistência de referências intra-ano (#96/#97).
+- Q05: Dy, interpretação de ERC/ERF e rateio/recorte nacional, ano inicial (#96/#97).
+- Q06: poderes, convites, competência, provas por ato, regime VCS e versões de templates (#24/#10/#122).
+- Q07: metas de operação/hospedagem, amostra real, parecer independente e critérios de release (#101, PEN-006/008).
+
+**Novas decisões propostas nesta reorganização:** árvore de especificação viva, registro de síntese com identificadores próprios e revisão documental no PR. Não alteram normas, comportamento do aplicativo ou critérios de admissão. Após merge, passam a ser convenção de engenharia; conflitos de produto continuam exigindo decisão explícita.

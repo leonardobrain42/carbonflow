@@ -1,0 +1,7 @@
+# CarbonFlow — instruções para agentes e contribuidores
+Antes de escolher a próxima fatia, leia [specification/README.md](specification/README.md), [estado](specification/ESTADO_DO_TRABALHO.md), [decisões](specification/DECISOES_E_DUVIDAS.md), [pendências](specification/PENDENCIAS.md), [matriz](specification/MATRIZ_RASTREABILIDADE.md) e [governança](specification/GOVERNANCA.md). Abra a issue dona e os contratos relacionados, confirme main/CI atual, PRs abertos, e preserve as regras de isolamento.
+- Não confunda PIL-SYN com projeto dinâmico, ensaio com admissão, revisão interna com ato externo. Não invente parâmetros, dados, prazos, defaults, autorização ou edição normativa.
+- Reutilize owners de dados, cálculo, autorização, readiness e documentos; não duplique motores. Avalie método/edição/recorte, regras e licenças antes de alterar comportamento.
+- Faça migrações aditivas, preserve versões/hashes e histórico, teste acesso e revogação. Em caso de conflito metodológico sem fonte/decisão, registre bloqueio e não flexibilize guardas.
+- Atualize especificação/contrato/matriz/decisões pertinentes no mesmo PR; se não houver impacto de regra ou contrato, explique. Relate testes de fato executados, não chame CI impedido de aprovado. Use [checklist de PR](.github/pull_request_template.md).
+- Não reproduza o kit histórico a partir de suposição. O original está pendente de recuperação; use as referências do Git e marque incertezas. Não versionar material normativo protegido ou dados restritos sem licença.
