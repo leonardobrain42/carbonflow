@@ -4,6 +4,7 @@ import static br.carbonflow.pilot.PilotSql.first;
 import static br.carbonflow.pilot.PilotSql.update;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.math.BigDecimal;
@@ -67,6 +68,35 @@ class OpenProjectParameterBindingsIntegrationTest {
                 """, project, ORG, OWNER, "{\"1\":{\"methodologyCandidate\":\"VM0038\"}}");
             return null;
         });
+        // IR cannot be declared as an admitted scalar without a current canonical set.
+        String irPath="/v1/platform/open-ir-assessments/"+project;
+        String irBody="""
+            {"period":"M1","frequency":"ANNUAL","basis":"PROJECT_SPECIFIC",
+             "rationale":"TEST_ONLY annual baseline update declaration"}
+            """;
+        String irRead="/v1/projects/"+project+"/technical/open-ir-assessments/1/2036";
+        assertEquals(404,call("POST",irPath,reviewer,key(),"\"0\"",irBody).statusCode());
+        assertEquals(428,call("POST",irPath,manager,key(),null,irBody).statusCode());
+        assertEquals(409,call("POST",irPath,manager,key(),"\"0\"",irBody).statusCode());
+        assertEquals(404,call("GET",irRead,outsider,null,null,null).statusCode());
+        var irHistory=call("GET",irRead,owner,null,null,null);
+        assertTrue(irHistory.headers().firstValue("Cache-Control").orElse("").contains("no-store"));
+        assertTrue(json(irHistory,200).isEmpty());
+        assertTrue(json(call("GET",irPath+"/1/2036",manager,null,null,null),200).isEmpty());
+        assertEquals(422,call("GET",irPath+"/0/2036",manager,null,null,null).statusCode());
+        assertEquals(0L,database.read(c->first(c,"""
+            SELECT count(*) FROM app_open_ir_assessment WHERE project_id=?
+            """,r->r.getLong(1),project)).longValue());
+        String irReview=irPath+"/"+UUID.randomUUID()+"/review";
+        String irOpinion="""
+            {"assessmentSha256":"%s","outcome":"CHECKED_INTERNAL",
+             "annualUpdateBasis":"OBSERVED_UPDATE","evidenceLocator":"TEST_ONLY annual records",
+             "reason":"Independent review of annual update records"}
+            """.formatted("a".repeat(64));
+        assertEquals(200,call("GET",irPath+"/1/2036",reviewer,null,null,null).statusCode());
+        assertEquals(404,call("POST",irReview,manager,key(),"\"1\"",irOpinion).statusCode());
+        assertEquals(404,call("POST",irReview,reviewer,key(),"\"1\"",irOpinion).statusCode());
+        assertEquals(404,call("POST",irReview,outsider,key(),"\"1\"",irOpinion).statusCode());
         // Dy research is a versioned assessment, not another numerical pin.
         String dyPath="/v1/platform/open-dy-assessments/"+project;
         String inconclusive="""
