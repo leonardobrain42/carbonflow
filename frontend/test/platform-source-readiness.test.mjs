@@ -99,11 +99,14 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
     const irProject='20000000-0000-4000-8000-000000000097';
     const irRoot='/v1/platform/open-ir-assessments/'+irProject;
     let irPost=null;
+    const plannedMetric={source:'Fonte prevista',responsible:'Equipe técnica',procedure:'Revisar fontes anualmente'};
+    const exAnteOption={id:'ex-ante-plan',version:3,sha256:'d'.repeat(64),plan:{evr:plannedMetric,afec:plannedMetric,mpg:plannedMetric,fuel:plannedMetric,rationale:'Plano ex ante para o primeiro ano'}};
     let irRows=[{id:'ir-prior',projectId:irProject,projectYear:1,sourceYear:2035,version:1,
       period:'M1',fleetSelectionId:'fleet-prior',fuelPinId:'fuel-prior',frequency:'ANNUAL',
       basis:'PROJECT_SPECIFIC',rationale:'Referência anual anterior',state:'PENDING_REVIEW',
       assessmentSha256:'a'.repeat(64),candidate:'1',stale:false,usableForE8:false,
-      recordedAt:'2035-01-01T00:00:00Z',review:null,annualEvidence:null}];
+      recordedAt:'2035-01-01T00:00:00Z',review:null,annualEvidence:null,exAnteOption,
+      reviewReferences:{fleetSnapshotId:'fleet-snapshot',ratingSnapshotId:'rating-snapshot',fuelCandidateId:'fuel-candidate'}}];
     await page.route('**/v1/platform/open-ir-assessments/options',r=>r.fulfill({json:{
       canRecord:true,canReview:true,projects:[{projectId:irProject,title:'Rede aberta'}]}}));
     await page.route('**'+irRoot+'/period-options',r=>r.fulfill({json:[{
@@ -120,8 +123,9 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
     await page.route('**'+irRoot+'/ir-prior/review',async r=>{
       initialReview={body:r.request().postDataJSON(),match:r.request().headers()['if-match']};
       const saved={...irRows.find(p=>p.id==='ir-prior'),state:'INITIAL_BASELINE_CHECKED_NOT_ADMITTED',
-        candidate:null,review:{...initialReview.body,reviewedAt:'2035-01-01T00:00:00Z',
-          initialContext:{followupOn:'2036-01-01',planSha256:'e'.repeat(64),plan:initialReview.body.initialPlan}}};
+        candidate:null,initialLinkState:'LINKED_CURRENT',exAnteOption:null,review:{...initialReview.body,reviewedAt:'2035-01-01T00:00:00Z',
+          initialContext:{followupOn:'2036-01-01',planSha256:'e'.repeat(64),plan:initialReview.body.initialPlan,
+            exAntePlan:{id:exAnteOption.id,version:exAnteOption.version,sha256:exAnteOption.sha256}}}};
       irRows=irRows.map(p=>p.id==='ir-prior'?saved:p);return r.fulfill({status:201,json:saved});
     });
     let irReview=null;
@@ -172,14 +176,19 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
       ['AFEC','Fonte de consumo e responsável pela atualização anual'],
       ['MPG','Fonte de comparáveis e responsável pela atualização anual'],
       ['EFfuel','Fonte fóssil e responsável pela atualização anual']]){
-      await initial.getByLabel('Plano de atualização '+label,{exact:true}).fill(text);
+      await initial.getByLabel('Conciliação '+label,{exact:true}).selectOption(label==='EFfuel'?'JUSTIFIED_DEVIATION':'MATCH');
+      await initial.getByLabel('Justificativa da conciliação '+label,{exact:true}).fill(text);
     }
     await initial.getByRole('button',{name:'Registrar parecer de IR'}).click();
     await initial.locator('summary').filter({hasText:'Plano inicial conferido — não admitido'}).waitFor();
     assert.equal(initialReview.match,'"1"');
     assert.equal(initialReview.body.priorAssessmentId,null);
     assert.equal(initialReview.body.annualUpdateBasis,'PLAN_ONLY');
-    assert.ok(initialReview.body.initialPlan.fuel.includes('Fonte fóssil'));
+    assert.ok(initialReview.body.initialPlan.fuel.startsWith('JUSTIFIED_DEVIATION:'));
+    assert.ok(initialReview.body.initialPlan.evr.startsWith('MATCH:'));
+    assert.equal(initialReview.body.exAntePlanId,exAnteOption.id);
+    assert.equal(initialReview.body.exAntePlanVersion,3);
+    assert.equal(initialReview.body.exAntePlanSha256,exAnteOption.sha256);
     const current=irPanel.locator('details').filter({hasText:'Ano 2 · fonte 2036'});
     await current.getByRole('button',{name:'Preparar parecer de IR'}).click();
     await current.getByLabel('Decisão técnica').selectOption('CHECKED_INTERNAL');
