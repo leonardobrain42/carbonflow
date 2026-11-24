@@ -66,6 +66,66 @@ class OpenProjectParameterBindingsIntegrationTest {
                 """, project, ORG, OWNER, "{\"1\":{\"methodologyCandidate\":\"VM0038\"}}");
             return null;
         });
+        // Dy research is a versioned assessment, not another numerical pin.
+        String dyPath="/v1/platform/open-dy-assessments/"+project;
+        String inconclusive="""
+            {"projectYear":2,"outcome":"INCONCLUSIVE","programs":"Programas fictícios A e B",
+             "projectReferences":"Busca parcial; nenhum resultado conclusivo",
+             "evidenceLocator":"TEST_ONLY registro 1","coverageNote":"Pesquisa parcial de créditos nacionais"}
+            """;
+        assertEquals(404,call("POST",dyPath,reviewer,key(),"\"0\"",inconclusive).statusCode());
+        assertEquals(428,call("POST",dyPath,manager,key(),null,inconclusive).statusCode());
+        String dyKey=key();
+        JsonNode research=json(call("POST",dyPath,manager,dyKey,"\"0\"",inconclusive),201);
+        assertEquals("CREDIT_START_MISSING",research.path("calendarGate").asText());
+        assertTrue(research.path("dyPreview").isNull());
+        assertFalse(research.path("usableForE8").asBoolean());
+        assertEquals(research,json(call("POST",dyPath,manager,dyKey,"\"0\"",inconclusive),200));
+        String dyFound=inconclusive.replace("\"INCONCLUSIVE\"","\"FLEET_CREDITS_FOUND\",\"erc\":\"75\",\"erf\":\"25\"");
+        assertEquals(422,call("POST",dyPath,manager,key(),"\"1\"",dyFound).statusCode());
+        assertEquals(409,call("POST",dyPath,manager,dyKey,"\"0\"",
+            inconclusive.replace("registro 1","registro 2")).statusCode());
+        database.transaction(c->{
+            update(c,"""
+                INSERT INTO app_project_rights_event
+                (project_id,organization_id,environment,event_code,version,kind,event_on,document_ref,author_id)
+                VALUES (?,?,'SANDBOX','op-dy',1,'OPERATIONAL_START',DATE '2034-07-01','TEST_ONLY',?),
+                       (?,?,'SANDBOX','vcs-dy',1,'VCS_START',DATE '2034-07-01','TEST_ONLY',?)
+                """,project,ORG,OWNER,project,ORG,OWNER);
+            update(c,"""
+                INSERT INTO app_project_open_applicability_revision
+                (project_id,organization_id,environment,version,triage_version,author_id,
+                 unrestricted_bev_access,restricted_to_identified_vehicles,charger_type,propulsion,
+                 electricity_source,associated_infrastructure,v2g,operational_event_code,
+                 operational_event_on,vcs_event_code,vcs_event_on)
+                VALUES (?,?,'SANDBOX',1,1,?,true,false,'DCFC','BEV','SIN',false,false,
+                        'op-dy',DATE '2034-07-01','vcs-dy',DATE '2034-07-01')
+                """,project,ORG,OWNER);
+            return null;
+        });
+        JsonNode found=json(call("POST",dyPath,manager,key(),"\"1\"",dyFound),201);
+        assertEquals("0.75",found.path("dyPreview").asText());
+        assertEquals(2,found.path("version").asInt());
+        assertTrue(found.path("priorStart").asText().startsWith("2034-07-01"));
+        assertTrue(found.path("priorEndExclusive").asText().startsWith("2035-07-01"));
+        assertFalse(found.path("usableForE8").asBoolean());
+        assertEquals(412,call("POST",dyPath,manager,key(),"\"1\"",dyFound).statusCode());
+        String dyRead="/v1/projects/"+project+"/technical/open-dy-assessments/2";
+        assertEquals(404,call("GET",dyRead,outsider,null,null,null).statusCode());
+        var dyResponse=call("GET",dyRead,owner,null,null,null);
+        JsonNode history=json(dyResponse,200);
+        assertTrue(dyResponse.headers().firstValue("Cache-Control").orElse("").contains("no-store"));
+        assertEquals(2,history.path("latestVersion").asInt());
+        assertEquals("0.75",history.at("/assessments/0/dyPreview").asText());
+        assertTrue(history.at("/assessments/1/stale").asBoolean());
+        assertTrue(history.at("/assessments/0/evidenceLocator").isNull());
+        assertEquals("TEST_ONLY registro 1",json(call("GET",dyPath+"/2",manager,null,null,null),200)
+            .at("/assessments/0/evidenceLocator").asText());
+        assertEquals(422,call("POST",dyPath,manager,key(),"\"0\"",
+            dyFound.replace("\"projectYear\":2","\"projectYear\":1")).statusCode());
+        assertEquals(0L,database.read(c->first(c,"SELECT count(*) FROM app_open_project_parameter_binding WHERE project_id=? AND parameter_kind='DY'",
+            r->r.getLong(1),project)).longValue());
+
         long pilotBefore = database.read(c -> first(c,
             "SELECT count(*) FROM pilot_selected_run", r -> r.getLong(1)));
         String pins = "/v1/platform/open-parameter-bindings";
