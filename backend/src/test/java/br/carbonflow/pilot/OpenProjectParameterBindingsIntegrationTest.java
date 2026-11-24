@@ -53,6 +53,7 @@ class OpenProjectParameterBindingsIntegrationTest {
             manager, null, null, null).statusCode());
         verify(manager);
         verify(reviewer);
+        verify(outsider);
         String fuel = reviewedFactor("/v1/platform/open-fossil-factors", manager, reviewer,
             "fa000000-0000-4000-8000-000000000008");
         String grid = reviewedFactor("/v1/platform/open-grid-factors", manager, reviewer,
@@ -66,6 +67,150 @@ class OpenProjectParameterBindingsIntegrationTest {
                 """, project, ORG, OWNER, "{\"1\":{\"methodologyCandidate\":\"VM0038\"}}");
             return null;
         });
+        // Dy research is a versioned assessment, not another numerical pin.
+        String dyPath="/v1/platform/open-dy-assessments/"+project;
+        String inconclusive="""
+            {"projectYear":2,"outcome":"INCONCLUSIVE","programs":"Programas fictícios A e B",
+             "projectReferences":"Busca parcial; nenhum resultado conclusivo",
+             "evidenceLocator":"TEST_ONLY registro 1","coverageNote":"Pesquisa parcial de créditos nacionais"}
+            """;
+        assertEquals(404,call("POST",dyPath,reviewer,key(),"\"0\"",inconclusive).statusCode());
+        assertEquals(428,call("POST",dyPath,manager,key(),null,inconclusive).statusCode());
+        String dyKey=key();
+        JsonNode research=json(call("POST",dyPath,manager,dyKey,"\"0\"",inconclusive),201);
+        assertEquals("CREDIT_START_MISSING",research.path("calendarGate").asText());
+        assertTrue(research.path("dyPreview").isNull());
+        assertFalse(research.path("usableForE8").asBoolean());
+        assertEquals(research,json(call("POST",dyPath,manager,dyKey,"\"0\"",inconclusive),200));
+        String dyFound=inconclusive.replace("\"INCONCLUSIVE\"","\"FLEET_CREDITS_FOUND\",\"erc\":\"75\",\"erf\":\"25\"");
+        assertEquals(422,call("POST",dyPath,manager,key(),"\"1\"",dyFound).statusCode());
+        assertEquals(409,call("POST",dyPath,manager,dyKey,"\"0\"",
+            inconclusive.replace("registro 1","registro 2")).statusCode());
+        database.transaction(c->{
+            update(c,"""
+                INSERT INTO app_project_rights_event
+                (project_id,organization_id,environment,event_code,version,kind,event_on,document_ref,author_id)
+                VALUES (?,?,'SANDBOX','op-dy',1,'OPERATIONAL_START',DATE '2034-07-01','TEST_ONLY',?),
+                       (?,?,'SANDBOX','vcs-dy',1,'VCS_START',DATE '2034-07-01','TEST_ONLY',?)
+                """,project,ORG,OWNER,project,ORG,OWNER);
+            update(c,"""
+                INSERT INTO app_project_open_applicability_revision
+                (project_id,organization_id,environment,version,triage_version,author_id,
+                 unrestricted_bev_access,restricted_to_identified_vehicles,charger_type,propulsion,
+                 electricity_source,associated_infrastructure,v2g,operational_event_code,
+                 operational_event_on,vcs_event_code,vcs_event_on)
+                VALUES (?,?,'SANDBOX',1,1,?,true,false,'DCFC','BEV','SIN',false,false,
+                        'op-dy',DATE '2034-07-01','vcs-dy',DATE '2034-07-01')
+                """,project,ORG,OWNER);
+            return null;
+        });
+        JsonNode found=json(call("POST",dyPath,manager,key(),"\"1\"",dyFound),201);
+        assertEquals("0.75",found.path("dyPreview").asText());
+        assertEquals(2,found.path("version").asInt());
+        assertTrue(found.path("priorStart").asText().startsWith("2034-07-01"));
+        assertTrue(found.path("priorEndExclusive").asText().startsWith("2035-07-01"));
+        assertFalse(found.path("usableForE8").asBoolean());
+        assertEquals(412,call("POST",dyPath,manager,key(),"\"1\"",dyFound).statusCode());
+        String dyRead="/v1/projects/"+project+"/technical/open-dy-assessments/2";
+        assertEquals(404,call("GET",dyRead,outsider,null,null,null).statusCode());
+        var dyResponse=call("GET",dyRead,owner,null,null,null);
+        JsonNode history=json(dyResponse,200);
+        assertTrue(dyResponse.headers().firstValue("Cache-Control").orElse("").contains("no-store"));
+        assertEquals(2,history.path("latestVersion").asInt());
+        assertEquals("0.75",history.at("/assessments/0/dyPreview").asText());
+        assertTrue(history.at("/assessments/1/stale").asBoolean());
+        assertTrue(history.at("/assessments/0/evidenceLocator").isNull());
+        assertEquals("TEST_ONLY registro 1",json(call("GET",dyPath+"/2",manager,null,null,null),200)
+            .at("/assessments/0/evidenceLocator").asText());
+        assertEquals(422,call("POST",dyPath,manager,key(),"\"0\"",
+            dyFound.replace("\"projectYear\":2","\"projectYear\":1")).statusCode());
+        String reviewPath=dyPath+"/"+found.path("id").asText()+"/review";
+        String reviewBody="""
+            {"assessmentSha256":"%s","outcome":"CHECKED_INTERNAL",
+             "ruleReference":"VM0038-1.1 EQ8 internal check",
+             "evidenceReferences":"TEST_ONLY programme and project record",
+             "reason":"Independent internal check of declared totals only"}
+            """.formatted(found.path("assessmentSha256").asText());
+        assertEquals(404,call("POST",reviewPath,manager,key(),"\"2\"",reviewBody).statusCode());
+        assertEquals(404,call("GET",dyPath+"/2",outsider,null,null,null).statusCode());
+        JsonNode reviewerOptions=json(call("GET","/v1/platform/open-dy-assessments/options",
+            reviewer,null,null,null),200);
+        assertTrue(reviewerOptions.path("canReview").asBoolean());
+        assertFalse(reviewerOptions.path("canRecord").asBoolean());
+        assertTrue(reviewerOptions.path("projects").toString().contains(project));
+        assertEquals(200,call("GET",dyPath+"/2",reviewer,null,null,null).statusCode());
+        assertEquals(422,call("POST",reviewPath,reviewer,key(),"\"2\"",
+            reviewBody.replace(found.path("assessmentSha256").asText(),"0".repeat(64))).statusCode());
+        assertEquals(412,call("POST",reviewPath,reviewer,key(),"\"1\"",reviewBody).statusCode());
+        String reviewKey=key();
+        JsonNode reviewed=json(call("POST",reviewPath,reviewer,reviewKey,"\"2\"",reviewBody),201);
+        assertEquals("CHECKED_INTERNAL_NOT_ADMITTED",reviewed.path("state").asText());
+        assertFalse(reviewed.path("usableForE8").asBoolean());
+        assertEquals(found.path("assessmentSha256"),reviewed.at("/review/assessmentSha256"));
+        assertEquals(reviewed,json(call("POST",reviewPath,reviewer,reviewKey,"\"2\"",reviewBody),200));
+        assertEquals(409,call("POST",reviewPath,reviewer,key(),"\"2\"",reviewBody).statusCode());
+        assertEquals(409,call("POST",reviewPath,reviewer,reviewKey,"\"2\"",
+            reviewBody.replace("CHECKED_INTERNAL","REJECTED")).statusCode());
+        JsonNode visibleReview=json(call("GET",dyRead,owner,null,null,null),200).at("/assessments/0/review");
+        assertEquals("CHECKED_INTERNAL",visibleReview.path("outcome").asText());
+        assertTrue(visibleReview.path("reason").isNull());
+        assertTrue(visibleReview.path("evidenceReferences").isNull());
+        JsonNode revision=json(call("POST",dyPath,manager,key(),"\"2\"",inconclusive),201);
+        assertEquals(3,revision.path("version").asInt());
+        assertTrue(revision.path("review").isNull());
+        assertEquals(409,call("POST",reviewPath,reviewer,key(),"\"3\"",reviewBody).statusCode());
+        String incompleteReview=reviewBody.replace(found.path("assessmentSha256").asText(),
+            revision.path("assessmentSha256").asText());
+        String incompletePath=dyPath+"/"+revision.path("id").asText()+"/review";
+        assertEquals(422,call("POST",incompletePath,reviewer,key(),"\"3\"",incompleteReview).statusCode());
+        JsonNode needsInfo=json(call("POST",incompletePath,reviewer,key(),"\"3\"",
+            incompleteReview.replace("CHECKED_INTERNAL","NEEDS_INFORMATION")),201);
+        assertEquals("NEEDS_INFORMATION_NOT_ADMITTED",needsInfo.path("state").asText());
+        // Issuance references are declared, never imported or admitted.
+        database.transaction(c->{
+            update(c,"""
+                INSERT INTO app_source_version(source_id,edition,category,title,rights_holder,official_uri,origin)
+                VALUES ('TEST-DY-REGISTRY','1','EXTERNAL_SOURCE','Registro fictício','Teste',
+                        'https://example.invalid/registry','EXTERNAL') ON CONFLICT DO NOTHING
+                """);
+            return null;
+        });
+        String items="""
+            [{"program":"TEST-PROGRAM","registryProject":"A","issuanceId":"ISS-1",
+              "creditKind":"ERC","issuedOn":"2034-07-01","geography":"BR","creditsTco2e":"75",
+              "sourceId":"TEST-DY-REGISTRY","sourceEdition":"1","locator":"TEST_ONLY item A"},
+             {"program":"TEST-PROGRAM","registryProject":"B","issuanceId":"ISS-2",
+              "creditKind":"ERF","issuedOn":"2035-06-30","geography":"BR","creditsTco2e":"25",
+              "sourceId":"TEST-DY-REGISTRY","sourceEdition":"1","locator":"TEST_ONLY item B"}]
+            """;
+        String itemized=dyFound.strip().substring(0,dyFound.strip().length()-1)+",\"issuances\":"+items+"}";
+        assertEquals(422,call("POST",dyPath,manager,key(),"\"3\"",
+            itemized.replace("\"creditsTco2e\":\"25\"","\"creditsTco2e\":\"24\"")).statusCode());
+        assertEquals(422,call("POST",dyPath,manager,key(),"\"3\"",
+            itemized.replace("2035-06-30","2035-07-01")).statusCode());
+        assertEquals(422,call("POST",dyPath,manager,key(),"\"3\"",
+            itemized.replace("\"sourceEdition\":\"1\"","\"sourceEdition\":\"2\"")).statusCode());
+        assertEquals(422,call("POST",dyPath,manager,key(),"\"3\"",
+            itemized.replace("\"registryProject\":\"B\",\"issuanceId\":\"ISS-2\"",
+                "\"registryProject\":\"A\",\"issuanceId\":\"ISS-1\"")).statusCode());
+        String itemKey=key();
+        JsonNode itemizedView=json(call("POST",dyPath,manager,itemKey,"\"3\"",itemized),201);
+        assertEquals(4,itemizedView.path("version").asInt());
+        assertEquals(2,itemizedView.path("issuanceCount").asInt());
+        assertEquals("DECLARED_TOTALS_RECONCILED",itemizedView.path("issuanceState").asText());
+        assertEquals("0.75",itemizedView.path("dyPreview").asText());
+        assertFalse(itemizedView.path("usableForE8").asBoolean());
+        assertTrue(itemizedView.path("review").isNull());
+        assertEquals(itemizedView,json(call("POST",dyPath,manager,itemKey,"\"3\"",itemized),200));
+        assertEquals(409,call("POST",dyPath,manager,itemKey,"\"3\"",
+            itemized.replace("TEST_ONLY item B","TEST_ONLY outra referência")).statusCode());
+        var projectItem=json(call("GET",dyRead,owner,null,null,null),200).at("/assessments/0");
+        assertEquals(2,projectItem.path("issuanceCount").asInt());
+        assertEquals(0,projectItem.path("issuances").size());
+        assertFalse(projectItem.toString().contains("TEST-DY-REGISTRY"));
+        assertEquals(0L,database.read(c->first(c,"SELECT count(*) FROM app_open_project_parameter_binding WHERE project_id=? AND parameter_kind='DY'",
+            r->r.getLong(1),project)).longValue());
+
         long pilotBefore = database.read(c -> first(c,
             "SELECT count(*) FROM pilot_selected_run", r -> r.getLong(1)));
         String pins = "/v1/platform/open-parameter-bindings";

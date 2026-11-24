@@ -1,0 +1,23 @@
+-- #96: declared issuance references, attached to a single assessment revision.
+-- No source content is imported and no rights or E8 admission are granted.
+CREATE TABLE app_open_dy_issuance (
+ assessment_id uuid NOT NULL REFERENCES app_open_dy_assessment(id),
+ ordinal integer NOT NULL CHECK (ordinal BETWEEN 1 AND 100),
+ program text NOT NULL CHECK (length(btrim(program)) BETWEEN 1 AND 120),
+ registry_project text NOT NULL CHECK (length(btrim(registry_project)) BETWEEN 1 AND 160),
+ issuance_id text NOT NULL CHECK (length(btrim(issuance_id)) BETWEEN 1 AND 160),
+ credit_kind text NOT NULL CHECK (credit_kind IN ('ERC','ERF')),
+ issued_on date NOT NULL,
+ geography text NOT NULL CHECK (geography='BR'),
+ credits_tco2e numeric(30,12) NOT NULL CHECK (credits_tco2e>0),
+ source_id text NOT NULL,
+ source_edition text NOT NULL,
+ locator text NOT NULL CHECK (length(btrim(locator)) BETWEEN 3 AND 1000),
+ PRIMARY KEY (assessment_id,ordinal),
+ FOREIGN KEY (source_id,source_edition) REFERENCES app_source_version(source_id,edition)
+);
+CREATE UNIQUE INDEX app_open_dy_issuance_distinct
+ ON app_open_dy_issuance (assessment_id,lower(program),lower(registry_project),lower(issuance_id));
+CREATE TRIGGER app_open_dy_issuance_immutable
+ BEFORE UPDATE OR DELETE ON app_open_dy_issuance
+ FOR EACH ROW EXECUTE FUNCTION app_open_metering_immutable();

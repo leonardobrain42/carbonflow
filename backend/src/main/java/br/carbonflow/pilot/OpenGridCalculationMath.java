@@ -162,7 +162,7 @@ final class OpenGridCalculationMath {
      * the caller's future admission layer. Zero values alone cannot assert it.
      * Eq. 8 has no value when both credit categories are zero.
      */
-    private static BigDecimal factor(Discount input) {
+    static BigDecimal factor(Discount input) {
         if (input == null)throw invalid("Dy requer avaliação de dupla contagem.");
         var erc = nonnegative(input.chargingCreditsTco2e(),"ERC");
         var erf = nonnegative(input.fleetCreditsTco2e(),"ERF");
