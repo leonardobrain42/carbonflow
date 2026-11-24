@@ -9,7 +9,7 @@ Esta árvore organiza a especificação **existente**, os contratos atuais e as 
 3. [MATRIZ_RASTREABILIDADE](MATRIZ_RASTREABILIDADE.md) — requisito de síntese → issue proprietária → contrato → teste/evidência → lacuna.
 4. [PENDENCIAS](PENDENCIAS.md) — PEN históricas e lacunas atuais, sem presumir encerramento.
 5. [GOVERNANCA](GOVERNANCA.md) — como decidir e atualizar a especificação.
-6. [CATALOGO_DOCUMENTAL](CATALOGO_DOCUMENTAL.md) — índice dos 86 arquivos em docs no commit de referência.
+6. [CATALOGO_DOCUMENTAL](CATALOGO_DOCUMENTAL.md) — índice dos arquivos em docs (86 no commit de referência + contratos posteriores).
 7. [CHANGELOG](CHANGELOG.md) — alterações da especificação.
 
 ## Organização

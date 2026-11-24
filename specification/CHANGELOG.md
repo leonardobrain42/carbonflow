@@ -1,4 +1,6 @@
 # Changelog da especificação viva
+## 0.3.0-rc.2 — 24/11/2026 (proposta)
+- Registra reuso intra-ano de IR (CF-SPEC-D12, contrato CF-OPEN-007-IR-INTRA-YEAR-REUSE), atualiza S08, G02, G05, E7/E8 e estado. Backend: `OpenIrIntraYearReuse` e integração em `OpenIrAssessments.forRun`; sem migração, API ou UI. CI #242/#243 da main registrado como Quarkus verde.
 ## 0.3.0-rc.1 — 24/11/2026 (proposta)
 - Corte de referência: main `507bf268d6955cd0c317d2ff404a905009985907` após #242.
 - Introduz E0–E8 como índices de continuidade do kit histórico; E9/E10 para UX/evolução.
