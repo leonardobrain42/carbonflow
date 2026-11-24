@@ -40,7 +40,7 @@ final class OpenCalculationTransparency {
         all.add(stage("BE","VM0038-1.1-EQ1","tCO2e",
             "ED × EFfuel × 100 × IR^(y−1) ÷ (AFEC × MPG).",
             List.of("ED","EF_FUEL","IR","PROJECT_YEAR","AFEC","MPG"),
-            List.of("NORMATIVE_PACK","CARBON_RIGHTS","EVR","AFEC_MPG",
+            dependencies(gates, "NORMATIVE_PACK","CARBON_RIGHTS","EVR","AFEC_MPG",
                 "EF_FUEL","IR","ED"),gates,state));
         all.add(stage("PE","VM0038-1.1-EQ4","tCO2e",
             "EC × EFel para o ramo exclusivo SIN sem infraestrutura associada.",
@@ -57,9 +57,17 @@ final class OpenCalculationTransparency {
         all.add(stage("ER","VM0038-1.1-EQ7","tCO2e",
             "(BE − PE) × Dy, dependente de memória e decisão já admitidas.",
             List.of("BE","PE","DY"),
-            List.of("NORMATIVE_PACK","CARBON_RIGHTS","EVR","AFEC_MPG",
+            dependencies(gates, "NORMATIVE_PACK","CARBON_RIGHTS","EVR","AFEC_MPG",
                 "EF_FUEL","IR","ED","EC","EF_GRID","DY"),gates,state));
         return List.copyOf(all);
+    }
+
+    private static List<String> dependencies(List<OpenCalculationPreflight.Gate> gates,
+                                              String... required) {
+        var result = new ArrayList<>(List.of(required));
+        if (gates.stream().anyMatch(gate -> "PROJECT_YEAR".equals(gate.code())))
+            result.add("PROJECT_YEAR");
+        return result;
     }
 
     private static Stage stage(String code,String reference,String unit,

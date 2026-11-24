@@ -13,6 +13,7 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -43,7 +44,7 @@ class OpenE8FleetSelections {
                 List<String> gates) {}
 
     private record Target(UUID org,String state,String environment) {}
-    private record Energy(UUID id,String period,int version,UUID organization,int year,
+    private record Energy(UUID id,String period,int version,UUID organization,Integer year,
                           String sha) {}
     record Fleet(UUID fleetId,UUID ratingId,int year,int fleetYear,
                          String cycle,String fleetSha,String ratingSha,
@@ -77,28 +78,28 @@ class OpenE8FleetSelections {
             try{
                 var candidates=query(c,"""
                     SELECT p.id,p.organization_id,b.period_code,b.id,b.version,
-                      min(extract(year from h.hour_start AT TIME ZONE 'UTC'))::int,
-                      max(extract(year from h.hour_start AT TIME ZONE 'UTC'))::int
+                      q.id,e.dossier_version,q.period_start,q.period_end
                     FROM app_project p
                     JOIN app_open_e8_input_binding_candidate b
                       ON b.project_id=p.id
-                    JOIN app_open_e8_input_binding_hour h
-                      ON h.project_id=b.project_id AND h.binding_id=b.id
+                    JOIN app_open_e8_energy_candidate e
+                      ON e.project_id=b.project_id AND e.id=b.energy_candidate_id
+                    JOIN app_open_period_qa_snapshot q
+                      ON q.project_id=e.project_id AND q.id=e.snapshot_id
                     WHERE p.organization_id=ANY(?) AND p.environment='SANDBOX'
                       AND p.state='DRAFT' AND b.state='CANDIDATE_NOT_ADMITTED'
                       AND b.version=(SELECT max(v.version)
                         FROM app_open_e8_input_binding_candidate v
                         WHERE v.project_id=b.project_id AND v.period_code=b.period_code)
-                    GROUP BY p.id,p.organization_id,b.period_code,b.id,b.version
                     ORDER BY p.id,b.period_code LIMIT 150
                     """,r->new Object[]{r.getString(1),r.getObject(2,UUID.class),
                         r.getString(3),r.getObject(4,UUID.class),
-                        r.getInt(5),r.getInt(6),r.getInt(7)},organizations);
+                        r.getInt(5),OpenE8Calendar.readWindow(r, 6).calendarYear()},organizations);
                 var result=new ArrayList<Option>();
                 for(Object[] row:candidates){
                     String project=(String)row[0],period=(String)row[2];
                     UUID id=(UUID)row[3];
-                    if(!row[5].equals(row[6]))continue;
+                    if(row[5]==null)continue;
                     if(!"CANDIDATE_NOT_ADMITTED".equals(
                             OpenE8InputBindings.state(c,project,period,id)))continue;
                     if(ProjectJourney.profile(ProjectGuides.candidate(c,project))
@@ -193,6 +194,8 @@ class OpenE8FleetSelections {
                 """,r->r.getObject(1,UUID.class),input.projectId(),period);
             if(!energy.id().equals(latestEnergy))
                 throw conflict("Existe uma versão posterior do pacote de entradas.");
+            if(energy.year()==null)
+                throw conflict("O período cruza dois anos civis. Divida a janela antes de vincular a frota.");
             Fleet fleet=fleet(c,input.ratingSnapshotId(),project.org());
             if(fleet==null)throw hidden();
             check(fleet,energy.year(),coverage(c,fleet));
@@ -265,7 +268,7 @@ class OpenE8FleetSelections {
             WHERE project_id=? AND period_code=? ORDER BY version DESC LIMIT 1
             """,r->r.getObject(1,UUID.class),saved.project(),saved.period());
         if(!saved.energy().equals(latestEnergy))gates.add("ENERGY_VERSION_SUPERSEDED");
-        if(energy!=null && energy.year()!=saved.year())
+        if(energy!=null && !Objects.equals(energy.year(),saved.year()))
             gates.add("PERIOD_YEAR_CHANGED");
         Fleet fleet=fleet(c,saved.rating(),saved.organization());
         if(fleet==null || fleet.year()!=saved.year() ||
@@ -408,22 +411,17 @@ class OpenE8FleetSelections {
         throws SQLException{
         return first(c,"""
             SELECT b.id,b.period_code,b.version,b.organization_id,
-               min(extract(year from h.hour_start AT TIME ZONE 'UTC'))::int,
-               max(extract(year from h.hour_start AT TIME ZONE 'UTC'))::int,
-               encode(b.input_sha256,'hex')
+               encode(b.input_sha256,'hex'),q.id,e.dossier_version,q.period_start,q.period_end
             FROM app_open_e8_input_binding_candidate b
-            JOIN app_open_e8_input_binding_hour h
-              ON h.project_id=b.project_id AND h.binding_id=b.id
+            JOIN app_open_e8_energy_candidate e
+              ON e.project_id=b.project_id AND e.id=b.energy_candidate_id
+            JOIN app_open_period_qa_snapshot q
+              ON q.project_id=e.project_id AND q.id=e.snapshot_id
             WHERE b.project_id=? AND b.period_code=? AND b.id=?
-            GROUP BY b.id
-            """,r->{
-                int firstYear=r.getInt(5),lastYear=r.getInt(6);
-                if(firstYear!=lastYear)throw conflict(
-                    "O período cruza dois anos; dividir a referência anual EVR.");
-                return new Energy(r.getObject(1,UUID.class),r.getString(2),
-                    r.getInt(3),r.getObject(4,UUID.class),firstYear,
-                    r.getString(7));
-            },project,period,id);
+            """,r->new Energy(r.getObject(1,UUID.class),r.getString(2),
+                r.getInt(3),r.getObject(4,UUID.class),OpenE8Calendar.readWindow(r, 6).calendarYear(),
+                r.getString(5)),
+            project,period,id);
     }
     private static Fleet fleet(Connection c,UUID rating,UUID org)throws SQLException{
         return first(c,"""

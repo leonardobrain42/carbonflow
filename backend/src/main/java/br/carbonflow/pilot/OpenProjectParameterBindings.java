@@ -47,7 +47,7 @@ class OpenProjectParameterBindings {
                           int year, int version, UUID candidate, String sha,
                           String unit, String formula, BigDecimal declared,
                           String rule, String evidence, String valueKind,
-                          int triageVersion, String digest, OffsetDateTime published) {}
+                          int triageVersion, String digest, OffsetDateTime published, UUID author) {}
 
     private final PilotDatabase database;
     private final PlatformSourceWork managers;
@@ -257,11 +257,11 @@ class OpenProjectParameterBindings {
         });
     }
 
-    /** Latest pin of one kind, or null when the project has not pinned it. */
+    /** Most recent reference year for project-level readiness without a monitoring window. */
     static StoredPin latest(Connection connection, String project, String kind) throws SQLException {
         Stored stored = first(connection, SELECT + """
             WHERE project_id = ? AND parameter_kind = ?
-            ORDER BY version DESC LIMIT 1
+            ORDER BY vintage_year DESC, version DESC LIMIT 1
             """, OpenProjectParameterBindings::stored, project, kind);
         if (stored == null) return null;
         boolean stale = stale(connection, stored);
@@ -270,6 +270,29 @@ class OpenProjectParameterBindings {
     }
 
     record StoredPin(String kind, int year, String valueKind, String declaredCanonical, boolean stale) {}
+
+    record AnnualPin(UUID id, UUID author, String valueKind, BigDecimal declared,
+                     String rule, String evidence, boolean stale) {}
+
+    static AnnualPin annual(Connection c, String project, String kind, int year)
+            throws SQLException {
+        Stored pin = first(c, SELECT + """
+            WHERE project_id=? AND parameter_kind=? AND vintage_year=?
+            ORDER BY version DESC LIMIT 1
+            """, OpenProjectParameterBindings::stored, project, kind, year);
+        if (pin == null) return null;
+        return new AnnualPin(pin.id(), pin.author(), pin.valueKind(), pin.declared(),
+            pin.rule(), pin.evidence(), stale(c, pin));
+    }
+
+    static boolean hasOtherYear(Connection c, String project, String kind, int year)
+            throws SQLException {
+        return first(c, """
+            SELECT EXISTS (
+              SELECT 1 FROM app_open_project_parameter_binding
+              WHERE project_id=? AND parameter_kind=? AND vintage_year<>?)
+            """, r -> r.getBoolean(1), project, kind, year);
+    }
 
     private View view(Connection connection, Stored stored, boolean hideLicensedNumber) throws SQLException {
         boolean stale = stale(connection, stored);
@@ -358,7 +381,7 @@ class OpenProjectParameterBindings {
         SELECT id, project_id, organization_id, parameter_kind, vintage_year, version,
                candidate_id, encode(source_sha256,'hex'), normalized_unit, conversion_formula,
                declared_value, rule_reference, evidence_locator, value_kind, triage_version,
-               encode(binding_sha256,'hex'), published_at
+               encode(binding_sha256,'hex'), published_at, published_by
         FROM app_open_project_parameter_binding
         """;
 
@@ -367,7 +390,8 @@ class OpenProjectParameterBindings {
             row.getObject(3, UUID.class), row.getString(4), row.getInt(5), row.getInt(6),
             row.getObject(7, UUID.class), row.getString(8), row.getString(9), row.getString(10),
             row.getBigDecimal(11), row.getString(12), row.getString(13), row.getString(14),
-            row.getInt(15), row.getString(16), row.getObject(17, OffsetDateTime.class));
+            row.getInt(15), row.getString(16), row.getObject(17, OffsetDateTime.class),
+            row.getObject(18, UUID.class));
     }
 
     private static String canonical(BigDecimal value) {

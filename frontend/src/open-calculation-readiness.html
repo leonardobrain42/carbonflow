@@ -89,6 +89,9 @@
         @for (pin of pins(); track pin.id) {
           <li>
             <strong>{{pinLabel(pin)}} · {{pin.vintageYear}}</strong>
+            @if (usedInAttempt(pin)) {
+              <small>Versão {{pin.version}} usada na tentativa exibida</small>
+            }
             <p>{{pinState(pin)}}@if (pin.normalizedUnit) { · {{pin.normalizedUnit}}}@if (pin.declaredValue !== null) { · declarado {{pin.declaredValue}}}</p>
           </li>
         }
@@ -123,6 +126,16 @@
       }
     </ul>
     <h4>Última tentativa de cálculo · {{runPeriod()}}</h4>
+    @if (runPeriods().length > 1) {
+      <label>Período de monitoramento
+        <select [value]="runPeriod()" #periodSelect [disabled]="recording()"
+                (change)="loadRun(periodSelect.value)">
+          @for (period of runPeriods(); track period) {
+            <option [value]="period">{{period}}</option>
+          }
+        </select>
+      </label>
+    }
     <p>Registrar a tentativa grava o diagnóstico deste período.
       Nenhum número é enviado pelo navegador. Com o conjunto incompleto, BE, PE, LE e ER
       permanecem sem cálculo. Outro ator, que não seja o autor dos vínculos, pode registrar
@@ -131,8 +144,19 @@
       <p role="alert" class="cf-workspace-alert">{{runError()}}</p>
     }
     @if (latestRun(); as run) {
+      @if (canViewPd) {
+        <p class="energy-hash">Memória da tentativa {{run.id}} · v{{run.version}} · {{run.period}}.</p>
+        <a class="cf-workspace-link"
+           [href]="'/workspace/projects/' + projectId + '/technical?secao=redigir&guia=quantification'">
+          Consultar vínculo com a seção Quantificação do PD</a>
+        <p>A seção mostra a tentativa mais recente do projeto. Confira o período, o identificador e a versão.
+          É uma prévia de leitura; o documento não fica pronto.</p>
+      }
       <dl class="cf-tech-capabilities">
         <div><dt>Situação</dt><dd>{{stateLabel(run.state)}} · v{{run.version}}</dd></div>
+        @if (run.temporalContext?.projectYear; as year) {
+          <div><dt>Ano do projeto</dt><dd>{{year}} · ano civil {{run.temporalContext?.calendarYear}}</dd></div>
+        }
         <div><dt>BE, PE, LE e ER</dt>
           <dd>{{run.state==='REVIEWED_INTERNAL' && run.memory && !run.memory.usableForE8
             ? 'Ensaio interno — crédito não habilitado'

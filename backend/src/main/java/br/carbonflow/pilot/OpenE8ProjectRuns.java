@@ -4,6 +4,10 @@ import static br.carbonflow.pilot.PilotSql.first;
 import static br.carbonflow.pilot.PilotSql.query;
 import static br.carbonflow.pilot.PilotSql.update;
 
+import br.carbonflow.pilot.OpenProjectParameterBindings.AnnualPin;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -29,12 +33,15 @@ class OpenE8ProjectRuns {
 
     record Request(UUID energyBindingId, UUID fleetSelectionId) {}
 
+    record ParameterPins(UUID fossilFactor, UUID technologyImprovement, UUID discount) {}
+
     record Attempt(UUID id, String projectId, String period, int version,
                    String state, boolean stale, boolean canIssueVcu, String engine,
                    UUID energyBindingId, UUID fleetSelectionId, String inputSha256,
                    List<OpenCalculationPreflight.Gate> gates,
                    List<OpenCalculationTransparency.Stage> equationPlan,
-                   OpenE8RunDecision.Memory memory, OffsetDateTime createdAt) {}
+                   OpenE8RunDecision.Memory memory, OffsetDateTime createdAt,
+                   OpenE8Calendar.Context temporalContext, ParameterPins parameterPins) {}
 
     record Listing(String projectId, String period, boolean canRecord, List<Attempt> runs) {}
 
@@ -46,11 +53,15 @@ class OpenE8ProjectRuns {
                           String state, boolean canIssueVcu, String engine,
                           String afec, String mpg, String be, String pe, String le,
                           String dy, String er, String erDisplay, String trace,
-                          String gates, OffsetDateTime created) {}
+                          String gates, OffsetDateTime created, String temporalContext) {}
 
     private final DynamicProjectScope scope;
+    private final ObjectMapper mapper;
 
-    OpenE8ProjectRuns(DynamicProjectScope scope) { this.scope = scope; }
+    OpenE8ProjectRuns(DynamicProjectScope scope, ObjectMapper mapper) {
+        this.scope = scope;
+        this.mapper = mapper;
+    }
 
     Listing list(String cookie, String project, String period) {
         return scope.read(cookie, project, "VIEW_OPEN_E8_RUN", (c, ctx) -> {
@@ -85,18 +96,22 @@ class OpenE8ProjectRuns {
             int expected = PilotCommands.expected(match);
             UUID requestedBinding = request == null ? null : request.energyBindingId();
             UUID requestedFleet = request == null ? null : request.fleetSelectionId();
+            byte[] requestHash = AccessSecrets.digest("E8-RUN-REQUEST-V1|" + project + "|" + code
+                + "|" + id(requestedBinding) + "|" + id(requestedFleet));
+            Stored replay = commandRun(c, ctx.actor().id(), command, project, code,
+                requestedBinding, requestedFleet, requestHash);
+            if (replay != null) return new Outcome(view(c, replay), false);
+
             UUID binding = resolveBinding(c, project, code, requestedBinding);
             UUID fleet = resolveFleet(c, project, code, requestedFleet);
             Loaded loaded = load(c, project, code, binding, fleet, ctx.actor().id());
             byte[] fingerprint = AccessSecrets.digest(material(project, code, binding, fleet, loaded));
-            Stored replay = commandRun(c, ctx.actor().id(), command, project, fingerprint);
-            if (replay != null) return new Outcome(view(c, replay), false);
 
             Stored latest = latest(c, project, code);
             boolean sameSet = latest != null && MessageDigestEquals(latest.sha(), fingerprint);
             if (sameSet) {
                 PilotCommands.requireVersion(expected, latest.version());
-                remember(c, ctx.actor().id(), command, project, latest.id(), fingerprint);
+                remember(c, ctx.actor().id(), command, project, latest.id(), fingerprint, requestHash);
                 return new Outcome(view(c, latest), false);
             }
             int current = latest == null ? 0 : latest.version();
@@ -113,13 +128,13 @@ class OpenE8ProjectRuns {
                  predecessor_id,energy_binding_id,fleet_selection_id,
                  fuel_pin_id,ir_pin_id,dy_pin_id,input_sha256,
                  state,engine,afec,mpg,be_tco2e,pe_tco2e,le_tco2e,dy,er_tco2e,
-                 er_display,trace_json,gate_codes,created_by)
+                 er_display,trace_json,gate_codes,created_by,temporal_context)
                 VALUES (?,?,?,?,?,?,
                   NULLIF(?, '')::uuid, NULLIF(?, '')::uuid, NULLIF(?, '')::uuid,
                   NULLIF(?, '')::uuid, NULLIF(?, '')::uuid, NULLIF(?, '')::uuid, ?,
                   ?, NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, ''),
                   NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, ''),
-                  NULLIF(?, ''), NULLIF(?, '')::jsonb, string_to_array(?, E'\\n'), ?)
+                  NULLIF(?, ''), NULLIF(?, '')::jsonb, string_to_array(?, E'\\n'), ?, ?::jsonb)
                 """, id, project, ctx.organization(), ctx.environment(), code, current + 1,
                 text(latest == null ? null : latest.id()), text(binding), text(fleet),
                 text(loaded.fuelPin()), text(loaded.irPin()), text(loaded.dyPin()),
@@ -133,19 +148,18 @@ class OpenE8ProjectRuns {
                 reviewed ? memory.dy() : "",
                 reviewed ? memory.erTco2e() : "",
                 reviewed ? memory.erDisplay() : "",
-                reviewed ? OpenE8RunDecision.traceJson(memory) : "",
-                OpenE8RunDecision.encode(decision.gates()), ctx.actor().id());
-            remember(c, ctx.actor().id(), command, project, id, fingerprint);
+                reviewed ? json(memory.trace()) : "",
+                OpenE8RunDecision.encode(decision.gates()), ctx.actor().id(),
+                json(loaded.calendar()));
+            remember(c, ctx.actor().id(), command, project, id, fingerprint, requestHash);
             Stored stored = first(c, STORED + " WHERE project_id=? AND id=?",
                 OpenE8ProjectRuns::stored, project, id);
             return new Outcome(view(c, stored), true);
         });
     }
 
-    private record Loaded(OpenE8RunDecision.OperandSet set, UUID fuelPin, UUID irPin, UUID dyPin) {}
-
-    private record Pin(UUID id, UUID author, String valueKind, BigDecimal declared,
-                       String rule, String evidence, boolean stale) {}
+    private record Loaded(OpenE8RunDecision.OperandSet set, OpenE8Calendar.Context calendar,
+                          UUID fuelPin, UUID irPin, UUID dyPin) {}
 
     /**
      * Reads the project set. A rehearsal needs ED, EC, one EFel, fleet lines,
@@ -155,6 +169,9 @@ class OpenE8ProjectRuns {
     private static Loaded load(Connection c, String project, String period,
             UUID binding, UUID fleet, UUID actor) throws SQLException {
         var gates = new ArrayList<OpenCalculationPreflight.Gate>();
+        var calendar = OpenE8Calendar.current(c, project, period, binding);
+        if (calendar.projectYear() == null)
+            gates.add(OpenE8RunDecision.gate("PROJECT_YEAR", calendar.status()));
         boolean stale = false;
         boolean uniform = false;
         BigDecimal ed = null, ec = null, grid = null;
@@ -190,26 +207,30 @@ class OpenE8ProjectRuns {
             gates.add(OpenE8RunDecision.gate("EVR", "MISSING"));
             gates.add(OpenE8RunDecision.gate("AFEC_MPG", "MISSING"));
         } else {
-            if (fleetMoved(c, project, period, fleet)) stale = true;
-            rows = fleetRows(c, fleet);
-            gates.add(OpenE8RunDecision.gate("EVR", "NOT_ADMITTED"));
-            gates.add(OpenE8RunDecision.gate("AFEC_MPG", "NOT_ADMITTED"));
+            boolean applicable = fleetApplies(c, project, fleet, binding, calendar.calendarYear());
+            boolean fleetStale = fleetMoved(c, project, period, fleet);
+            stale |= fleetStale;
+            if (applicable && !fleetStale) rows = fleetRows(c, fleet);
+            String state = applicable ? "NOT_ADMITTED" : "OUTSIDE_APPLICABLE_WINDOW";
+            gates.add(OpenE8RunDecision.gate("EVR", state));
+            gates.add(OpenE8RunDecision.gate("AFEC_MPG", state));
         }
-        Pin fuel = pin(c, project, "EF_FUEL");
-        Pin ir = pin(c, project, "IR");
-        Pin dy = pin(c, project, "DY");
+        Integer calendarYear = calendar.projectYear() == null ? null : calendar.calendarYear();
+        AnnualPin fuel = pin(c, project, "EF_FUEL", calendarYear);
+        AnnualPin ir = pin(c, project, "IR", calendarYear);
+        AnnualPin dy = pin(c, project, "DY", calendarYear);
         BigDecimal fuelValue = fuelValue(c, fuel);
         BigDecimal irValue = scalar(ir, true);
         OpenGridCalculationMath.Discount discount = discount(dy);
-        gates.add(OpenE8RunDecision.gate("EF_FUEL", pinState(fuel, fuelValue != null)));
-        gates.add(OpenE8RunDecision.gate("IR", pinState(ir, irValue != null)));
-        gates.add(OpenE8RunDecision.gate("DY", pinState(dy, discount != null)));
+        gates.add(pinGate(c, project, "EF_FUEL", calendarYear, fuel, fuelValue != null));
+        gates.add(pinGate(c, project, "IR", calendarYear, ir, irValue != null));
+        gates.add(pinGate(c, project, "DY", calendarYear, dy, discount != null));
         gates.add(OpenE8RunDecision.gate("NORMATIVE_PACK", "NOT_ADMITTED"));
         gates.add(OpenE8RunDecision.gate("CARBON_RIGHTS", "NOT_ADMITTED"));
         gates.add(OpenE8RunDecision.gate("TECHNICAL_BRANCH", "NOT_ADMITTED"));
         if (fuel != null && fuel.stale() || ir != null && ir.stale() || dy != null && dy.stale())
             stale = true;
-        Integer year = relativeYear(period);
+        Integer year = calendar.projectYear();
         boolean numbers = uniform && usable(ed, false) && usable(ec, false)
             && usable(grid, false) && fuelValue != null && irValue != null
             && discount != null && !rows.isEmpty() && year != null && !stale;
@@ -220,29 +241,48 @@ class OpenE8ProjectRuns {
         boolean author = authored(c, project, binding, fleet, actor)
             || publishedBy(fuel, actor) || publishedBy(ir, actor) || publishedBy(dy, actor);
         return new Loaded(new OpenE8RunDecision.OperandSet(input != null, stale, author,
-            List.copyOf(gates), input),
+            List.copyOf(gates), input), calendar,
             fuel == null ? null : fuel.id(), ir == null ? null : ir.id(),
             dy == null ? null : dy.id());
     }
 
-    private static Attempt view(Connection c, Stored row) throws SQLException {
+    private Attempt view(Connection c, Stored row) throws SQLException {
         if (row.canIssueVcu())
             throw new IllegalStateException("Run de projeto admite VCU.");
-        boolean stale = moved(c, row);
+        var calendar = readJson(row.temporalContext(), OpenE8Calendar.Context.class);
+        boolean stale = moved(c, row, calendar);
         var gates = new ArrayList<>(decode(row.gates()));
         if (stale) gates.add(OpenE8RunDecision.gate("RUN_REFERENCES", "STALE"));
         OpenE8RunDecision.Memory memory = memory(row);
         return new Attempt(row.id(), row.project(), row.period(), row.version(),
             OpenE8RunDecision.responseState(row.state(), stale), stale, false, row.engine(),
             row.binding(), row.fleet(), row.sha(), List.copyOf(gates),
-            OpenCalculationTransparency.plan(gates), memory, row.created());
+            OpenCalculationTransparency.plan(gates), memory, row.created(), calendar,
+            new ParameterPins(row.fuelPin(), row.irPin(), row.dyPin()));
     }
 
-    private static OpenE8RunDecision.Memory memory(Stored row) {
+    private String json(Object value) {
+        try {
+            return mapper.writeValueAsString(value);
+        } catch (JsonProcessingException error) {
+            throw new IllegalStateException("Falha ao gravar o registro E8.", error);
+        }
+    }
+
+    private <T> T readJson(String json, Class<T> type) {
+        if (json == null) return null;
+        try {
+            return mapper.readValue(json, type);
+        } catch (JsonProcessingException error) {
+            throw new IllegalStateException("Falha ao ler o registro E8.", error);
+        }
+    }
+
+    private OpenE8RunDecision.Memory memory(Stored row) {
         if (!"REVIEWED_INTERNAL".equals(row.state()) || row.trace() == null) return null;
         return new OpenE8RunDecision.Memory(row.engine(), "PURE_MATH_TEST_ONLY_NOT_ADMITTED",
             false, row.afec(), row.mpg(), row.be(), row.pe(), row.le(), row.dy(),
-            row.er(), row.erDisplay(), OpenE8RunDecision.parseTrace(row.trace()));
+            row.er(), row.erDisplay(), List.of(readJson(row.trace(), OpenE8RunDecision.Step[].class)));
     }
 
     private static List<OpenCalculationPreflight.Gate> decode(String stored) {
@@ -256,7 +296,8 @@ class OpenE8ProjectRuns {
         return gates;
     }
 
-    private static boolean moved(Connection c, Stored row) throws SQLException {
+    private static boolean moved(Connection c, Stored row, OpenE8Calendar.Context calendar)
+            throws SQLException {
         UUID bindingNow = latestBinding(c, row.project(), row.period());
         UUID fleetNow = latestFleet(c, row.project(), row.period());
         if (!Objects.equals(row.binding(), bindingNow) || !Objects.equals(row.fleet(), fleetNow))
@@ -265,14 +306,20 @@ class OpenE8ProjectRuns {
             row.binding()).contains("STALE")) return true;
         if (row.fleet() != null && fleetMoved(c, row.project(), row.period(), row.fleet()))
             return true;
-        return pinMoved(c, row.project(), "EF_FUEL", row.fuelPin())
-            || pinMoved(c, row.project(), "IR", row.irPin())
-            || pinMoved(c, row.project(), "DY", row.dyPin());
+        // Legacy attempts used the period code as y. Their stored memory is historical only.
+        if (calendar == null) return true;
+        if (!calendar.equals(OpenE8Calendar.current(c, row.project(), row.period(), row.binding())))
+            return true;
+        if (calendar.projectYear() == null) return false;
+        int year = calendar.calendarYear();
+        return pinMoved(c, row.project(), "EF_FUEL", year, row.fuelPin())
+            || pinMoved(c, row.project(), "IR", year, row.irPin())
+            || pinMoved(c, row.project(), "DY", year, row.dyPin());
     }
 
-    private static boolean pinMoved(Connection c, String project, String kind, UUID stored)
+    private static boolean pinMoved(Connection c, String project, String kind, int year, UUID stored)
             throws SQLException {
-        Pin current = pin(c, project, kind);
+        AnnualPin current = pin(c, project, kind, year);
         UUID latest = current == null ? null : current.id();
         if (!Objects.equals(stored, latest)) return true;
         return current != null && current.stale();
@@ -284,6 +331,15 @@ class OpenE8ProjectRuns {
         if (!fleet.equals(latest)) return true;
         String state = OpenE8FleetSelections.currentState(c, project, period);
         return state != null && state.contains("STALE");
+    }
+
+    private static boolean fleetApplies(Connection c, String project, UUID fleet,
+                                        UUID binding, Integer year) throws SQLException {
+        if (binding == null || year == null) return false;
+        return first(c, """
+            SELECT EXISTS (SELECT 1 FROM app_open_e8_fleet_selection
+                WHERE project_id=? AND id=? AND energy_binding_id=? AND observation_year=?)
+            """, r -> r.getBoolean(1), project, fleet, binding, year);
     }
 
     private static List<OpenGridCalculationMath.FleetRow> fleetRows(Connection c, UUID fleet)
@@ -306,35 +362,29 @@ class OpenE8ProjectRuns {
         return rows;
     }
 
-    private static Pin pin(Connection c, String project, String kind) throws SQLException {
-        Pin stored = first(c, """
-            SELECT id, published_by, value_kind, declared_value, rule_reference, evidence_locator
-            FROM app_open_project_parameter_binding
-            WHERE project_id=? AND parameter_kind=?
-            ORDER BY version DESC LIMIT 1
-            """, r -> new Pin(r.getObject(1, UUID.class), r.getObject(2, UUID.class),
-                r.getString(3), r.getBigDecimal(4), r.getString(5), r.getString(6), false),
-            project, kind);
-        if (stored == null) return null;
-        var latest = OpenProjectParameterBindings.latest(c, project, kind);
-        return new Pin(stored.id(), stored.author(), stored.valueKind(), stored.declared(),
-            stored.rule(), stored.evidence(), latest != null && latest.stale());
+    private static AnnualPin pin(Connection c, String project, String kind, Integer year)
+            throws SQLException {
+        return year == null ? null : OpenProjectParameterBindings.annual(c, project, kind, year);
     }
 
-    private static BigDecimal fuelValue(Connection c, Pin fuel) throws SQLException {
+    private static BigDecimal fuelValue(Connection c, AnnualPin fuel) throws SQLException {
         if (fuel == null || fuel.stale() || !"REFERENCE".equals(fuel.valueKind())) return null;
         BigDecimal value = first(c, """
             SELECT p.normalized_value
             FROM app_open_project_parameter_binding b
             JOIN app_open_parameter_candidate p ON p.id = b.candidate_id
             WHERE b.id=? AND p.parameter_kind='EF_FUEL' AND p.status='CANDIDATE'
+              AND p.period_year=b.vintage_year AND p.source_sha256=b.source_sha256
+              AND p.methodology='VM0038' AND p.methodology_edition='1.1'
+              AND p.scenario='OPEN_LDV_DCFC_SIN_BR' AND p.geography='BR'
+              AND p.gas='CO2e' AND p.fuel='GASOLINE'
               AND p.purged_at IS NULL AND p.normalized_unit='tCO2e/USgal'
               AND p.normalized_value IS NOT NULL
             """, r -> r.getBigDecimal(1), fuel.id());
         return usable(value, false) ? value : null;
     }
 
-    private static BigDecimal scalar(Pin pin, boolean positive) {
+    private static BigDecimal scalar(AnnualPin pin, boolean positive) {
         if (pin == null || pin.stale() || pin.declared() == null) return null;
         if (!"DECLARED_EXPLICIT".equals(pin.valueKind()) && !"DECLARED_ZERO".equals(pin.valueKind()))
             return null;
@@ -342,7 +392,7 @@ class OpenE8ProjectRuns {
     }
 
     /** Dy enters the rehearsal only as an explicit 1 backed by a stated absence of fleet credits. */
-    private static OpenGridCalculationMath.Discount discount(Pin dy) {
+    private static OpenGridCalculationMath.Discount discount(AnnualPin dy) {
         if (dy == null || dy.stale() || dy.declared() == null) return null;
         if (!"DECLARED_EXPLICIT".equals(dy.valueKind())) return null;
         if (dy.rule() == null || dy.evidence() == null) return null;
@@ -350,13 +400,16 @@ class OpenE8ProjectRuns {
         return new OpenGridCalculationMath.Discount(BigDecimal.ZERO, BigDecimal.ZERO, true);
     }
 
-    private static String pinState(Pin pin, boolean usable) {
-        if (pin == null) return "MISSING";
-        if (!usable) return "REVIEW_REQUIRED";
-        return "NOT_ADMITTED";
+    private static OpenCalculationPreflight.Gate pinGate(Connection c, String project, String kind,
+            Integer year, AnnualPin pin, boolean usable) throws SQLException {
+        String state = "MISSING";
+        if (pin != null) state = usable ? "NOT_ADMITTED" : "REVIEW_REQUIRED";
+        else if (year != null && OpenProjectParameterBindings.hasOtherYear(c, project, kind, year))
+            state = "OUTSIDE_APPLICABLE_WINDOW";
+        return OpenE8RunDecision.gate(kind, state);
     }
 
-    private static boolean publishedBy(Pin pin, UUID actor) {
+    private static boolean publishedBy(AnnualPin pin, UUID actor) {
         return pin != null && actor.equals(pin.author());
     }
 
@@ -366,12 +419,6 @@ class OpenE8ProjectRuns {
         if (normalized.signum() < 0 || normalized.precision() > 30 || normalized.scale() > 12
                 || normalized.precision() - normalized.scale() > 18) return false;
         return !positive || normalized.signum() > 0;
-    }
-
-    private static Integer relativeYear(String period) {
-        if (period == null || !period.matches("M[1-9]\\d?")) return null;
-        int year = Integer.parseInt(period.substring(1));
-        return year >= 1 && year <= 100 ? year : null;
     }
 
     private static boolean authored(Connection c, String project, UUID binding, UUID fleet,
@@ -430,29 +477,34 @@ class OpenE8ProjectRuns {
     }
 
     private static Stored commandRun(Connection c, UUID actor, String key, String project,
-                                     byte[] fingerprint) throws SQLException {
+            String period, UUID binding, UUID fleet, byte[] requestHash) throws SQLException {
         Object[] old = first(c, """
-            SELECT project_id, run_id, fingerprint
+            SELECT project_id, run_id, request_sha256
             FROM app_open_e8_run_command
             WHERE actor_id=? AND command_key=?
             """, r -> new Object[]{r.getString(1), r.getObject(2, UUID.class), r.getBytes(3)},
             actor, key);
         if (old == null) return null;
-        if (!project.equals(old[0]) || !MessageDigestEquals(fingerprint, (byte[]) old[2]))
+        if (!project.equals(old[0]) || old[2] != null
+                && !MessageDigestEquals(requestHash, (byte[]) old[2]))
             throw conflict("A chave de idempotência foi usada com outro conjunto.");
         Stored row = first(c, STORED + " WHERE project_id=? AND id=?",
             OpenE8ProjectRuns::stored, project, (UUID) old[1]);
         if (row == null) throw unavailable();
+        if (!period.equals(row.period()) || old[2] == null
+                && (binding != null && !binding.equals(row.binding())
+                    || fleet != null && !fleet.equals(row.fleet())))
+            throw conflict("A chave de idempotência foi usada com outro conjunto.");
         return row;
     }
 
     private static void remember(Connection c, UUID actor, String key, String project,
-                                 UUID run, byte[] fingerprint) throws SQLException {
+                                 UUID run, byte[] fingerprint, byte[] requestHash) throws SQLException {
         update(c, """
             INSERT INTO app_open_e8_run_command
-            (actor_id,command_key,project_id,run_id,fingerprint)
-            VALUES (?,?,?,?,?)
-            """, actor, key, project, run, fingerprint);
+            (actor_id,command_key,project_id,run_id,fingerprint,request_sha256)
+            VALUES (?,?,?,?,?,?)
+            """, actor, key, project, run, fingerprint, requestHash);
     }
 
     Attempt newest(Connection c, String project) throws SQLException {
@@ -473,10 +525,12 @@ class OpenE8ProjectRuns {
 
     private static String material(String project, String period, UUID binding, UUID fleet,
                                    Loaded loaded) {
-        return "E8-RUN-SET-V2|" + project + "|" + period + "|"
+        return "E8-RUN-SET-V3|" + project + "|" + period + "|"
             + id(binding) + "|" + id(fleet) + "|"
             + id(loaded.fuelPin()) + "|" + id(loaded.irPin()) + "|" + id(loaded.dyPin())
-            + "|" + (loaded.set().actorIsAuthor() ? "AUTHOR" : "OTHER");
+            + "|" + (loaded.set().actorIsAuthor() ? "AUTHOR" : "OTHER")
+            + "|" + loaded.calendar() + "|" + loaded.set().stale()
+            + "|" + OpenE8RunDecision.encode(loaded.set().gates());
     }
 
     private static String id(UUID value) { return value == null ? "-" : value.toString(); }
@@ -496,7 +550,7 @@ class OpenE8ProjectRuns {
           fleet_selection_id,fuel_pin_id,ir_pin_id,dy_pin_id,encode(input_sha256,'hex'),
           state,can_issue_vcu,engine,
           afec,mpg,be_tco2e,pe_tco2e,le_tco2e,dy,er_tco2e,er_display,trace_json::text,
-          array_to_string(gate_codes, E'\\n'),created_at
+          array_to_string(gate_codes, E'\\n'),created_at,temporal_context::text
         FROM app_open_e8_run
         """;
 
@@ -508,7 +562,7 @@ class OpenE8ProjectRuns {
             r.getString(14), r.getString(15), r.getString(16), r.getString(17),
             r.getString(18), r.getString(19), r.getString(20), r.getString(21),
             r.getString(22), r.getString(23), r.getString(24),
-            r.getObject(25, OffsetDateTime.class));
+            r.getObject(25, OffsetDateTime.class), r.getString(26));
     }
 
     private static PilotProblem unavailable() {

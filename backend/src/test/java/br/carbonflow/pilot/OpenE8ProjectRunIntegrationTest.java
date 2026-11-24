@@ -9,6 +9,7 @@ import java.net.URL;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -117,6 +118,116 @@ class OpenE8ProjectRunIntegrationTest {
         assertEquals(0L, database.read(c -> first(c, """
             SELECT count(*) FROM app_open_e8_run WHERE can_issue_vcu
             """, r -> r.getLong(1))).longValue());
+    }
+
+    @Test
+    void usesDatedWindowsAndKeepsTheApplicableParameterRevisionOnEachAttempt() throws Exception {
+        Actor owner = actor();
+        UUID org = organization(owner.id());
+        String project = project(owner, org);
+        String technical = "/v1/projects/" + project + "/technical";
+        var event = call("PUT", technical + "/open-rights/events/START-1", owner.cookie(), key(),
+            "\"0\"", """
+            {"kind":"OPERATIONAL_START","eventOn":"2027-02-01","documentRef":"DOC-OPERACAO"}
+            """);
+        assertEquals(200, event.statusCode(), event.body());
+        var applicability = call("PUT", technical + "/open-applicability", owner.cookie(), key(),
+            "\"0\"", "{\"operationalEventCode\":\"START-1\"}");
+        assertEquals(200, applicability.statusCode(), applicability.body());
+
+        seedWindow(project, org, owner.id(), "M1", "2027-02-01T03:00:00Z", "2027-06-01T03:00:00Z");
+        seedWindow(project, org, owner.id(), "M2", "2027-06-01T03:00:00Z", "2028-01-01T03:00:00Z");
+        seedWindow(project, org, owner.id(), "JAN", "2028-01-01T03:00:00Z", "2028-02-01T03:00:00Z");
+        seedWindow(project, org, owner.id(), "VIRADA", "2027-12-31T22:00:00Z", "2028-01-01T04:00:00Z");
+        seedImprovement(project, org, owner.id(), 2026, 3);
+        String dossiers = technical + "/open-monitoring/dossiers/";
+        String firstPath = dossiers + "M1/e8-runs";
+        JsonNode wrongYear = recordAttempt(firstPath, owner, key(), 0);
+        assertEquals("OUTSIDE_APPLICABLE_WINDOW", gateState(wrongYear, "IR"));
+        assertTrue(wrongYear.at("/parameterPins/technologyImprovement").isNull());
+        assertTrue(wrongYear.path("memory").isNull());
+
+        UUID currentPin = seedImprovement(project, org, owner.id(), 2027, 1);
+        String firstKey = key();
+        JsonNode first = recordAttempt(firstPath, owner, firstKey, 1);
+        JsonNode second = recordAttempt(dossiers + "M2/e8-runs", owner, key(), 0);
+        assertEquals(1, first.at("/temporalContext/projectYear").asInt());
+        assertEquals(1, second.at("/temporalContext/projectYear").asInt());
+        assertEquals(2027, second.at("/temporalContext/calendarYear").asInt());
+        assertEquals(currentPin.toString(), first.at("/parameterPins/technologyImprovement").asText());
+        assertEquals(first.path("parameterPins"), second.path("parameterPins"));
+        assertNotEquals(first.at("/temporalContext/window/snapshotId"),
+            second.at("/temporalContext/window/snapshotId"));
+
+        UUID nextPin = seedImprovement(project, org, owner.id(), 2028, 4);
+        JsonNode next = recordAttempt(dossiers + "JAN/e8-runs", owner, key(), 0);
+        assertEquals(2, next.at("/temporalContext/projectYear").asInt());
+        assertEquals(nextPin.toString(), next.at("/parameterPins/technologyImprovement").asText());
+        assertEquals("WINDOW_CROSSES_YEAR", gateState(
+            recordAttempt(dossiers + "VIRADA/e8-runs", owner, key(), 0), "PROJECT_YEAR"));
+        String detailPath = firstPath + "/" + first.path("id").asText();
+        assertFalse(json(call("GET", detailPath, owner.cookie(), null, null, null))
+            .path("stale").asBoolean());
+
+        UUID replacement = seedImprovement(project, org, owner.id(), 2027, 2);
+        JsonNode updated = recordAttempt(firstPath, owner, key(), 2);
+        assertEquals(replacement.toString(), updated.at("/parameterPins/technologyImprovement").asText());
+        var retry = call("POST", firstPath, owner.cookie(), firstKey, "\"1\"", "{}");
+        assertEquals(200, retry.statusCode(), retry.body());
+        JsonNode replay = json(retry);
+        assertEquals("STALE", replay.path("state").asText());
+        assertEquals(first.path("id"), replay.path("id"));
+        assertEquals(first.path("inputSha256"), replay.path("inputSha256"));
+        assertEquals(first.path("parameterPins"), replay.path("parameterPins"));
+        assertEquals(first.path("temporalContext"), replay.path("temporalContext"));
+    }
+
+    private JsonNode recordAttempt(String path, Actor owner, String key, int previous) throws Exception {
+        var result = call("POST", path, owner.cookie(), key, "\"" + previous + "\"", "{}");
+        assertEquals(201, result.statusCode(), result.body());
+        return json(result);
+    }
+
+    private static String gateState(JsonNode run, String code) {
+        for (JsonNode gate : run.path("gates")) {
+            if (code.equals(gate.path("code").asText())) return gate.path("state").asText();
+        }
+        throw new AssertionError("Gate ausente: " + code);
+    }
+
+    private void seedWindow(String project, UUID org, UUID owner, String period, String from, String until) {
+        database.transaction(c -> {
+            UUID snapshot = UUID.randomUUID();
+            byte[] sha = AccessSecrets.digest(period);
+            update(c, """
+                INSERT INTO app_open_period_qa_snapshot
+                (id,project_id,organization_id,environment,period_start,period_end,ed_kwh,ec_kwh,
+                 source_sha256,created_by)
+                VALUES (?,?,?,'SANDBOX',?,?,1,1,?,?)
+                """, snapshot, project, org, OffsetDateTime.parse(from), OffsetDateTime.parse(until),
+                sha, owner);
+            update(c, """
+                INSERT INTO app_open_mr_dossier_revision
+                (project_id,organization_id,environment,dossier_code,version,snapshot_id,
+                 source_sha256,note,authored_by)
+                VALUES (?,?,'SANDBOX',?,1,?,?,'Janela de QA de teste',?)
+                """, project, org, period, snapshot, sha, owner);
+            return null;
+        });
+    }
+
+    private UUID seedImprovement(String project, UUID org, UUID owner, int year, int version) {
+        return database.transaction(c -> {
+            UUID id = UUID.randomUUID();
+            update(c, """
+                INSERT INTO app_open_project_parameter_binding
+                (id,project_id,organization_id,environment,parameter_kind,vintage_year,version,
+                 declared_value,rule_reference,evidence_locator,value_kind,triage_version,
+                 binding_sha256,published_by)
+                VALUES (?,?,?,'SANDBOX','IR',?,?,0.95,'VM0038 teste','DOC-IR','DECLARED_EXPLICIT',0,?,?)
+                """, id, project, org, year, version, AccessSecrets.digest(year + "|" + version), owner);
+            return id;
+        });
     }
 
     private UUID grant(String project, UUID org, UUID actor, UUID owner, String role) {

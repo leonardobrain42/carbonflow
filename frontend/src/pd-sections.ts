@@ -1,16 +1,25 @@
 import {Component, inject, input, output, OnInit, signal} from '@angular/core';
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {firstValueFrom} from 'rxjs';
-import {calculationGateTitle, monitoringGateTitle, plainTerm} from './calculation-language';
+import {calculationGateTitle, equationTerm, monitoringGateTitle, plainTerm} from './calculation-language';
 
 interface Guide {
   id:string; title:string; version:number; missing:string[]; answers:Record<string,string>;
   fields:{key:string;label:string}[];
 }
 interface Version {number:number;guideVersion:number;author:string;narrative:string;sha256:string}
+interface CalculationProvenance {
+  sectionId:string;runId:string;runVersion:number;inputSha256:string;memoryHref:string;
+  method:string;engine:string;reviewStatus:string;kernelStatus:string;recordedAt:string;
+  temporalContext:{calendarYear:number|null;projectYear:number|null;timeZone:string;
+    window:{start:string;endExclusive:string}|null}|null;
+  inputs:{symbol:string;origin:string;unit:string|null;vintageYear:number|null;
+    referenceId:string|null;version:number|null;href:string|null;access:string}[];
+  references:{code:string;reference:string;unit:string;result:string}[];limits:string;
+}
 interface CalculationNote {period:string;situation:string;causeCode:string|null;cause:string|null;
   beTco2e:string|null;peTco2e:string|null;leTco2e:string|null;erDisplay:string|null;
-  usableForE8:boolean;marksDocumentReady:boolean;text:string}
+  usableForE8:boolean;marksDocumentReady:boolean;text:string;provenance?:CalculationProvenance|null}
 interface OpinionCriterion {code:string;title:string;stateLabel:string;text:string;
   humanOpinion:boolean;concludes:boolean}
 interface AdditionalityNote {declarationRoute:string|null;declarationIsOpinion:boolean;
@@ -44,6 +53,7 @@ export class PdSectionsComponent implements OnInit {
   readonly term = plainTerm;
   readonly gateTitle = monitoringGateTitle;
   readonly calculationTitle = calculationGateTitle;
+  readonly inputTitle = equationTerm;
   private readonly http = inject(HttpClient);
   get url() { return '/v1/projects/' + encodeURIComponent(this.projectId()) + '/technical/pd-sections'; }
   canLeave() {

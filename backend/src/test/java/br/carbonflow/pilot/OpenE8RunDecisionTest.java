@@ -77,10 +77,8 @@ class OpenE8RunDecisionTest {
         assertEquals("3.15", decision.memory().erTco2e());
         assertEquals("4.05", decision.memory().beTco2e());
         assertEquals("0.9", decision.memory().peTco2e());
-        String trace = OpenE8RunDecision.traceJson(decision.memory());
-        assertTrue(trace.contains("\"code\":\"ER\""));
-        assertFalse(trace.contains("BEV-A"));
-        assertEquals(decision.memory().trace(), OpenE8RunDecision.parseTrace(trace));
+        assertTrue(decision.memory().trace().stream().anyMatch(step -> "ER".equals(step.code())));
+        assertFalse(decision.memory().trace().toString().contains("BEV-A"));
     }
 
     @Test

@@ -16,6 +16,7 @@ const GATE_NAMES: Record<string, string> = {
   EC: 'Energia consumida',
   EF_GRID: 'Fator elétrico da rede',
   MR_PERIOD_DEPENDENCY: 'Período de monitoramento',
+  PROJECT_YEAR: 'Ano do projeto',
   HOURLY_EFEL_NOT_UNIFORM: 'Fator elétrico das horas',
   ACTOR_SEGREGATION: 'Separação de quem registra',
   RUN_REFERENCES: 'Versões da tentativa',
@@ -52,7 +53,6 @@ export function calculationGateTitle(code: string): string {
 const EQUATION_TERMS: Record<string, string> = {
   BEV_RATINGS: 'Ratings elétricos dos comparáveis',
   FOSSIL_COMPARABLE_MPG: 'Consumo fóssil do comparável',
-  PROJECT_YEAR: 'Ano do projeto',
   AFEC: 'Consumo elétrico médio',
   MPG: 'Consumo fóssil médio',
   ERC: 'Créditos deste projeto',

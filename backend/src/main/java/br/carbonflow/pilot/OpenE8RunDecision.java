@@ -6,8 +6,6 @@ import java.util.UUID;
 
 /**
  * Decides whether a project calculation attempt may call the pure kernel.
- * The production reader never supplies a complete operand set: IR, Dy and
- * EFfuel have no stored project value. A unit test supplies that set.
  * The kernel result stays a rehearsal: canIssueVcu is false.
  */
 final class OpenE8RunDecision {
@@ -64,34 +62,6 @@ final class OpenE8RunDecision {
         return stale ? "STALE" : stored;
     }
 
-    static List<Step> parseTrace(String json) {
-        if (json == null || json.isBlank()) return List.of();
-        var steps = new ArrayList<Step>();
-        for (String object : json.split("\\},\\{")) {
-            String code = field(object, "code");
-            String reference = field(object, "reference");
-            String unit = field(object, "unit");
-            String result = field(object, "result");
-            if (code != null && reference != null && unit != null && result != null)
-                steps.add(new Step(code, reference, unit, result));
-        }
-        return List.copyOf(steps);
-    }
-
-    static String traceJson(Memory memory) {
-        var json = new StringBuilder("[");
-        for (int i = 0; i < memory.trace().size(); i++) {
-            if (i > 0) json.append(',');
-            Step step = memory.trace().get(i);
-            json.append("{\"code\":\"").append(escape(step.code()))
-                .append("\",\"reference\":\"").append(escape(step.reference()))
-                .append("\",\"unit\":\"").append(escape(step.unit()))
-                .append("\",\"result\":\"").append(escape(step.result()))
-                .append("\"}");
-        }
-        return json.append(']').toString();
-    }
-
     static String encode(List<OpenCalculationPreflight.Gate> gates) {
         var encoded = new StringBuilder();
         for (var gate : gates) {
@@ -102,6 +72,11 @@ final class OpenE8RunDecision {
     }
 
     static OpenCalculationPreflight.Gate gate(String code, String state) {
+        if ("OUTSIDE_APPLICABLE_WINDOW".equals(state)) {
+            return new OpenCalculationPreflight.Gate(code, state,
+                "O vínculo cadastrado está fora do ano civil ou da janela desta tentativa.",
+                "Vincular uma versão aplicável a este período", "PREP/REV");
+        }
         String reason = switch (code) {
             case "ED" -> "MISSING".equals(state)
                 ? "Não há energia entregue vigente neste período."
@@ -143,6 +118,22 @@ final class OpenE8RunDecision {
                 default ->
                     "O desconto por outro crédito não tem valor nem prova armazenados. A tentativa não presume desconto.";
             };
+            case "PROJECT_YEAR" -> switch (state) {
+                case "WINDOW_MISSING" ->
+                    "Vincule o snapshot de QA com as datas da janela de monitoramento a este período.";
+                case "WINDOW_CROSSES_YEAR" ->
+                    "A janela inclui horas de dois anos civis no fuso de Brasília. Divida o período na virada do ano.";
+                case "CREDITING_START_CONFLICT" ->
+                    "A data declarada para o início de crédito diverge do início operacional da primeira estação.";
+                case "CREDITING_START_REVISED" ->
+                    "O evento de início foi revisado. Atualize o vínculo na declaração de rede aberta.";
+                case "WINDOW_BEFORE_CREDITING" ->
+                    "A janela começa antes do início operacional da primeira estação.";
+                case "PROJECT_YEAR_OUT_OF_RANGE" ->
+                    "O ano da janela está fora do intervalo de cálculo suportado.";
+                default ->
+                    "Vincule à declaração de rede aberta o evento de início operacional da primeira estação.";
+            };
             case "NORMATIVE_PACK" ->
                 "O pacote normativo do projeto não está admitido para execução.";
             case "CARBON_RIGHTS" ->
@@ -152,10 +143,11 @@ final class OpenE8RunDecision {
             case "ACTOR_SEGREGATION" ->
                 "Quem registra a tentativa é autor dos vínculos. A execução interna exige outro ator.";
             case "RUN_REFERENCES" ->
-                "Os vínculos desta tentativa não são mais os vigentes do período.";
+                "O calendário ou os vínculos desta tentativa exigem rechecagem.";
             default -> "Pendência do conjunto de cálculo.";
         };
         String action = switch (code) {
+            case "PROJECT_YEAR" -> "Conferir as datas de início de crédito e do monitoramento";
             case "ACTOR_SEGREGATION" -> "Outro ator precisa registrar a execução interna";
             case "RUN_REFERENCES" -> "Registrar uma nova tentativa com as versões atuais";
             case "HOURLY_EFEL_NOT_UNIFORM" -> "Manter um único fator elétrico horário ou esperar o cálculo por hora";
@@ -180,24 +172,4 @@ final class OpenE8RunDecision {
             kernel.erDisplay(), List.copyOf(trace));
     }
 
-    private static String field(String object, String name) {
-        String mark = "\"" + name + "\":\"";
-        int start = object.indexOf(mark);
-        if (start < 0) return null;
-        int from = start + mark.length();
-        var value = new StringBuilder();
-        for (int i = from; i < object.length(); i++) {
-            char current = object.charAt(i);
-            if (current == '\\' && i + 1 < object.length()) {
-                value.append(object.charAt(i + 1));
-                i++;
-            } else if (current == '"') return value.toString();
-            else value.append(current);
-        }
-        return null;
-    }
-
-    private static String escape(String value) {
-        return value.replace("\\", "\\\\").replace("\"", "\\\"");
-    }
 }

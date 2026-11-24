@@ -13,6 +13,7 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
     const page = await browser.newPage({viewport:{width:1440, height:900}});
     let posted = null;
     let showRehearsal = false;
+    let viewPd = false;
     const rehearsal = {
       id:'30000000-0000-4000-8000-000000000098',
       projectId:project, period:'M1', version:2, state:'REVIEWED_INTERNAL', stale:false,
@@ -51,7 +52,7 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
     await page.route('**/v1/projects/*/technical/capabilities', route => route.fulfill({json:{
       projectId:project, environment:'SANDBOX', owner:true,
       modules:{intake:'PREPARATORY_ONLY', calculation:'NOT_ENABLED'},
-      actions:['VIEW_INTAKE','VIEW_OPEN_CALCULATION','RECORD_OPEN_E8_RUN'],
+      actions:['VIEW_INTAKE','VIEW_OPEN_CALCULATION','RECORD_OPEN_E8_RUN',...(viewPd ? ['VIEW_DOSSIER'] : [])],
     }}));
     await page.route('**/v1/projects/*/technical/intake', route => route.fulfill({json:{
       projectId:project, organizationId:organization, environment:'SANDBOX', version:1,
@@ -162,6 +163,15 @@ test('a tentativa de cálculo registra o bloqueio sem enviar número', async () 
     await page.getByText('Referência: ER', {exact:true}).waitFor();
     await page.getByText('4.05 tCO2e').waitFor();
     assert.equal(await page.getByText('Habilitada', {exact:true}).count(), 0);
+    const pdLink=page.getByRole('link', {name:'Consultar vínculo com a seção Quantificação do PD'});
+    assert.equal(await pdLink.count(), 0);
+    viewPd = true;
+    await page.reload();
+    await pdLink.waitFor();
+    assert.equal(await pdLink.getAttribute('href'),
+      '/workspace/projects/'+project+'/technical?secao=redigir&guia=quantification');
+    await page.getByText('Confira o período, o identificador e a versão.').waitFor();
+    await page.getByText('Memória da tentativa '+rehearsal.id+' · v2 · M1.').waitFor();
   } finally {
     await browser.close();
   }
