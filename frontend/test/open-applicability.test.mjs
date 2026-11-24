@@ -156,6 +156,10 @@ test('a ficha OPEN permite preparar direitos sem fonte admitida nem cálculo E8'
     assert.equal(revision,0);
     await fromTriage.getByRole('button',{name:'Usar respostas da triagem'}).click();
     assert.equal(revision,0,'applying suggestions does not save');
+    // The save bar says there is something to save and stays in reach while the form scrolls.
+    const bar=page.getByRole('group',{name:'Salvar esta tela'});
+    await bar.getByText('Alterações não salvas',{exact:true}).waitFor();
+    assert.equal(await bar.evaluate(el=>getComputedStyle(el).position),'sticky');
     await fromTriage.waitFor({state:'detached'});
     assert.equal(await page.getByLabel('Qualquer BEV compatível pode utilizar?').inputValue(),'true');
     assert.equal(await page.getByLabel('Restringe o uso a veículos identificados?').inputValue(),'false');
@@ -165,7 +169,8 @@ test('a ficha OPEN permite preparar direitos sem fonte admitida nem cálculo E8'
     assert.equal(await page.getByLabel('Existe armazenamento/geração associada?').inputValue(),'false');
     await page.getByLabel('O ponto fica em terreno particular?').selectOption('true');
     await page.getByLabel('O carregador devolve energia à rede (V2G)?').selectOption('false');
-    await saved('Salvar acesso sem aprovação automática');
+    await saved('Salvar acesso à rede');
+    await bar.getByText('Sem alterações pendentes',{exact:true}).waitFor();
     assert.equal(answers.chargerType,'DCFC');
     assert.equal(answers.unrestrictedBevAccess,true);
     assert.equal(answers.associatedInfrastructure,false);
@@ -191,7 +196,7 @@ test('a ficha OPEN permite preparar direitos sem fonte admitida nem cálculo E8'
       name:'divulgacao.pdf',mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.4\n%EOF\n'),
     });
     await disclosureFile;
-    await saved('Salvar direitos sem aprovação automática');
+    await saved('Salvar direitos');
     assert.equal(revision,2);
     await page.getByText('Como estes campos entrariam no PD',{exact:true}).click();
     await page.getByText('não é copiada',{exact:false}).waitFor();
@@ -216,7 +221,7 @@ test('a ficha OPEN permite preparar direitos sem fonte admitida nem cálculo E8'
       response.url().includes('/events/') && response.request().method()==='PUT');
     await page.getByRole('button',{name:'Registrar início de crédito VCS',exact:true}).click();
     await vcsEvent;
-    await saved('Salvar datas sem aprovação automática');
+    await saved('Salvar datas');
     assert.equal(revision,3);
 
     // 4. The status screen only reads: no form, one diagnosis, rereads after the saves.

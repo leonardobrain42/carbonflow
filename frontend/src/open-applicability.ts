@@ -74,9 +74,9 @@ export class OpenApplicabilityComponent implements OnChanges {
   readonly term=plainTerm;
   summary(){return this.part==='summary';}
   saveLabel(){
-    return this.part==='dates'?'Salvar datas sem aprovação automática'
-      :this.part==='network'?'Salvar acesso sem aprovação automática'
-      :'Salvar direitos sem aprovação automática';
+    return this.part==='dates'?'Salvar datas'
+      :this.part==='network'?'Salvar acesso à rede'
+      :'Salvar direitos';
   }
   readonly busy=signal(false);
   readonly error=signal('');

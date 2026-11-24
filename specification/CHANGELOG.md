@@ -1,4 +1,6 @@
 # Changelog da especificação viva
+## 0.3.0-rc.18 — 24/11/2026 (proposta)
+- UX (fatia 9 do backlog): barra de salvar fixa com estado de alterações e rótulos curtos nos formulários de aplicabilidade e de dados iniciais. Só interface; versões, If-Match e Idempotency-Key inalterados.
 ## 0.3.0-rc.17 — 24/11/2026 (proposta)
 - UX (fatia 8 do backlog): lista única de siglas, glossário com "Siglas usadas nas telas" e componente de expansão de siglas na Quantificação. Só interface; textos de apoio, sem definição normativa.
 ## 0.3.0-rc.16 — 24/11/2026 (proposta)

@@ -274,9 +274,13 @@
           </details>
         }
         }
-        <button type="submit" class="cf-workspace-primary" [disabled]="busy()">
-          {{busy() ? 'Salvando…' : saveLabel()}}
-        </button>
+        <div class="cf-save-bar" role="group" aria-label="Salvar esta tela">
+          <span class="cf-save-state" role="status">{{dirty() ? 'Alterações não salvas' : 'Sem alterações pendentes'}}</span>
+          <button type="submit" class="cf-workspace-primary" [disabled]="busy()">
+            {{busy() ? 'Salvando…' : saveLabel()}}
+          </button>
+          <small>Salvar registra uma nova versão da declaração. Não aprova nada: a revisão continua separada.</small>
+        </div>
       </form>
     }
     @if (summary()) {

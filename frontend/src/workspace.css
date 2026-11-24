@@ -213,3 +213,11 @@
 .cf-account-entry [role=alert],.cf-account-entry [role=status] { overflow-wrap:anywhere; }
 @media(max-width:780px){.cf-entry-grid {grid-template-columns:1fr;} .cf-entry-header {align-items:flex-start;flex-wrap:wrap;} .cf-entry-main {padding-top:2rem;} }
 @media(max-width:420px){.cf-entry-actions > a {width:100%;text-align:center;justify-content:center;} .cf-workspace-login {margin:1rem auto;} }
+
+/* Save bar: stays at the bottom of the viewport while a long form scrolls. */
+.cf-save-bar { position: sticky; bottom: 0; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: .6rem 1rem;
+  margin-top: 1rem; padding: .75rem 1rem; background: #0e1f18; border-top: 1px solid #2f4a3d;
+  box-shadow: 0 -6px 12px rgba(0,0,0,.25); }
+.cf-save-bar small { flex-basis: 100%; color: #b9cbc1; }
+.cf-save-state { font-weight: 600; }
+@media (max-width: 640px) { .cf-save-bar .cf-workspace-primary { flex: 1 1 100%; } }

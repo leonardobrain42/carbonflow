@@ -97,7 +97,7 @@ for(const viewport of [{width:390,height:844},{width:1440,height:900}]){
       await page.getByLabel('O carregador devolve energia à rede (V2G)?').selectOption('false');
       const save=page.waitForResponse(response=>
         new URL(response.url()).pathname===declaration&&response.request().method()==='PUT');
-      await page.getByRole('button',{name:'Salvar acesso sem aprovação automática'}).click();
+      await page.getByRole('button',{name:'Salvar acesso à rede'}).click();
       assert.equal((await save).status(),200);
       // The status screen reads the server diagnosis again when it opens.
       const readsBeforeStatus=reads;
@@ -162,7 +162,7 @@ for(const viewport of [{width:390,height:844},{width:1440,height:900}]){
       const readsBeforeConflict=reads;
       const conflict=page.waitForResponse(response=>
         new URL(response.url()).pathname===declaration&&response.request().method()==='PUT');
-      await page.getByRole('button',{name:'Salvar acesso sem aprovação automática'}).click();
+      await page.getByRole('button',{name:'Salvar acesso à rede'}).click();
       assert.equal((await conflict).status(),412);
       await page.getByRole('alert').filter({hasText:'Outra revisão foi salva.'}).waitFor();
       assert.equal(reads,readsBeforeConflict,'A failed save must not emit success');
@@ -191,7 +191,7 @@ for(const viewport of [{width:390,height:844},{width:1440,height:900}]){
       await foreignPage.goto(base+technical);
       await foreignPage.getByRole('alert').waitFor();
       assert.equal(await foreignPage.getByRole('heading',{name:'O que este projeto ainda precisa'}).count(),0);
-      assert.equal(await foreignPage.getByRole('button',{name:'Salvar declaração sem aprovação automática'}).count(),0);
+      assert.equal(await foreignPage.getByRole('button',{name:'Salvar acesso à rede'}).count(),0);
     }finally{
       await context.request.delete(base+'/v1/account-session').catch(()=>{});
       await outsider.request.delete(base+'/v1/account-session').catch(()=>{});
