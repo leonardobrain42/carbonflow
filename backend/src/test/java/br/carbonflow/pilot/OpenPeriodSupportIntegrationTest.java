@@ -483,54 +483,60 @@ class OpenPeriodSupportIntegrationTest {
         grant(project,org,owner.id(),preparer.id(),"PREP");
         pinCompleteSet(project,org,staffManager.id(),staffReviewer.id());
         String runs=dossierUrl+"/M1/e8-runs";
+        // V92: even a complete legacy scalar set does not authorize IR in year one.
         var authorRun=postMethod(runs,owner.cookie(),key(),"\"0\"","{}");
         assertEquals(201,authorRun.statusCode(),authorRun.body());
-        assertEquals("BLOCKED",json(authorRun).path("state").asText(),authorRun.body());
-        assertTrue(json(authorRun).path("memory").isNull());
-        calcGate(json(authorRun),"ACTOR_SEGREGATION");
-        assertFalse(json(authorRun).path("canIssueVcu").asBoolean());
+        JsonNode authorAttempt=json(authorRun);
+        assertEquals("BLOCKED",authorAttempt.path("state").asText(),authorRun.body());
+        assertTrue(authorAttempt.path("memory").isNull());
+        assertEquals("FIRST_YEAR_REVIEW_REQUIRED",
+            calcGate(authorAttempt,"IR_STRUCTURED").path("state").asText());
+        assertFalse(authorAttempt.path("canIssueVcu").asBoolean());
 
-        // A newer IR with a larger version for another year must not replace 2027.
+        // Neither a different vintage nor a different actor bypasses first-year IR.
         addIrPin(project,org,staffManager.id(),2028,1);
         addIrPin(project,org,staffManager.id(),2028,2);
-        String rehearsalKey=key();
-        var rehearsed=postMethod(runs,preparer.cookie(),rehearsalKey,"\"1\"","{}");
-        assertEquals(201,rehearsed.statusCode(),rehearsed.body());
-        JsonNode rehearsal=json(rehearsed);
-        assertEquals("REVIEWED_INTERNAL",rehearsal.path("state").asText());
-        assertEquals(2,rehearsal.path("version").asInt());
-        assertEquals(1,rehearsal.at("/timing/projectYear").asInt());
-        assertEquals(2027,rehearsal.at("/timing/sourceYear").asInt());
+        String attemptKey=key();
+        var recorded=postMethod(runs,preparer.cookie(),attemptKey,"\"1\"","{}");
+        assertEquals(201,recorded.statusCode(),recorded.body());
+        JsonNode attempt=json(recorded);
+        assertEquals("BLOCKED",attempt.path("state").asText());
+        assertEquals(2,attempt.path("version").asInt());
+        assertEquals(1,attempt.at("/timing/projectYear").asInt());
+        assertEquals(2027,attempt.at("/timing/sourceYear").asInt());
         assertEquals(java.time.Instant.parse(FROM),
-            java.time.OffsetDateTime.parse(rehearsal.at("/timing/windowStart").asText()).toInstant());
+            java.time.OffsetDateTime.parse(attempt.at("/timing/windowStart").asText()).toInstant());
         assertEquals(java.time.Instant.parse(until),
-            java.time.OffsetDateTime.parse(rehearsal.at("/timing/windowEndExclusive").asText()).toInstant());
-        assertFalse(rehearsal.path("canIssueVcu").asBoolean());
-        assertFalse(rehearsal.at("/memory/usableForE8").asBoolean());
-        assertEquals("PURE_MATH_TEST_ONLY_NOT_ADMITTED",rehearsal.at("/memory/kernelState").asText());
-        assertEquals("4.05",rehearsal.at("/memory/beTco2e").asText(),rehearsal.path("memory").toString());
-        assertEquals("1.3",rehearsal.at("/memory/peTco2e").asText(),rehearsal.path("memory").toString());
-        assertEquals("2.75",rehearsal.at("/memory/erTco2e").asText(),rehearsal.path("memory").toString());
-        assertEquals("vm0038-open-grid-arithmetic@2-hourly",rehearsal.path("engine").asText());
-        assertEquals(2,rehearsal.at("/memory/hourlyPe/hours").size());
-        assertEquals("0.5",rehearsal.at("/memory/hourlyPe/hours/0/peTco2e").asText());
-        assertEquals("0.8",rehearsal.at("/memory/hourlyPe/hours/1/peTco2e").asText());
-        var historic=json(call("GET",runs+"/"+rehearsal.path("id").asText(),
-            preparer.cookie(),null,null));
-        assertEquals(rehearsal.path("memory"),historic.path("memory"));
-        assertEquals(200,postMethod(runs,preparer.cookie(),rehearsalKey,"\"1\"","{}").statusCode());
-        assertFalse(rehearsal.toString().contains("EF-SYN"));
-        assertFalse(rehearsal.toString().contains("SIM-DY"));
+            java.time.OffsetDateTime.parse(attempt.at("/timing/windowEndExclusive").asText()).toInstant());
+        assertFalse(attempt.path("canIssueVcu").asBoolean());
+        assertTrue(attempt.path("memory").isNull());
+        assertTrue(attempt.path("engine").isNull());
+        assertEquals("FIRST_YEAR_REVIEW_REQUIRED",attempt.at("/irContext/state").asText());
+        assertTrue(attempt.at("/irContext/assessmentId").isNull());
+        assertEquals(64,attempt.at("/irContext/contextSha256").asText().length());
+        assertEquals(authorAttempt.at("/irContext"),attempt.at("/irContext"));
+        assertNull(database.read(c->first(c,
+            "SELECT ir_pin_id FROM app_open_e8_run WHERE project_id=? AND id=?",
+            r->r.getObject(1,UUID.class),project,UUID.fromString(attempt.path("id").asText()))));
+        String runDetail=runs+"/"+attempt.path("id").asText();
+        assertEquals(attempt,json(call("GET",runDetail,preparer.cookie(),null,null)));
+        var initialReplay=postMethod(runs,preparer.cookie(),attemptKey,"\"1\"","{}");
+        assertEquals(200,initialReplay.statusCode(),initialReplay.body());
+        assertEquals(attempt,json(initialReplay));
+        assertFalse(attempt.toString().contains("EF-SYN"));
+        assertFalse(attempt.toString().contains("SIM-DY"));
+
         String annualUrl=technical+"/open-calculation-years/1";
         var annualResponse=call("GET",annualUrl,preparer.cookie(),null,null);
         assertEquals(200,annualResponse.statusCode(),annualResponse.body());
         assertTrue(annualResponse.headers().firstValue("Cache-Control").orElseThrow().contains("no-store"));
         JsonNode annual=json(annualResponse);
         assertEquals("BLOCKED",annual.path("state").asText());
-        assertTrue(annual.path("totals").isNull(),"Two measured hours do not cover a project year");
+        assertTrue(annual.path("totals").isNull());
         assertEquals(1,annual.path("members").size(),"Only the latest version of M1 is selected");
-        assertEquals(rehearsal.path("id"),annual.at("/members/0/runId"));
-        assertEquals("2.75",annual.at("/members/0/totals/erTco2e").asText());
+        assertEquals(attempt.path("id"),annual.at("/members/0/runId"));
+        assertTrue(annual.at("/members/0/totals").isNull());
+        assertTrue(annual.path("issues").toString().contains("RUN_NOT_CALCULATED"));
         assertTrue(annual.path("issues").toString().contains("COVERAGE_GAP"));
         assertFalse(annual.path("usableForE8").asBoolean());
         assertFalse(annual.path("canIssueVcu").asBoolean());
@@ -541,76 +547,32 @@ class OpenPeriodSupportIntegrationTest {
             owner.cookie(),null,null));
         assertFalse(stillBlocked.path("canRunE8").asBoolean());
         assertTrue(stillBlocked.at("/emissions/erTco2e").isNull());
+
         JsonNode sections=json(call("GET",technical+"/pd-sections",owner.cookie(),null,null));
-        JsonNode quantification=null;
-        for (JsonNode section : sections) {
-            if ("quantification".equals(section.at("/guide/id").asText())) quantification=section;
-        }
-        assertNotNull(quantification);
-        assertEquals("MEMORY",quantification.at("/calculation/situation").asText());
-        assertEquals("4.05",quantification.at("/calculation/beTco2e").asText());
-        assertEquals("1.3",quantification.at("/calculation/peTco2e").asText());
-        assertEquals("2.75",quantification.at("/calculation/erDisplay").asText());
-        assertFalse(quantification.at("/calculation/usableForE8").asBoolean());
-        assertFalse(quantification.at("/calculation/marksDocumentReady").asBoolean());
-        assertTrue(quantification.at("/calculation/text").asText().contains("O PD não fica pronto"));
-        assertFalse(quantification.at("/calculation").toString().contains("EF-SYN"));
-        String selectedPath=technical+"/pd-sections?period=M1&run="+rehearsal.path("id").asText();
+        var quantification=calculationNote(sections);
+        assertEquals("BLOCKED",quantification.path("situation").asText());
+        assertTrue(quantification.path("beTco2e").isNull());
+        assertTrue(quantification.path("peTco2e").isNull());
+        assertTrue(quantification.path("erDisplay").isNull());
+        assertTrue(quantification.path("provenance").isNull());
+        assertFalse(quantification.path("usableForE8").asBoolean());
+        assertFalse(quantification.path("marksDocumentReady").asBoolean());
+        assertTrue(quantification.path("text").asText().contains("O PD não fica pronto"));
+        String selectedPath=technical+"/pd-sections?period=M1&run="+attempt.path("id").asText();
         var selected=calculationNote(json(call("GET",selectedPath,owner.cookie(),null,null)));
-        assertEquals(quantification.path("calculation"),selected);
-        // Selecting the preceding blocked attempt must not silently show the new memory.
+        assertEquals(quantification,selected);
         var preceding=calculationNote(json(call("GET",technical+"/pd-sections?period=M1&run="
-            +json(authorRun).path("id").asText(),owner.cookie(),null,null)));
+            +authorAttempt.path("id").asText(),owner.cookie(),null,null)));
         assertEquals("BLOCKED",preceding.path("situation").asText());
         assertTrue(preceding.path("beTco2e").isNull());
-        assertEquals(404,call("GET",technical+"/pd-sections?period=M2&run="+rehearsal.path("id").asText(),
+        assertEquals(404,call("GET",technical+"/pd-sections?period=M2&run="+attempt.path("id").asText(),
             owner.cookie(),null,null).statusCode());
         assertEquals(404,call("GET",technical+"/pd-sections?period=M1&run="+UUID.randomUUID(),
             owner.cookie(),null,null).statusCode());
         assertEquals(400,call("GET",technical+"/pd-sections?period=M1",owner.cookie(),null,null).statusCode());
-        assertEquals(400,call("GET",technical+"/pd-sections?run="+rehearsal.path("id").asText(),
+        assertEquals(400,call("GET",technical+"/pd-sections?run="+attempt.path("id").asText(),
             owner.cookie(),null,null).statusCode());
         assertEquals(404,call("GET",selectedPath,outside.cookie(),null,null).statusCode());
-        JsonNode provenance=quantification.at("/calculation/provenance");
-        assertEquals(rehearsal.path("id"),provenance.path("runId"));
-        assertEquals(rehearsal.path("version"),provenance.path("runVersion"));
-        assertEquals(rehearsal.path("inputSha256"),provenance.path("inputSha256"));
-        assertEquals(rehearsal.at("/memory/engine"),provenance.path("engine"));
-        assertEquals(rehearsal.at("/memory/trace"),provenance.path("references"));
-        assertEquals(rehearsal.path("timing"),provenance.path("timing"));
-        assertEquals("VM0038@1.1",provenance.path("method").asText());
-        assertEquals("REVIEWED_INTERNAL",provenance.path("reviewStatus").asText());
-        assertEquals("quantification",provenance.path("sectionId").asText());
-        assertEquals(runs+"/"+rehearsal.path("id").asText(),provenance.path("memoryHref").asText());
-        assertEquals(9,provenance.path("inputs").size());
-        assertEquals(boundE8.path("id"),provenance.at("/inputs/0/referenceId"));
-        assertEquals("kWh",provenance.at("/inputs/0/unit").asText());
-        assertEquals("EC",provenance.at("/inputs/1/symbol").asText());
-        assertEquals("tCO2e/kWh",provenance.at("/inputs/2/unit").asText());
-        assertEquals(handoff.path("id"),provenance.at("/inputs/3/referenceId"));
-        assertEquals(2027,provenance.at("/inputs/3/vintageYear").asInt());
-        assertEquals("kWh/100 mi",provenance.at("/inputs/4/unit").asText());
-        assertEquals("mi/US gal",provenance.at("/inputs/5/unit").asText());
-        assertEquals(mapper.valueToTree(database.read(c -> first(c,"SELECT fuel_pin_id::text FROM app_open_e8_run WHERE project_id=? AND id=?", r -> r.getString(1),project,UUID.fromString(rehearsal.path("id").asText())))),provenance.at("/inputs/6/referenceId"));
-        assertEquals("tCO2e/USgal",provenance.at("/inputs/6/unit").asText());
-        assertEquals(2027,provenance.at("/inputs/6/vintageYear").asInt());
-        for (int index : new int[]{6,7,8}) {
-            JsonNode pinRef=provenance.at("/inputs/"+index);
-            assertEquals(technical+"/open-parameter-bindings/"+pinRef.path("referenceId").asText(),
-                pinRef.path("href").asText());
-            JsonNode pinDetail=json(call("GET",pinRef.path("href").asText(),owner.cookie(),null,null));
-            assertEquals(pinRef.path("referenceId"),pinDetail.path("id"));
-            assertEquals(pinRef.path("version"),pinDetail.path("version"));
-            assertFalse(pinDetail.path("usableForE8").asBoolean());
-            if (index==6) assertTrue(pinDetail.path("declaredValue").isNull());
-        }
-
-        assertEquals("adimensional",provenance.at("/inputs/7/unit").asText());
-        assertEquals("adimensional",provenance.at("/inputs/8/unit").asText());
-        assertFalse(provenance.toString().contains("declaredValue"));
-        assertFalse(provenance.toString().contains("evidenceLocator"));
-        assertFalse(provenance.toString().contains("sourceSha256"));
-        assertFalse(provenance.toString().contains(preparedCatalog[0].toString()));
         // Documentation alone must not bypass the canonical memory grant.
         Actor documentationOnly=actor();
         database.transaction(c->{
@@ -625,10 +587,8 @@ class OpenPeriodSupportIntegrationTest {
         });
         var limited=calculationNote(json(call("GET",technical+"/pd-sections",
             documentationOnly.cookie(),null,null)));
-        assertEquals("MEMORY",limited.path("situation").asText());
-        assertEquals("RESTRICTED_OR_UNAVAILABLE",limited.at("/provenance/inputs/0/access").asText());
-        assertTrue(limited.at("/provenance/inputs/0/referenceId").isNull());
-        assertTrue(limited.at("/provenance/inputs/3/referenceId").isNull());
+        assertEquals("BLOCKED",limited.path("situation").asText());
+        assertTrue(limited.path("provenance").isNull());
         database.transaction(c->{
             update(c,"""
                 UPDATE app_project_collaborator_grant SET activities=ARRAY['DOCUMENTATION']::text[]
@@ -641,31 +601,10 @@ class OpenPeriodSupportIntegrationTest {
         assertEquals(404,call("GET",selectedPath,documentationOnly.cookie(),null,null).statusCode());
         var hidden=json(hiddenResponse);
         assertFalse(hidden.toString().contains("\"situation\":\"MEMORY\""));
-        assertFalse(hidden.toString().contains(rehearsal.path("id").asText()));
-        assertFalse(hidden.toString().contains(rehearsal.path("inputSha256").asText()));
-        assertEquals(404,call("GET",provenance.path("memoryHref").asText(),
-            documentationOnly.cookie(),null,null).statusCode());
+        assertFalse(hidden.toString().contains(attempt.path("id").asText()));
+        assertFalse(hidden.toString().contains(attempt.path("inputSha256").asText()));
+        assertEquals(404,call("GET",runDetail,documentationOnly.cookie(),null,null).statusCode());
         assertEquals(404,call("GET",technical+"/pd-sections",outside.cookie(),null,null).statusCode());
-        // Expiration is evaluated at read time, without changing the historical run.
-        database.transaction(c->{
-            update(c,"UPDATE app_content_license SET ends_at=statement_timestamp()-interval '1 second' WHERE id=?",
-                preparedCatalog[1]);
-            return null;
-        });
-        var expiredSelected=calculationNote(json(call("GET",selectedPath,owner.cookie(),null,null)));
-        assertEquals("BLOCKED",expiredSelected.path("situation").asText());
-        assertTrue(expiredSelected.path("provenance").isNull());
-        var expired=calculationNote(json(call("GET",technical+"/pd-sections",owner.cookie(),null,null)));
-        assertEquals("BLOCKED",expired.path("situation").asText());
-        assertTrue(expired.path("provenance").isNull());
-        assertTrue(expired.path("beTco2e").isNull());
-        database.transaction(c->{
-            update(c,"UPDATE app_content_license SET ends_at=statement_timestamp()+interval '3 days' WHERE id=?",
-                preparedCatalog[1]);
-            return null;
-        });
-        assertEquals(rehearsal.path("memory"),json(call("GET",provenance.path("memoryHref").asText(),
-            owner.cookie(),null,null)).path("memory"));
         JsonNode additionality=null;
         for (JsonNode section : sections) {
             if ("additionality".equals(section.at("/guide/id").asText())) additionality=section;
@@ -708,28 +647,41 @@ class OpenPeriodSupportIntegrationTest {
         assertFalse(baseline.at("/baseline").toString().toLowerCase().contains("mpg"));
         assertFalse(baseline.at("/baseline").toString().contains("denominator"));
 
-        String runDetail=runs+"/"+rehearsal.path("id").asText();
+        // A legacy IR revision in either year is irrelevant to the structured run.
         addIrPin(project,org,staffManager.id(),2028,3);
-        assertEquals(annual,json(call("GET",annualUrl,owner.cookie(),null,null)));
-        assertEquals(rehearsal,json(call("GET",runDetail,owner.cookie(),null,null)),
-            "Publishing an IR for a different year must not stale the run");
         addIrPin(project,org,staffManager.id(),2027,2);
+        assertEquals(annual,json(call("GET",annualUrl,owner.cookie(),null,null)));
+        assertEquals(attempt,json(call("GET",runDetail,owner.cookie(),null,null)));
+        // Revoking the actual fleet license does stale the run without rewriting its context.
+        database.transaction(c->{
+            update(c,"UPDATE app_content_license SET ends_at=statement_timestamp()-interval '1 second' WHERE id=?",
+                preparedCatalog[1]);
+            return null;
+        });
         JsonNode old=json(call("GET",runDetail,owner.cookie(),null,null));
         assertEquals("STALE",old.path("state").asText());
+        assertTrue(old.path("memory").isNull());
+        assertEquals(attempt.path("timing"),old.path("timing"));
+        assertEquals(attempt.path("irContext"),old.path("irContext"));
+        assertEquals(attempt.path("inputSha256"),old.path("inputSha256"));
         var staleSelected=calculationNote(json(call("GET",selectedPath,owner.cookie(),null,null)));
         assertEquals("BLOCKED",staleSelected.path("situation").asText());
         assertTrue(staleSelected.path("beTco2e").isNull());
         assertTrue(staleSelected.path("provenance").isNull());
-        assertEquals(rehearsal.path("timing"),old.path("timing"));
-        assertEquals(rehearsal.path("memory"),old.path("memory"));
         JsonNode annualStale=json(call("GET",annualUrl,owner.cookie(),null,null));
         assertTrue(annualStale.path("totals").isNull());
         assertTrue(annualStale.path("issues").toString().contains("RUN_STALE"));
         assertNotEquals(annual.path("manifestSha256"),annualStale.path("manifestSha256"));
-        assertEquals(annual.at("/members/0/totals"),annualStale.at("/members/0/totals"));
-        var replay=postMethod(runs,preparer.cookie(),rehearsalKey,"\"1\"","{}");
+        var replay=postMethod(runs,preparer.cookie(),attemptKey,"\"1\"","{}");
         assertEquals(200,replay.statusCode(),replay.body());
         assertEquals(old,json(replay));
+        database.transaction(c->{
+            update(c,"UPDATE app_content_license SET ends_at=statement_timestamp()+interval '3 days' WHERE id=?",
+                preparedCatalog[1]);
+            return null;
+        });
+        assertEquals(attempt,json(call("GET",runDetail,owner.cookie(),null,null)));
+        assertEquals(annual,json(call("GET",annualUrl,owner.cookie(),null,null)));
 
         String vtUrl=efelUrl+"/"+efel.path("id").asText()+"/vt0011-workbooks";
         assertEquals(0,json(call("GET",vtUrl,owner.cookie(),null,null)).size());
