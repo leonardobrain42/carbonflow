@@ -30,6 +30,62 @@ class TypedProjectGuidesIntegrationTest {
         """;
 
     @Test
+    void exAnteIrPlanRequiresNoMonitoringAndRechecksProjectContext() throws Exception {
+        Actor owner=actor(),other=actor();
+        String project=project(owner,organization(owner.id()));
+        String root="/v1/projects/"+project+"/technical";
+        assertEquals(200,call("PUT",root+"/intake",owner.cookie(),key(),"\"0\"",null,INTAKE).statusCode());
+        String url=root+"/open-ir-ex-ante-plan";
+        assertEquals(401,call("GET",url,null,null,null,null,null).statusCode());
+        assertEquals(404,call("GET",url,other.cookie(),null,null,null,null).statusCode());
+        var empty=json(call("GET",url,owner.cookie(),null,null,null,null));
+        assertEquals(0,empty.path("latestVersion").asInt());
+        assertTrue(empty.path("editable").asBoolean());
+        assertEquals("SCOPE_PENDING",empty.at("/context/state").asText());
+        String metric="""
+            {"source":"Fonte pública prevista","responsible":"Equipe técnica prevista",
+             "procedure":"Conferir versão e cobertura a cada atualização anual."}
+            """;
+        String body="""
+            {"evr":%s,"afec":%s,"mpg":%s,"fuel":%s,"rationale":"Planejar a abordagem anual específica antes do monitoramento."}
+            """.formatted(metric,metric,metric,metric);
+        assertEquals(422,call("POST",url,owner.cookie(),key(),"\"0\"",null,"{}").statusCode());
+        assertEquals(428,call("POST",url,owner.cookie(),key(),null,null,body).statusCode());
+        assertEquals(404,call("POST",url,other.cookie(),key(),"\"0\"",null,body).statusCode());
+        String receipt=key();
+        var saved=call("POST",url,owner.cookie(),receipt,"\"0\"",null,body);
+        assertEquals(201,saved.statusCode(),saved.body());
+        var initial=json(saved);
+        assertEquals(1,initial.path("version").asInt());
+        assertEquals("PLANNED_NOT_REVIEWED",initial.path("state").asText());
+        assertFalse(initial.path("usableForE8").asBoolean());
+        assertEquals(64,initial.path("planSha256").asText().length());
+        assertEquals("Fonte pública prevista",initial.at("/plan/evr/source").asText());
+        var replay=call("POST",url,owner.cookie(),receipt,"\"0\"",null,body);
+        assertEquals(200,replay.statusCode(),replay.body());
+        assertEquals(initial,json(replay));
+        assertEquals(409,call("POST",url,owner.cookie(),receipt,"\"0\"",null,
+            body.replace("Fonte pública prevista","Outra fonte prevista")).statusCode());
+        assertEquals(412,call("POST",url,owner.cookie(),key(),"\"0\"",null,body).statusCode());
+        assertEquals(0L,count("app_open_e8_run",project));
+        assertEquals(0L,count("app_open_e8_fleet_selection",project));
+        assertEquals(0L,count("app_open_ir_assessment",project));
+        assertEquals(200,call("PUT",root+"/intake",owner.cookie(),key(),"\"1\"",null,
+            INTAKE.replace("Rede aberta em estudo","Rede aberta em preparação")).statusCode());
+        var changed=json(call("GET",url,owner.cookie(),null,null,null,null));
+        assertTrue(changed.at("/revisions/0/stale").asBoolean());
+        assertEquals(initial.path("planSha256"),changed.at("/revisions/0/planSha256"));
+        var next=call("POST",url,owner.cookie(),key(),"\"1\"",null,body);
+        assertEquals(201,next.statusCode(),next.body());
+        assertNotEquals(initial.path("planSha256"),json(next).path("planSha256"));
+        var history=json(call("GET",url,owner.cookie(),null,null,null,null));
+        assertEquals(2,history.path("revisions").size());
+        assertFalse(history.at("/revisions/0/stale").asBoolean());
+        assertTrue(history.at("/revisions/1/stale").asBoolean());
+        assertEquals(2L,count("app_open_ir_ex_ante_plan",project));
+    }
+
+    @Test
     void typedVm0038DefinitionsPreserveLegacyAndRejectInvalidTypedAnswers() throws Exception {
         Actor owner=actor(),other=actor();
         String project=project(owner,organization(owner.id()));
