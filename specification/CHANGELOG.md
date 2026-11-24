@@ -1,8 +1,6 @@
 # Changelog da especificação viva
-## 0.3.0-rc.6 — 24/11/2026 (proposta)
-- Registra a decisão Q04 (opção B, D13) e o contrato CF-OPEN-007-IR-FIRST-YEAR-EX-ANTE: IR do ano 1 como estimativa ex ante; migração aditiva V97; `calculationBasis` na consolidação anual; CI de recuperação V79 inclui V97. Atualiza decisões, pendências G05, matriz S08, estado, E7 e E8. O ano 1 permanece bloqueado por Dy (Q05).
-## 0.3.0-rc.4 — 24/11/2026 (proposta)
-- Reconcilia a entrada/conta (#145, já no código) com a matriz (CF-SPEC-S16), o estado e E9, citando contrato e testes existentes e os limites declarados. Somente documentação; sem alteração de regra, código, banco ou aceite.
+## 0.3.0-rc.5 — 24/11/2026 (proposta)
+- Adiciona documento de decisão Q04/Q05 (IR no ano inicial e Dy) com texto verificado da VM0038 v1.1, alternativas, recomendação e registro de decisão a preencher. Somente documentação; nenhuma decisão tomada nem comportamento alterado.
 ## 0.3.0-rc.3 — 24/11/2026 (proposta)
 - Consolidação anual exige a mesma avaliação de IR em todas as janelas calculadas (`IR_REFERENCE_MISSING`/`IR_REFERENCE_MISMATCH`); atualiza contrato anual, matriz S11, estado e E8 P0.4 (parcial). Sem migração, API ou UI.
 ## 0.3.0-rc.2 — 24/11/2026 (proposta)

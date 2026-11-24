@@ -1,5 +1,6 @@
 # Catálogo de contratos e evidências incrementais
 Inventário de 88 arquivos em docs/ (86 no corte `507bf268d6955cd0c317d2ff404a905009985907` + CF-OPEN-007-IR-INTRA-YEAR-REUSE e CF-OPEN-007-IR-FIRST-YEAR-EX-ANTE). A classificação serve para navegação; o documento de cada fatia pode ter limites superados por fatias posteriores. Não mover/renomear os originais nem interpretá-los isoladamente como estado atual. Consulte [estado](ESTADO_DO_TRABALHO.md), issue dona e changelog.
+Inventário de 88 arquivos em docs/ (86 no corte `507bf268d6955cd0c317d2ff404a905009985907` + CF-OPEN-007-IR-INTRA-YEAR-REUSE e CF-OPEN-007-DECISION-Q04-Q05). A classificação serve para navegação; o documento de cada fatia pode ter limites superados por fatias posteriores. Não mover/renomear os originais nem interpretá-los isoladamente como estado atual. Consulte [estado](ESTADO_DO_TRABALHO.md), issue dona e changelog.
 
 ## Núcleo, operação e segurança
 - [CF-ADMIN-LOCAL-SANDBOX.md](../docs/CF-ADMIN-LOCAL-SANDBOX.md)
@@ -39,6 +40,7 @@ Inventário de 88 arquivos em docs/ (86 no corte `507bf268d6955cd0c317d2ff404a90
 - [CF-OPEN-004-OPEN-APPLICABILITY.md](../docs/CF-OPEN-004-OPEN-APPLICABILITY.md)
 
 ## Quantificação e parâmetros
+- [CF-OPEN-007-DECISION-Q04-Q05.md](../docs/CF-OPEN-007-DECISION-Q04-Q05.md)
 - [CF-OPEN-007-DY-ASSESSMENT.md](../docs/CF-OPEN-007-DY-ASSESSMENT.md)
 - [CF-OPEN-007-EFFUEL-SOURCE-REVIEW.md](../docs/CF-OPEN-007-EFFUEL-SOURCE-REVIEW.md)
 - [CF-OPEN-007-HOURLY-EFEL-SOURCE-CANDIDATES.md](../docs/CF-OPEN-007-HOURLY-EFEL-SOURCE-CANDIDATES.md)
