@@ -87,6 +87,16 @@ class OpenProjectParameterBindingsIntegrationTest {
         assertEquals(0L,database.read(c->first(c,"""
             SELECT count(*) FROM app_open_ir_assessment WHERE project_id=?
             """,r->r.getLong(1),project)).longValue());
+        String irReview=irPath+"/"+UUID.randomUUID()+"/review";
+        String irOpinion="""
+            {"assessmentSha256":"%s","outcome":"CHECKED_INTERNAL",
+             "annualUpdateBasis":"OBSERVED_UPDATE","evidenceLocator":"TEST_ONLY annual records",
+             "reason":"Independent review of annual update records"}
+            """.formatted("a".repeat(64));
+        assertEquals(200,call("GET",irPath+"/1/2036",reviewer,null,null,null).statusCode());
+        assertEquals(404,call("POST",irReview,manager,key(),"\"1\"",irOpinion).statusCode());
+        assertEquals(404,call("POST",irReview,reviewer,key(),"\"1\"",irOpinion).statusCode());
+        assertEquals(404,call("POST",irReview,outsider,key(),"\"1\"",irOpinion).statusCode());
         // Dy research is a versioned assessment, not another numerical pin.
         String dyPath="/v1/platform/open-dy-assessments/"+project;
         String inconclusive="""
