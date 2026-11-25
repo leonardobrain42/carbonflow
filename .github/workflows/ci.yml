@@ -190,6 +190,7 @@ jobs:
           python3 -m unittest discover -s scripts -p 'test_demo_flyway_v79_compat.py' -v
           python3 -m unittest discover -s scripts -p 'test_inspect_senatran_stock_sample.py' -v
           python3 -m unittest discover -s scripts -p 'test_build_evr_stock_csv.py' -v
+          python3 -m unittest discover -s scripts -p 'test_extract_pbev_electric.py' -v
       - name: Start isolated sandbox and provision account
         run: python3 scripts/demo_sandbox.py start --quiet
       - name: Add a second account using the real confirmation API
