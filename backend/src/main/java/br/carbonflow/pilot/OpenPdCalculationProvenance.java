@@ -60,7 +60,7 @@ final class OpenPdCalculationProvenance {
             r -> new UUID[]{r.getObject(1, UUID.class),r.getObject(2, UUID.class),r.getObject(3, UUID.class)}, scope.id(),run.id());
         inputs.add(pin(c, scope, "EF_FUEL", pins == null ? null : pins[0]));
         inputs.add(pin(c, scope, "IR", pins == null ? null : pins[1]));
-        inputs.add(pin(c, scope, "DY", pins == null ? null : pins[2]));
+        inputs.add(pins != null && pins[2] != null ? pin(c, scope, "DY", pins[2]) : dyAssessment(c, scope, run.id()));
         return new View("OPEN-PD-CALCULATION-PROVENANCE@1", "quantification", run.id(),
             run.version(), run.inputSha256(), periodRoot + "e8-runs/" + run.id(),
             OpenCalculationTransparency.REFERENCE, run.memory().engine(), run.state(),
@@ -71,6 +71,22 @@ final class OpenPdCalculationProvenance {
                 + "Títulos, unidades originais, conversões e locators das fontes permanecem com seus owners. "
                 + "Sem conteúdo licenciado, revisão editorial, admissão normativa ou verificação externa. "
                 + "O PD não fica pronto.");
+    }
+
+    /** Structured Dy read by the run (D14): metadata and a link to the project history, never the declared totals. */
+    private static Input dyAssessment(Connection c, DynamicProjectScope.Context scope, UUID run) throws SQLException {
+        Ref ref = scope.actions().contains("VIEW_OPEN_PARAMETER_BINDING")
+            ? first(c, """
+                SELECT a.id,a.version,a.project_year
+                FROM app_open_e8_run r JOIN app_open_dy_assessment a
+                  ON (a.project_id,a.id,a.version)=(r.project_id,r.dy_assessment_id,r.dy_assessment_version)
+                WHERE r.project_id=? AND r.id=?
+                """, r -> new Ref(r.getObject(1, UUID.class), r.getInt(2), r.getInt(3), null, "STRUCTURED"),
+                scope.id(), run) : null;
+        if (ref == null) return input("DY", null, null, null, null);
+        return new Input("DY", "Avaliação estruturada de Dy · parecer interno independente", "adimensional",
+            ref.year(), ref.id(), ref.version(),
+            "/v1/projects/" + scope.id() + "/technical/open-dy-assessments/" + ref.year(), "PROJECT_METADATA_ONLY");
     }
 
     private static Input pin(Connection c, DynamicProjectScope.Context scope, String symbol, UUID id)

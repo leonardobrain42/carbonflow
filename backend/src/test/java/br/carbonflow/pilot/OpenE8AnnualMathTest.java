@@ -18,6 +18,9 @@ class OpenE8AnnualMathTest {
     private static final OpenE8AnnualMath.IrReference IR =
         new OpenE8AnnualMath.IrReference(UUID.fromString("00000000-0000-0000-0000-0000000000a1"), 1, "a".repeat(64),
             OpenE8IrContext.CHECKED);
+    private static final OpenE8AnnualMath.DyReference DY =
+        new OpenE8AnnualMath.DyReference(UUID.fromString("00000000-0000-0000-0000-0000000000d1"), 1, "d".repeat(64),
+            OpenE8DyContext.CHECKED);
 
     @Test
     void sumsEachWindowErWithItsOwnDiscountAndStableReferences() {
@@ -234,14 +237,33 @@ class OpenE8AnnualMathTest {
         assertFalse(has(notCalculated, "FLEET_FUEL_REFERENCE_MISSING"));
     }
 
+    @Test
+    void sameProjectYearNeedsTheSameDyAssessmentInEveryCalculatedWindow() {
+        var first = member("M1", START, MID, "8", "3", "0", "2.5");
+        var second = member("M2", MID, END, "4", "1", "0", "3");
+        assertTrue(annual(List.of(first, second)).issues().isEmpty());
+        var other = new OpenE8AnnualMath.DyReference(UUID.randomUUID(), 2, "e".repeat(64), OpenE8DyContext.CHECKED);
+        var mismatch = annual(List.of(first, withDy(second, other)));
+        assertTrue(has(mismatch, "DY_REFERENCE_MISMATCH"));
+        assertNull(mismatch.totals());
+        var missing = annual(List.of(first, withDy(second, null)));
+        assertTrue(has(missing, "DY_REFERENCE_MISSING"));
+        assertNull(missing.totals());
+    }
+
+    private static OpenE8AnnualMath.Member withDy(OpenE8AnnualMath.Member m, OpenE8AnnualMath.DyReference dy) {
+        return new OpenE8AnnualMath.Member(m.period(), m.runId(), m.version(), m.inputSha256(), m.windowStart(),
+            m.windowEndExclusive(), m.projectYear(), m.state(), m.stale(), m.totals(), m.ir(), m.canonical(), dy);
+    }
+
     private static OpenE8AnnualMath.Member withIr(OpenE8AnnualMath.Member m, OpenE8AnnualMath.IrReference ir) {
         return new OpenE8AnnualMath.Member(m.period(), m.runId(), m.version(), m.inputSha256(), m.windowStart(),
-            m.windowEndExclusive(), m.projectYear(), m.state(), m.stale(), m.totals(), ir, m.canonical());
+            m.windowEndExclusive(), m.projectYear(), m.state(), m.stale(), m.totals(), ir, m.canonical(), m.dy());
     }
 
     private static OpenE8AnnualMath.Member withCanonical(OpenE8AnnualMath.Member m, OpenIrIntraYearReuse.Canonical canonical) {
         return new OpenE8AnnualMath.Member(m.period(), m.runId(), m.version(), m.inputSha256(), m.windowStart(),
-            m.windowEndExclusive(), m.projectYear(), m.state(), m.stale(), m.totals(), m.ir(), canonical);
+            m.windowEndExclusive(), m.projectYear(), m.state(), m.stale(), m.totals(), m.ir(), canonical, m.dy());
     }
 
     private static OpenE8AnnualMath.Result annual(List<OpenE8AnnualMath.Member> members) {
@@ -252,7 +274,7 @@ class OpenE8AnnualMathTest {
                                                  String be, String pe, String le, String er) {
         return new OpenE8AnnualMath.Member(period, UUID.randomUUID(), 1, "hash-" + period,
             start, end, 1, "REVIEWED_INTERNAL", false,
-            new OpenE8AnnualMath.Totals(be, pe, le, er, "0.00"), IR, CANONICAL);
+            new OpenE8AnnualMath.Totals(be, pe, le, er, "0.00"), IR, CANONICAL, DY);
     }
 
     private static boolean has(OpenE8AnnualMath.Result result, String code) {

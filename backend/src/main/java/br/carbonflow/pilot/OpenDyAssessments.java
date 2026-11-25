@@ -4,6 +4,7 @@ import static br.carbonflow.pilot.PilotSql.first;
 import static br.carbonflow.pilot.PilotSql.query;
 import static br.carbonflow.pilot.PilotSql.update;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -449,6 +450,47 @@ class OpenDyAssessments {
             || OpenCalculationReadiness.triageRevision(c,row.project())!=row.triage()
             || !(FIRST_YEAR_ABSENCE_GATE.equals(row.gate()) || Objects.equals(now.gate(),row.gate()))
             || !same(now.from(),row.from()) || !same(now.until(),row.until());
+    }
+
+    /**
+     * #97: the Dy the executor may read for one project year, from the latest versioned assessment. Staff numbers
+     * stay hidden from the HTTP view; this returns only what the run needs and a context hash that moves with the
+     * assessment, its review, its rights and its calendar. Rehearsal only, never admission.
+     */
+    static OpenE8DyContext forRun(Connection c,String project,Integer projectYear) throws SQLException {
+        if (projectYear==null) return OpenE8DyContext.none(project,null,"TIMING_UNRESOLVED");
+        Stored row=first(c,SELECT+" WHERE project_id=? AND project_year=? ORDER BY version DESC LIMIT 1",
+            OpenDyAssessments::stored,project,projectYear);
+        if (row==null)
+            return OpenE8DyContext.none(project,projectYear,OpenE8DyContext.classify(projectYear,false,false,false,
+                false,false,false,false,false));
+        boolean stale=stale(c,row) || OpenDySourceRights.check(c,row.id()).blocked();
+        var review=readReview(c,row.id(),true);
+        boolean reviewedExact=review!=null && "CHECKED_INTERNAL".equals(review.outcome())
+            && Objects.equals(row.sha(),review.assessmentSha256());
+        boolean conclusive=!"INCONCLUSIVE".equals(row.outcome());
+        boolean absence="NO_FLEET_CREDITS_DECLARED".equals(row.outcome());
+        boolean arithmetic=false;
+        BigDecimal erc=null,erf=null;
+        if (conclusive) {
+            try {
+                var values=OpenDyAssessmentRules.values(row.outcome(),row.erc(),row.erf(),
+                    FIRST_YEAR_ABSENCE_GATE.equals(row.gate())?null:row.gate());
+                arithmetic=Objects.equals(OpenDyAssessmentRules.number(values.preview()),row.preview());
+                erc=values.erc();
+                erf=values.erf();
+            } catch (IllegalArgumentException ignored) { /* inconsistent historical snapshot stays unusable */ }
+        }
+        boolean itemized=first(c,"SELECT count(*)::int FROM app_open_dy_issuance WHERE assessment_id=?",
+            r->r.getInt(1),row.id())>0;
+        boolean shared=first(c,"""
+            SELECT count(*)::int FROM app_open_dy_allocation WHERE assessment_id=? AND method='DOCUMENTED_SHARE'
+            """,r->r.getInt(1),row.id())>0;
+        String state=OpenE8DyContext.classify(projectYear,true,stale,conclusive,arithmetic,absence,itemized,
+            reviewedExact,shared);
+        UUID author=first(c,"SELECT author_id FROM app_open_dy_assessment WHERE id=?",r->r.getObject(1,UUID.class),row.id());
+        return OpenE8DyContext.of(project,projectYear,row.id(),row.version(),row.sha(),state,
+            review==null?null:review.assessmentSha256(),author,review==null?null:review.reviewerId(),erc,erf,absence);
     }
 
     private View view(Connection c,Stored row,boolean staff) throws SQLException {

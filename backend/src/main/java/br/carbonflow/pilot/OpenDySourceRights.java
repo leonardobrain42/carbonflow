@@ -66,7 +66,7 @@ class OpenDySourceRights {
             """,id,pin.sourceId(),pin.sourceEdition(),pin.licenseId(),pin.decisionVersion());
     }
 
-    Check check(Connection c,UUID id) throws SQLException {
+    static Check check(Connection c,UUID id) throws SQLException {
         var pins=query(c,"""
             SELECT source_id,source_edition,license_id,decision_version
             FROM app_open_dy_source_license WHERE assessment_id=? ORDER BY source_id,source_edition
@@ -81,10 +81,10 @@ class OpenDySourceRights {
         return new Check("LICENSE_DECISIONS_CURRENT",List.copyOf(pins));
     }
 
-    private int version(Connection c,UUID org,String source,String edition,UUID license) throws SQLException {
+    private static int version(Connection c,UUID org,String source,String edition,UUID license) throws SQLException {
         int version=0;
         for (String operation:List.of("EXTRACT_TEXT","SHOW_EXCERPTS","EXPORT_DERIVATIVES")) {
-            var grant=rights.granted(c,Set.of(org),source,edition,license,operation);
+            var grant=PlatformSourceFiles.granted(c,Set.of(org),source,edition,license,operation);
             if (grant==null || (version!=0 && version!=grant.decisionVersion())) return 0;
             version=grant.decisionVersion();
         }
