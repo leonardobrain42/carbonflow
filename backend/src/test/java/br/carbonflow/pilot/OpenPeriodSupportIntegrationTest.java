@@ -155,6 +155,16 @@ class OpenPeriodSupportIntegrationTest {
             "{\"guideVersion\":1,\"narrative\":\"Plano de medição ED e EC com dados sob QA interno e dossiê de monitoramento M1.\"}");
         assertEquals(200,drafted.statusCode(),drafted.body());
         assertEquals(1,json(drafted).path("number").asInt());
+        // A04: template and edition of the stored draft come from the package plan; VM0038 keeps its previous values.
+        String stored=database.read(c -> first(c,"SELECT (artifact::jsonb)->>'template'||'|'||((artifact::jsonb)->>'edition') "
+            +"FROM app_pd_section_version WHERE project_id=? AND section_id='monitoring' AND version=1",
+            r -> r.getString(1),project));
+        assertEquals("SRC-007_PD_v5.0B.docx|5.0B",stored);
+        JsonNode guideCatalog=json(call("GET",technical+"/guides",owner.cookie(),null,null));
+        assertEquals("VM0038_V1_1",guideCatalog.path("methodology").asText());
+        assertEquals("VM0038_V1_1",guideCatalog.at("/journeyProfile/id").asText());
+        assertEquals("VM0038",guideCatalog.at("/journeyProfile/candidate").asText());
+        assertTrue(guideCatalog.at("/journeyProfile/pd").isMissingNode(),"the PD plan is not exposed to clients");
         JsonNode pdInitial=json(call("GET",technical+"/pd-reviews",owner.cookie(),null,null));
         assertEquals(1,pdInitial.size());
         assertEquals("BLOCKED_MONITORING_REQUIREMENTS",

@@ -70,11 +70,11 @@ Nível **método/edição**. O dossiê preliminar deixa de ter template, ediçã
 - **Digest e versão:** o plano passa a compor o digest do pacote. Por isso o pacote VM0038 vai à versão **2** e o catálogo à **2**. Projetos já fixados (fatia 3) passam a mostrar `packageChanged = true`: é o sinal previsto de que o pacote mudou, sem alterar o projeto; migrar continua sendo operação explícita, ainda não implementada.
 - Teste: `MethodologyPackageContractTest` (plano do VM0038 idêntico ao anterior; plano neutro; plano próprio sem os bloqueios do VM0038; violações de `PKG-PD`; texto que cita outra metodologia; digest sensível ao plano).
 
-**Residuais da A04, não resolvidos nesta fatia (guardas mantidos, conforme a auditoria):**
-1. `PdSections` (rascunhos de seção do PD) ainda fixa o template e a edição do VM0038 ao gravar o artefato; só roda no fluxo OPEN, já protegido por ações de escopo.
-2. `ProjectRequirements` ainda calcula `open` por `"VM0038".equals(methodology)` para decidir quais projeções ler.
-3. `project-technical.ts` mantém um perfil de VM0038 reconstruído no cliente como fallback de clientes legados com escopo só de guias.
-4. Os textos do PD continuam vindo de documentos do VM0038; não existe ainda um segundo pacote que prove o contrato com um template real.
+**Residuais da A04 (rc.49):**
+1. **Resolvido:** `PdSections.save` lê template e edição do plano do pacote do projeto (`ProjectJourney.profileById(catalog.methodology()).pd()`); sem pacote vale o plano neutro. O VM0038 grava os mesmos valores de antes (teste de integração afirma `SRC-007_PD_v5.0B.docx|5.0B`).
+2. **Resolvido:** o fallback de `project-technical.ts` deixou de reconstruir um perfil VM0038 no cliente; usa o `journeyProfile` que o catálogo de guias autorizado já devolve (dado de catálogo, nunca resposta do projeto) e, sem ele, o perfil neutro. Dois testes de navegador cobrem os dois casos.
+3. **Mantido de propósito:** `ProjectRequirementProjection` continua com `"VM0038".equals(methodology)`. A projeção inteira é o adaptador de requisitos OPEN/VM0038 (itens com regra, edição e cenário fixos); outra metodologia recebe só `METHODOLOGY_BRANCH` fora de escopo (teste existente). Generalizar exige um segundo pacote real com requisitos próprios; trocar o literal agora seria flexibilizar a guarda sem fonte.
+4. **Aberto:** os textos do PD vêm de documentos do VM0038; falta um segundo pacote com template real para provar o contrato.
 
 ## Escolhas reversíveis (aprovadas em D18, §8)
 Privilégio próprio; somente acréscimo; sem segundo aprovador no cadastro; sandbox.

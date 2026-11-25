@@ -16,7 +16,8 @@ class ProjectGuides {
     record Guide(String id, String title, String guidance, List<Field> fields,
                  int definitionVersion, int version, Map<String,String> answers,
                  List<String> missing, List<String> legacyUnstructured, boolean editable) {}
-    record Catalog(String methodology, List<Guide> guides) {}
+    /** {@code journeyProfile} is the package profile of the project's candidate: catalog data, never project answers. */
+    record Catalog(String methodology, List<Guide> guides, ProjectJourney.Profile journeyProfile) {}
     private final DynamicProjectScope scopes;
     private final ObjectMapper json;
 
@@ -116,7 +117,8 @@ class ProjectGuides {
     }
 
     Catalog catalog(Connection c, DynamicProjectScope.Context scope) throws SQLException {
-        String method = ProjectJourney.profile(candidate(c, scope.id())).id();
+        var journey = ProjectJourney.profile(candidate(c, scope.id()));
+        String method = journey.id();
         List<Guide> guides = query(c, """
                 SELECT g.*, r.version, r.answers FROM app_technical_guide g
                 LEFT JOIN LATERAL (SELECT version,answers FROM app_technical_guide_revision
@@ -132,7 +134,7 @@ class ProjectGuides {
                             r.getInt("definition_version"),r.getInt("version"),answers,
                             scope.owner() || scope.actions().contains("SAVE_GUIDE"));
                 },scope.id(),method);
-        return new Catalog(method,guides.stream().filter(Objects::nonNull).toList());
+        return new Catalog(method,guides.stream().filter(Objects::nonNull).toList(),journey);
     }
 
     static String candidate(Connection c, String project) throws SQLException {

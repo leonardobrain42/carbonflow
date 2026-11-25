@@ -295,20 +295,13 @@ export class ProjectTechnicalComponent {
             method=journey.journeyProfile??null;
         }catch{
           // Legacy guide-scoped clients can lack the newer journey projection.
-          // Fall back only to the methodology ID returned by the authorized
-          // guide catalog; never read intake or infer normative eligibility.
+          // Use the package profile that the authorized guide catalog itself carries (A04): the client keeps no
+          // methodology catalog of its own, never reads intake and never infers normative eligibility.
           if(this.can('VIEW_GUIDES')){
             try {
-              const catalog=await firstValueFrom(this.http.get<{methodology:string}>(
+              const catalog=await firstValueFrom(this.http.get<{methodology:string;journeyProfile?:JourneyProfile}>(
                 this.technical+'/guides'));
-              if(catalog.methodology==='VM0038_V1_1')
-                method={
-                  id:'VM0038_V1_1',candidate:'VM0038',edition:'1.1',
-                  title:'VM0038 v1.1 · Guia técnico de recarga',
-                  activitiesTitle:'Escopo da atividade',detailsTitle:'Dados técnicos',
-                  description:'Guia preparatório. O enquadramento ainda depende de provas e revisão.',
-                  sourceUrl:null,technicalTopics:[],questions:[]
-                };
+              method=catalog.journeyProfile??null;
             }catch{
               // A failed catalog read does not authorize any additional module.
             }
