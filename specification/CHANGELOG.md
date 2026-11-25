@@ -1,4 +1,6 @@
 # Changelog da especificação viva
+## 0.3.0-rc.27 — 25/11/2026 (proposta)
+- G05, restante sintético: o teste integrado de IR passa a cobrir validade temporal que não cobre um período posterior (`ANNUAL_EVIDENCE_RECHECK_REQUIRED`, execução bloqueada) e ano 1 com duas janelas (parecer inicial por período; a revisão da 2ª torna a 1ª não vigente, comportamento observado a decidir). G05 segue aberta só por falta de dados reais autorizados. Sem mudança de regra, contrato ou migração.
 ## 0.3.0-rc.26 — 25/11/2026 (proposta)
 - Linha 1 do roteiro revisado: teste integrado do IR (`OpenIrTwoPeriodIntegrationTest`) com dados sintéticos: ano 1 (plano ex ante e parecer inicial), dois períodos do ano 2 (parecer anual com evidência datada e reuso), reexecução idempotente e revogação de licença que torna o IR `STALE` nos dois períodos sem afetar o ano 1. CF-SPEC-G05 passa a parcial e continua aberta (ano 1 com várias janelas e dados reais autorizados). Sem mudança de regra, contrato ou migração.
 ## 0.3.0-rc.25 — 25/11/2026 (proposta)

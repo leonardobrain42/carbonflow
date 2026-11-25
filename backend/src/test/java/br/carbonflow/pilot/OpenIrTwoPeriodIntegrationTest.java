@@ -56,9 +56,25 @@ class OpenIrTwoPeriodIntegrationTest {
         assertEquals(201,response.statusCode(),response.body());
         return fx.json(response);
     }
-    private String evidence(String metric){
+    private String evidence(String metric){return evidence(metric,"2024-12-31");}
+    private String evidence(String metric,String validUntil){
         return "{\"metric\":\""+metric+"\",\"updatedOn\":\"2024-03-10\",\"validFrom\":\"2024-01-01\","
-            +"\"validUntil\":\"2024-12-31\",\"evidenceLocator\":\"Registro de atualização "+metric+"\"}";
+            +"\"validUntil\":\""+validUntil+"\",\"evidenceLocator\":\"Registro de atualização "+metric+"\"}";
+    }
+    /** Year-1 initial review of {@code period}, pinning the current ex ante plan. */
+    private void initialReview(JsonNode recorded,JsonNode planRevision,String latest) throws Exception {
+        var review=fx.postMethod("/v1/platform/open-ir-assessments/"+s.project()+"/"+recorded.path("id").asText()+"/review",
+            s.staffReviewer().cookie(),key(),"\""+latest+"\"","{\"assessmentSha256\":\""+recorded.path("assessmentSha256").asText()
+            +"\",\"outcome\":\"INITIAL_BASELINE_CHECKED\",\"annualUpdateBasis\":\"PLAN_ONLY\","
+            +"\"evidenceLocator\":\"Plano ex ante e referências do ano 1\","
+            +"\"reason\":\"Parecer inicial independente, sem afirmar atualização observada.\","
+            +"\"initialPlan\":{\"evr\":\"MATCH: atualização anual do EVR conforme o plano ex ante.\","
+            +"\"afec\":\"MATCH: atualização anual do AFEC conforme o plano ex ante.\","
+            +"\"mpg\":\"MATCH: atualização anual do MPG conforme o plano ex ante.\","
+            +"\"fuel\":\"MATCH: atualização anual do fator fóssil conforme o plano ex ante.\"},"
+            +"\"exAntePlanId\":\""+planRevision.path("id").asText()+"\",\"exAntePlanVersion\":"
+            +planRevision.path("version").asInt()+",\"exAntePlanSha256\":\""+planRevision.path("planSha256").asText()+"\"}");
+        assertEquals(201,review.statusCode(),review.body());
     }
 
     @Test
@@ -165,5 +181,55 @@ class OpenIrTwoPeriodIntegrationTest {
         assertEquals("STALE",fx.json(afterRevocation).path("state").asText());
         assertFalse(fx.json(afterRevocation).path("canIssueVcu").asBoolean());
         assertEquals(2,fx.json(afterRevocation).path("version").asInt(),"Revocation creates a new attempt, never rewrites the old one");
+    }
+
+    /**
+     * G05 gaps, synthetic data: declared validity that stops covering a later period of the same year, and a
+     * second window inside project year 1. Characterises the current conservative behaviour.
+     */
+    @Test
+    void validityNotCoveringALaterPeriodAndSeveralWindowsInYearOne() throws Exception {
+        fx=new OpenE8TestFixture(database,mapper,base);
+        s=fx.openProject("2023-01-01");
+        fx.preparePeriod(s,"Y1-M1",2023,2);
+        fx.preparePeriod(s,"Y1-M2",2023,3);
+        fx.preparePeriod(s,"Y2-M1",2024,2);
+        fx.preparePeriod(s,"Y2-M3",2024,8);
+        fx.pinCompleteSet(s.project(),s.org(),s.staffManager().id(),s.staffReviewer().id(),2023);
+        fx.pinCompleteSet(s.project(),s.org(),s.staffManager().id(),s.staffReviewer().id(),2024);
+
+        var plan=fx.postMethod("/v1/projects/"+s.project()+"/technical/open-ir-ex-ante-plan",s.owner().cookie(),key(),"\"0\"",EX_ANTE);
+        assertEquals(201,plan.statusCode(),plan.body());
+        JsonNode planRevision=fx.json(plan);
+        JsonNode y1=record("Y1-M1","\"0\"");
+        initialReview(y1,planRevision,"1");
+        assertEquals("FIRST_YEAR_EX_ANTE_CHECKED_NOT_ADMITTED",irState("Y1-M1"));
+
+        // Evidence declared valid only until April: it covers February, not August of the same year.
+        JsonNode y2=record("Y2-M1","\"0\"");
+        var review=fx.postMethod("/v1/platform/open-ir-assessments/"+s.project()+"/"+y2.path("id").asText()+"/review",
+            s.staffReviewer().cookie(),key(),"\"1\"","{\"assessmentSha256\":\""+y2.path("assessmentSha256").asText()+"\","
+            +"\"outcome\":\"CHECKED_INTERNAL\",\"annualUpdateBasis\":\"OBSERVED_UPDATE\","
+            +"\"evidenceLocator\":\"Registros de atualização do ano 2\","
+            +"\"reason\":\"Atualização observada conferida internamente, vigência curta.\","
+            +"\"priorAssessmentId\":\""+y1.path("id").asText()+"\",\"temporalEvidence\":["
+            +evidence("EVR","2024-04-30")+","+evidence("AFEC","2024-04-30")+","+evidence("MPG","2024-04-30")+","
+            +evidence("EF_FUEL","2024-04-30")+"]}");
+        assertEquals(201,review.statusCode(),review.body());
+        assertEquals("CHECKED_INTERNAL_NOT_ADMITTED",irState("Y2-M1"));
+        assertEquals("ANNUAL_EVIDENCE_RECHECK_REQUIRED",irState("Y2-M3"),
+            "A later period outside the declared validity must not reuse the assessment");
+        var blocked=fx.postMethod(runs("Y2-M3"),s.owner().cookie(),key(),"\"0\"","{}");
+        assertEquals(201,blocked.statusCode(),blocked.body());
+        assertEquals("ANNUAL_EVIDENCE_RECHECK_REQUIRED",OpenE8TestFixture.calcGate(fx.json(blocked),"IR_STRUCTURED").path("state").asText());
+        assertFalse(fx.json(blocked).path("canIssueVcu").asBoolean());
+
+        // Year 1, second window: the first-year review is per period, it is not reused across windows.
+        assertEquals("FIRST_YEAR_REVIEW_REQUIRED",irState("Y1-M2"));
+        JsonNode y1b=record("Y1-M2","\"1\"");
+        initialReview(y1b,planRevision,"2");
+        assertEquals("FIRST_YEAR_EX_ANTE_CHECKED_NOT_ADMITTED",irState("Y1-M2"));
+        // The newer year-1 version supersedes the first one: the earlier window must be reviewed again.
+        assertEquals("FIRST_YEAR_REVIEW_REQUIRED",irState("Y1-M1"));
     }
 }
