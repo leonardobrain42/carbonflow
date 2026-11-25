@@ -31,6 +31,9 @@ Sem esses requisitos, `totals=null` e `issues[]` descreve o bloqueio e seus
 intervalos exatos. Os membros podem conservar números históricos, claramente
 separados do total anual indisponível. Zero só aparece como resultado presente.
 
+## Consistência de frota e fator entre janelas
+Política **interna** (não é regra da Verra), a mesma ideia do reuso intra-ano de IR: os parâmetros anuais formam um conjunto por ano do projeto. Cada membro traz `canonical` (snapshot de frota, snapshot de ratings, ciclo e candidato do fator fóssil), lido da linha imutável da tentativa pela mesma identidade canônica usada no reuso de IR (`OpenIrIntraYearReuse.Canonical`). Para as janelas calculadas e atuais: frota, ratings ou ciclo diferentes geram `FLEET_REFERENCE_MISMATCH`; candidatos de fator diferentes, `FUEL_REFERENCE_MISMATCH`; referência ausente ou incompleta, `FLEET_FUEL_REFERENCE_MISSING`. Qualquer um deixa `totals=null`. As referências entram em `members[]` e no `manifestSha256`; como a consulta é uma projeção não persistida, o hash de consultas antigas não é recalculado nem comparável. Efeito: duas janelas do mesmo ano que usem seleções de frota ou fatores diferentes exigem nova tentativa antes do total anual. **Hipótese a confirmar:** se o produto quiser aceitar conjuntos diferentes por janela quando a fonte do ano for a mesma, essa política precisa ser decidida e registrada.
+
 ## Matemática e referências
 
 Cada total é a soma decimal exata dos respectivos valores canônicos das
@@ -61,9 +64,10 @@ das entradas e a avaliação completa de ERC/ERF para Dy permanecem com #96/#97.
   ausências, versões desatualizadas, decimais inválidos, ER negativa, precisão,
   Dy diferente por janela e manifesto determinístico/versionado.
 - `OpenE8AnnualMathTest` (IR): mesma avaliação em todas as janelas; versão, hash ou id diferentes bloqueiam; IR ausente/incompleto bloqueia; a referência altera o manifesto; janela não calculada não gera divergência artificial.
+- `OpenE8AnnualMathTest` (frota/fator): mesma frota, mesmos ratings e mesmo ciclo em todas as janelas calculadas (`FLEET_REFERENCE_MISMATCH`), mesmo candidato de fator fóssil (`FUEL_REFERENCE_MISMATCH`), referência ausente ou incompleta bloqueia (`FLEET_FUEL_REFERENCE_MISSING`), janela não calculada não é comparada e a divergência altera o manifesto.
 - `OpenE8AnnualCalendarTest`: aniversário brasileiro, 365/366 dias e início
   em 29 de fevereiro, com limites de ano.
-- `OpenPeriodSupportIntegrationTest`: ensaio real em Quarkus/PostgreSQL de duas
+- `OpenPeriodSupportIntegrationTest`: a consulta real devolve, por membro, as quatro referências canônicas (snapshots de frota e ratings, candidato do fator e ciclo); ensaio real em Quarkus/PostgreSQL de duas
   horas não vira ano completo; apenas a última revisão entra; consulta repetida
   é estável; parâmetro de outro ano não altera o hash; revisão aplicável exige
   rechecagem e mantém os valores históricos; isolamento por projeto e papel.

@@ -52,7 +52,8 @@ class OpenE8AnnualConsolidation {
                         : new OpenE8AnnualMath.Totals(memory.beTco2e(), memory.peTco2e(), memory.leTco2e(),
                             memory.erTco2e(), memory.erDisplay()),
                     run.irContext() == null ? null : new OpenE8AnnualMath.IrReference(run.irContext().assessmentId(),
-                        run.irContext().version(), run.irContext().assessmentSha256(), run.irContext().state())));
+                        run.irContext().version(), run.irContext().assessmentSha256(), run.irContext().state()),
+                    canonical(c, project, run.id())));
             }
             for (var window : windows) if (!seen.contains(window.period()))
                 members.add(missing(window.period(), window.window()));
@@ -61,6 +62,20 @@ class OpenE8AnnualConsolidation {
                 range == null ? null : range.from().toInstant(),
                 range == null ? null : range.until().toInstant(), calendar.gate(), members);
         });
+    }
+
+    /** Same canonical identity the IR reuse compares: fleet and rating snapshots, cycle and fossil-fuel candidate. */
+    private static OpenIrIntraYearReuse.Canonical canonical(java.sql.Connection c, String project, java.util.UUID run)
+            throws java.sql.SQLException {
+        return PilotSql.first(c, """
+            SELECT f.fleet_snapshot_id,f.rating_snapshot_id,b.candidate_id,f.cycle
+            FROM app_open_e8_run r
+            JOIN app_open_e8_fleet_selection f ON f.id=r.fleet_selection_id
+            JOIN app_open_project_parameter_binding b ON b.id=r.fuel_pin_id AND b.parameter_kind='EF_FUEL'
+            WHERE r.project_id=? AND r.id=?
+            """, rs -> new OpenIrIntraYearReuse.Canonical(rs.getObject(1, java.util.UUID.class),
+                rs.getObject(2, java.util.UUID.class), rs.getObject(3, java.util.UUID.class), rs.getString(4)),
+            project, run);
     }
 
     private record DossierWindow(String period, OpenE8Timing.Window window) {}

@@ -25,7 +25,16 @@ final class OpenE8AnnualMath {
     }
     record Member(String period, UUID runId, int version, String inputSha256,
                   Instant windowStart, Instant windowEndExclusive, Integer projectYear,
-                  String state, boolean stale, Totals totals, IrReference ir) {}
+                  String state, boolean stale, Totals totals, IrReference ir,
+                  OpenIrIntraYearReuse.Canonical canonical) {
+        /** Without canonical fleet/fuel references; a calculated window in this form blocks the annual total. */
+        Member(String period, UUID runId, int version, String inputSha256, Instant windowStart,
+               Instant windowEndExclusive, Integer projectYear, String state, boolean stale, Totals totals,
+               IrReference ir) {
+            this(period, runId, version, inputSha256, windowStart, windowEndExclusive, projectYear, state,
+                stale, totals, ir, null);
+        }
+    }
     record Issue(String code, String period, Instant from, Instant until, String detail) {}
     record Result(String projectId, int projectYear, Instant windowStart, Instant windowEndExclusive,
                   String engine, String state, boolean usableForE8, boolean canIssueVcu,
@@ -93,6 +102,27 @@ final class OpenE8AnnualMath {
         if (references.size() > 1)
             issues.add(issue("IR_REFERENCE_MISMATCH", null, null, null,
                 "As janelas do ano usam avaliações de IR diferentes. O mesmo ano do projeto exige a mesma avaliação; registre novas tentativas."));
+
+        // Internal policy (not a Verra rule): the annual parameters are one set per project year, so every calculated
+        // window must read the same fleet/rating snapshots, cycle and fossil-fuel candidate, as the IR reuse does.
+        var fleetSets = new HashSet<List<Object>>();
+        var fuelCandidates = new HashSet<UUID>();
+        for (var member : calculated) {
+            var canonical = member.canonical();
+            if (canonical == null || !canonical.complete())
+                issues.add(issue("FLEET_FUEL_REFERENCE_MISSING", member.period(), member.windowStart(), member.windowEndExclusive(),
+                    "A memória desta janela não identifica a frota, os ratings e o fator fóssil usados. Registre nova tentativa."));
+            else {
+                fleetSets.add(List.of(canonical.fleetSnapshot(), canonical.ratingSnapshot(), canonical.cycle()));
+                fuelCandidates.add(canonical.fuelCandidate());
+            }
+        }
+        if (fleetSets.size() > 1)
+            issues.add(issue("FLEET_REFERENCE_MISMATCH", null, null, null,
+                "As janelas do ano usam frota, ratings ou ciclo diferentes. O mesmo ano do projeto exige o mesmo conjunto; registre novas tentativas."));
+        if (fuelCandidates.size() > 1)
+            issues.add(issue("FUEL_REFERENCE_MISMATCH", null, null, null,
+                "As janelas do ano usam fatores fósseis diferentes. O mesmo ano do projeto exige o mesmo fator; registre novas tentativas."));
 
         if (calendarValid) {
             Instant cursor = from;

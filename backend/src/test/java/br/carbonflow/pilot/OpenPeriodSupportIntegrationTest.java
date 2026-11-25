@@ -546,6 +546,10 @@ class OpenPeriodSupportIntegrationTest {
         assertEquals(1,annual.path("members").size(),"Only the latest version of M1 is selected");
         assertEquals(attempt.path("id"),annual.at("/members/0/runId"));
         assertTrue(annual.at("/members/0/totals").isNull());
+        // The canonical fleet/rating/fuel references behind the run are read from the immutable run row.
+        for(String field:new String[]{"fleetSnapshot","ratingSnapshot","fuelCandidate"})
+            assertEquals(36,annual.at("/members/0/canonical/"+field).asText().length(),field);
+        assertEquals("COMBINED",annual.at("/members/0/canonical/cycle").asText());
         assertTrue(annual.path("issues").toString().contains("RUN_NOT_CALCULATED"));
         assertTrue(annual.path("issues").toString().contains("COVERAGE_GAP"));
         assertFalse(annual.path("usableForE8").asBoolean());
