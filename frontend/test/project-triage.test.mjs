@@ -8,13 +8,31 @@ const projectId = '20000000-0000-4000-8000-000000000010';
 const organizationId = '10000000-0000-4000-8000-000000000010';
 const labels = ['Objetivo e metodologia','Atividade','Escopo e lacunas','Local','Resumo da triagem'];
 const vmTitle = 'VM0038 v1.1 · Recarga de veículos elétricos';
+const next = [
+  {section:'rede',title:'Acesso à rede',detail:'Acesso aos carregadores, identificação da frota, origem da eletricidade e infraestrutura associada.'},
+  {section:'estacoes',title:'Estações e fronteira',detail:'Estações, carregadores e veículos do projeto.'},
+  {section:'monitorar',title:'Monitorar energia',detail:'Medidores e medição da energia entregue e consumida.'},
+  {section:'linha-base',title:'Linha de base',detail:'Cenário sem o projeto e veículos comparáveis.'},
+  {section:'adicionalidade',title:'Adicionalidade',detail:'Cronologia do investimento e da receita de carbono, com evidências.'},
+  {section:'direitos',title:'Direitos do projeto',detail:'Titulares das reduções e documentos de titularidade.'},
+];
 const journeys = {
   GENERAL: {
     id:'GENERAL', candidate:null, title:'Triagem inicial', description:'Registre dúvidas sobre o escopo.',
     questions:[{key:'scopeNotes',label:'O que precisa ser confirmado sobre o escopo?',type:'text',options:[]}],
+    activityQuestions:[], activities:[],
+    presentation:{activityPlaceholder:'Descreva a atividade que pretende realizar',
+      baselinePlaceholder:'Descreva como a atividade ocorreria sem o projeto',
+      next:next.filter(item => ['linha-base','adicionalidade','direitos'].includes(item.section))},
   },
   VM0038: {
     id:'VM0038_V1_1', candidate:'VM0038', title:vmTitle, description:'O piloto usa veículos leves e estações DCFC.',
+    activityQuestions:[{key:'installsChargers',label:'O projeto inclui instalar sistemas de recarga?',type:'choice',help:null,options:[
+      {value:'YES',label:'Sim'},{value:'NO',label:'Não'},{value:'DESCONHECIDO',label:'Ainda não sei'},
+    ]}],
+    activities:['MOBILIDADE_ELETRICA'],
+    presentation:{activityPlaceholder:'Descreva onde, para quem e como os carregadores serão instalados',
+      baselinePlaceholder:'Ex.: viagens atendidas por veículos equivalentes a combustão', next},
     questions:[
       {key:'propulsion',label:'Propulsão da frota atendida',type:'choice',options:[
         {value:'BEV',label:'BEV'}, {value:'PHEV',label:'PHEV'},
@@ -26,6 +44,17 @@ const journeys = {
   },
 };
 
+// A second package that exists only in this test: the screen must follow its schema, not VM0038's.
+journeys.TEST = {
+  id:'TEST_ONLY_RESIDUES', candidate:'TEST-ONLY', title:'Pacote de teste · resíduos', description:'Pacote sintético.',
+  questions:[{key:'siteType',label:'Tipo de área',type:'choice',options:[{value:'LANDFILL',label:'Aterro'}]}],
+  activityQuestions:[{key:'gasCapture',label:'Há captura de gás?',type:'choice',help:null,options:[
+    {value:'YES',label:'Sim'},{value:'NO',label:'Não'}]}],
+  activities:['RESIDUOS'],
+  presentation:{activityPlaceholder:'Descreva a área de resíduos', baselinePlaceholder:'Descreva a destinação atual',
+    next:[{section:'residuos-base',title:'Linha de base de resíduos',detail:'Item de teste.'}]},
+};
+
 async function setup(page) {
   let countPilot = 0;
   const state = {version: 0, currentStep: 1, answers: {}, exampleKind: null, retiredAnswers: []};
@@ -33,8 +62,8 @@ async function setup(page) {
     projectId, environment: 'SANDBOX', version: state.version, currentStep: state.currentStep,
     analysisState: 'NAO_AVALIADO', exampleKind: state.exampleKind,
     answers: state.answers,
-    journey: journeys[state.answers['1']?.methodologyCandidate === 'VM0038' ? 'VM0038' : 'GENERAL'],
-    methodologies: [{value:'VM0038',label:vmTitle}],
+    journey: journeys[{'VM0038':'VM0038','TEST-ONLY':'TEST'}[state.answers['1']?.methodologyCandidate] ?? 'GENERAL'],
+    methodologies: [{value:'VM0038',label:vmTitle},{value:'TEST-ONLY',label:'Pacote de teste · resíduos'}],
     diagnosis: {
       ruleVersion:'REG-E2 / CF-IMP-010 v2',
       classification:state.answers['3']?.chargerType === 'AC' ? 'UNSUPPORTED_MVP' : 'UNKNOWN_REVIEW_REQUIRED',
@@ -262,6 +291,26 @@ test('D16: triagem pede só a hipótese, mostra respostas antigas só para leitu
     await page.getByText('Respostas antigas, só para leitura:',{exact:false}).first().waitFor();
     await page.setViewportSize({width:390,height:844});
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth),false);
+  } finally {
+    await browser.close();
+  }
+});
+
+test('A03: a triagem segue o schema do pacote escolhido, sem campos de recarga de outro pacote', async () => {
+  const browser = await chromium.launch({executablePath});
+  try {
+    const page = await browser.newPage({viewport:{width:1360,height:850}});
+    await setup(page);
+    await page.goto(base + '/workspace/projects/' + projectId + '/triage');
+    await page.getByLabel('Metodologia candidata').selectOption('TEST-ONLY');
+    await page.getByRole('button',{name:'Salvar e avançar'}).click();
+    await page.getByLabel('Há captura de gás?').waitFor();
+    assert.equal(await page.getByLabel('O projeto inclui instalar sistemas de recarga?').count(),0);
+    assert.ok(await page.getByPlaceholder('Descreva a área de resíduos').count() > 0);
+    await page.getByRole('button',{name:/Resumo da triagem/}).click();
+    await page.getByRole('heading',{name:'O que será pedido na preparação técnica'}).waitFor();
+    await page.getByRole('link',{name:'Linha de base de resíduos'}).waitFor();
+    assert.equal(await page.getByRole('link',{name:'Acesso à rede'}).count(),0);
   } finally {
     await browser.close();
   }

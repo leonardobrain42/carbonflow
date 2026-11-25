@@ -14,6 +14,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 final class ProjectJourney {
     record Option(String value, String label) {}
     record Question(String key, String label, String type, String help, List<Option> options) {}
+    /** What the technical preparation asks next, in the screens that own it (D16); each package declares its own. */
+    record NextSection(String section, String title, String detail) {}
+    /** Texts the triage screen shows for a package; the screen holds no per-methodology branch (A03). */
+    record Presentation(String activityPlaceholder, String baselinePlaceholder, List<NextSection> next) {
+        Presentation { next = List.copyOf(next); }
+    }
     /**
      * Triage schema of one package (D17/A03): the questions of the activity step (activityQuestions), the activity
      * types it covers, the scope questions and, when the package has its own rules, an evaluator for the guidance and
@@ -21,7 +27,8 @@ final class ProjectJourney {
      */
     record Profile(String id, String candidate, String edition, String title, String activitiesTitle, String detailsTitle,
                    String description, String sourceUrl, List<String> technicalTopics, List<Question> questions,
-                   List<Question> activityQuestions, Set<String> activities, @JsonIgnore Evaluator evaluator) {
+                   List<Question> activityQuestions, Set<String> activities, Presentation presentation,
+                   @JsonIgnore Evaluator evaluator) {
         Profile {
             activityQuestions = List.copyOf(activityQuestions);
             activities = Set.copyOf(activities);
@@ -48,7 +55,13 @@ final class ProjectJourney {
             null, List.of("Descrição da atividade e localização", "Cenário sem o projeto", "Dados e direitos a comprovar"),
             List.of(new Question("scopeNotes", "O que precisa ser confirmado sobre o escopo?", "text",
                     "Registre dúvidas sobre a operação, a fronteira ou a metodologia candidata.", List.of())),
-            List.of(), Set.of(), null);
+            List.of(), Set.of(),
+            new Presentation("Descreva a atividade que pretende realizar",
+                    "Descreva como a atividade ocorreria sem o projeto", List.of(
+                    new NextSection("linha-base", "Linha de base", "Cenário sem o projeto e veículos comparáveis."),
+                    new NextSection("adicionalidade", "Adicionalidade", "Cronologia do investimento e da receita de carbono, com evidências."),
+                    new NextSection("direitos", "Direitos do projeto", "Titulares das reduções e documentos de titularidade."))),
+            null);
     static final Profile VM0038 = new Profile(
             "VM0038_V1_1", "VM0038", "1.1", "VM0038 v1.1 · Recarga de veículos elétricos",
             "Atividade", "Recorte inicial",
@@ -73,10 +86,18 @@ final class ProjectJourney {
                             new Option("MIXED", "Combinação de tecnologias")),
                     choice("design", "Desenho do projeto", "Projetos agrupados têm instâncias de atividade e critérios próprios.",
                             new Option("INDIVIDUAL", "Projeto individual"), new Option("GROUPED", "Projeto agrupado"))),
-            List.of(choice("installsChargers", "Instalação de carregadores",
+            List.of(choice("installsChargers", "O projeto inclui instalar sistemas de recarga?",
                     "Indique se a atividade prevê instalar sistemas de recarga.",
                     new Option("YES", "Sim"), new Option("NO", "Não"))),
             Set.of("MOBILIDADE_ELETRICA"),
+            new Presentation("Descreva onde, para quem e como os carregadores serão instalados",
+                    "Ex.: viagens atendidas por veículos equivalentes a combustão", List.of(
+                    new NextSection("rede", "Acesso à rede", "Acesso aos carregadores, identificação da frota, origem da eletricidade e infraestrutura associada."),
+                    new NextSection("estacoes", "Estações e fronteira", "Estações, carregadores e veículos do projeto."),
+                    new NextSection("monitorar", "Monitorar energia", "Medidores e medição da energia entregue e consumida."),
+                    new NextSection("linha-base", "Linha de base", "Cenário sem o projeto e veículos comparáveis."),
+                    new NextSection("adicionalidade", "Adicionalidade", "Cronologia do investimento e da receita de carbono, com evidências."),
+                    new NextSection("direitos", "Direitos do projeto", "Titulares das reduções e documentos de titularidade."))),
             new Evaluator() {
                 @Override public Guidance guidance(JsonNode answers) { return vm0038Guidance(answers); }
                 @Override public ProjectTriageDiagnosis.Result diagnose(JsonNode answers, Guidance guidance) {
