@@ -81,7 +81,24 @@ interface TriageView {
   candidateStatus?: {state: string; methodology: string | null; edition: string | null; registryVersion: number | null};
   guidance: {state: string; outsideMethodology: string[]; outsidePilot: string[]};
   retiredAnswers?: RetiredAnswer[];
+  /** D18 slice 3: the registry/package versions the project was prepared against (null until a candidate exists). */
+  methodologyPin?: MethodologyPin | null;
+  /** D18 slice 3: derived by the server per purpose from code, data and licence; the screen decides nothing. */
+  capabilities?: CapabilityPurpose[];
 }
+
+interface MethodologyPin {
+  version: number; triageVersion: number; methodology: string | null; edition: string | null;
+  registryVersion: number | null; packageId: string | null; packageVersion: number | null;
+  pinnedAt: string; newerRegistryVersion: boolean; packageChanged: boolean;
+}
+interface CapabilityAxis {state: 'MET' | 'NOT_MET' | 'NOT_REQUIRED'}
+interface CapabilityPurpose {
+  purpose: string; label: string; code: CapabilityAxis; data: CapabilityAxis; licence: CapabilityAxis;
+  effective: 'ENABLED' | 'NOT_ENABLED'; reason: string;
+}
+
+const AXIS_LABEL: Record<string, string> = {MET: 'Atendido', NOT_MET: 'Não atendido', NOT_REQUIRED: 'Não se aplica'};
 
 type Values = Record<string, string | number | null>;
 type AnswerSet = Record<number, Values>;
@@ -127,6 +144,16 @@ export class ProjectTriageComponent {
       : methodologyOption(this.field(1, 'methodologyCandidate'), current?.methodologies ?? [], current?.journey);
   });
   readonly registeredWithoutPackage = computed(() => this.view()?.candidateStatus?.state === 'REGISTERED_NO_PACKAGE');
+  readonly pin = computed(() => {
+    const pin = this.view()?.methodologyPin;
+    return pin && pin.methodology ? pin : null;
+  });
+  readonly capabilities = computed(() => this.view()?.capabilities ?? []);
+  axisLabel(axis: CapabilityAxis): string { return AXIS_LABEL[axis.state] ?? axis.state; }
+  /** Closed gates are not a missing feature: calculation, admission and external acts have their own decisions. */
+  isGate(item: CapabilityPurpose): boolean {
+    return item.purpose === 'CALCULATION_ADMISSION' || item.purpose === 'EXTERNAL_ACTS';
+  }
   readonly activityTypes = computed(() => this.view()?.catalog?.activityTypes ?? []);
   /** Package schema for the activity step, read from the server (A03). */
   readonly activityQuestions = computed(() => this.view()?.journey.activityQuestions ?? []);

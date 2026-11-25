@@ -300,6 +300,40 @@
                   }
                 </ul>
               </section>
+              @if (capabilities().length) {
+                <section class="cf-journey-context" aria-labelledby="cf-triage-capability">
+                  <h3 id="cf-triage-capability">Situação da metodologia no CarbonFlow</h3>
+                  @if (pin(); as pinned) {
+                    <p>Preparação fixada em <strong>{{ pinned.methodology }} {{ pinned.edition }}</strong>,
+                      registro versão {{ pinned.registryVersion ?? '—' }}@if (pinned.packageVersion) {, pacote versão {{ pinned.packageVersion }}}
+                      @else { (ainda sem pacote executável)}. A fixação registra contra o que o projeto foi preparado; não indica aprovação nem elegibilidade.</p>
+                    @if (pinned.newerRegistryVersion || pinned.packageChanged) {
+                      <p class="cf-workspace-note" role="status">
+                        @if (pinned.newerRegistryVersion) { Há uma versão mais nova do registro desta metodologia. }
+                        @if (pinned.packageChanged) { O pacote desta metodologia mudou desde a fixação. }
+                        Seu projeto continua na versão fixada; a mudança só acontece por uma migração explícita, que ainda não está disponível.
+                      </p>
+                    }
+                  } @else {
+                    <p>Ainda não há metodologia candidata fixada para este projeto.</p>
+                  }
+                  <ul class="cf-tech-gates">
+                    @for (item of capabilities(); track item.purpose) {
+                      <li>
+                        <strong>{{ item.label }}</strong>:
+                        @if (isGate(item)) { fechado, com decisão própria }
+                        @else if (item.effective === 'ENABLED') { disponível }
+                        @else { ainda não disponível }
+                        <p>{{ item.reason }}</p>
+                        @if (!isGate(item)) {
+                          <p class="cf-workspace-helper">Código: {{ axisLabel(item.code) }} · Dados: {{ axisLabel(item.data) }} · Licença: {{ axisLabel(item.licence) }}</p>
+                        }
+                      </li>
+                    }
+                  </ul>
+                  <p class="cf-workspace-helper">Estado calculado pelo servidor a cada consulta. Cálculo, admissão de dados e atos externos não derivam de código, dados ou licença.</p>
+                </section>
+              }
               <div class="cf-triage-summary">
                 @for (stage of current.stages.slice(0,4); track stage.number) {
                   <section class="cf-triage-summary-section">
