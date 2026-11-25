@@ -120,6 +120,18 @@ class MethodologyPinIntegrationTest {
         assertEquals("NOT_ENABLED", purpose(second, "TRIAGE").path("effective").asText());
         assertEquals("NOT_MET", purpose(second, "TRIAGE").at("/code/state").asText());
 
+        // A05/AGN-01: with a registered candidate that has no package, neither guide catalog carries VM0038 forms,
+        // and a VM0038 guide cannot be read or written through this project.
+        for (String path : new String[]{"/technical/guides", "/technical/typed-guides"}) {
+            JsonNode catalog = ok(call("GET", root + path, owner, null, null));
+            assertEquals("GENERAL", catalog.path("methodology").asText(), path);
+            assertEquals(0, catalog.path("guides").size(), path);
+        }
+        assertEquals(404, call("PUT", root + "/technical/typed-guides/applicability", owner, "\"0\"",
+                "{\"incidence\":\"Aplicável\"}", UUID.randomUUID().toString()).statusCode());
+        assertEquals(404, call("GET", root + "/technical/typed-guides/applicability/revisions/1", owner, null, null)
+                .statusCode());
+
         // A newer registry version does not change the pinned project; it only raises the flag.
         assertEquals(201, call("POST", API, manager, "\"1\"", methp.replace("Metodologia P", "Metodologia P revisada")).statusCode());
         JsonNode drift = ok(call("GET", root + "/triage", owner, null, null)).path("methodologyPin");
