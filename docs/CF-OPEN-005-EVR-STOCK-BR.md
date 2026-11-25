@@ -98,6 +98,15 @@ A API não aceita inserção arbitrária de quantidades em objeto de projeto, n�
 - O manifesto traz o SHA-256 do arquivo, o total registrado e `usableForE8=false`, `evr_total=null`, `weights=null`.
 - O CSV segue pela quarentena, aliases, direitos e revisão existentes; nada é pulado. Não houve execução sobre o arquivo real nesta fatia (o ZIP não está no repositório): os testes usam ZIP sintético, e um teste do parser Java confirma que o formato é aceito e que o nome literal cru é recusado.
 
+## Fila de candidatos de alias (rc.59)
+**Correção de um texto meu anterior:** não existia fila de revisão no catálogo canônico. `app_fleet_model` e `app_fleet_model_alias` são gravações diretas e finais (o alias tem chave primária por organização, ano e chave e não é refeito). Por isso esta fatia cria a fila, sem tocar no catálogo.
+- **V108 (aditiva):** `app_fleet_alias_candidate` (nome literal, período, chave, nível `EXACT|MODEL_ONLY|AMBIGUOUS`, SHA-256 do PBEV, linhas candidatas do PBEV em `jsonb`, motivo, quem importou) e `app_fleet_alias_candidate_decision` (uma decisão final por candidato: `ACCEPTED` com a **linha do PBEV escolhida** ou `REJECTED`, motivo, quem decidiu). Ambas só de acréscimo (gatilho). Três ações de auditoria.
+- **API** `/v1/platform/fleet/alias-candidates` (staff, MFA): `POST` importa um lote (até 500, idempotente por nome, período e arquivo do PBEV), `GET ?state=PENDING|ACCEPTED|REJECTED` lista com a evidência, `POST {id}/decision` decide. Privilégios por duas listas de configuração, `...fleet-alias-candidates.importers` e `.reviewers` (vazio = indisponível); **quem importa não decide** (403 `DUPLA_CUSTODIA`, mesmo estando nas duas listas). **Quem entra em cada lista é decisão de vocês.**
+- **Aceitar não cria modelo nem alias**, não classifica o veículo (LDV/BEV), não admite dados nem habilita cálculo; o cadastro do modelo e do alias segue pelas rotas atuais, com a classe e a propulsão que o revisor decidir. Aceitar exige nomear a linha do PBEV (em `MODEL_ONLY`, qual versão).
+- O script `match_senatran_pbev.py --emit-import` gera o corpo do lote a partir do cruzamento (nomes sem candidato não entram; a chave é a mesma do CSV da ponte). Sobre a amostra real versionada gera 5 candidatos (4 `EXACT` e 1 `MODEL_ONLY`).
+- **Não feito:** tela da fila; reabrir uma decisão; importar em ambiente real (não há ambiente neste fluxo; o lote foi só gerado e validado localmente contra o contrato).
+- Testes: `FleetAliasCandidatesIntegrationTest` (401/403/404 por perfil, validações, idempotência, dupla custódia, decisão final, catálogo intocado, append-only, auditoria) e `test_match_senatran_pbev.py`.
+
 ## Checklist futuro da #94
 
 - [ ] Adquirir amostra real da Senatran e demonstrar granularidade por modelo/ano de observação/propulsão.

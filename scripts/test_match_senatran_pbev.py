@@ -1,6 +1,7 @@
+import json
 import unittest
 
-from match_senatran_pbev import compact, cross, match, senatran_core
+from match_senatran_pbev import compact, cross, import_payload, match, senatran_core
 
 
 def row(brand, model, version, line=1, category="Médio"):
@@ -78,6 +79,18 @@ class MatchTest(unittest.TestCase):
         for item in report["matches"]:
             self.assertTrue(item["requires_review"])
             self.assertFalse(item["approved"])
+
+    def test_import_payload_skips_unmatched_names_and_uses_the_csv_bridge_key(self):
+        pbev = {"rows": ROWS, "source_sha256": "b" * 64, "count_matches_header": True}
+        report = cross(["I/BYD DOLPHIN MINI GS5EV", "I/NISSAN LEAF TEKNA", "I/RENAULT E-KWID TECHNO"], pbev)
+        payload = import_payload(report, "2026-09")
+        self.assertEqual("2026-09", payload["observationPeriod"])
+        self.assertEqual("b" * 64, payload["pbevSourceSha256"])
+        self.assertEqual(["I/BYD DOLPHIN MINI GS5EV", "I/RENAULT E-KWID TECHNO"], [i["literalName"] for i in payload["items"]])
+        self.assertEqual("I_BYD_DOLPHIN_MINI_GS5EV", payload["items"][0]["recordKey"])  # same key as build_evr_stock_csv
+        self.assertEqual({"EXACT", "MODEL_ONLY"}, {i["level"] for i in payload["items"]})
+        self.assertEqual({"brand", "model", "version", "category", "pbevLine"}, set(payload["items"][0]["matches"][0]))
+        self.assertNotIn("approved", json.dumps(payload))
 
 
 if __name__ == "__main__":
