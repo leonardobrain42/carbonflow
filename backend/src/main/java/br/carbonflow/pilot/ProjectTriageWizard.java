@@ -47,7 +47,7 @@ class ProjectTriageWizard {
             "Local", "Resumo da triagem");
     private static final List<Set<String>> FIELDS = List.of(
             Set.of("objective", "activityType", "methodologyCandidate"),
-            Set.of("activityDescription", "baselinePractice", "expectedBenefit", "installsChargers"),
+            activityFields(),
             journeyFields(),
             Set.of("country", "state", "locality", "referenceDate", "evidenceStatus",
                    "rightsStatus", "rightsJustification", "investmentCommitted", "carbonConsideredBeforeInvestment")
@@ -259,10 +259,19 @@ class ProjectTriageWizard {
         return List.copyOf(out);
     }
 
+    /** Step-2 fields: the generic notes plus the activity questions of every configured package (A03). */
+    private static Set<String> activityFields() {
+        var result = new java.util.HashSet<>(Set.of("activityDescription", "baselinePractice", "expectedBenefit"));
+        for (var profile : ProjectJourney.profiles()) {
+            profile.activityQuestions().forEach(question -> result.add(question.key()));
+        }
+        return Set.copyOf(result);
+    }
+
     private static Set<String> journeyFields() {
         var result = new java.util.HashSet<String>();
         result.add("notApplicableReason"); // Read and accept the previous generic step's explicit justification.
-        for (var profile : List.of(ProjectJourney.GENERAL, ProjectJourney.VM0038)) {
+        for (var profile : ProjectJourney.profiles()) {
             profile.questions().forEach(question -> result.add(question.key()));
         }
         result.addAll(ProjectJourney.RETIRED.get(3)); // Read so an unchanged older answer can be compared (D16).
@@ -271,25 +280,8 @@ class ProjectTriageWizard {
 
     private static void validateJourneyStep(int step, ObjectNode submitted, ObjectNode answers) {
         var journey = ProjectJourney.profile(answers);
-        if (step == 2 && submitted.hasNonNull("installsChargers") &&
-                (journey != ProjectJourney.VM0038 || !Set.of("YES", "NO", "DESCONHECIDO")
-                        .contains(submitted.path("installsChargers").asText()))) {
-            throw invalid("installsChargers");
-        }
-        if (step != 3) return;
-        JsonNode previous = answers.path("3");
-        submitted.properties().forEach(entry -> {
-            String key = entry.getKey();
-            JsonNode value = entry.getValue();
-            if (value.isNull() || value.equals(previous.path(key))) return;
-            if (journey == ProjectJourney.GENERAL && "notApplicableReason".equals(key)) return;
-            var question = journey.questions().stream().filter(item -> item.key().equals(key)).findFirst()
-                    .orElseThrow(() -> invalid(key));
-            if ("choice".equals(question.type()) &&
-                    question.options().stream().noneMatch(option -> option.value().equals(value.asText()))) {
-                throw invalid(key);
-            }
-        });
+        String rejected = ProjectJourney.invalidAnswer(journey, step, submitted, answers.path(Integer.toString(step)));
+        if (rejected != null) throw invalid(rejected);
     }
 
     private View view(Connection connection, DynamicProjectScope.Context context, Snapshot snapshot) throws SQLException {
@@ -301,18 +293,7 @@ class ProjectTriageWizard {
         var journey = ProjectJourney.profile(answers);
         for (int i = 1; i <= 4; i++) {
             JsonNode step = answers.path(Integer.toString(i));
-            List<String> required = REQUIRED.get(i - 1);
-            if (i == 2 && journey == ProjectJourney.VM0038) {
-                required = List.of("installsChargers", "activityDescription");
-            }
-            if (i == 3) required = journey == ProjectJourney.VM0038
-                    ? journey.questions().stream().map(ProjectJourney.Question::key).toList() : List.of();
-            if (i == 3 && journey == ProjectJourney.GENERAL) {
-                String category = answers.path("1").path("activityType").asText();
-                if (!category.isBlank() && !Set.of("MOBILIDADE_ELETRICA", "DESCONHECIDO").contains(category)) {
-                    required = List.of("scopeNotes");
-                }
-            }
+            List<String> required = ProjectJourney.required(journey, i, REQUIRED.get(i - 1), answers);
             boolean previousJustification = i == 3 && journey == ProjectJourney.GENERAL
                     && ProjectJourney.known(step.path("notApplicableReason"));
             List<String> missing = previousJustification ? List.of() : required.stream()

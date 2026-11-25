@@ -14,8 +14,24 @@ import com.fasterxml.jackson.databind.JsonNode;
 final class ProjectJourney {
     record Option(String value, String label) {}
     record Question(String key, String label, String type, String help, List<Option> options) {}
+    /**
+     * Triage schema of one package (D17/A03): the questions of the activity step (activityQuestions), the activity
+     * types it covers, the scope questions and, when the package has its own rules, an evaluator for the guidance and
+     * the diagnosis. A profile without evaluator has no package: it only collects the hypothesis and the gaps.
+     */
     record Profile(String id, String candidate, String edition, String title, String activitiesTitle, String detailsTitle,
-                   String description, String sourceUrl, List<String> technicalTopics, List<Question> questions) {}
+                   String description, String sourceUrl, List<String> technicalTopics, List<Question> questions,
+                   List<Question> activityQuestions, Set<String> activities, @JsonIgnore Evaluator evaluator) {
+        Profile {
+            activityQuestions = List.copyOf(activityQuestions);
+            activities = Set.copyOf(activities);
+        }
+    }
+    /** Package-owned triage rules. Compares answers with the package scope; never decides eligibility. */
+    interface Evaluator {
+        Guidance guidance(JsonNode answers);
+        ProjectTriageDiagnosis.Result diagnose(JsonNode answers, Guidance guidance);
+    }
     record PilotLimit(int step, String field, String message) {}
     record Guidance(String state, List<String> outsideMethodology, @JsonIgnore List<PilotLimit> pilotLimits) {
         @JsonProperty("outsidePilot")
@@ -31,7 +47,8 @@ final class ProjectJourney {
             "Descreva o que o projeto faz e quais informações faltam para escolher uma metodologia.",
             null, List.of("Descrição da atividade e localização", "Cenário sem o projeto", "Dados e direitos a comprovar"),
             List.of(new Question("scopeNotes", "O que precisa ser confirmado sobre o escopo?", "text",
-                    "Registre dúvidas sobre a operação, a fronteira ou a metodologia candidata.", List.of())));
+                    "Registre dúvidas sobre a operação, a fronteira ou a metodologia candidata.", List.of())),
+            List.of(), Set.of(), null);
     static final Profile VM0038 = new Profile(
             "VM0038_V1_1", "VM0038", "1.1", "VM0038 v1.1 · Recarga de veículos elétricos",
             "Atividade", "Recorte inicial",
@@ -55,7 +72,17 @@ final class ProjectJourney {
                             new Option("AC", "AC · recarga em corrente alternada (nível 1 ou 2)"),
                             new Option("MIXED", "Combinação de tecnologias")),
                     choice("design", "Desenho do projeto", "Projetos agrupados têm instâncias de atividade e critérios próprios.",
-                            new Option("INDIVIDUAL", "Projeto individual"), new Option("GROUPED", "Projeto agrupado"))));
+                            new Option("INDIVIDUAL", "Projeto individual"), new Option("GROUPED", "Projeto agrupado"))),
+            List.of(choice("installsChargers", "Instalação de carregadores",
+                    "Indique se a atividade prevê instalar sistemas de recarga.",
+                    new Option("YES", "Sim"), new Option("NO", "Não"))),
+            Set.of("MOBILIDADE_ELETRICA"),
+            new Evaluator() {
+                @Override public Guidance guidance(JsonNode answers) { return vm0038Guidance(answers); }
+                @Override public ProjectTriageDiagnosis.Result diagnose(JsonNode answers, Guidance guidance) {
+                    return ProjectTriageDiagnosis.evaluateVm0038(answers, guidance);
+                }
+            });
 
 
     /**
@@ -145,9 +172,15 @@ final class ProjectJourney {
     }
 
     static Guidance guidance(JsonNode answers) {
-        if (profile(answers) == GENERAL) {
-            return new Guidance("SEM_JORNADA_CONFIGURADA", List.of(), List.of());
-        }
+        return guidance(profile(answers), answers);
+    }
+
+    static Guidance guidance(Profile profile, JsonNode answers) {
+        if (profile.evaluator() == null) return new Guidance("SEM_JORNADA_CONFIGURADA", List.of(), List.of());
+        return profile.evaluator().guidance(answers);
+    }
+
+    private static Guidance vm0038Guidance(JsonNode answers) {
         List<String> method = new ArrayList<>();
         List<PilotLimit> pilot = new ArrayList<>();
         JsonNode details = answers.path("3");
@@ -188,6 +221,63 @@ final class ProjectJourney {
         checkCount(pilot, details, "chargerCount", IntakeRules.MAX_STATIONS, "carregadores");
         return new Guidance(method.isEmpty() ? "A_CONFIRMAR" : "DIVERGENCIA_METODOLOGICA",
                 List.copyOf(method), List.copyOf(pilot));
+    }
+
+
+    /** Configured packages plus the generic profile: the only source of the fields the triage may carry. */
+    static List<Profile> profiles() {
+        var all = new ArrayList<Profile>();
+        all.add(GENERAL);
+        all.addAll(CONFIGURED);
+        return List.copyOf(all);
+    }
+
+    /** Required fields of a step for a profile. The generic profile asks for scope notes only for activities no package covers. */
+    static List<String> required(Profile profile, int step, List<String> base, JsonNode answers) {
+        if (step == 2) {
+            var result = new ArrayList<String>(profile.activityQuestions().stream().map(Question::key).toList());
+            result.addAll(base);
+            return List.copyOf(result);
+        }
+        if (step != 3) return base;
+        if (profile.evaluator() != null) return profile.questions().stream().map(Question::key).toList();
+        String category = answers.path("1").path("activityType").asText();
+        return !category.isBlank() && !Set.of("MOBILIDADE_ELETRICA", UNKNOWN).contains(category)
+                ? List.of("scopeNotes") : List.of();
+    }
+
+    /** Key of the first submitted answer the profile's schema does not accept, or null. */
+    static String invalidAnswer(Profile profile, int step, JsonNode submitted, JsonNode previousStep) {
+        if (step == 2) {
+            var own = profile.activityQuestions();
+            for (var entry : submitted.properties()) {
+                if (entry.getValue().isNull()) continue;
+                var question = own.stream().filter(item -> item.key().equals(entry.getKey())).findFirst().orElse(null);
+                if (question != null) {
+                    if (!accepts(question, entry.getValue())) return entry.getKey();
+                    continue;
+                }
+                boolean foreign = profiles().stream().flatMap(item -> item.activityQuestions().stream())
+                        .anyMatch(item -> item.key().equals(entry.getKey()));
+                if (foreign) return entry.getKey();
+            }
+            return null;
+        }
+        if (step != 3) return null;
+        for (var entry : submitted.properties()) {
+            String key = entry.getKey();
+            JsonNode value = entry.getValue();
+            if (value.isNull() || value.equals(previousStep.path(key))) continue;
+            if (profile.evaluator() == null && "notApplicableReason".equals(key)) continue;
+            var question = profile.questions().stream().filter(item -> item.key().equals(key)).findFirst().orElse(null);
+            if (question == null || !accepts(question, value)) return key;
+        }
+        return null;
+    }
+
+    private static boolean accepts(Question question, JsonNode value) {
+        return !"choice".equals(question.type())
+                || question.options().stream().anyMatch(option -> option.value().equals(value.asText()));
     }
 
     private static void compare(List<PilotLimit> reasons, int step, JsonNode answers, String field, String expected, String message) {
