@@ -1,0 +1,117 @@
+<a class="cf-skip-link" href="#cf-methodology-registry-main">Pular para o conteúdo</a>
+<div class="cf-workspace-shell">
+  <aside class="cf-workspace-sidebar" aria-label="Navegação administrativa">
+    <a routerLink="/workspace" class="cf-workspace-brand">Carbon<span>Flow</span></a>
+    <p class="cf-workspace-kicker">ADMIN CARBONFLOW</p>
+    <nav class="cf-workspace-nav" aria-label="Console interno">
+      <a routerLink="/workspace">Meus projetos</a>
+      <a routerLink="/workspace/compliance">Conformidade</a>
+      <a routerLink="/workspace/platform/sources">Fontes e prontidão</a>
+      <a routerLink="/workspace/platform/methodologies" aria-current="page">Metodologias</a>
+    </nav>
+    <p class="cf-platform-sidebar-note">Registrar uma metodologia não cria pacote, não admite dados, não concede licença e não habilita cálculo.</p>
+  </aside>
+
+  <div class="cf-workspace-stage">
+    <header class="cf-workspace-topbar">
+      <span>Admin CarbonFlow</span>
+      <a routerLink="/workspace" class="cf-workspace-link">Voltar à conta</a>
+    </header>
+    <main id="cf-methodology-registry-main" class="cf-workspace-content cf-platform-content">
+      <header class="cf-workspace-heading">
+        <span class="cf-workspace-chip">PAINEL INTERNO · REGISTRO DE METODOLOGIAS</span>
+        <h1>Registro de metodologias</h1>
+        <p>Cadastre metodologias e edições que a plataforma deve reconhecer. O registro guarda apenas metadados e só aceita acréscimos: uma correção cria uma nova versão. Uma metodologia registrada pode ser escolhida como candidata em um projeto, com a lacuna explícita; o pacote executável é entregue por código.</p>
+      </header>
+
+      @if (error()) {
+        <p class="cf-workspace-alert" role="alert">{{ error() }}</p>
+      }
+      @if (feedback()) {
+        <p class="cf-platform-success" role="status">{{ feedback() }}</p>
+      }
+      @if (loading()) {
+        <p role="status">Conferindo acesso e consultando o registro…</p>
+      }
+
+      @if (!loading() && !session()) {
+        <section class="cf-workspace-card">
+          <h2>Acesso interno indisponível</h2>
+          <p>Entre na conta e utilize uma identidade com o privilégio de gestão do registro.</p>
+          <a routerLink="/workspace" class="cf-workspace-link">Ir para minha conta</a>
+        </section>
+      } @else if (!loading() && session() && !unlocked() && !denied()) {
+        <section class="cf-workspace-card">
+          <h2>Verificação da equipe interna</h2>
+          <p>O registro exige autenticação multifator e um privilégio próprio, distinto do de consulta de fontes.</p>
+          <form (submit)="verify($event, code)">
+            <label for="cf-registry-mfa">Código de seis dígitos do autenticador</label>
+            <input #code id="cf-registry-mfa" inputmode="numeric" type="text" pattern="[0-9]{6}"
+              autocomplete="one-time-code" maxlength="6" required [disabled]="loading()"/>
+            <button type="submit" class="cf-workspace-primary" [disabled]="loading()">Desbloquear registro</button>
+          </form>
+        </section>
+      }
+
+      @if (unlocked()) {
+        <section class="cf-workspace-card cf-platform-source-form-card" aria-labelledby="cf-registry-form-title">
+          <h2 id="cf-registry-form-title">
+            @if (revising(); as current) { Nova versão de {{ current.methodology }} {{ current.edition }} (atual: {{ current.version }}) }
+            @else { Registrar metodologia }
+          </h2>
+          <form (submit)="save($event)" class="cf-platform-source-form">
+            <label for="cf-registry-program">Programa (ex.: VCS)</label>
+            <input id="cf-registry-program" name="program" type="text" required maxlength="40" pattern="[A-Z][A-Z0-9_\-]{1,39}"
+              [value]="form().program" [readOnly]="!!revising()" (input)="edit('program', $event)"/>
+            <label for="cf-registry-methodology">Metodologia (código, em maiúsculas)</label>
+            <input id="cf-registry-methodology" name="methodology" type="text" required maxlength="40" pattern="[A-Z][A-Z0-9_\-]{2,39}"
+              [value]="form().methodology" [readOnly]="!!revising()" (input)="edit('methodology', $event)"/>
+            <label for="cf-registry-edition">Edição</label>
+            <input id="cf-registry-edition" name="edition" type="text" required maxlength="20" pattern="[0-9A-Za-z][0-9A-Za-z._\-]{0,19}"
+              [value]="form().edition" [readOnly]="!!revising()" (input)="edit('edition', $event)"/>
+            <label for="cf-registry-title">Título</label>
+            <input id="cf-registry-title" name="title" type="text" required minlength="3" maxlength="200"
+              [value]="form().title" (input)="edit('title', $event)"/>
+            <label for="cf-registry-holder">Titular dos direitos</label>
+            <input id="cf-registry-holder" name="rightsHolder" type="text" required maxlength="200"
+              [value]="form().rightsHolder" (input)="edit('rightsHolder', $event)"/>
+            <label for="cf-registry-uri">Endereço oficial (https, opcional)</label>
+            <input id="cf-registry-uri" name="officialUri" type="url" maxlength="255"
+              [value]="form().officialUri" (input)="edit('officialUri', $event)"/>
+            <p class="cf-platform-meta">Não informe textos protegidos, trechos de normas nem dados pessoais. Este cadastro guarda só nome, edição, titular e endereço oficial.</p>
+            <button type="submit" class="cf-workspace-primary" [disabled]="saving()">
+              {{ revising() ? 'Registrar nova versão' : 'Registrar metodologia' }}
+            </button>
+            @if (revising()) {
+              <button type="button" class="cf-workspace-outline" (click)="cancel()">Cancelar</button>
+            }
+          </form>
+        </section>
+
+        <section aria-labelledby="cf-registry-list-title">
+          <div class="cf-platform-heading-line">
+            <h2 id="cf-registry-list-title">Metodologias registradas</h2>
+            <button type="button" class="cf-workspace-outline" (click)="load()">Atualizar</button>
+          </div>
+          @if (entries().length === 0) {
+            <p>Nenhuma metodologia registrada.</p>
+          }
+          <ul class="cf-tech-gates">
+            @for (entry of entries(); track entry.program + entry.methodology + entry.edition) {
+              <li>
+                <h3>{{ entry.title }}</h3>
+                <p class="cf-platform-meta">{{ entry.program }} · {{ entry.methodology }} {{ entry.edition }} · versão {{ entry.version }} · {{ entry.origin === 'SEED' ? 'cadastro inicial' : 'registrada pela administração' }}</p>
+                <p><strong>{{ stateLabel(entry) }}</strong>. Titular: {{ entry.rightsHolder }}.
+                  @if (entry.officialUri) { <a class="cf-workspace-link" [href]="entry.officialUri" rel="noopener noreferrer">Endereço oficial</a> }
+                </p>
+                <p class="cf-platform-meta">Assinatura {{ shortDigest(entry) }} · {{ entry.registeredAt }}</p>
+                <button type="button" class="cf-workspace-outline" (click)="revise(entry)"
+                  [attr.aria-label]="'Nova versão de ' + entry.methodology + ' ' + entry.edition">Nova versão</button>
+              </li>
+            }
+          </ul>
+        </section>
+      }
+    </main>
+  </div>
+</div>
