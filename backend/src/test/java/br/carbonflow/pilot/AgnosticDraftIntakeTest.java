@@ -71,6 +71,19 @@ class AgnosticDraftIntakeTest {
         assertTrue(readiness.at("/emissions/erTco2e").isNull());
         for (String term : EV_TERMS) assertFalse(readiness.toString().contains(term), term + " " + readiness);
 
+        JsonNode applicability = json(call("GET", root + "/technical/open-applicability", owner.cookie(), null, null, null));
+        assertEquals("NOT_APPLICABLE_TO_METHODOLOGY", applicability.at("/readiness/category").asText());
+        assertFalse(applicability.at("/readiness/canUseForE8").asBoolean());
+        assertEquals(0, applicability.path("origins").size());
+        assertEquals(0, applicability.path("pdFields").size());
+        assertEquals("METHODOLOGY", applicability.at("/readiness/findings/0/code").asText());
+        for (String term : EV_TERMS) assertFalse(applicability.toString().contains(term), term + " " + applicability);
+        // Saving the OPEN declaration is refused for a draft without VM0038; nothing is stored.
+        assertEquals(409, call("PUT", root + "/technical/open-applicability", owner.cookie(), UUID.randomUUID().toString(),
+            "\"0\"", "{\"unrestrictedBevAccess\":true,\"restrictedToIdentifiedVehicles\":false}").statusCode());
+        assertEquals(0, json(call("GET", root + "/technical/open-applicability", owner.cookie(), null, null, null))
+            .path("version").asInt());
+
         JsonNode requirements = json(call("GET", root + "/technical/requirements", owner.cookie(), null, null, null));
         assertEquals("OUT_OF_SCOPE", requirements.at("/requirements/0/state").asText());
         assertFalse(requirements.path("canRunE8").asBoolean());
