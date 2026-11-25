@@ -155,6 +155,9 @@ class OpenApplicabilityIntegrationTest {
         assertFalse(narrative.at("/readiness/stale").asBoolean(),"cursor moves and narrative edits keep the declaration current");
         assertFalse(narrative.at("/readiness/findings").toString().contains("TRIAGE_CHANGED"));
         assertEquals(3,narrative.path("latestTriageVersion").asInt());
+        // Q7 of D16: the pre-calculation follows the same D15 rule as the declaration screen.
+        String calculation="/v1/projects/"+id+"/technical/open-calculation-readiness";
+        assertFalse(staleGate(calculation,owner.cookie()),"cursor moves and narrative edits keep the pre-calculation current");
         // D16 + D15: a project answered before D16 (retired answers stored in step 3, seeded as an older revision
         // because the triage no longer accepts them) keeps them unchanged on a step-3 save of the initial scope only,
         // so the declaration does not go stale.
@@ -184,6 +187,7 @@ class OpenApplicabilityIntegrationTest {
         JsonNode scope=json(call("GET",path,owner.cookie(),null,null,null));
         assertTrue(scope.at("/readiness/stale").asBoolean(),"a scope answer in step 3 makes it stale");
         assertTrue(scope.at("/readiness/findings").toString().contains("TRIAGE_CHANGED"));
+        assertTrue(staleGate(calculation,owner.cookie()),"a scope answer makes the pre-calculation stale too");
         assertEquals(0,database.read(c->first(c,
             "SELECT count(*) FROM pilot_intake_revision WHERE project_id=?",
             r->r.getInt(1),id)).intValue());
@@ -256,6 +260,13 @@ class OpenApplicabilityIntegrationTest {
           "SELECT count(*) FROM app_project_open_applicability_revision WHERE project_id=?",
           r->r.getLong(1),project));
     }
+    private boolean staleGate(String path,String cookie)throws Exception {
+        var response=call("GET",path,cookie,null,null,null);
+        assertEquals(200,response.statusCode(),response.body());
+        return json(response).path("gates").valueStream().anyMatch(g->"OPEN_APPLICABILITY".equals(g.path("code").asText())
+            &&"STALE".equals(g.path("state").asText()));
+    }
+
     private HttpResponse<String> call(String method,String path,String cookie,String key,String etag,String payload)throws Exception {
         var request=HttpRequest.newBuilder(URI.create(base.toExternalForm()).resolve(path));
         if(cookie!=null)request.header("Cookie",cookie);

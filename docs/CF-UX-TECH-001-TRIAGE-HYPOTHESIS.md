@@ -1,6 +1,6 @@
 # CF-UX-TECH-001 — Fatia 6: triagem como hipótese inicial (D16) — desenho para aprovação
 
-**Estado: aprovado** pelo responsável pelo produto em 24/11/2026 (Q1–Q7 conforme as recomendações). **6a, 6b e 6c implementadas** (seções 9 a 11); Q7 pendente. Levantamento feito no código em 24/11/2026 (`ProjectJourney`, `ProjectTriageWizard`, `ProjectTriageDiagnosis`, `OpenApplicability`, `OpenCalculationReadiness`, `OpenIrExAntePlans` e guardas de versão).
+**Estado: aprovado** pelo responsável pelo produto em 24/11/2026 (Q1–Q7 conforme as recomendações). **6a, 6b, 6c e Q7 implementadas** (seções 9 a 12). Levantamento feito no código em 24/11/2026 (`ProjectJourney`, `ProjectTriageWizard`, `ProjectTriageDiagnosis`, `OpenApplicability`, `OpenCalculationReadiness`, `OpenIrExAntePlans` e guardas de versão).
 
 ## 1. Objetivo e limites
 - **D16:** a triagem registra a **hipótese inicial** (objetivo, atividade, metodologia candidata, local e o recorte mínimo para dizer se o projeto cabe no produto). Detalhes técnicos, direitos e adicionalidade vivem só nas telas técnicas, que já têm donos para eles.
@@ -59,7 +59,7 @@ As chaves de armazenamento continuam `"1"`..`"4"`; só mudam títulos e pergunta
 ## 6. D15 e guardas de versão
 - **D15 não precisa de código novo**, desde que a regra de cópia da seção 4 seja implementada. Os campos relevantes que saem (direitos, `network`/`access`/energia da etapa 3) deixam de mudar pela triagem e, copiados sem alteração, não disparam desatualização. Sem a cópia, salvar a etapa 3 deixaria a aplicabilidade desatualizada. A lista relevante passa a ser, na prática: `methodologyCandidate`, `activityType`, `installsChargers`, as 4 perguntas da etapa 3 e `country`. Texto de D15 atualizado na 6c; o código (`OpenApplicability.RELEVANT_TRIAGE`) não mudou e continua comparando direitos, que agora só mudam fora da triagem.
 - **Guardas de versão** (início E8, IR, Dy, plano ex ante, vínculos de parâmetro): continuam comparando a versão da triagem, como hoje.
-- **Inconsistência encontrada (fora de D16):** o pré-cálculo (`OpenCalculationPreflight`, gate `OPEN_APPLICABILITY`/`STALE`) ainda compara só a versão da triagem, sem a regra de D15. Mover o cursor deixa a ficha "atual" mas o pré-cálculo "desatualizado". Ver Q7.
+- **Inconsistência encontrada (fora de D16; resolvida na Q7, seção 12):** o pré-cálculo (`OpenCalculationPreflight`, gate `OPEN_APPLICABILITY`/`STALE`) ainda compara só a versão da triagem, sem a regra de D15. Mover o cursor deixa a ficha "atual" mas o pré-cálculo "desatualizado". Ver Q7.
 
 ## 7. Perguntas para aprovação
 | # | Pergunta | Recomendação |
@@ -107,4 +107,11 @@ Correção do levantamento: `associatedInfrastructure`, `metering` e as quantida
 - **D16**: implementada; regra consolidada (hipótese inicial, tela técnica vale, respostas antigas preservadas e só leitura), PRs #264 e #265.
 - **Matriz**: nova capacidade CF-SPEC-S17 (triagem como hipótese inicial), dona #17 (CF-IMP-009), com âncoras de teste de backend e navegador.
 - **Contratos**: CF-IMP-009 (o que a triagem persiste, regra consolidada) e CF-OPEN-004 (desatualização só por resposta relevante, CF-SPEC-D15). Catálogo e estado do trabalho atualizados.
-- **Pendente**: Q7, fatia de backend própria, com teste de integração.
+- **Pendente na época**: Q7 (feita depois, seção 12).
+
+## 12. Q7 — pré-cálculo com a regra de D15
+- **Um só dono da regra**: `OpenApplicability.stale(conexão, projeto, versão declarada, versão atual)` responde se uma resposta relevante mudou (CF-SPEC-D15). A ficha de aplicabilidade e o pré-cálculo (`OpenCalculationReadiness.diagnose`, gate `OPEN_APPLICABILITY`/`STALE`) leem essa mesma resposta; antes, o pré-cálculo comparava só a versão da triagem.
+- **Contexto do pré-cálculo** (`OpenCalculationPreflight.Context`): ganha `applicabilityStale`. O construtor sem esse campo, usado em testes puros, continua conservador (qualquer versão nova da triagem = desatualizada).
+- **Efeito**: mover o cursor, editar texto narrativo ou salvar uma etapa sem mudar o recorte não desatualiza mais o pré-cálculo; mudar uma resposta relevante continua desatualizando a ficha e o pré-cálculo juntos. Histórico desconhecido continua conservador. O estado do cálculo segue `BLOCKED_*`; nada é liberado para E8.
+- **Sem mudança:** banco, as demais guardas de versão da triagem (datas do E8, IR, Dy, plano ex ante, vínculos de parâmetro) e o texto do gate.
+- **Testes:** `OpenApplicabilityIntegrationTest` (o mesmo fluxo de D15 confere o gate do pré-cálculo: atual após cursor e texto, desatualizado após mudar a propulsão; o teste falha com a comparação antiga) e `OpenCalculationPreflightTest` (contexto com e sem a resposta de D15).

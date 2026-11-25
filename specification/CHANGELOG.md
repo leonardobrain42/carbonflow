@@ -1,4 +1,6 @@
 # Changelog da especificação viva
+## 0.3.0-rc.23 — 24/11/2026 (proposta)
+- D16 Q7: o pré-cálculo (gate `OPEN_APPLICABILITY`/`STALE`) passa a usar a regra de CF-SPEC-D15, a mesma da ficha de aplicabilidade (`OpenApplicability.stale`); mover o cursor ou editar texto narrativo não o desatualiza mais. Sem migração; demais guardas de versão da triagem, estados `BLOCKED_*` e E8 inalterados.
 ## 0.3.0-rc.22 — 24/11/2026 (proposta)
 - D16 fatia 6c (especificação): D16 implementada e consolidada; D15 com a lista relevante na prática depois de D16 e o limite do pré-cálculo (Q7); nova capacidade CF-SPEC-S17 na matriz; CF-IMP-009 e CF-OPEN-004 alinhados a D15/D16; catálogo e estado atualizados. Só documentação; nenhum comportamento alterado.
 ## 0.3.0-rc.21 — 24/11/2026 (proposta)

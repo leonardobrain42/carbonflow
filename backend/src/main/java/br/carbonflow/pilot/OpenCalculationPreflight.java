@@ -21,9 +21,20 @@ final class OpenCalculationPreflight {
             String propulsion, String electricitySource,
             Boolean associatedInfrastructure, Boolean v2g) {}
 
+    /**
+     * {@code applicabilityStale} is the CF-SPEC-D15 answer (OpenApplicability.stale): a triage revision that changes
+     * no relevant answer does not make the declaration stale here either. Without it (pure callers), any newer
+     * triage version is treated as stale, which stays conservative.
+     */
     record Context(String projectId, String environment, String methodology,
             String country, String vehicleClass,
-            int latestTriageVersion, Applicability applicability) {}
+            int latestTriageVersion, Applicability applicability, boolean applicabilityStale) {
+        Context(String projectId, String environment, String methodology, String country, String vehicleClass,
+                int latestTriageVersion, Applicability applicability) {
+            this(projectId, environment, methodology, country, vehicleClass, latestTriageVersion, applicability,
+                applicability != null && applicability.triageVersion() != latestTriageVersion);
+        }
+    }
 
     record Gate(String code, String state, String reason, String nextAction, String owner) {}
 
@@ -75,7 +86,7 @@ final class OpenCalculationPreflight {
                 "A declaração de rede aberta não foi registrada para este projeto.",
                 "Preencher Analisar → Aplicabilidade OPEN", "PREP"));
         } else {
-            stale = a.triageVersion() != context.latestTriageVersion();
+            stale = context.applicabilityStale();
             if (stale) {
                 gates.add(new Gate("OPEN_APPLICABILITY", "STALE",
                     "Triagem posterior à declaração: reconfirme a configuração antes do cálculo.",
