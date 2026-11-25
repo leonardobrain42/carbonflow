@@ -1,4 +1,6 @@
 # Changelog da especificação viva
+## 0.3.0-rc.63 — 25/11/2026 (proposta)
+- **CF-DATA-004, matriz de créditos concorrentes (Dy)**, nível **plataforma/dados com efeito no VM0038 v1.1 (Eq. 7 e 8)**; só documentação, sem código, migração ou dado. Descreve a matriz já existente (V84/V86/V99/V101/V102), os candidatos a programa apurados em fonte primária da Verra (VMR0014, AMS-III.C) e o que **não** foi apurado (Gold Standard, MDL, programas brasileiros), a matriz de lacunas e as decisões: universo de programas, anual × acumulada, licenças dos registros. Nenhum registro foi consultado.
 ## 0.3.0-rc.61 — 25/11/2026 (proposta)
 - **#94/#95, plano de cadastro dos modelos aceitos**, nível **plataforma**; sem migração, sem mudança de API e sem envio. `build_fleet_model_registrations.py` gera o plano de `POST /models` e de aliases adicionais a partir dos candidatos aceitos e de um arquivo de decisões de classe e propulsão feito por pessoas; recusa o que não tem decisão e nunca presume LDV nem BEV. Gate no CI. Contrato em CF-OPEN-005-EVR-STOCK-BR.
 - Verificado: `unittest` do script (7). Não executados: CI, cadastro em ambiente real (não há ambiente neste fluxo). A decisão de classe e propulsão de cada modelo, inclusive se a categoria Comercial do PBEV é LDV, continua com vocês.
