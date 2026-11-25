@@ -10,8 +10,12 @@ import java.util.regex.Pattern;
 final class OpenAdditionalityOpinion {
     private static final Pattern DAY = Pattern.compile("\\d{4}-\\d{2}-\\d{2}");
 
+    /** Independent internal opinion recorded for one criterion; never a conclusion of additionality. */
+    record Review(String state, Integer version, String outcome, boolean stale,
+                  java.time.OffsetDateTime reviewedAt) {}
+
     record Criterion(String code, String title, String state, String stateLabel, String text,
-                     boolean humanOpinion, boolean concludes) {}
+                     boolean humanOpinion, boolean concludes, Review review) {}
 
     record Opinion(String declarationRoute, boolean declarationIsOpinion,
                    boolean marketTestClosesApplicability, boolean concludesAdditionality,
@@ -35,7 +39,8 @@ final class OpenAdditionalityOpinion {
     }
 
     private static Criterion criterion(String code, String title, String text) {
-        return new Criterion(code, title, "HUMAN_OPINION", "Parecer humano", text, true, false);
+        return new Criterion(code, title, "HUMAN_OPINION", "Parecer humano", text, true, false,
+            new Review("PENDING_HUMAN_OPINION", null, null, false, null));
     }
 
     private static String chronology(Map<String, String> answers) {
