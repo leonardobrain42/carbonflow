@@ -74,6 +74,10 @@ final class MethodologyPackages {
             packages.add(descriptor(profile, declared));
         }
         var all = List.copyOf(packages);
+        // CF-PACKAGES-001 slice 4: a package that breaks the contract never reaches the production catalog.
+        MethodologyPackageContract.requireProduction(all.stream().map(item -> new MethodologyPackageContract.Declaration(
+                profiles.stream().filter(profile -> profile.id().equals(item.packageId())).findFirst().orElseThrow(),
+                item.program(), item.version(), item.status(), item.capabilities())).toList());
         var canonical = new StringBuilder("CF-METHODOLOGY-PACKAGES@" + CATALOG_VERSION);
         all.forEach(item -> canonical.append('|').append(item.digest()));
         ACTIVITY_TYPES.forEach(item -> canonical.append('|').append(item.value()));
