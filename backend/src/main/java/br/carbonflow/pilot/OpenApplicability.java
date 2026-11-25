@@ -192,8 +192,7 @@ class OpenApplicability {
                     r.getString(27),r.getString(28)),
                 r.getObject(20,OffsetDateTime.class)),project);
         Readiness ready=evaluate(revision==null?null:revision.answers(),
-            revision!=null && revision.triageVersion()!=triage
-                && relevantTriageChanged(c,project,revision.triageVersion(),triage));
+            revision!=null && stale(c,project,revision.triageVersion(),triage));
         return new View(project,revision==null?0:revision.version(),triage,revision,ready,
             origins(c,project,revision==null?null:revision.answers()),pdMap());
     }
@@ -228,6 +227,14 @@ class OpenApplicability {
         var out=new StringBuilder("{");
         for (String name:names) out.append(name).append(':').append(canonical(node.get(name))).append(',');
         return out.append('}').toString();
+    }
+
+    /**
+     * CF-SPEC-D15, single owner: the declaration made at triage version {@code declared} is stale at {@code current}
+     * only if an answer it depends on changed. The applicability screen and the pre-calculation read this same rule.
+     */
+    static boolean stale(Connection c,String project,int declared,int current)throws SQLException {
+        return declared!=current && relevantTriageChanged(c,project,declared,current);
     }
 
     private static boolean relevantTriageChanged(Connection c,String project,int declared,int current)throws SQLException {

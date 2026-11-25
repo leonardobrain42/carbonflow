@@ -30,11 +30,15 @@ class OpenCalculationReadiness {
     /** Same fail-closed diagnosis the calculation screen already reads. */
     static OpenCalculationPreflight.Result diagnose(Connection connection, String projectId,
             String environment) throws SQLException {
+        int triage=triageRevision(connection, projectId);
+        var applicability=applicability(connection, projectId);
         var preflight=OpenCalculationPreflight.evaluate(
             new OpenCalculationPreflight.Context(projectId, environment,
                 methodology(connection, projectId), country(connection, projectId),
-                vehicleClass(connection, projectId), triageRevision(connection, projectId),
-                applicability(connection, projectId)));
+                vehicleClass(connection, projectId), triage, applicability,
+                // CF-SPEC-D15 (Q7 of D16): same rule as the applicability screen, not a bare version comparison.
+                applicability != null && OpenApplicability.stale(connection, projectId,
+                    applicability.triageVersion(), triage)));
         return withMrDependencies(connection, projectId, preflight);
     }
 

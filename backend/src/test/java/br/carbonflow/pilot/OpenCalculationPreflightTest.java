@@ -152,4 +152,20 @@ class OpenCalculationPreflightTest {
         assertFalse(result.toString().contains("SIM-DY"));
         assertFalse(result.toString().contains("PIL-SYN"));
     }
+
+    @Test
+    void d15DecidesStalenessWhenTheCallerKnowsTheRelevantAnswers() {
+        // A newer triage version without a relevant change (CF-SPEC-D15) is not stale.
+        var current=OpenCalculationPreflight.evaluate(new OpenCalculationPreflight.Context(
+            "dynamic-project","SANDBOX","VM0038","BR","LDV",3,open(1),false));
+        assertTrue(current.gates().stream().noneMatch(g->"OPEN_APPLICABILITY".equals(g.code())&&"STALE".equals(g.state())));
+        assertEquals("BLOCKED_MISSING_DATA",current.calculationState());
+        var changed=OpenCalculationPreflight.evaluate(new OpenCalculationPreflight.Context(
+            "dynamic-project","SANDBOX","VM0038","BR","LDV",3,open(1),true));
+        assertTrue(changed.gates().stream().anyMatch(g->"OPEN_APPLICABILITY".equals(g.code())&&"STALE".equals(g.state())));
+        assertEquals("BLOCKED_NOT_ADMISSIBLE",changed.calculationState());
+        // Without the D15 answer, any newer version stays conservative.
+        assertTrue(eval("VM0038",3,open(1)).gates().stream()
+            .anyMatch(g->"OPEN_APPLICABILITY".equals(g.code())&&"STALE".equals(g.state())));
+    }
 }

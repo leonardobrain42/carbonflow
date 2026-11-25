@@ -18,7 +18,7 @@ Migração V47 `app_project_open_applicability_revision`:
 - titular do carregador, referência verificável do contrato de titularidade sobre reduções, canal, prova e data de divulgação aos motoristas, risco de dupla reivindicação, data de início;
 - autoria, data e histórico imutável, chave idempotente por ator e pedido.
 
-**Não se armazenam os textos dos contratos ou dados de terceiros nesta tabela**: somente referências informadas pelo projeto. Não são provas admitidas pela simples declaração. O mesmo projeto recebe nova revisão quando atualizar informações; alterar uma resposta relevante da triagem ([CF-SPEC-D15](../specification/DECISOES_E_DUVIDAS.md)) marca a declaração anterior `STALE` até reconfirmação; mover o cursor, editar textos narrativos ou salvar uma etapa sem tocar o recorte não a invalidam. Desde D16, rede, acesso, energia e direitos são declarados aqui e não mudam mais pela triagem. O pré-cálculo ainda compara só a versão da triagem (Q7 de D16, pendente).
+**Não se armazenam os textos dos contratos ou dados de terceiros nesta tabela**: somente referências informadas pelo projeto. Não são provas admitidas pela simples declaração. O mesmo projeto recebe nova revisão quando atualizar informações; alterar uma resposta relevante da triagem ([CF-SPEC-D15](../specification/DECISOES_E_DUVIDAS.md)) marca a declaração anterior `STALE` até reconfirmação; mover o cursor, editar textos narrativos ou salvar uma etapa sem tocar o recorte não a invalidam. Desde D16, rede, acesso, energia e direitos são declarados aqui e não mudam mais pela triagem. O pré-cálculo (gate `OPEN_APPLICABILITY`/`STALE`) usa a mesma regra (`OpenApplicability.stale`).
 
 ## API e escopos
 - `GET /v1/projects/{project}/technical/open-applicability` (VIEW_OPEN_APPLICABILITY)
