@@ -1,6 +1,6 @@
 # CF-UX-TECH-001 — Fatia 6: triagem como hipótese inicial (D16) — desenho para aprovação
 
-**Estado: proposta, não implementada.** Nada deste documento muda comportamento até o responsável pelo produto aprovar as perguntas da seção 7. Levantamento feito no código em 24/11/2026 (`ProjectJourney`, `ProjectTriageWizard`, `ProjectTriageDiagnosis`, `OpenApplicability`, `OpenCalculationReadiness`, `OpenIrExAntePlans` e guardas de versão).
+**Estado: aprovado** pelo responsável pelo produto em 24/11/2026 (Q1–Q7 conforme as recomendações). **6a implementada** (seção 9); 6b, 6c e Q7 pendentes. Levantamento feito no código em 24/11/2026 (`ProjectJourney`, `ProjectTriageWizard`, `ProjectTriageDiagnosis`, `OpenApplicability`, `OpenCalculationReadiness`, `OpenIrExAntePlans` e guardas de versão).
 
 ## 1. Objetivo e limites
 - **D16:** a triagem registra a **hipótese inicial** (objetivo, atividade, metodologia candidata, local e o recorte mínimo para dizer se o projeto cabe no produto). Detalhes técnicos, direitos e adicionalidade vivem só nas telas técnicas, que já têm donos para eles.
@@ -24,9 +24,9 @@
 | 3 · `design` (individual/agrupado) | limite do piloto | **nenhum** | **Fica** |
 | 3 · `network`, `access` | limite do piloto | Acesso à rede (`restrictedToIdentifiedVehicles`, `unrestrictedBevAccess`) | **Sai**; limite passa a ler a declaração |
 | 3 · `electricitySource` | limite do piloto | Acesso à rede | **Sai**; idem |
-| 3 · `associatedInfrastructure` | — (só obrigatoriedade) | Acesso à rede | **Sai** |
-| 3 · `metering` | — (só obrigatoriedade) | Monitorar (medidores ED/EC) | **Sai** |
-| 3 · `vehicleCount`, `chargerCount` | — (números sem ligação) | Estações e inventário | **Sai** (Q5) |
+| 3 · `associatedInfrastructure` | limite do piloto | Acesso à rede | **Sai**; limite passa a ler a declaração |
+| 3 · `metering` | limite do piloto | Monitorar (medidores ED/EC) | **Sai**; resposta antiga ainda vale, sem ela fica a confirmar |
+| 3 · `vehicleCount`, `chargerCount` | limite do piloto (1 a N) | Estações e inventário | **Sai** (Q5); idem |
 | 4 · `country`, `state`, `locality`, `referenceDate` | limite do piloto, D15 (`country`), sugestão da fatia 2 | Preparar informações | **Fica** |
 | 4 · `evidenceStatus` | `ProjectTriageDiagnosis` | lista de pendências | **Sai** |
 | 4 · `rightsStatus`, `rightsJustification` | achado de método (`NAO_APLICAVEL_JUSTIFICADO`), D15 | Direitos do projeto | **Sai** (Q2) |
@@ -81,3 +81,12 @@ As chaves de armazenamento continuam `"1"`..`"4"`; só mudam títulos e pergunta
 | Q7 | Pré-cálculo com a regra de D15 | Backend, separado |
 
 Cada fatia preserva revisões, hashes e histórico; nenhuma resposta gravada é alterada.
+
+## 9. 6a — implementado
+Correção do levantamento: `associatedInfrastructure`, `metering` e as quantidades também alimentam limites do piloto (a tabela da seção 2 foi corrigida).
+- **Lista única** dos campos que saem: `ProjectJourney.RETIRED` (etapa 3: `network`, `access`, `electricitySource`, `associatedInfrastructure`, `metering`, `vehicleCount`, `chargerCount`; etapa 4: `evidenceStatus`, `rightsStatus`, `rightsJustification`, `investmentCommitted`, `carbonConsideredBeforeInvestment`).
+- **Cópia no servidor** (`ProjectTriageWizard.carryRetired`, só VM0038): ao salvar a etapa 3 ou 4, um campo da lista que **não veio** no envio é copiado sem alteração da revisão anterior. Um `null` explícito continua sendo gravado. Nesta fatia o envio desses campos ainda é aceito, porque a tela atual os pergunta; a recusa entra na 6b junto com a nova tela.
+- **Declaração prevalece** (`ProjectTriageTechnicalScope`): o diagnóstico e os limites do piloto leem acesso, identificação da frota, energia e infraestrutura da última declaração de Acesso à rede quando ela existe, por equivalência exata (`restrictedToIdentifiedVehicles` → `network`, `unrestrictedBevAccess` → `access`, `UNKNOWN` → a confirmar). Direitos com titular declarado tiram o efeito de um "não aplicável" antigo. As respostas gravadas e a resposta da API (`answers`) não mudam.
+- **Diagnóstico** (`REG-E2 / CF-IMP-010 v3`): saem `INVESTMENT_DECLARATION`, `PRIOR_CARBON_DECLARATION`, `RIGHTS_DECLARATION` e `EVIDENCE_DECLARATION`. `CONFIGURATION` cobre só o recorte inicial; o que saiu e não está confirmado vira `TECHNICAL_SCOPE_TO_CONFIRM` (técnico, com os campos) e **impede** "configuração compatível". Nenhum limite é afirmado a partir de resposta inexistente. Os achados técnicos de adicionalidade e direitos apontam para as telas donas; uma resposta antiga de investimento ainda gera `COMMITTED_INVESTMENT`.
+- **Sem mudança:** banco, revisões, D15 (código), guardas de versão, completude das etapas (fica para a 6b).
+- **Testes:** `ProjectTriageWizardTest` (cópia, `null` explícito, projeto novo sem campos antigos) e `OpenApplicabilityIntegrationTest` (salvar a etapa 3 só com o recorte não desatualiza a declaração; a declaração vence a resposta antiga nos limites).

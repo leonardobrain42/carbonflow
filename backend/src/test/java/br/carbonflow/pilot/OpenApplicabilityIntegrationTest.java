@@ -155,7 +155,23 @@ class OpenApplicabilityIntegrationTest {
         assertFalse(narrative.at("/readiness/stale").asBoolean(),"cursor moves and narrative edits keep the declaration current");
         assertFalse(narrative.at("/readiness/findings").toString().contains("TRIAGE_CHANGED"));
         assertEquals(3,narrative.path("latestTriageVersion").asInt());
+        // D16 + D15: a step-3 save carrying only the answers that stay in the triage keeps the retired ones
+        // unchanged, so the declaration does not go stale.
         assertEquals(200,call("PUT",triage+"/steps/3",owner.cookie(),UUID.randomUUID().toString(),"\"3\"",
+            "{\"answers\":{\"vehicleClass\":\"LDV\",\"propulsion\":\"BEV\",\"chargerType\":\"DCFC\",\"design\":\"INDIVIDUAL\","
+            +"\"network\":\"CLOSED\",\"access\":\"PRIVATE\",\"electricitySource\":\"SIN\",\"metering\":\"SEGREGATED\"},\"nextStep\":4}").statusCode());
+        assertEquals(200,call("PUT",path,owner.cookie(),UUID.randomUUID().toString(),"\"3\"",withDisclosure).statusCode());
+        assertFalse(json(call("GET",path,owner.cookie(),null,null,null)).at("/readiness/stale").asBoolean());
+        JsonNode carried=json(call("PUT",triage+"/steps/3",owner.cookie(),UUID.randomUUID().toString(),"\"4\"",
+            "{\"answers\":{\"vehicleClass\":\"LDV\",\"propulsion\":\"BEV\",\"chargerType\":\"DCFC\",\"design\":\"INDIVIDUAL\"},\"nextStep\":4}"));
+        assertEquals("CLOSED",carried.at("/answers/3/network").asText(),"stored triage answer is kept unchanged");
+        assertFalse(json(call("GET",path,owner.cookie(),null,null,null)).at("/readiness/stale").asBoolean(),
+            "carrying retired answers forward is not a triage change");
+        // The declaration owns access and network: it wins over the older triage answer in the diagnosis.
+        var outside=carried.at("/guidance/outsidePilot").toString();
+        assertTrue(outside.contains("O piloto usa rede fechada, com frota identificada."),outside);
+        assertTrue(outside.contains("O piloto usa acesso restrito à frota."),outside);
+        assertEquals(200,call("PUT",triage+"/steps/3",owner.cookie(),UUID.randomUUID().toString(),"\"5\"",
             "{\"answers\":{\"propulsion\":\"PHEV\"},\"nextStep\":4}").statusCode());
         JsonNode scope=json(call("GET",path,owner.cookie(),null,null,null));
         assertTrue(scope.at("/readiness/stale").asBoolean(),"a scope answer in step 3 makes it stale");

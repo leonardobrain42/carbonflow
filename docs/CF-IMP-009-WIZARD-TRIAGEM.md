@@ -55,3 +55,6 @@ Esse exemplo **não** reproduz tCO₂e, BE/PE/LE/ER, cenário baseline admissív
 A CF-IMP-009 não emite diagnóstico técnico ou deferimento de metodologia; isso pertence à **CF-IMP-010 (#18)** e aos gates ECA/REG correspondentes. A triagem persiste intenção, atividade, frota e direitos **declarados**, mas não os reconhece como evidências admitidas. Fluxos E8, atos externos, créditos e monitoramento permanecem desabilitados sem controles próprios.
 
 A implementação não escreve em \`pilot_*\`, não modifica hashes históricos e não seleciona o piloto automaticamente. O código da etapa 5 é um **resumo**, não motor de regras metodológicas.
+
+## Adendo D16 (24/11/2026) — triagem como hipótese inicial
+Ver [CF-UX-TECH-001-TRIAGE-HYPOTHESIS](CF-UX-TECH-001-TRIAGE-HYPOTHESIS.md). Desde a fatia 6a: campos que saem da triagem (lista em `ProjectJourney.RETIRED`) são copiados sem alteração quando uma etapa é salva sem eles; o diagnóstico (`REG-E2 / CF-IMP-010 v3`) lê acesso, rede, energia e infraestrutura da declaração de Acesso à rede quando ela existe e não pede mais investimento, direitos nem situação dos dados na triagem. O formato `answers`, as revisões e o histórico continuam os mesmos.
