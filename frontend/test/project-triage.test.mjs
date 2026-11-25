@@ -63,6 +63,10 @@ async function setup(page) {
     analysisState: 'NAO_AVALIADO', exampleKind: state.exampleKind,
     answers: state.answers,
     journey: journeys[{'VM0038':'VM0038','TEST-ONLY':'TEST'}[state.answers['1']?.methodologyCandidate] ?? 'GENERAL'],
+    catalog: {version:1, digest:'0'.repeat(64), activityTypes:[
+      {value:'MOBILIDADE_ELETRICA',label:'Mobilidade elétrica e recarga'},{value:'RESIDUOS',label:'Resíduos e economia circular'},
+      {value:'ENERGIA',label:'Energia e eficiência energética'},{value:'AGRICULTURA',label:'Agricultura, solo e florestas'},
+      {value:'OUTRO',label:'Outra atividade'},{value:'DESCONHECIDO',label:'Preciso de orientação'}]},
     methodologies: [{value:'VM0038',label:vmTitle},{value:'TEST-ONLY',label:'Pacote de teste · resíduos'}],
     diagnosis: {
       ruleVersion:'REG-E2 / CF-IMP-010 v2',
