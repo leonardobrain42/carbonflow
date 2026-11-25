@@ -87,6 +87,13 @@ A UI está em **Admin CarbonFlow → Fontes e prontidão → Eficiências e comp
 - Observação: o `I/NISSAN LEAF TEKNA` da amostra da Senatran não tem linha elétrica no PBEV 2026 extraído, o que confirma a lacuna de rating já registrada em CF-OPEN-005.
 - Testes: `test_extract_pbev_electric.py` (5 casos, com texto sintético; não depende do PDF) no gate de sandbox do CI. O extrator não foi validado linha a linha contra o PDF: só pela contagem do cabeçalho e por amostras.
 
+## Cruzamento Senatran × PBEV (rc.58)
+`scripts/match_senatran_pbev.py` cruza os nomes literais da Senatran (a saída de `inspect_senatran_stock_sample.py` ou `--name`) com a saída do extrator e gera **candidatos para a fila de revisão**, cada um com o motivo. Nunca aprova alias, nunca decide classe, comparabilidade ou circulação, e nunca escolhe entre candidatos.
+- Níveis, sobre nomes compactados em letras e dígitos (sem acento, caixa ou espaços; só o marcador de importado `I/` é removido): `EXACT` (marca+modelo+versão do PBEV igual ao nome inteiro); `MODEL_ONLY` (só marca+modelo coincidem; vence o modelo mais longo e **todas as versões ficam listadas, indecididas**); `AMBIGUOUS` (chaves distintas no mesmo nível); `NONE` (sem candidato, que é resultado, não erro).
+- A saída traz `approved_aliases=[]`, `requires_review=true` por item e `usableForE8=false`; as limitações dizem que candidato não é alias e que a ausência no PBEV não prova que o veículo não seja elétrico.
+- **Execução sobre a amostra real versionada** (`docs/evidence/CF-OPEN-005-2026-09/registered-sample.json`, 8 nomes), PBEV 2026: `EXACT` 4 (I/BYD DOLPHIN GS 180EV, I/BYD DOLPHIN MINI GS5EV, BYD/DOLPHIN MINI GS5EV, I/GWM ORA 03 BEV58 C), `MODEL_ONLY` 1 (I/RENAULT E-KWID TECHNO: o PBEV lista INTENS e CARGO, não TECHNO), `NONE` 3 (I/NISSAN LEAF TEKNA, AGRALE/MAXIBUS DOLPHIN, RENAULT/KWID EVOLUTION). Com o PBEV 2025: `EXACT` 3 (a ORA 03 BEV58 C passa a `MODEL_ONLY`, pois a versão difere), `MODEL_ONLY` 2, `NONE` 3. Os dois `BYD DOLPHIN MINI GS5EV` (importado e nacional) casam com a mesma linha do PBEV, o que **não** decide se são o mesmo modelo cadastrado: essa decisão de alias é do catálogo, com prova.
+- Os JSONs gerados não foram versionados (contêm linhas do PBEV, direitos de reuso não confirmados). Testes: `test_match_senatran_pbev.py` (9 casos) no gate de sandbox do CI.
+
 ## A completar antes de encerrar a issue #95
 
 - Importador PBEV nativo por PDF (dependente de direitos, assinaturas/QA e cobertura do catálogo) e ligação material dos campos de ciclo/capacidade por linha;
