@@ -34,6 +34,7 @@ class ProjectTriageWizard {
                 String analysisState, String exampleKind, JsonNode answers,
                 List<StepSummary> stages, List<String> pending,
                 String nextAction, ProjectJourney.Profile journey, List<ProjectJourney.Option> methodologies,
+                MethodologyPackages.Catalog catalog,
                 ProjectJourney.Guidance guidance, ProjectTriageDiagnosis.Result diagnosis,
                 List<RetiredAnswer> retiredAnswers) {}
     /** D16: an older answer that the triage no longer asks; shown read-only with the screen that owns it now. */
@@ -206,8 +207,7 @@ class ProjectTriageWizard {
                     try { LocalDate.parse(content); }
                     catch (DateTimeParseException error) { throw invalid(name); }
                 }
-                if ("activityType".equals(name) && !Set.of("MOBILIDADE_ELETRICA", "RESIDUOS",
-                        "ENERGIA", "AGRICULTURA", "OUTRO", "DESCONHECIDO").contains(content)) throw invalid(name);
+                if ("activityType".equals(name) && !MethodologyPackages.knownActivity(content)) throw invalid(name);
                 if ("evidenceStatus".equals(name) && !Set.of("DESCONHECIDO", "EM_PREPARACAO",
                         "DISPONIVEL_DECLARADO").contains(content)) throw invalid(name);
                 if ("rightsStatus".equals(name) && !Set.of("DESCONHECIDO", "DECLARADO",
@@ -316,7 +316,7 @@ class ProjectTriageWizard {
                 List.copyOf(pending), snapshot.currentStep() == 5
                     ? "Revise as respostas e organize na preparação técnica o que precisa ser comprovado."
                     : "Salve as respostas e deixe em aberto o que ainda precisa confirmar.",
-                journey, ProjectJourney.METHODOLOGIES, guidance, ProjectTriageDiagnosis.evaluate(effective, guidance),
+                journey, MethodologyPackages.options(), MethodologyPackages.current(), guidance, ProjectTriageDiagnosis.evaluate(effective, guidance),
                 retiredAnswers(answers));
     }
 

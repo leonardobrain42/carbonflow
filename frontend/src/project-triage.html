@@ -56,12 +56,9 @@
                     <label for="cf-wz-type">Qual atividade descreve melhor sua ideia?</label>
                     <select id="cf-wz-type" name="activityType" [value]="field(1,'activityType')" (change)="input(1,'activityType',$event)">
                       <option value="">Ainda não sei</option>
-                      <option value="MOBILIDADE_ELETRICA">Mobilidade elétrica e recarga</option>
-                      <option value="RESIDUOS">Resíduos e economia circular</option>
-                      <option value="ENERGIA">Energia e eficiência energética</option>
-                      <option value="AGRICULTURA">Agricultura, solo e florestas</option>
-                      <option value="OUTRO">Outra atividade</option>
-                      <option value="DESCONHECIDO">Preciso de orientação</option>
+                      @for (type of activityTypes(); track type.value) {
+                        <option [value]="type.value">{{ type.label }}</option>
+                      }
                     </select>
                     <label for="cf-wz-methodology">Metodologia candidata</label>
                     <select id="cf-wz-methodology" name="methodologyCandidate" #method [value]="methodologyChoice()"

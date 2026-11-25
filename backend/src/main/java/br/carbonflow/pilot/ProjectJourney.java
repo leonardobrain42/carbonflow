@@ -167,8 +167,11 @@ final class ProjectJourney {
     }
 
     private static final List<Profile> CONFIGURED = List.of(VM0038);
-    static final List<Option> METHODOLOGIES = CONFIGURED.stream()
-            .map(profile -> new Option(profile.candidate(), profile.title())).toList();
+
+    /** Packages with a triage schema, in catalog order. Listed in {@link MethodologyPackages} with their version. */
+    static List<Profile> configured() {
+        return CONFIGURED;
+    }
 
     private ProjectJourney() {}
 
