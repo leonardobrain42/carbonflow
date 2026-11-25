@@ -6,11 +6,11 @@
 
 Após criar um projeto sandbox, o usuário escolhe **Iniciar triagem guiada** (ou **Iniciar ou retomar triagem** na home). As etapas são:
 
-1. **Planejamento** registra objetivo, atividade e metodologia candidata. O catálogo oferece a jornada VM0038 v1.1 e permite registrar outra hipótese ou continuar sem indicação.
-2. **Atividade** descreve a operação e seu cenário sem o projeto. Na VM0038, pergunta também se o projeto inclui a instalação de sistemas de recarga.
-3. **Detalhes da metodologia** apresenta frota, recarga, rede, acesso, suprimento, infraestrutura associada e medição para VM0038. A jornada inicial usa esta etapa para registrar escopo e dúvidas. Justificativas registradas em versões anteriores continuam legíveis.
-4. **Local, dados e direitos** registra localização, data de referência, situação dos dados e declarações sobre titularidade.
-5. **Resumo da triagem** permite editar qualquer etapa, consultar condições metodológicas a revisar ou declarações fora do recorte do piloto e seguir para a preparação técnica. A avaliação metodológica continua pendente.
+1. **Objetivo e metodologia** registra objetivo, atividade e metodologia candidata. O catálogo oferece a jornada VM0038 v1.1 e permite registrar outra hipótese ou continuar sem indicação.
+2. **Atividade** descreve a operação; cenário atual e benefício esperado são notas opcionais (D16, Q3). Na VM0038, pergunta também se o projeto inclui a instalação de sistemas de recarga.
+3. **Recorte inicial** (VM0038) pergunta classe da frota, propulsão, tipo de recarga e desenho individual/agrupado. A jornada inicial usa esta etapa para registrar escopo e dúvidas. Justificativas registradas em versões anteriores continuam legíveis.
+4. **Local** registra país, estado, localidade e data de referência.
+5. **Resumo da triagem** mostra o que será pedido na preparação técnica (Acesso à rede, Estações e fronteira, Monitorar energia, Linha de base, Adicionalidade, Direitos do projeto, com links), permite editar qualquer etapa, consultar condições metodológicas a revisar ou declarações fora do recorte do piloto e seguir para a preparação técnica. A avaliação metodológica continua pendente.
 
 O perfil da jornada vem da API e é selecionado pelo código da edição configurada. O valor histórico `VM0038` abre o perfil v1.1 sem definir a edição vigente para nenhum ato externo. A [VM0038 v1.1, seção 4](https://verra.org/documents/vm0038-electric-vehicle-charging-systems-v1-1/) contempla, sob condições, recarga AC, determinadas combinações com híbridos plug-in, ônibus e caminhões médios/pesados e infraestrutura associada com medição rastreável. O piloto continua limitado pelo recorte implementado em `IntakeRules`. A triagem registra cenários fora desse recorte para revisão e mantém desconhecidos em aberto.
 
@@ -22,8 +22,8 @@ A interface foi desenhada para o usuário comum e preserva a possibilidade de re
 
 | Método | Rota | Proteções | Resultado |
 |---|---|---|---|
-| GET | \`/v1/projects/{id}/triage\` | Conta autenticada, \`DRAFT_OWNER\` originário e membership ativo no sandbox | Revisão, cursor, respostas por etapa, campos pendentes, situação e próxima ação. \`ETag\` |
-| PUT | \`.../triage/steps/{1..4}\` | \`Idempotency-Key\` e \`If-Match: "N"\` | Corpo \`{"answers":{...},"nextStep":1..5}\`. Substitui somente o conjunto de respostas dessa etapa, preservando as demais. Nova revisão imutável |
+| GET | \`/v1/projects/{id}/triage\` | Conta autenticada, \`DRAFT_OWNER\` originário e membership ativo no sandbox | Revisão, cursor, respostas por etapa, campos pendentes, situação e próxima ação. Desde D16, \`retiredAnswers\`: respostas antigas que saíram da triagem, com rótulo, valor e tela dona (\`section\`). \`ETag\` |
+| PUT | \`.../triage/steps/{1..4}\` | \`Idempotency-Key\` e \`If-Match: "N"\` | Corpo \`{"answers":{...},"nextStep":1..5}\`. Substitui somente o conjunto de respostas dessa etapa, preservando as demais. Respostas que saíram da triagem (D16) são copiadas sem alteração; enviar outro valor para elas retorna 400 com o campo e a tela dona. Nova revisão imutável |
 | PATCH | \`.../triage/cursor\` | Mesmos headers | \`{"nextStep":1..5}\`. Persiste escolha de etapa sem alterar respostas |
 | POST | \`.../triage/examples/bev-df-2027\` | Mesmos headers; uso explícito no SANDBOX | Substitui conjunto de respostas por **dados ilustrativos**, grava revisão e abre o resumo |
 
@@ -58,3 +58,4 @@ A implementação não escreve em \`pilot_*\`, não modifica hashes históricos 
 
 ## Adendo D16 (24/11/2026) — triagem como hipótese inicial
 Ver [CF-UX-TECH-001-TRIAGE-HYPOTHESIS](CF-UX-TECH-001-TRIAGE-HYPOTHESIS.md). Desde a fatia 6a: campos que saem da triagem (lista em `ProjectJourney.RETIRED`) são copiados sem alteração quando uma etapa é salva sem eles; o diagnóstico (`REG-E2 / CF-IMP-010 v3`) lê acesso, rede, energia e infraestrutura da declaração de Acesso à rede quando ela existe e não pede mais investimento, direitos nem situação dos dados na triagem. O formato `answers`, as revisões e o histórico continuam os mesmos.
+Desde a fatia 6b: a triagem pergunta só a hipótese inicial (seção "Objetivo e experiência"); obrigatórias são objetivo e atividade, descrição (e instalação de recarga na VM0038), as 4 perguntas do recorte e os 4 campos de local. Respostas antigas aparecem só para leitura, com link para a tela dona; a triagem recusa alterá-las. O exemplo de 25 BEVs registra só a hipótese inicial.

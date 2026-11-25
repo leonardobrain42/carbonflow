@@ -59,7 +59,9 @@ final class ProjectTriageDiagnosis {
         // screens (or come from an older revision) before the scope can be called compatible. Nothing is presumed.
         var profileGaps = new ArrayList<String>();
         var technicalGaps = new ArrayList<String>();
-        for (var question : ProjectJourney.VM0038.questions()) {
+        var scopeQuestions = new ArrayList<>(ProjectJourney.VM0038.questions());
+        scopeQuestions.addAll(ProjectJourney.retiredScopeQuestions());
+        for (var question : scopeQuestions) {
             JsonNode answer = profile.path(question.key());
             if (!ProjectJourney.known(answer) || ("choice".equals(question.type())
                     && question.options().stream().noneMatch(option -> option.value().equals(answer.asText())))) {

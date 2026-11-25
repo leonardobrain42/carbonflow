@@ -6,7 +6,7 @@ const base = process.env.CARBONFLOW_TEST_URL ?? 'http://127.0.0.1:8080';
 const executablePath = process.env.CARBONFLOW_CHROME ?? '/usr/bin/google-chrome';
 const projectId = '20000000-0000-4000-8000-000000000010';
 const organizationId = '10000000-0000-4000-8000-000000000010';
-const labels = ['Planejamento','Atividade','Escopo e lacunas','Local, dados e direitos','Resumo da triagem'];
+const labels = ['Objetivo e metodologia','Atividade','Escopo e lacunas','Local','Resumo da triagem'];
 const vmTitle = 'VM0038 v1.1 · Recarga de veículos elétricos';
 const journeys = {
   GENERAL: {
@@ -16,7 +16,9 @@ const journeys = {
   VM0038: {
     id:'VM0038_V1_1', candidate:'VM0038', title:vmTitle, description:'O piloto usa veículos leves e estações DCFC.',
     questions:[
-      {key:'vehicleCount',label:'Quantidade estimada de veículos',type:'number',options:[]},
+      {key:'propulsion',label:'Propulsão da frota atendida',type:'choice',options:[
+        {value:'BEV',label:'BEV'}, {value:'PHEV',label:'PHEV'},
+      ]},
       {key:'chargerType',label:'Tipo de recarga',type:'choice',options:[
         {value:'DCFC',label:'DCFC'}, {value:'AC',label:'Recarga AC'},
       ]},
@@ -26,7 +28,7 @@ const journeys = {
 
 async function setup(page) {
   let countPilot = 0;
-  const state = {version: 0, currentStep: 1, answers: {}, exampleKind: null};
+  const state = {version: 0, currentStep: 1, answers: {}, exampleKind: null, retiredAnswers: []};
   const view = () => ({
     projectId, environment: 'SANDBOX', version: state.version, currentStep: state.currentStep,
     analysisState: 'NAO_AVALIADO', exampleKind: state.exampleKind,
@@ -50,12 +52,13 @@ async function setup(page) {
       outsidePilot:state.answers['3']?.chargerType === 'AC' ? ['O piloto cobre estações DCFC.'] : [],
     },
     stages: labels.map((title,i) => ({
-      title: i === 2 && state.answers['1']?.methodologyCandidate === 'VM0038' ? 'Frota, recarga e medição' : title, number: i+1, status: i === 4 ? 'RESUMO_SEM_PARECER'
+      title: i === 2 && state.answers['1']?.methodologyCandidate === 'VM0038' ? 'Recorte inicial' : title, number: i+1, status: i === 4 ? 'RESUMO_SEM_PARECER'
         : state.answers[String(i+1)] && Object.keys(state.answers[String(i+1)]).length > 0
           ? 'PENDENTE' : 'NAO_INICIADO',
       missingFields: [],
     })),
     pending: [], nextAction: 'Revisar as respostas sem alegar elegibilidade.',
+    retiredAnswers: state.retiredAnswers,
   });
   const metadata = {projectId, organizationId, environment:'SANDBOX', state:'DRAFT',
     version:1, title:'Projeto de recarga no DF', description:null};
@@ -96,9 +99,8 @@ async function setup(page) {
     state.answers = {
       '1': {objective:'Eletrificar frota',activityType:'MOBILIDADE_ELETRICA',methodologyCandidate:'VM0038'},
       '2': {activityDescription:'Operação de BEVs',baselinePractice:'A comprovar'},
-      '3': {vehicleCount:25,propulsion:'BEV',chargerType:'DCFC',chargerCount:1,electricitySource:'DESCONHECIDA'},
-      '4': {country:'BR',state:'DF',locality:'Brasília',referenceDate:'2027-09-27',
-        evidenceStatus:'DESCONHECIDO',rightsStatus:'DESCONHECIDO'},
+      '3': {vehicleClass:'LDV',propulsion:'BEV',chargerType:'DCFC'},
+      '4': {country:'BR',state:'DF',locality:'Brasília',referenceDate:'2027-09-27'},
       '_example':'25_BEV_BRASILIA_DF_2027_09_27',
     };
     state.exampleKind = state.answers._example;
@@ -133,7 +135,7 @@ test('CF-IMP-009: navegação preserva respostas, versão e retomada após recar
     await page.getByLabel('Como a atividade funcionará?').waitFor();
     assert.equal(await page.getByLabel('Como a atividade funcionará?').inputValue(),
       'Operação com frota elétrica');
-    await page.getByRole('button',{name:'Planejamento',exact:false}).click();
+    await page.getByRole('button',{name:'Objetivo e metodologia',exact:false}).click();
     await page.getByLabel('O que você quer alcançar com o projeto?').waitFor();
     assert.equal(await page.getByLabel('O que você quer alcançar com o projeto?').inputValue(),
       'Eletrificar a operação');
@@ -155,7 +157,7 @@ test('CF-IMP-009: exemplo 25 BEVs Brasília/DF em 27-09-2027 gera resumo sem ER 
     await page.getByRole('button',{name:'Preencher exemplo de 25 BEVs'}).click();
     await page.getByText('Exemplo ilustrativo de 25 BEVs preenchido.',{exact:false}).waitFor();
     await page.getByText('Este cenário contém somente dados de demonstração:',{exact:false}).waitFor();
-    assert.equal(state.answers['3'].vehicleCount,25);
+    assert.equal(state.answers['3'].propulsion,'BEV');
     assert.equal(state.answers['4'].referenceDate,'2027-09-27');
     assert.equal(state.answers['4'].locality,'Brasília');
     assert.equal(state.exampleKind,'25_BEV_BRASILIA_DF_2027_09_27');
@@ -179,7 +181,7 @@ test('triagem só oferece recarga na VM0038 e mantém AC como resposta fora do p
     await page.getByRole('button',{name:/Escopo e lacunas/}).click();
     await page.getByLabel('O que precisa ser confirmado sobre o escopo?').waitFor();
     assert.equal(await page.getByLabel('Tipo de recarga').count(),0);
-    await page.getByRole('button',{name:/Planejamento/}).click();
+    await page.getByRole('button',{name:/Objetivo e metodologia/}).click();
     await page.getByLabel('Metodologia candidata').selectOption('VM0038');
     await page.getByRole('button',{name:'Salvar e avançar'}).click();
     await page.getByLabel('O projeto inclui instalar sistemas de recarga?').selectOption('YES');
@@ -205,8 +207,61 @@ test('triagem só oferece recarga na VM0038 e mantém AC como resposta fora do p
     assert.equal(await page.getByRole('link',{name:'Registrar observações na preparação técnica'}).getAttribute('href'),
       '/workspace/projects/' + projectId + '/technical?secao=preparar');
     await page.reload();
-    await page.getByRole('button',{name:'Editar frota, recarga e medição'}).click();
+    await page.getByRole('button',{name:'Editar recorte inicial'}).click();
     assert.equal(await page.getByLabel('Tipo de recarga').inputValue(),'AC');
+  } finally {
+    await browser.close();
+  }
+});
+
+test('D16: triagem pede só a hipótese, mostra respostas antigas só para leitura e o que será pedido depois', async () => {
+  const browser = await chromium.launch({executablePath});
+  try {
+    const page = await browser.newPage({viewport:{width:1360,height:850}});
+    const {state} = await setup(page);
+    // A project answered before D16: older answers stay in the revision and are owned by technical screens.
+    state.version = 4;
+    state.currentStep = 3;
+    state.answers = {
+      '1': {objective:'Rede de recarga',activityType:'MOBILIDADE_ELETRICA',methodologyCandidate:'VM0038'},
+      '2': {installsChargers:'YES',activityDescription:'Recarga rápida'},
+      '3': {propulsion:'BEV',chargerType:'DCFC',network:'CLOSED',vehicleCount:25},
+      '4': {country:'BR',state:'DF',locality:'Brasília',referenceDate:'2027-09-27',rightsStatus:'DECLARADO'},
+    };
+    state.retiredAnswers = [
+      {step:3,key:'network',label:'Identificação da frota na rede',value:'CLOSED',valueLabel:'Fechada · frota identificada',section:'rede',sectionTitle:'Acesso à rede'},
+      {step:3,key:'vehicleCount',label:'Quantidade estimada de veículos',value:25,valueLabel:'25',section:'estacoes',sectionTitle:'Estações e fronteira'},
+      {step:4,key:'rightsStatus',label:'Situação de direitos e titularidade',value:'DECLARADO',valueLabel:'Declaro que possuo direitos, sem comprovação',section:'direitos',sectionTitle:'Direitos do projeto'},
+    ];
+    await page.goto(base + '/workspace/projects/' + projectId + '/triage');
+    await page.getByRole('heading',{name:'Respostas antigas que agora ficam nas telas técnicas'}).waitFor();
+    await page.getByText('Fechada · frota identificada',{exact:false}).waitFor();
+    assert.equal(await page.getByLabel('Identificação da frota na rede').count(),0,'older answer is not editable');
+    assert.equal(await page.getByRole('link',{name:'Abrir Acesso à rede'}).getAttribute('href'),
+      '/workspace/projects/' + projectId + '/technical?secao=rede');
+    await page.getByLabel('Tipo de recarga').selectOption('DCFC');
+    await page.getByLabel('Propulsão da frota atendida').selectOption('PHEV');
+    await page.getByRole('button',{name:'Salvar e avançar'}).click();
+    await page.getByLabel('Data de referência pretendida').waitFor();
+    assert.deepEqual(Object.keys(state.answers['3']).sort(),['chargerType','propulsion'],'retired answers are not sent');
+    // Step 4 asks only the location; rights, evidence and investment are not asked again.
+    for (const label of ['Situação de direitos e titularidade','Situação dos dados de origem',
+      'Já houve compromisso de investimento, como contrato ou pedido firme?']) {
+      assert.equal(await page.getByLabel(label).count(),0,label);
+    }
+    assert.equal(await page.getByRole('link',{name:'Abrir Direitos do projeto'}).getAttribute('href'),
+      '/workspace/projects/' + projectId + '/technical?secao=direitos');
+    await page.getByRole('button',{name:'Salvar e ver resumo'}).click();
+    await page.getByRole('heading',{name:'O que será pedido na preparação técnica'}).waitFor();
+    assert.deepEqual(Object.keys(state.answers['4']).sort(),['country','locality','referenceDate','state']);
+    for (const [name,section] of [['Acesso à rede','rede'],['Estações e fronteira','estacoes'],['Monitorar energia','monitorar'],
+      ['Adicionalidade','adicionalidade'],['Direitos do projeto','direitos']]) {
+      assert.equal(await page.getByRole('link',{name,exact:true}).first().getAttribute('href'),
+        '/workspace/projects/' + projectId + '/technical?secao=' + section, name);
+    }
+    await page.getByText('Respostas antigas, só para leitura:',{exact:false}).first().waitFor();
+    await page.setViewportSize({width:390,height:844});
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth),false);
   } finally {
     await browser.close();
   }

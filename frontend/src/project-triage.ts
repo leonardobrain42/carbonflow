@@ -37,6 +37,34 @@ interface Diagnosis {
   findings: Finding[];
 }
 
+/** D16: an older answer that the triage no longer asks; read-only, owned by a technical screen. */
+export interface RetiredAnswer {
+  step: number;
+  key: string;
+  label: string;
+  value: string | number | null;
+  valueLabel: string;
+  section: string;
+  sectionTitle: string;
+}
+
+/** D16: what the technical preparation asks next, in the screens that own it. */
+export interface LaterItem {
+  section: string;
+  title: string;
+  detail: string;
+}
+
+const LATER_VM0038: LaterItem[] = [
+  {section:'rede', title:'Acesso à rede', detail:'Acesso aos carregadores, identificação da frota, origem da eletricidade e infraestrutura associada.'},
+  {section:'estacoes', title:'Estações e fronteira', detail:'Estações, carregadores e veículos do projeto.'},
+  {section:'monitorar', title:'Monitorar energia', detail:'Medidores e medição da energia entregue e consumida.'},
+  {section:'linha-base', title:'Linha de base', detail:'Cenário sem o projeto e veículos comparáveis.'},
+  {section:'adicionalidade', title:'Adicionalidade', detail:'Cronologia do investimento e da receita de carbono, com evidências.'},
+  {section:'direitos', title:'Direitos do projeto', detail:'Titulares das reduções e documentos de titularidade.'},
+];
+const LATER_GENERAL: LaterItem[] = LATER_VM0038.filter(item => ['linha-base','adicionalidade','direitos'].includes(item.section));
+
 interface TriageView {
   projectId: string;
   diagnosis?: Diagnosis;
@@ -52,6 +80,7 @@ interface TriageView {
   journey: JourneyProfile;
   methodologies: JourneyOption[];
   guidance: {state: string; outsideMethodology: string[]; outsidePilot: string[]};
+  retiredAnswers?: RetiredAnswer[];
 }
 
 type Values = Record<string, string | number | null>;
@@ -99,6 +128,12 @@ export class ProjectTriageComponent {
   });
   readonly vm0038 = computed(() => this.view()?.journey.id === 'VM0038_V1_1');
   readonly otherOption = OTHER_METHODOLOGY;
+  readonly later = computed(() => this.vm0038() ? LATER_VM0038 : LATER_GENERAL);
+
+  retired(step?: number): RetiredAnswer[] {
+    const items = this.view()?.retiredAnswers ?? [];
+    return step == null ? items : items.filter(item => item.step === step);
+  }
   private pendingKey = '';
   private pendingPayload = '';
 
@@ -194,10 +229,8 @@ export class ProjectTriageComponent {
         'activityDescription', 'baselinePractice', 'expectedBenefit'];
       case 3: return [...details.map(question => question.key),
         ...(this.field(3, 'notApplicableReason') ? ['notApplicableReason'] : [])];
-      default: return ['country', 'state', 'locality', 'referenceDate', 'evidenceStatus', 'rightsStatus',
-        ...(this.vm0038() ? ['investmentCommitted',
-          ...(this.field(4, 'investmentCommitted') === 'YES' ? ['carbonConsideredBeforeInvestment'] : [])] : []),
-        ...(this.field(4, 'rightsStatus') === 'NAO_APLICAVEL_JUSTIFICADO' ? ['rightsJustification'] : [])];
+      // D16: rights, evidence and investment are no longer asked here; older answers are kept by the server.
+      default: return ['country', 'state', 'locality', 'referenceDate'];
     }
   }
 
@@ -328,7 +361,8 @@ export class ProjectTriageComponent {
       referenceDate: 'Data de referência', evidenceStatus: 'Dados de origem',
       rightsStatus: 'Direitos e titularidade', rightsJustification: 'Justificativa sobre direitos',
     };
-    return this.view()?.journey.questions.find(question => question.key === key)?.label ?? labels[key] ?? key;
+    return this.view()?.journey.questions.find(question => question.key === key)?.label
+      ?? this.retired().find(item => item.key === key)?.label ?? labels[key] ?? key;
   }
 
   missingLabels(fields: string[]) {
