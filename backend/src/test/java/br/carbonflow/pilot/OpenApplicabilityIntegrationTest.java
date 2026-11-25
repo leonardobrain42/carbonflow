@@ -41,6 +41,11 @@ class OpenApplicabilityIntegrationTest {
         assertTrue(initial.at("/readiness/canContinuePreparation").asBoolean());
         assertFalse(initial.at("/readiness/canUseForE8").asBoolean());
         assertTrue(initial.at("/readiness/sourceDependencies").isArray());
+        // D17/AGN-01: the OPEN declaration needs VM0038 as the candidate; without it, saving is refused.
+        assertEquals(409,call("PUT",path,owner.cookie(),UUID.randomUUID().toString(),"\"0\"",
+            "{\"unrestrictedBevAccess\":true,\"restrictedToIdentifiedVehicles\":false}").statusCode());
+        assertEquals(200,call("PUT","/v1/projects/"+id+"/technical/intake",owner.cookie(),UUID.randomUUID().toString(),"\"0\"",
+            "{\"activity\":\"Recarga de veículos elétricos\",\"country\":\"BR\",\"candidateMethodology\":\"VM0038\"}").statusCode());
 
         String draft="""
                 {"unrestrictedBevAccess":true,"restrictedToIdentifiedVehicles":false,

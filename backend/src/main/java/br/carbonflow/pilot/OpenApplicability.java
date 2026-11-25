@@ -109,6 +109,9 @@ class OpenApplicability {
                 return build(connection,project);
             }
 
+            if(!supported(connection,project))
+                throw new PilotProblem(409,"METODOLOGIA_SEM_PACOTE","methodology",RULE,
+                    "A declaração OPEN só se aplica a um projeto com VM0038 como metodologia candidata.");
             View old=build(connection,project);
             if(expected!=old.version())
                 throw new PilotProblem(412,"VERSAO_DIVERGENTE","If-Match",RULE,
@@ -191,6 +194,12 @@ class OpenApplicability {
                     r.getString(25),r.getObject(26,LocalDate.class),
                     r.getString(27),r.getString(28)),
                 r.getObject(20,OffsetDateTime.class)),project);
+        if(!supported(c,project)) {
+            // D17/AGN-01: this screen belongs to the VM0038 OPEN adapter. Another or no candidate gets a neutral
+            // gap, not the OPEN category, origins or PD map, and no consumer reads it as an OPEN candidate.
+            return new View(project,revision==null?0:revision.version(),triage,revision,neutral(),
+                List.of(),List.of());
+        }
         Readiness ready=evaluate(revision==null?null:revision.answers(),
             revision!=null && stale(c,project,revision.triageVersion(),triage));
         return new View(project,revision==null?0:revision.version(),triage,revision,ready,
@@ -252,6 +261,20 @@ class OpenApplicability {
         } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
             return true;
         }
+    }
+
+    static final String NOT_APPLICABLE="NOT_APPLICABLE_TO_METHODOLOGY";
+
+    private static boolean supported(Connection c,String project)throws SQLException {
+        return "VM0038".equals(OpenCalculationReadiness.methodology(c,project));
+    }
+
+    private static Readiness neutral() {
+        return new Readiness(NOT_APPLICABLE,"NOT_APPLICABLE","NOT_APPLICABLE","NOT_APPLICABLE",
+            true,false,false,List.of(new Finding("METHODOLOGY","OUTSIDE_FIRST_SCOPE",
+                "Esta declaração pertence ao recorte VM0038 OPEN. Defina a metodologia candidata na triagem; "
+                    + "nenhuma regra, cálculo ou categoria é presumida para outra metodologia.")),
+            List.of(),null);
     }
 
     static Readiness evaluate(Input data,boolean stale) {
