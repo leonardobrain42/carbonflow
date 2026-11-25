@@ -130,9 +130,48 @@ class MethodologyPinIntegrationTest {
                 "SELECT count(*) FROM app_project_methodology_pin WHERE project_id=?", r -> r.getLong(1), id));
         assertEquals(2L, pins.longValue());
 
+        // Saving the SAME candidate (or just moving) while a newer version exists must not re-pin the project:
+        // only an explicit migration moves it to the new version.
+        JsonNode resaved = save(root, owner, second.path("version").asLong(), "METHP V1.0");
+        assertEquals(2, resaved.at("/methodologyPin/version").asInt());
+        assertEquals(1, resaved.at("/methodologyPin/registryVersion").asInt());
+        assertTrue(resaved.at("/methodologyPin/newerRegistryVersion").asBoolean());
+
+        // Explicit migration: needs the pin version, a confirmation, project rights and a real difference.
+        String migrate = root + "/triage/methodology-pin/migrate";
+        String confirm = "{\"confirm\":true}";
+        assertEquals(428, call("POST", migrate, owner, null, confirm).statusCode());
+        assertEquals(412, call("POST", migrate, owner, "\"1\"", confirm).statusCode());
+        assertEquals(400, call("POST", migrate, owner, "\"2\"", "{\"confirm\":false}").statusCode());
+        assertEquals(400, call("POST", migrate, owner, "\"2\"", "{}").statusCode());
+        assertTrue(java.util.Set.of(403, 404).contains(call("POST", migrate, stranger, "\"2\"", confirm).statusCode()));
+        assertEquals(401, call("POST", migrate, null, "\"2\"", confirm).statusCode());
+        var migrated = call("POST", migrate, owner, "\"2\"", confirm);
+        assertEquals(200, migrated.statusCode(), migrated.body());
+        assertEquals("\"3\"", migrated.headers().firstValue("ETag").orElseThrow());
+        JsonNode moved = json.readTree(migrated.body()).path("methodologyPin");
+        assertEquals(3, moved.path("version").asInt());
+        assertEquals("MIGRATION", moved.path("origin").asText());
+        assertEquals(2, moved.path("migratedFrom").asInt());
+        assertEquals(2, moved.path("registryVersion").asInt());
+        assertFalse(moved.path("newerRegistryVersion").asBoolean());
+        assertEquals("METHP", moved.path("methodology").asText());
+        // The pin it replaced is untouched (append-only lineage), and a repeat has nothing to migrate.
+        Long oldRegistry = database.read(c -> first(c,
+                "SELECT registry_version FROM app_project_methodology_pin WHERE project_id=? AND pin_version=2",
+                r -> r.getLong(1), id));
+        assertEquals(1L, oldRegistry.longValue());
+        assertEquals(409, call("POST", migrate, owner, "\"3\"", confirm).statusCode());
+        assertEquals(412, call("POST", migrate, owner, "\"2\"", confirm).statusCode());
+        // Saving the same candidate afterwards still does not add pins.
+        JsonNode after = save(root, owner, resaved.path("version").asLong(), "METHP V1.0");
+        assertEquals(3, after.at("/methodologyPin/version").asInt());
+
         // Clearing the candidate is recorded; the pin in force then names no methodology.
-        JsonNode cleared = save(root, owner, second.path("version").asLong(), null);
-        assertEquals(3, cleared.at("/methodologyPin/version").asInt());
+        JsonNode cleared = save(root, owner, after.path("version").asLong(), null);
+        assertEquals(4, cleared.at("/methodologyPin/version").asInt());
+        // With no pinned methodology there is nothing to migrate.
+        assertEquals(409, call("POST", migrate, owner, "\"4\"", confirm).statusCode());
         assertTrue(cleared.at("/methodologyPin/methodology").isNull());
 
         // Pins are append-only and isolated to the project.
