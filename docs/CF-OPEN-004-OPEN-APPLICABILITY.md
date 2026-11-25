@@ -18,7 +18,7 @@ Migração V47 `app_project_open_applicability_revision`:
 - titular do carregador, referência verificável do contrato de titularidade sobre reduções, canal, prova e data de divulgação aos motoristas, risco de dupla reivindicação, data de início;
 - autoria, data e histórico imutável, chave idempotente por ator e pedido.
 
-**Não se armazenam os textos dos contratos ou dados de terceiros nesta tabela**: somente referências informadas pelo projeto. Não são provas admitidas pela simples declaração. O mesmo projeto recebe nova revisão quando atualizar informações; alterar a triagem marca a declaração anterior `STALE` até reconfirmação.
+**Não se armazenam os textos dos contratos ou dados de terceiros nesta tabela**: somente referências informadas pelo projeto. Não são provas admitidas pela simples declaração. O mesmo projeto recebe nova revisão quando atualizar informações; alterar uma resposta relevante da triagem ([CF-SPEC-D15](../specification/DECISOES_E_DUVIDAS.md)) marca a declaração anterior `STALE` até reconfirmação; mover o cursor, editar textos narrativos ou salvar uma etapa sem tocar o recorte não a invalidam. Desde D16, rede, acesso, energia e direitos são declarados aqui e não mudam mais pela triagem. O pré-cálculo ainda compara só a versão da triagem (Q7 de D16, pendente).
 
 ## API e escopos
 - `GET /v1/projects/{project}/technical/open-applicability` (VIEW_OPEN_APPLICABILITY)
@@ -39,7 +39,7 @@ Migração V47 `app_project_open_applicability_revision`:
 ## Critérios verificados pela implementação
 - API e frontend com classificação de rede OPEN mesmo em propriedade privada, dados parciais e indicação explícita de pendências;
 - salvar de forma versionada, com If-Match e replays idempotentes;
-- nova triagem marca declaração como stale, sem reescrever histórico;
+- resposta relevante nova na triagem (CF-SPEC-D15) marca declaração como stale, sem reescrever histórico;
 - status de preparação independente da biblioteca de fontes, E8 explicitamente não liberado;
 - autorização restrita ao mesmo projeto e organização;
 - fixtures de testes usados apenas na CI, sem alterar o PIL-SYN-BR-001.

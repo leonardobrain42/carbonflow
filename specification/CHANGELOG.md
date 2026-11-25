@@ -1,4 +1,6 @@
 # Changelog da especificação viva
+## 0.3.0-rc.22 — 24/11/2026 (proposta)
+- D16 fatia 6c (especificação): D16 implementada e consolidada; D15 com a lista relevante na prática depois de D16 e o limite do pré-cálculo (Q7); nova capacidade CF-SPEC-S17 na matriz; CF-IMP-009 e CF-OPEN-004 alinhados a D15/D16; catálogo e estado atualizados. Só documentação; nenhum comportamento alterado.
 ## 0.3.0-rc.21 — 24/11/2026 (proposta)
 - D16 fatia 6b: triagem pergunta só a hipótese inicial (recorte com 4 perguntas na VM0038, local sem direitos, dados nem investimento; linha de base e benefício opcionais). Respostas antigas são copiadas, recusadas se alteradas (400 com a tela dona) e mostradas só para leitura (`retiredAnswers`); o resumo lista o que será pedido na preparação técnica. Sem migração; revisões gravadas, D15, diagnóstico v3 e guardas de versão inalterados.
 ## 0.3.0-rc.20 — 24/11/2026 (proposta)
