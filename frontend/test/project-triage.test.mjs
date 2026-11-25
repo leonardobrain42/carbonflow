@@ -65,6 +65,29 @@ async function setup(page) {
     journey: journeys[{'VM0038':'VM0038','TEST-ONLY':'TEST'}[state.answers['1']?.methodologyCandidate] ?? 'GENERAL'],
     candidateStatus: state.answers['1']?.methodologyCandidate === 'METHX V2.1'
       ? {state:'REGISTERED_NO_PACKAGE', methodology:'METHX', edition:'2.1', registryVersion:1} : undefined,
+    methodologyPin: state.answers['1']?.methodologyCandidate === 'VM0038'
+      ? {version:1,triageVersion:1,methodology:'VM0038',edition:'1.1',registryVersion:1,packageId:'VM0038_V1_1',
+         packageVersion:1,pinnedAt:'2026-11-25T12:00:00Z',newerRegistryVersion:false,packageChanged:state.packageChanged === true}
+      : state.answers['1']?.methodologyCandidate === 'METHX V2.1'
+      ? {version:1,triageVersion:1,methodology:'METHX',edition:'2.1',registryVersion:1,packageId:null,
+         packageVersion:null,pinnedAt:'2026-11-25T12:00:00Z',newerRegistryVersion:true,packageChanged:false}
+      : null,
+    capabilities: (() => {
+      const axis = s => ({state:s});
+      const pack = state.answers['1']?.methodologyCandidate === 'VM0038';
+      const known = pack || state.answers['1']?.methodologyCandidate === 'METHX V2.1';
+      return [
+        {purpose:'TRIAGE',label:'Triagem guiada',code:axis(pack?'MET':'NOT_MET'),data:axis('NOT_REQUIRED'),licence:axis('NOT_REQUIRED'),
+         effective:pack?'ENABLED':'NOT_ENABLED',reason:pack?'Pacote com schema de triagem em código.'
+           :known?'Metodologia registrada sem pacote em código: candidata com lacuna, sem campos próprios.':'Sem metodologia candidata registrada.'},
+        {purpose:'SOURCE_REFERENCE',label:'Referência a requisitos das fontes',code:axis(pack?'MET':'NOT_MET'),data:axis('NOT_MET'),
+         licence:axis('NOT_MET'),effective:'NOT_ENABLED',reason:'Falta ao menos um dos três: pacote em código, metadados das fontes obrigatórias ou decisão de licença vigente.'},
+        {purpose:'CALCULATION_ADMISSION',label:'Cálculo e admissão de dados',code:axis('NOT_REQUIRED'),data:axis('NOT_REQUIRED'),
+         licence:axis('NOT_REQUIRED'),effective:'NOT_ENABLED',reason:'Gate próprio com revisão e decisão separadas; não deriva de código, dados ou licença.'},
+        {purpose:'EXTERNAL_ACTS',label:'Atos externos',code:axis('NOT_REQUIRED'),data:axis('NOT_REQUIRED'),
+         licence:axis('NOT_REQUIRED'),effective:'NOT_ENABLED',reason:'Gate próprio com revisão e decisão separadas; não deriva de código, dados ou licença.'},
+      ];
+    })(),
     catalog: {version:1, digest:'0'.repeat(64), activityTypes:[
       {value:'MOBILIDADE_ELETRICA',label:'Mobilidade elétrica e recarga'},{value:'RESIDUOS',label:'Resíduos e economia circular'},
       {value:'ENERGIA',label:'Energia e eficiência energética'},{value:'AGRICULTURA',label:'Agricultura, solo e florestas'},
@@ -334,6 +357,61 @@ test('D18: metodologia registrada sem pacote é candidata com aviso de lacuna, s
     await page.getByText('ainda sem pacote executável',{exact:false}).waitFor();
     await page.getByRole('button',{name:'Salvar e avançar'}).click();
     assert.equal(await page.getByLabel('O projeto inclui instalar sistemas de recarga?').count(),0);
+  } finally {
+    await browser.close();
+  }
+});
+
+test('D18 fatia 3: a tela mostra a fixação de versão e a capacidade por finalidade, sem sugerir aprovação', async () => {
+  const browser = await chromium.launch({executablePath});
+  try {
+    const page = await browser.newPage({viewport:{width:1360,height:850}});
+    const {state} = await setup(page);
+    await page.goto(base + '/workspace/projects/' + projectId + '/triage');
+    // The summary is the last step: jump there with the example (no answers invented by the screen).
+    await page.getByText('Testar com um exemplo sintético',{exact:true}).click();
+    await page.getByRole('button',{name:'Preencher exemplo de 25 BEVs'}).click();
+    await page.getByRole('heading',{name:'Situação da metodologia no CarbonFlow'}).waitFor();
+    await page.getByText('Preparação fixada em VM0038 1.1',{exact:false}).waitFor();
+    await page.getByText('pacote versão 1',{exact:false}).waitFor();
+    assert.equal(await page.getByText('Há uma versão mais nova do registro',{exact:false}).count(),0);
+    const list = page.locator('#cf-triage-capability').locator('..');
+    await list.getByText('Triagem guiada',{exact:true}).waitFor();
+    await list.getByText('Triagem guiada',{exact:true}).locator('..').getByText('disponível',{exact:false}).first().waitFor();
+    await list.getByText('Referência a requisitos das fontes',{exact:true}).locator('..').getByText('ainda não disponível').waitFor();
+    await list.getByText('Código: Atendido · Dados: Não atendido · Licença: Não atendido').waitFor();
+    // Calculation, admission and external acts are closed gates, never a "missing feature".
+    await list.getByText('Cálculo e admissão de dados',{exact:true}).locator('..').getByText('fechado, com decisão própria').waitFor();
+    await list.getByText('Atos externos',{exact:true}).locator('..').getByText('fechado, com decisão própria').waitFor();
+    assert.equal(await list.getByText(/aprovad|elegível|habilitad/i).count(),0);
+    // A changed package is shown as a notice; the project stays on the pinned version.
+    state.packageChanged = true;
+    await page.reload();
+    await page.getByText('O pacote desta metodologia mudou desde a fixação.',{exact:false}).waitFor();
+    await page.getByText('migração explícita, que ainda não está disponível',{exact:false}).waitFor();
+    await page.setViewportSize({width:390,height:844});
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth),false);
+  } finally {
+    await browser.close();
+  }
+});
+
+test('D18 fatia 3: metodologia registrada sem pacote mostra a lacuna e a versão nova do registro', async () => {
+  const browser = await chromium.launch({executablePath});
+  try {
+    const page = await browser.newPage({viewport:{width:1360,height:850}});
+    const {state} = await setup(page);
+    await page.goto(base + '/workspace/projects/' + projectId + '/triage');
+    await page.getByText('Testar com um exemplo sintético',{exact:true}).click();
+    await page.getByRole('button',{name:'Preencher exemplo de 25 BEVs'}).click();
+    await page.getByRole('heading',{name:'Situação da metodologia no CarbonFlow'}).waitFor();
+    // The server now reports a registered methodology without a package as the candidate.
+    state.answers['1'].methodologyCandidate = 'METHX V2.1';
+    await page.reload();
+    await page.getByRole('heading',{name:'Situação da metodologia no CarbonFlow'}).waitFor();
+    await page.getByText('ainda sem pacote executável)',{exact:false}).waitFor();
+    await page.getByText('Há uma versão mais nova do registro desta metodologia.',{exact:false}).waitFor();
+    await page.locator('#cf-triage-capability').locator('..').getByText('Triagem guiada',{exact:true}).locator('..').getByText('ainda não disponível').waitFor();
   } finally {
     await browser.close();
   }
