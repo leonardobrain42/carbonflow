@@ -17,19 +17,26 @@ final class ProjectTriageDiagnosis {
     private ProjectTriageDiagnosis() {}
 
     static Result evaluate(JsonNode answers, ProjectJourney.Guidance guidance) {
+        return evaluate(ProjectJourney.profile(answers), answers, guidance);
+    }
+
+    static Result evaluate(ProjectJourney.Profile profile, JsonNode answers, ProjectJourney.Guidance guidance) {
+        if (profile.evaluator() != null) return profile.evaluator().diagnose(answers, guidance);
         String candidate = ProjectJourney.candidate(answers);
         var findings = new ArrayList<Finding>();
-        if (ProjectJourney.profile(answers) != ProjectJourney.VM0038) {
-            finding(findings, "METHODOLOGY", "Defina a metodologia candidata",
-                    "Confira qual metodologia corresponde à atividade antes de preparar a análise.", 1, "methodologyCandidate");
-            return new Result(RULE_VERSION, candidate == null || candidate.isBlank()
-                    ? Classification.UNKNOWN_REVIEW_REQUIRED : Classification.UNSUPPORTED_MVP,
-                    candidate == null || candidate.isBlank()
-                            ? "A metodologia candidata ainda precisa ser definida."
-                            : "A metodologia indicada ainda está fora das configurações disponíveis no CarbonFlow.",
-                    List.copyOf(findings));
-        }
+        finding(findings, "METHODOLOGY", "Defina a metodologia candidata",
+                "Confira qual metodologia corresponde à atividade antes de preparar a análise.", 1, "methodologyCandidate");
+        return new Result(RULE_VERSION, candidate == null || candidate.isBlank()
+                ? Classification.UNKNOWN_REVIEW_REQUIRED : Classification.UNSUPPORTED_MVP,
+                candidate == null || candidate.isBlank()
+                        ? "A metodologia candidata ainda precisa ser definida."
+                        : "A metodologia indicada ainda está fora das configurações disponíveis no CarbonFlow.",
+                List.copyOf(findings));
+    }
 
+    /** VM0038 v1.1 package rules (first adapter): compares the initial hypothesis with the implemented scope. */
+    static Result evaluateVm0038(JsonNode answers, ProjectJourney.Guidance guidance) {
+        var findings = new ArrayList<Finding>();
         JsonNode plan = answers.path("1");
         JsonNode activity = answers.path("2");
         JsonNode profile = answers.path("3");
