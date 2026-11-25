@@ -44,6 +44,12 @@ class AgnosticDraftIntakeTest {
             .statusCode());
 
         JsonNode triage = json(call("GET", root + "/triage", owner.cookie(), null, null, null));
+        // A03: the triage screen lists packages and activity types from the versioned catalog, not from its own code.
+        assertEquals(1, triage.at("/catalog/version").asInt());
+        assertEquals(64, triage.at("/catalog/digest").asText().length());
+        assertEquals("VM0038", triage.at("/methodologies/0/value").asText());
+        assertEquals("VM0038_V1_1", triage.at("/catalog/packages/0/packageId").asText());
+        assertEquals("RESIDUOS", triage.at("/catalog/activityTypes/1/value").asText());
         assertEquals("GENERAL", triage.at("/journey/id").asText());
         assertEquals("SEM_JORNADA_CONFIGURADA", triage.at("/guidance/state").asText());
         assertEquals("UNSUPPORTED_MVP", triage.at("/diagnosis/classification").asText());

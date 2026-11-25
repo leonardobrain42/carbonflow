@@ -198,7 +198,7 @@ class DynamicProjectTechnical {
         }
         return new IntakeView(scope.id(), scope.organization(), scope.environment(),
                 row == null ? 0 : row.version(), row == null ? "NAO_INICIADO" : "RASCUNHO",
-                "NAO_AVALIADO", data, blockers(candidate), triageCandidate, journey, ProjectJourney.METHODOLOGIES,
+                "NAO_AVALIADO", data, blockers(candidate), triageCandidate, journey, MethodologyPackages.options(),
                 experienceMode, summary);
     }
 

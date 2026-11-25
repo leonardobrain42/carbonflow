@@ -75,6 +75,8 @@ interface TriageView {
   nextAction: string;
   journey: JourneyProfile;
   methodologies: JourneyOption[];
+  /** Versioned catalog of packages and the activity vocabulary (A03/#90); the screen lists nothing by itself. */
+  catalog?: {version: number; digest: string; activityTypes: JourneyOption[]};
   guidance: {state: string; outsideMethodology: string[]; outsidePilot: string[]};
   retiredAnswers?: RetiredAnswer[];
 }
@@ -122,6 +124,7 @@ export class ProjectTriageComponent {
     return this.otherMethodology() ? OTHER_METHODOLOGY
       : methodologyOption(this.field(1, 'methodologyCandidate'), current?.methodologies ?? [], current?.journey);
   });
+  readonly activityTypes = computed(() => this.view()?.catalog?.activityTypes ?? []);
   /** Package schema for the activity step, read from the server (A03). */
   readonly activityQuestions = computed(() => this.view()?.journey.activityQuestions ?? []);
   readonly presentation = computed(() => this.view()?.journey.presentation ?? DEFAULT_PRESENTATION);
