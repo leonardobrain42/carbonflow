@@ -22,6 +22,7 @@ import {PlatformSourceReadinessComponent} from './platform-source-readiness';
 import {PlatformMethodologyRegistryComponent} from './platform-methodology-registry';
 import {PlatformMethodologySourcesComponent} from './platform-methodology-sources';
 import {PlatformContentLicensesComponent} from './platform-content-licenses';
+import {PlatformAliasCandidatesComponent} from './platform-alias-candidates';
 import {ProjectAuthorityRequestsComponent} from './project-authority-requests';
 import {ProjectReceivedInvitationsComponent} from './project-received-invitations';
 import {ProjectInvitationPlansComponent} from './project-invitation-plans';
@@ -285,6 +286,7 @@ const routes: Routes = [
   {path: 'workspace/platform/sources', component: PlatformSourceReadinessComponent},
   {path: 'workspace/platform/methodologies', component: PlatformMethodologyRegistryComponent},
   {path: 'workspace/platform/licenses', component: PlatformContentLicensesComponent},
+  {path: 'workspace/platform/alias-candidates', component: PlatformAliasCandidatesComponent},
   {path: 'workspace/platform/methodologies/:methodology/:edition/sources', component: PlatformMethodologySourcesComponent},
   {path: 'workspace/invitations', component: ProjectReceivedInvitationsComponent},
   {path: 'workspace/projects/new', component: WorkspaceComponent},
