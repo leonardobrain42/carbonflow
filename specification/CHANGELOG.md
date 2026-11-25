@@ -1,6 +1,8 @@
 # Changelog da especificação viva
 ## 0.3.0-rc.30 — 25/11/2026 (proposta)
 - Linha 4, fatia #99: parecer interno independente e versionado por critério de adicionalidade (lista positiva, excedente regulatório, cronologia) com `REV`+`ADDITIONALITY`, independência do autor do guia/declaração, ETag, idempotência e obsolescência quando o guia ou a declaração mudam (migração aditiva V100; contrato CF-OPEN-010-ADDITIONALITY-REVIEW). Não conclui adicionalidade nem habilita E8; #103 (VT0008), direitos #93 e tela seguem abertos. CI: recuperação V79 estendida à V100.
+## 0.3.0-rc.29 — 25/11/2026 (proposta)
+- Linha 3, consolidação anual: janelas calculadas do mesmo ano precisam usar a mesma frota, os mesmos ratings, o mesmo ciclo e o mesmo candidato de fator fóssil (`FLEET_REFERENCE_MISMATCH`, `FUEL_REFERENCE_MISMATCH`, `FLEET_FUEL_REFERENCE_MISSING`); membros trazem `canonical` e o manifesto os inclui. Política interna, a confirmar; sem migração, sem admissão, `usableForE8`/`canIssueVcu` falsos. Ainda sem E2E com memórias calculadas.
 ## 0.3.0-rc.28 — 25/11/2026 (proposta)
 - Linha 2, fatia Dy (D14/Q05.1): totais acumulados declarados de ERC/ERF (início da creditação até o fim do ano y−1) como registro opcional da avaliação (migração aditiva V99, API; hash só quando informado). A leitura vigente segue anual, nada entra no cálculo e `usableForE8` continua falso. Itemização, matriz de busca estendida, formulário do Angular e consumo pelo executor seguem pendentes; G03/G04 continuam abertas (EVR nacional, fontes e licenças são de terceiros).
 ## 0.3.0-rc.27 — 25/11/2026 (proposta)
