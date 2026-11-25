@@ -79,7 +79,9 @@ class ProjectTriageWizardTest {
         assertEquals("PENDENTE", json(second).at("/stages/1/status").asText());
         assertEquals("NAO_AVALIADO", json(second).path("analysisState").asText());
         assertEquals(4, json(second).path("currentStep").asInt());
-        assertTrue(json(second).path("pending").toString().contains("baselinePractice"));
+        // D16 (Q3): the baseline is an optional note; the VM0038 activity step still asks about the installation.
+        assertFalse(json(second).path("pending").toString().contains("baselinePractice"));
+        assertTrue(json(second).path("pending").toString().contains("installsChargers"));
 
         var moved = call("PATCH", endpoint + "/cursor", owner.cookie(),
                 UUID.randomUUID().toString(), "\"2\"", "{\"nextStep\":1}");
@@ -120,7 +122,10 @@ class ProjectTriageWizardTest {
         JsonNode result = json(a);
         assertEquals(1, result.path("version").asInt());
         assertEquals(5, result.path("currentStep").asInt());
-        assertEquals(25, result.at("/answers/3/vehicleCount").asInt());
+        // D16: the example records only the initial hypothesis; quantities, energy, rights and evidence are not set.
+        assertTrue(result.at("/answers/3/vehicleCount").isMissingNode());
+        assertTrue(result.at("/answers/4/rightsStatus").isMissingNode());
+        assertEquals(0, result.path("retiredAnswers").size());
         assertEquals("BEV", result.at("/answers/3/propulsion").asText());
         assertEquals("DCFC", result.at("/answers/3/chargerType").asText());
         assertEquals("Brasília", result.at("/answers/4/locality").asText());
@@ -128,8 +133,9 @@ class ProjectTriageWizardTest {
         assertEquals("2027-09-27", result.at("/answers/4/referenceDate").asText());
         assertEquals("25_BEV_BRASILIA_DF_2027_09_27", result.path("exampleKind").asText());
         assertEquals("NAO_AVALIADO", result.path("analysisState").asText());
-        assertEquals("PENDENTE", result.at("/stages/3/status").asText());
-        assertTrue(result.path("pending").toString().contains("evidenceStatus"));
+        assertEquals("Local", result.at("/stages/3/title").asText());
+        assertEquals("PREENCHIDO", result.at("/stages/3/status").asText());
+        assertFalse(result.path("pending").toString().contains("evidenceStatus"));
         assertFalse(result.toString().contains("ER_CO2E"));
         assertFalse(result.toString().contains("VCU_EMITIDA"));
         assertEquals(1L, count(project));
@@ -220,12 +226,21 @@ class ProjectTriageWizardTest {
         assertEquals("VM0038_V1_1", json(plan).at("/journey/id").asText());
         var outsidePilot = call("PUT", endpoint + "/steps/3", owner.cookie(), UUID.randomUUID().toString(),
                 "\"1\"", """
-                {"answers":{"vehicleClass":"LDV","propulsion":"PHEV","chargerType":"AC",
-                            "electricitySource":"ON_SITE","associatedInfrastructure":"YES"},"nextStep":5}
+                {"answers":{"vehicleClass":"LDV","propulsion":"PHEV","chargerType":"AC"},"nextStep":5}
                 """);
         assertEquals(200, outsidePilot.statusCode(), outsidePilot.body());
+        assertEquals("Recorte inicial", json(outsidePilot).at("/stages/2/title").asText());
+        assertEquals(4, json(outsidePilot).at("/journey/questions").size());
         assertEquals(0, json(outsidePilot).at("/guidance/outsideMethodology").size());
-        assertEquals(4, json(outsidePilot).at("/guidance/outsidePilot").size());
+        assertEquals(2, json(outsidePilot).at("/guidance/outsidePilot").size());
+        // D16: energy and infrastructure are declared in Acesso à rede, no longer in the triage.
+        var retiredField = call("PUT", endpoint + "/steps/3", owner.cookie(), UUID.randomUUID().toString(),
+                "\"2\"", """
+                {"answers":{"vehicleClass":"LDV","electricitySource":"ON_SITE"},"nextStep":5}
+                """);
+        assertEquals(400, retiredField.statusCode(), retiredField.body());
+        assertEquals("electricitySource", json(retiredField).at("/issues/0/path").asText());
+        assertTrue(json(retiredField).path("message").asText().contains("Acesso à rede"));
         assertEquals("NAO_AVALIADO", json(outsidePilot).path("analysisState").asText());
         var invalid = call("PUT", endpoint + "/steps/3", owner.cookie(), UUID.randomUUID().toString(),
                 "\"2\"", """
@@ -264,15 +279,6 @@ class ProjectTriageWizardTest {
             """,
             """
             {"answers":{"installsChargers":"YES"},"nextStep":3}
-            """,
-            """
-            {"answers":{"vehicleClass":"LDV","propulsion":"BEV","chargerType":"DCFC","network":"CLOSED","access":"PRIVATE",
-              "electricitySource":"SIN","associatedInfrastructure":"NO","metering":"SEGREGATED","design":"INDIVIDUAL",
-              "vehicleCount":25,"chargerCount":1},"nextStep":4}
-            """,
-            """
-            {"answers":{"country":"BR","state":"DF","locality":"Brasília","investmentCommitted":"YES",
-              "carbonConsideredBeforeInvestment":"NO","rightsStatus":"DECLARADO"},"nextStep":5}
             """
         };
         for (int index = 0; index < steps.length; index++) {
@@ -280,6 +286,14 @@ class ProjectTriageWizardTest {
                     UUID.randomUUID().toString(), "\"" + index + "\"", steps[index]);
             assertEquals(200, saved.statusCode(), saved.body());
         }
+        // A project answered before D16: the retired answers exist only in an older revision.
+        legacy(project, 3, """
+                {"3":{"vehicleClass":"LDV","propulsion":"BEV","chargerType":"DCFC","network":"CLOSED","access":"PRIVATE",
+                  "electricitySource":"SIN","associatedInfrastructure":"NO","metering":"SEGREGATED","design":"INDIVIDUAL",
+                  "vehicleCount":25,"chargerCount":1},
+                 "4":{"country":"BR","state":"DF","locality":"Brasília","investmentCommitted":"YES",
+                  "carbonConsideredBeforeInvestment":"NO","rightsStatus":"DECLARADO"}}
+                """);
         var summary = json(call("GET", endpoint, owner.cookie(), null, null, null));
         assertEquals("SUPPORTED_MVP_CONFIGURATION", summary.at("/diagnosis/classification").asText());
         assertEquals("NAO_AVALIADO", summary.path("analysisState").asText());
@@ -292,80 +306,101 @@ class ProjectTriageWizardTest {
         assertEquals("TECHNICAL", commitment.path("kind").asText());
         assertEquals(0, commitment.path("step").asInt());
         assertTrue(commitment.path("fields").isEmpty());
-        var outside = call("PUT", endpoint + "/steps/3", owner.cookie(), UUID.randomUUID().toString(), "\"4\"",
+        // The older answers are shown read-only, each with the technical screen that owns it now.
+        var retired = summary.path("retiredAnswers");
+        assertEquals(java.util.Set.of(3, 4), java.util.Set.copyOf(retired.findValues("step").stream().map(JsonNode::asInt).toList()));
+        var investment = retired.valueStream().filter(item -> "investmentCommitted".equals(item.path("key").asText()))
+                .findFirst().orElseThrow();
+        assertEquals("adicionalidade", investment.path("section").asText());
+        assertEquals("Sim", investment.path("valueLabel").asText());
+        var outside = call("PUT", endpoint + "/steps/3", owner.cookie(), UUID.randomUUID().toString(), "\"3\"",
                 """
-                {"answers":{"chargerType":"AC","associatedInfrastructure":"YES"},"nextStep":5}
+                {"answers":{"chargerType":"AC"},"nextStep":5}
                 """);
         assertEquals(200, outside.statusCode(), outside.body());
         var outsideView = json(outside);
         assertEquals("UNSUPPORTED_MVP", outsideView.at("/diagnosis/classification").asText());
-        assertEquals(2, outsideView.at("/guidance/outsidePilot").size());
-        var infrastructure = outsideView.at("/diagnosis/findings").valueStream()
-                .filter(item -> "OUTSIDE_MVP_associatedInfrastructure".equals(item.path("code").asText()))
-                .findFirst().orElseThrow();
-        assertEquals("PILOT_SCOPE", infrastructure.path("kind").asText());
-        assertEquals(3, infrastructure.path("step").asInt());
-        assertEquals("associatedInfrastructure", infrastructure.at("/fields/0").asText());
-
+        assertEquals(1, outsideView.at("/guidance/outsidePilot").size());
+        assertEquals("NO", outsideView.at("/answers/3/associatedInfrastructure").asText(), "retired answer kept");
+        // Changing a retired answer is refused, not ignored; re-sending the stored value is not a change.
+        assertEquals(400, call("PUT", endpoint + "/steps/4", owner.cookie(), UUID.randomUUID().toString(), "\"4\"", """
+                {"answers":{"country":"BR","investmentCommitted":"NO"},"nextStep":5}
+                """).statusCode());
         var dateAndInvestment = call("PUT", endpoint + "/steps/4", owner.cookie(), UUID.randomUUID().toString(),
-                "\"5\"", """
+                "\"4\"", """
                 {"answers":{"country":"BR","state":"DF","locality":"Brasília","referenceDate":"2027-09-27",
-                  "investmentCommitted":"NO","rightsStatus":"DECLARADO"},"nextStep":5}
+                  "rightsStatus":"DECLARADO"},"nextStep":5}
                 """);
         assertEquals(200, dateAndInvestment.statusCode(), dateAndInvestment.body());
+        assertEquals("YES", json(dateAndInvestment).at("/answers/4/investmentCommitted").asText());
         var updatedFindings = json(dateAndInvestment).at("/diagnosis/findings").findValuesAsText("code");
-        assertTrue(updatedFindings.containsAll(java.util.List.of("DATE", "ADDITIONALITY", "RIGHTS")));
+        assertTrue(updatedFindings.containsAll(java.util.List.of("DATE", "COMMITTED_INVESTMENT", "RIGHTS")));
         assertFalse(updatedFindings.stream().anyMatch(java.util.Set.of(
-                "REFERENCE_DATE", "COMMITTED_INVESTMENT", "PRIOR_CARBON_DECLARATION")::contains));
+                "REFERENCE_DATE", "PRIOR_CARBON_DECLARATION")::contains));
     }
 
     @Test
-    void d16CarriesRetiredAnswersForwardAndAnExplicitNullStillCounts() throws Exception {
+    void d16CarriesRetiredAnswersForwardAndRefusesToChangeThem() throws Exception {
         Actor owner = actor();
         String project = project(owner, organization(owner.id()));
         String endpoint = "/v1/projects/" + project + "/triage";
         String[] steps = {
             "{\"answers\":{\"activityType\":\"MOBILIDADE_ELETRICA\",\"methodologyCandidate\":\"VM0038\"},\"nextStep\":2}",
-            "{\"answers\":{\"installsChargers\":\"YES\"},\"nextStep\":3}",
-            """
-            {"answers":{"vehicleClass":"LDV","propulsion":"BEV","chargerType":"DCFC","network":"CLOSED","access":"PRIVATE",
-              "electricitySource":"SIN","associatedInfrastructure":"NO","metering":"SEGREGATED","design":"INDIVIDUAL",
-              "vehicleCount":25,"chargerCount":1},"nextStep":4}
-            """,
-            """
-            {"answers":{"country":"BR","state":"DF","locality":"Brasília","referenceDate":"2027-09-27",
-              "investmentCommitted":"YES","carbonConsideredBeforeInvestment":"NO","rightsStatus":"DECLARADO"},"nextStep":5}
-            """
+            "{\"answers\":{\"installsChargers\":\"YES\"},\"nextStep\":3}"
         };
         for (int index = 0; index < steps.length; index++) {
             assertEquals(200, call("PUT", endpoint + "/steps/" + (index + 1), owner.cookie(),
                     UUID.randomUUID().toString(), "\"" + index + "\"", steps[index]).statusCode());
         }
+        // A project answered before D16 (version 3 written as the older screen did).
+        legacy(project, 3, """
+                {"3":{"vehicleClass":"LDV","propulsion":"BEV","chargerType":"DCFC","network":"CLOSED","access":"PRIVATE",
+                  "electricitySource":"SIN","associatedInfrastructure":"NO","metering":"SEGREGATED","design":"INDIVIDUAL",
+                  "vehicleCount":25,"chargerCount":1},
+                 "4":{"country":"BR","state":"DF","locality":"Brasília","referenceDate":"2027-09-27",
+                  "investmentCommitted":"YES","carbonConsideredBeforeInvestment":"NO","rightsStatus":"DECLARADO"}}
+                """);
         // A step saved with only the answers that stay in the triage keeps the retired ones unchanged.
-        var scope = json(call("PUT", endpoint + "/steps/3", owner.cookie(), UUID.randomUUID().toString(), "\"4\"", """
+        var scope = json(call("PUT", endpoint + "/steps/3", owner.cookie(), UUID.randomUUID().toString(), "\"3\"", """
                 {"answers":{"vehicleClass":"LDV","propulsion":"BEV","chargerType":"DCFC","design":"INDIVIDUAL"},"nextStep":4}
                 """));
         assertEquals("CLOSED", scope.at("/answers/3/network").asText());
         assertEquals("SEGREGATED", scope.at("/answers/3/metering").asText());
         assertEquals(25, scope.at("/answers/3/vehicleCount").asInt());
+        assertEquals("PREENCHIDO", scope.at("/stages/2/status").asText());
         assertEquals("SUPPORTED_MVP_CONFIGURATION", scope.at("/diagnosis/classification").asText());
-        var location = json(call("PUT", endpoint + "/steps/4", owner.cookie(), UUID.randomUUID().toString(), "\"5\"", """
+        var metering = scope.path("retiredAnswers").valueStream()
+                .filter(item -> "metering".equals(item.path("key").asText())).findFirst().orElseThrow();
+        assertEquals("monitorar", metering.path("section").asText());
+        assertEquals("Medição a montante em circuito exclusivo", metering.path("valueLabel").asText());
+        var location = json(call("PUT", endpoint + "/steps/4", owner.cookie(), UUID.randomUUID().toString(), "\"4\"", """
                 {"answers":{"country":"BR","state":"DF","locality":"Brasília","referenceDate":"2027-09-27"},"nextStep":5}
                 """));
         assertEquals("DECLARADO", location.at("/answers/4/rightsStatus").asText());
         assertEquals("YES", location.at("/answers/4/investmentCommitted").asText());
+        assertEquals("PREENCHIDO", location.at("/stages/3/status").asText());
         assertTrue(location.at("/diagnosis/findings").findValuesAsText("code").contains("COMMITTED_INVESTMENT"));
-        // Clearing a retired answer on purpose is still recorded, and the scope is no longer called compatible.
-        var cleared = json(call("PUT", endpoint + "/steps/3", owner.cookie(), UUID.randomUUID().toString(), "\"6\"", """
+        // Clearing or changing a retired answer in the triage is refused with the owner screen; nothing is written.
+        for (String input : new String[] {
+                "{\"answers\":{\"vehicleClass\":\"LDV\",\"metering\":null},\"nextStep\":4}",
+                "{\"answers\":{\"vehicleClass\":\"LDV\",\"vehicleCount\":30},\"nextStep\":4}"
+        }) {
+            var refused = call("PUT", endpoint + "/steps/3", owner.cookie(), UUID.randomUUID().toString(), "\"5\"", input);
+            assertEquals(400, refused.statusCode(), refused.body());
+        }
+        assertEquals(5L, count(project));
+        // Re-sending the stored value (an older open tab) is not a change and is accepted.
+        var resent = call("PUT", endpoint + "/steps/3", owner.cookie(), UUID.randomUUID().toString(), "\"5\"", """
                 {"answers":{"vehicleClass":"LDV","propulsion":"BEV","chargerType":"DCFC","design":"INDIVIDUAL",
-                  "metering":null},"nextStep":4}
-                """));
-        assertTrue(cleared.at("/answers/3/metering").isNull());
-        assertEquals("UNKNOWN_REVIEW_REQUIRED", cleared.at("/diagnosis/classification").asText());
-        var confirm = cleared.at("/diagnosis/findings").valueStream()
-                .filter(item -> "TECHNICAL_SCOPE_TO_CONFIRM".equals(item.path("code").asText())).findFirst().orElseThrow();
-        assertEquals(1, confirm.path("fields").size());
-        assertEquals("metering", confirm.at("/fields/0").asText());
+                  "metering":"SEGREGATED","network":null},"nextStep":4}
+                """);
+        assertEquals(400, resent.statusCode(), "a null over a stored answer clears it, so it is refused");
+        resent = call("PUT", endpoint + "/steps/3", owner.cookie(), UUID.randomUUID().toString(), "\"5\"", """
+                {"answers":{"vehicleClass":"LDV","propulsion":"BEV","chargerType":"DCFC","design":"INDIVIDUAL",
+                  "metering":"SEGREGATED"},"nextStep":4}
+                """);
+        assertEquals(200, resent.statusCode(), resent.body());
+        assertEquals("CLOSED", json(resent).at("/answers/3/network").asText());
     }
 
     @Test
@@ -399,6 +434,10 @@ class ProjectTriageWizardTest {
                 "associatedInfrastructure", "metering", "vehicleCount", "chargerCount")));
         assertEquals("TECHNICAL", confirm.path("kind").asText());
         assertEquals(0, view.at("/guidance/outsidePilot").size(), "no limit is claimed from an answer nobody gave");
+        // D16: the new triage is complete with the initial hypothesis alone and has no older answers to show.
+        assertEquals("PREENCHIDO", view.at("/stages/2/status").asText());
+        assertEquals("PREENCHIDO", view.at("/stages/3/status").asText());
+        assertEquals(0, view.path("retiredAnswers").size());
     }
 
     @Test
@@ -466,6 +505,16 @@ class ProjectTriageWizardTest {
                 "{\"organizationId\":\"" + org + "\",\"title\":\"Projeto de triagem\"}");
         assertEquals(201, created.statusCode(), created.body());
         return json(created).path("projectId").asText();
+    }
+
+    /** Writes an older-screen revision (before D16), merging the given steps into the latest answers. */
+    private void legacy(String project, int version, String steps) {
+        database.transaction(connection -> update(connection, """
+                INSERT INTO app_project_triage_revision
+                  (project_id, organization_id, environment, version, actor_id, current_step, answers)
+                SELECT project_id, organization_id, environment, ?, actor_id, 5, answers || ?::jsonb
+                FROM app_project_triage_revision WHERE project_id = ? ORDER BY version DESC LIMIT 1
+                """, version, steps, project));
     }
 
     private long count(String project) {

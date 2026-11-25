@@ -34,13 +34,17 @@ class ProjectTriageWizard {
                 String analysisState, String exampleKind, JsonNode answers,
                 List<StepSummary> stages, List<String> pending,
                 String nextAction, ProjectJourney.Profile journey, List<ProjectJourney.Option> methodologies,
-                ProjectJourney.Guidance guidance, ProjectTriageDiagnosis.Result diagnosis) {}
+                ProjectJourney.Guidance guidance, ProjectTriageDiagnosis.Result diagnosis,
+                List<RetiredAnswer> retiredAnswers) {}
+    /** D16: an older answer that the triage no longer asks; shown read-only with the screen that owns it now. */
+    record RetiredAnswer(int step, String key, String label, JsonNode value, String valueLabel,
+                         String section, String sectionTitle) {}
     private record Snapshot(int version, int currentStep, ObjectNode answers) {}
     private record Receipt(String action, String projectId, byte[] fingerprint, String response) {}
 
     private static final List<String> TITLES = List.of(
-            "Planejamento", "Atividade", "Frota e recarga",
-            "Local, dados e direitos", "Resumo da triagem");
+            "Objetivo e metodologia", "Atividade", "Recorte inicial",
+            "Local", "Resumo da triagem");
     private static final List<Set<String>> FIELDS = List.of(
             Set.of("objective", "activityType", "methodologyCandidate"),
             Set.of("activityDescription", "baselinePractice", "expectedBenefit", "installsChargers"),
@@ -48,11 +52,13 @@ class ProjectTriageWizard {
             Set.of("country", "state", "locality", "referenceDate", "evidenceStatus",
                    "rightsStatus", "rightsJustification", "investmentCommitted", "carbonConsideredBeforeInvestment")
     );
+    // D16: the triage requires only the initial hypothesis. baselinePractice and expectedBenefit stay as optional
+    // notes (Q3); the formal baseline, rights, additionality and evidence belong to the technical screens.
     private static final List<List<String>> REQUIRED = List.of(
             List.of("objective", "activityType"),
-            List.of("activityDescription", "baselinePractice"),
+            List.of("activityDescription"),
             List.of(),
-            List.of("country", "state", "locality", "referenceDate", "evidenceStatus", "rightsStatus")
+            List.of("country", "state", "locality", "referenceDate")
     );
 
     private final DynamicProjectScope scope;
@@ -89,10 +95,8 @@ class ProjectTriageWizard {
             Snapshot previous = latestOrEmpty(connection, projectId);
             PilotCommands.requireVersion(expected, previous.version());
             ObjectNode answers = previous.answers().deepCopy();
+            keepRetired(step, previous.answers().path(Integer.toString(step)), normalized);
             validateJourneyStep(step, normalized, answers);
-            if (ProjectJourney.profile(answers) == ProjectJourney.VM0038) {
-                carryRetired(step, previous.answers().path(Integer.toString(step)), normalized);
-            }
             answers.set(Integer.toString(step), normalized);
             Snapshot next = new Snapshot(expected + 1, destination, answers);
             saveRevision(connection, actor, next);
@@ -142,17 +146,16 @@ class ProjectTriageWizard {
                     "objective", "Estudar redução potencial pela eletrificação de frota",
                     "activityType", "MOBILIDADE_ELETRICA", "methodologyCandidate", "VM0038")));
             answers.set("2", normalizeSample(2, Map.of(
-                    "activityDescription", "Instalação planejada de recarga controlada para frota BEV",
+                    "activityDescription", "Instalação planejada de recarga controlada para frota de 25 BEVs",
                     "installsChargers", "YES",
                     "baselinePractice", "Veículos de combustão comparáveis ainda não documentados",
                     "expectedBenefit", "Redução potencial de emissões, ainda não quantificada")));
+            // D16: only the initial hypothesis; the technical screens collect quantities, energy, rights and evidence.
             answers.set("3", normalizeSample(3, Map.of(
-                    "vehicleCount", 25, "vehicleClass", "LDV", "propulsion", "BEV", "chargerType", "DCFC",
-                    "chargerCount", 1, "electricitySource", "DESCONHECIDA")));
+                    "vehicleClass", "LDV", "propulsion", "BEV", "chargerType", "DCFC")));
             answers.set("4", normalizeSample(4, Map.of(
                     "country", "BR", "state", "DF", "locality", "Brasília",
-                    "referenceDate", "2027-09-27",
-                    "evidenceStatus", "DESCONHECIDO", "rightsStatus", "DESCONHECIDO")));
+                    "referenceDate", "2027-09-27")));
             answers.put("_example", "25_BEV_BRASILIA_DF_2027_09_27");
             Snapshot next = new Snapshot(expected + 1, 5, answers);
             saveRevision(connection, actor, next);
@@ -216,19 +219,44 @@ class ProjectTriageWizard {
                 throw invalid(name);
             }
         }
-        if (step == 4 && "NAO_APLICAVEL_JUSTIFICADO".equals(result.path("rightsStatus").asText())
-                && result.path("rightsJustification").asText("").isBlank()) throw invalid("rightsJustification");
         return result;
     }
 
     /**
-     * D16: a step saved without a retired answer keeps the previous value unchanged, so no answer is lost and
-     * the canonical comparison of D15 does not see a change that nobody made. A value sent explicitly still counts.
+     * D16: answers that left the triage cannot be changed here. A step saved without one keeps the previous value
+     * unchanged, so no answer is lost and the canonical comparison of D15 does not see a change that nobody made.
+     * Re-sending the stored value (or a blank for an answer never given) is not a change and is accepted; any other
+     * value is refused with the field and the screen that owns it now, never ignored in silence.
      */
-    static void carryRetired(int step, JsonNode previous, ObjectNode submitted) {
-        for (String key : ProjectJourney.RETIRED.getOrDefault(step, Set.of())) {
-            if (!submitted.has(key) && previous.has(key)) submitted.set(key, previous.get(key).deepCopy());
+    static void keepRetired(int step, JsonNode previous, ObjectNode submitted) {
+        for (var item : ProjectJourney.RETIRED_ANSWERS) {
+            if (item.step() != step) continue;
+            String key = item.key();
+            JsonNode sent = submitted.get(key);
+            JsonNode stored = previous.get(key);
+            if (sent != null) {
+                boolean unchanged = stored == null ? sent.isNull() : stored.equals(sent);
+                if (!unchanged) throw new PilotProblem(400, "PEDIDO_INVALIDO", key, "CF-IMP-009",
+                        "Esta resposta agora é registrada em " + item.sectionTitle()
+                                + ". A triagem mantém a resposta anterior só para leitura.");
+                if (stored == null) submitted.remove(key);
+            } else if (stored != null) {
+                submitted.set(key, stored.deepCopy());
+            }
         }
+    }
+
+    private static List<RetiredAnswer> retiredAnswers(JsonNode answers) {
+        var out = new ArrayList<RetiredAnswer>();
+        for (var item : ProjectJourney.RETIRED_ANSWERS) {
+            JsonNode value = answers.path(Integer.toString(item.step())).path(item.key());
+            if (value.isMissingNode() || value.isNull()) continue;
+            String label = item.options().stream().filter(option -> option.value().equals(value.asText()))
+                    .map(ProjectJourney.Option::label).findFirst().orElse(value.asText());
+            out.add(new RetiredAnswer(item.step(), item.key(), item.label(), value.deepCopy(), label,
+                    item.section(), item.sectionTitle()));
+        }
+        return List.copyOf(out);
     }
 
     private static Set<String> journeyFields() {
@@ -237,6 +265,7 @@ class ProjectTriageWizard {
         for (var profile : List.of(ProjectJourney.GENERAL, ProjectJourney.VM0038)) {
             profile.questions().forEach(question -> result.add(question.key()));
         }
+        result.addAll(ProjectJourney.RETIRED.get(3)); // Read so an unchanged older answer can be compared (D16).
         return Set.copyOf(result);
     }
 
@@ -274,7 +303,7 @@ class ProjectTriageWizard {
             JsonNode step = answers.path(Integer.toString(i));
             List<String> required = REQUIRED.get(i - 1);
             if (i == 2 && journey == ProjectJourney.VM0038) {
-                required = List.of("installsChargers", "activityDescription", "baselinePractice");
+                required = List.of("installsChargers", "activityDescription");
             }
             if (i == 3) required = journey == ProjectJourney.VM0038
                     ? journey.questions().stream().map(ProjectJourney.Question::key).toList() : List.of();
@@ -306,7 +335,8 @@ class ProjectTriageWizard {
                 List.copyOf(pending), snapshot.currentStep() == 5
                     ? "Revise as respostas e organize na preparação técnica o que precisa ser comprovado."
                     : "Salve as respostas e deixe em aberto o que ainda precisa confirmar.",
-                journey, ProjectJourney.METHODOLOGIES, guidance, ProjectTriageDiagnosis.evaluate(effective, guidance));
+                journey, ProjectJourney.METHODOLOGIES, guidance, ProjectTriageDiagnosis.evaluate(effective, guidance),
+                retiredAnswers(answers));
     }
 
     View current(Connection connection, DynamicProjectScope.Context context) throws SQLException {

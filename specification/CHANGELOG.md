@@ -1,4 +1,6 @@
 # Changelog da especificação viva
+## 0.3.0-rc.21 — 24/11/2026 (proposta)
+- D16 fatia 6b: triagem pergunta só a hipótese inicial (recorte com 4 perguntas na VM0038, local sem direitos, dados nem investimento; linha de base e benefício opcionais). Respostas antigas são copiadas, recusadas se alteradas (400 com a tela dona) e mostradas só para leitura (`retiredAnswers`); o resumo lista o que será pedido na preparação técnica. Sem migração; revisões gravadas, D15, diagnóstico v3 e guardas de versão inalterados.
 ## 0.3.0-rc.20 — 24/11/2026 (proposta)
 - D16 fatia 6a: campos que saem da triagem copiados sem alteração ao salvar a etapa; diagnóstico `REG-E2 / CF-IMP-010 v3` lê a declaração de Acesso à rede quando existe e marca como "a confirmar na preparação técnica" o que não foi confirmado, sem chamar o recorte de compatível. Sem migração; revisões, D15 e guardas de versão inalterados.
 ## 0.3.0-rc.19 — 24/11/2026 (proposta)

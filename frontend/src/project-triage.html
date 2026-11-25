@@ -99,14 +99,15 @@
                     <textarea id="cf-wz-description" rows="4" maxlength="800" [value]="field(2,'activityDescription')"
                       [placeholder]="vm0038() ? 'Descreva onde, para quem e como os carregadores serão instalados' : 'Descreva a atividade que pretende realizar'"
                       (input)="input(2,'activityDescription',$event)"></textarea>
-                    <label for="cf-wz-baseline">O que acontece hoje, antes do projeto?</label>
+                    <label for="cf-wz-baseline">O que acontece hoje, antes do projeto? (opcional)</label>
                     <textarea id="cf-wz-baseline" rows="3" maxlength="800" [value]="field(2,'baselinePractice')"
                       [placeholder]="vm0038() ? 'Ex.: viagens atendidas por veículos equivalentes a combustão' : 'Descreva como a atividade ocorreria sem o projeto'"
                       (input)="input(2,'baselinePractice',$event)"></textarea>
-                    <label for="cf-wz-benefit">Qual benefício ambiental você espera?</label>
+                    <label for="cf-wz-benefit">Qual benefício ambiental você espera? (opcional)</label>
                     <textarea id="cf-wz-benefit" rows="3" maxlength="800" [value]="field(2,'expectedBenefit')"
                       placeholder="Expectativa qualitativa; não informe toneladas de CO₂e sem cálculo"
                       (input)="input(2,'expectedBenefit',$event)"></textarea>
+                    <p class="cf-workspace-helper">São notas da hipótese inicial. A linha de base formal é registrada na preparação técnica.</p>
                   }
                   @case (3) {
                     <div class="cf-journey-context">
@@ -169,53 +170,26 @@
                     <label for="cf-wz-date">Data de referência pretendida</label>
                     <input id="cf-wz-date" name="referenceDate" type="date" [value]="field(4,'referenceDate')"
                       (change)="input(4,'referenceDate',$event)"/>
-                    @if (vm0038()) {
-                      <label for="cf-wz-investment">Já houve compromisso de investimento, como contrato ou pedido firme?</label>
-                      <select id="cf-wz-investment" name="investmentCommitted" [value]="field(4,'investmentCommitted')"
-                        (change)="input(4,'investmentCommitted',$event)">
-                        <option value="">Ainda não informado</option>
-                        <option value="YES">Sim</option>
-                        <option value="NO">Não</option>
-                        <option value="DESCONHECIDO">Ainda não sei</option>
-                      </select>
-                      @if (field(4,'investmentCommitted') === 'YES') {
-                        <label for="cf-wz-prior-carbon">A receita de carbono foi considerada antes desse compromisso?</label>
-                        <select id="cf-wz-prior-carbon" name="carbonConsideredBeforeInvestment" [value]="field(4,'carbonConsideredBeforeInvestment')"
-                          (change)="input(4,'carbonConsideredBeforeInvestment',$event)">
-                          <option value="">Ainda não informado</option>
-                          <option value="YES">Sim</option>
-                          <option value="NO">Não</option>
-                          <option value="DESCONHECIDO">Ainda não sei</option>
-                        </select>
-                      }
-                    }
-                    <label for="cf-wz-evidence">Situação dos dados de origem</label>
-                    <select id="cf-wz-evidence" name="evidenceStatus" [value]="field(4,'evidenceStatus')"
-                      (change)="input(4,'evidenceStatus',$event)">
-                      <option value="">Ainda não informado</option>
-                      <option value="DESCONHECIDO">Não sei quais dados tenho</option>
-                      <option value="EM_PREPARACAO">Estou organizando os dados</option>
-                      <option value="DISPONIVEL_DECLARADO">Declaro possuir dados, sem conferência</option>
-                    </select>
-                    <label for="cf-wz-rights">Situação de direitos e titularidade</label>
-                    <select id="cf-wz-rights" name="rightsStatus" [value]="field(4,'rightsStatus')"
-                      (change)="input(4,'rightsStatus',$event)">
-                      <option value="">Ainda não informado</option>
-                      <option value="DESCONHECIDO">Ainda não sei</option>
-                      <option value="DECLARADO">Declaro que possuo direitos, sem comprovação</option>
-                      @if (!vm0038() || field(4,'rightsStatus') === 'NAO_APLICAVEL_JUSTIFICADO') {
-                        <option value="NAO_APLICAVEL_JUSTIFICADO">Entendo que não se aplica (exige justificativa)</option>
-                      }
-                    </select>
-                    @if (field(4,'rightsStatus') === 'NAO_APLICAVEL_JUSTIFICADO') {
-                      <label for="cf-wz-rights-reason">Justificativa sobre titularidade</label>
-                      <textarea id="cf-wz-rights-reason" rows="3" maxlength="400"
-                        [value]="field(4,'rightsJustification')" (input)="input(4,'rightsJustification',$event)"></textarea>
-                    }
                     <p class="cf-workspace-helper">
-                      {{ vm0038() ? 'A VM0038 exige comprovação da titularidade das reduções.' : 'A disponibilidade de dados e a titularidade deverão ser comprovadas.' }}
+                      Direitos, dados de origem e adicionalidade são registrados na preparação técnica.
                     </p>
                   }
+                }
+                @if (retired(current.currentStep).length) {
+                  <section class="cf-journey-context" aria-labelledby="cf-triage-retired">
+                    <h3 id="cf-triage-retired">Respostas antigas que agora ficam nas telas técnicas</h3>
+                    <p class="cf-workspace-helper">Registradas em uma versão anterior da triagem. Não são editadas aqui; quando a tela técnica tiver a informação, ela vale.</p>
+                    <dl>
+                      @for (item of retired(current.currentStep); track item.key) {
+                        <div>
+                          <dt>{{ item.label }}</dt>
+                          <dd>{{ item.valueLabel }} ·
+                            <a class="cf-workspace-link" [routerLink]="['/workspace/projects',projectId,'technical']"
+                              [queryParams]="{secao:item.section}">Abrir {{ item.sectionTitle }}</a></dd>
+                        </div>
+                      }
+                    </dl>
+                  </section>
                 }
                 @if (current.stages[current.currentStep - 1].missingFields.length) {
                   <p class="cf-workspace-helper">
@@ -314,6 +288,19 @@
                   <a class="cf-workspace-link" [href]="source">Consultar metodologia na Verra</a>
                 }
               </div>
+              <section class="cf-journey-context" aria-labelledby="cf-triage-later">
+                <h3 id="cf-triage-later">O que será pedido na preparação técnica</h3>
+                <p>A triagem registra a hipótese inicial. Estes itens são informados e comprovados nas telas técnicas.</p>
+                <ul class="cf-tech-gates">
+                  @for (item of later(); track item.section) {
+                    <li>
+                      <a class="cf-workspace-link" [routerLink]="['/workspace/projects',projectId,'technical']"
+                        [queryParams]="{secao:item.section}">{{ item.title }}</a>
+                      <p>{{ item.detail }}</p>
+                    </li>
+                  }
+                </ul>
+              </section>
               <div class="cf-triage-summary">
                 @for (stage of current.stages.slice(0,4); track stage.number) {
                   <section class="cf-triage-summary-section">
@@ -331,6 +318,19 @@
                         </div>
                       }
                     </dl>
+                    @if (retired(stage.number).length) {
+                      <p class="cf-workspace-helper">Respostas antigas, só para leitura:</p>
+                      <dl>
+                        @for (item of retired(stage.number); track item.key) {
+                          <div>
+                            <dt>{{ item.label }}</dt>
+                            <dd>{{ item.valueLabel }} ·
+                              <a class="cf-workspace-link" [routerLink]="['/workspace/projects',projectId,'technical']"
+                                [queryParams]="{secao:item.section}">{{ item.sectionTitle }}</a></dd>
+                          </div>
+                        }
+                      </dl>
+                    }
                   </section>
                 }
               </div>

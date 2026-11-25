@@ -155,11 +155,19 @@ class OpenApplicabilityIntegrationTest {
         assertFalse(narrative.at("/readiness/stale").asBoolean(),"cursor moves and narrative edits keep the declaration current");
         assertFalse(narrative.at("/readiness/findings").toString().contains("TRIAGE_CHANGED"));
         assertEquals(3,narrative.path("latestTriageVersion").asInt());
-        // D16 + D15: a step-3 save carrying only the answers that stay in the triage keeps the retired ones
-        // unchanged, so the declaration does not go stale.
-        assertEquals(200,call("PUT",triage+"/steps/3",owner.cookie(),UUID.randomUUID().toString(),"\"3\"",
-            "{\"answers\":{\"vehicleClass\":\"LDV\",\"propulsion\":\"BEV\",\"chargerType\":\"DCFC\",\"design\":\"INDIVIDUAL\","
-            +"\"network\":\"CLOSED\",\"access\":\"PRIVATE\",\"electricitySource\":\"SIN\",\"metering\":\"SEGREGATED\"},\"nextStep\":4}").statusCode());
+        // D16 + D15: a project answered before D16 (retired answers stored in step 3, seeded as an older revision
+        // because the triage no longer accepts them) keeps them unchanged on a step-3 save of the initial scope only,
+        // so the declaration does not go stale.
+        database.transaction(c->update(c,"""
+            INSERT INTO app_project_triage_revision
+              (project_id,organization_id,environment,version,actor_id,current_step,answers)
+            SELECT project_id,organization_id,environment,4,actor_id,4,
+                   jsonb_set(answers,'{3}','{"vehicleClass":"LDV","propulsion":"BEV","chargerType":"DCFC","design":"INDIVIDUAL",
+                     "network":"CLOSED","access":"PRIVATE","electricitySource":"SIN","metering":"SEGREGATED"}'::jsonb)
+            FROM app_project_triage_revision WHERE project_id=? AND version=3
+            """,id));
+        assertEquals(400,call("PUT",triage+"/steps/3",owner.cookie(),UUID.randomUUID().toString(),"\"4\"",
+            "{\"answers\":{\"network\":\"OPEN\"},\"nextStep\":4}").statusCode(),"a retired answer is not edited in the triage");
         assertEquals(200,call("PUT",path,owner.cookie(),UUID.randomUUID().toString(),"\"3\"",withDisclosure).statusCode());
         assertFalse(json(call("GET",path,owner.cookie(),null,null,null)).at("/readiness/stale").asBoolean());
         JsonNode carried=json(call("PUT",triage+"/steps/3",owner.cookie(),UUID.randomUUID().toString(),"\"4\"",

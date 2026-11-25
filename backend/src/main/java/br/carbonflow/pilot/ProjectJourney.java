@@ -24,20 +24,6 @@ final class ProjectJourney {
         }
     }
 
-    /**
-     * D16: answers that leave the triage. Older revisions keep them and every new revision copies them unchanged;
-     * the technical screens own them from now on (Acesso à rede, Direitos do projeto, Adicionalidade, Estações, Monitorar).
-     */
-    static final Map<Integer, Set<String>> RETIRED = Map.of(
-            3, Set.of("network", "access", "electricitySource", "associatedInfrastructure", "metering",
-                    "vehicleCount", "chargerCount"),
-            4, Set.of("evidenceStatus", "rightsStatus", "rightsJustification", "investmentCommitted",
-                    "carbonConsideredBeforeInvestment"));
-
-    static boolean retired(int step, String key) {
-        return RETIRED.getOrDefault(step, Set.of()).contains(key);
-    }
-
     private static final String UNKNOWN = "DESCONHECIDO";
     private static final Option UNKNOWN_OPTION = new Option(UNKNOWN, "Ainda não sei");
     static final Profile GENERAL = new Profile(
@@ -48,7 +34,7 @@ final class ProjectJourney {
                     "Registre dúvidas sobre a operação, a fronteira ou a metodologia candidata.", List.of())));
     static final Profile VM0038 = new Profile(
             "VM0038_V1_1", "VM0038", "1.1", "VM0038 v1.1 · Recarga de veículos elétricos",
-            "Instalação e cenário sem o projeto", "Frota, recarga e medição",
+            "Atividade", "Recorte inicial",
             "A VM0038 trata da instalação de sistemas de recarga para frotas elegíveis. O piloto sintético original cobre um projeto fechado. A jornada OPEN brasileira está em implantação: é possível preparar uma rede pública de recarga DCFC/BEV do SIN sem VIN dos visitantes, mas o cálculo real depende de fontes oficiais e revisão de direitos.",
             "https://verra.org/methodologies/vm0038-electric-vehicle-charging-systems-v1-1/",
             List.of("Instalação, fronteira e acesso à rede de recarga",
@@ -68,22 +54,69 @@ final class ProjectJourney {
                             new Option("DCFC", "DCFC · recarga rápida em corrente contínua"),
                             new Option("AC", "AC · recarga em corrente alternada (nível 1 ou 2)"),
                             new Option("MIXED", "Combinação de tecnologias")),
-                    choice("network", "Identificação da frota na rede", "Uma rede fechada identifica a frota que utiliza os carregadores.",
-                            new Option("CLOSED", "Fechada · frota identificada"), new Option("OPEN", "Aberta · frota sem identificação individual")),
-                    choice("access", "Acesso aos carregadores", "Considere quem pode recarregar nos pontos do projeto.",
-                            new Option("PRIVATE", "Restrito a uma frota definida"), new Option("PUBLIC", "Aberto ao público")),
-                    choice("electricitySource", "Origem da eletricidade", "SIN é o Sistema Interligado Nacional brasileiro.",
-                            new Option("SIN", "Somente rede do SIN"), new Option("OTHER_GRID", "Outra rede elétrica"),
-                            new Option("ON_SITE", "Geração local"), new Option("MIXED", "Mais de uma origem")),
-                    choice("associatedInfrastructure", "Infraestrutura elétrica associada", "Considere geração local, armazenamento e fluxo bidirecional.",
-                            new Option("NO", "Sem infraestrutura associada"), new Option("YES", "Com infraestrutura associada")),
-                    choice("metering", "Medição da energia consumida na recarga", "O piloto usa circuito exclusivo, com medição a montante do carregador.",
-                            new Option("SEGREGATED", "Medição a montante em circuito exclusivo"),
-                            new Option("OTHER", "Outra forma de medição ou estimativa")),
                     choice("design", "Desenho do projeto", "Projetos agrupados têm instâncias de atividade e critérios próprios.",
-                            new Option("INDIVIDUAL", "Projeto individual"), new Option("GROUPED", "Projeto agrupado")),
-                    number("vehicleCount", "Quantidade estimada de veículos"),
-                    number("chargerCount", "Quantidade estimada de carregadores")));
+                            new Option("INDIVIDUAL", "Projeto individual"), new Option("GROUPED", "Projeto agrupado"))));
+
+
+    /**
+     * D16: answers that left the triage, with the technical screen that owns each one now. Older revisions keep them,
+     * every new revision copies them unchanged and the triage refuses to change them; the triage only shows them,
+     * read-only, with a link to the owner. Option labels are kept so an older answer can still be read.
+     */
+    record Retired(int step, String key, String label, String section, String sectionTitle, List<Option> options) {}
+
+    private static final String REDE = "rede", REDE_TITLE = "Acesso à rede";
+    static final List<Retired> RETIRED_ANSWERS = List.of(
+            retired(3, REDE, REDE_TITLE, choice("network", "Identificação da frota na rede", null,
+                    new Option("CLOSED", "Fechada · frota identificada"), new Option("OPEN", "Aberta · frota sem identificação individual"))),
+            retired(3, REDE, REDE_TITLE, choice("access", "Acesso aos carregadores", null,
+                    new Option("PRIVATE", "Restrito a uma frota definida"), new Option("PUBLIC", "Aberto ao público"))),
+            retired(3, REDE, REDE_TITLE, choice("electricitySource", "Origem da eletricidade", null,
+                    new Option("SIN", "Somente rede do SIN"), new Option("OTHER_GRID", "Outra rede elétrica"),
+                    new Option("ON_SITE", "Geração local"), new Option("MIXED", "Mais de uma origem"),
+                    new Option("DESCONHECIDA", "Ainda não conhecida"))),
+            retired(3, REDE, REDE_TITLE, choice("associatedInfrastructure", "Infraestrutura elétrica associada", null,
+                    new Option("NO", "Sem infraestrutura associada"), new Option("YES", "Com infraestrutura associada"))),
+            retired(3, "monitorar", "Monitorar energia", choice("metering", "Medição da energia consumida na recarga", null,
+                    new Option("SEGREGATED", "Medição a montante em circuito exclusivo"),
+                    new Option("OTHER", "Outra forma de medição ou estimativa"))),
+            retired(3, "estacoes", "Estações e fronteira", number("vehicleCount", "Quantidade estimada de veículos")),
+            retired(3, "estacoes", "Estações e fronteira", number("chargerCount", "Quantidade estimada de carregadores")),
+            retired(4, "evidencias", "Evidências", choice("evidenceStatus", "Situação dos dados de origem", null,
+                    new Option("EM_PREPARACAO", "Estou organizando os dados"),
+                    new Option("DISPONIVEL_DECLARADO", "Declaro possuir dados, sem conferência"))),
+            retired(4, "direitos", "Direitos do projeto", choice("rightsStatus", "Situação de direitos e titularidade", null,
+                    new Option("DECLARADO", "Declaro que possuo direitos, sem comprovação"),
+                    new Option("NAO_APLICAVEL_JUSTIFICADO", "Entendo que não se aplica, com justificativa"))),
+            retired(4, "direitos", "Direitos do projeto", new Question("rightsJustification",
+                    "Justificativa sobre titularidade", "text", null, List.of())),
+            retired(4, "adicionalidade", "Adicionalidade", choice("investmentCommitted",
+                    "Compromisso de investimento", null, new Option("YES", "Sim"), new Option("NO", "Não"))),
+            retired(4, "adicionalidade", "Adicionalidade", choice("carbonConsideredBeforeInvestment",
+                    "Receita de carbono considerada antes do compromisso", null, new Option("YES", "Sim"), new Option("NO", "Não"))));
+
+    static final Map<Integer, Set<String>> RETIRED = Map.of(
+            3, keys(3), 4, keys(4));
+
+    static boolean retired(int step, String key) {
+        return RETIRED.getOrDefault(step, Set.of()).contains(key);
+    }
+
+    private static Retired retired(int step, String section, String title, Question question) {
+        return new Retired(step, question.key(), question.label(), section, title, question.options());
+    }
+
+    private static Set<String> keys(int step) {
+        return RETIRED_ANSWERS.stream().filter(item -> item.step() == step).map(Retired::key)
+                .collect(java.util.stream.Collectors.toUnmodifiableSet());
+    }
+
+    /** Retired step-3 questions, still needed to read an older answer in the diagnosis. */
+    static List<Question> retiredScopeQuestions() {
+        return RETIRED_ANSWERS.stream().filter(item -> item.step() == 3)
+                .map(item -> new Question(item.key(), item.label(), item.options().isEmpty() ? "number" : "choice",
+                        null, item.options())).toList();
+    }
 
     private static final List<Profile> CONFIGURED = List.of(VM0038);
     static final List<Option> METHODOLOGIES = CONFIGURED.stream()
