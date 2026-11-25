@@ -81,6 +81,7 @@ public final class OpenE8TestFixture {
                 STAFF_MANAGER+":"+secret+":"+STAFF_ORG+";"+STAFF_REVIEWER+":"+secret+":"+STAFF_ORG);
             properties.put("carbonflow.platform.source-readiness.viewers",STAFF_MANAGER+","+STAFF_REVIEWER);
             properties.put("carbonflow.platform.source-work.managers",STAFF_MANAGER.toString());
+            properties.put("carbonflow.platform.source-technical.reviewers",STAFF_REVIEWER.toString());
             return properties;
         }
     }
@@ -535,7 +536,7 @@ public final class OpenE8TestFixture {
         verifyStaff(staffReviewer);
         UUID org=organization(owner.id(),STAFF_ORG);
         String project=project(owner,org);
-        configure(owner,project,"2026-01-01T00:00:00Z","2029-01-01T00:00:00Z");
+        configure(owner,project,creditStart+"T00:00:00Z","2031-01-01T00:00:00Z");
         grant(project,org,owner.id(),op.id(),"OP");
         grant(project,org,owner.id(),qaReviewer.id(),"REV");
         grant(project,org,owner.id(),docsReviewer.id(),"REV");
@@ -544,7 +545,7 @@ public final class OpenE8TestFixture {
                 INSERT INTO app_project_triage_revision
                   (project_id,organization_id,environment,version,actor_id,current_step,answers)
                 VALUES (?,?,'SANDBOX',1,?,1,?::jsonb)
-                """,project,org,owner.id(),"{\"1\":{\"methodologyCandidate\":\"VM0038\"}}");
+                """,project,org,owner.id(),"{\"1\":{\"methodologyCandidate\":\"VM0038\"},\"3\":{\"vehicleClass\":\"LDV\"}}");
             update(c,"""
                 INSERT INTO app_technical_guide_revision
                   (project_id,organization_id,environment,guide_id,version,actor_id,answers)
@@ -560,6 +561,11 @@ public final class OpenE8TestFixture {
             return null;
         });
         String technical="/v1/projects/"+project+"/technical";
+        var intake=call("PUT",technical+"/intake",owner.cookie(),null,"""
+            {"activity":"Operação de recarga de veículos elétricos","country":"BR","state":"DF",
+             "locality":"Brasília","candidateMethodology":"VM0038"}
+            """);
+        assertEquals(200,intake.statusCode(),intake.body());
         assertEquals(200,call("PUT",technical+"/open-rights/events/OP-START",owner.cookie(),null,
             "{\"kind\":\"OPERATIONAL_START\",\"eventOn\":\""+creditStart+"\",\"documentRef\":\"DOC-OP-1\"}").statusCode());
         assertEquals(200,call("PUT",technical+"/open-rights/events/VCS-START",owner.cookie(),null,
