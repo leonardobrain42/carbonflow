@@ -114,7 +114,8 @@ class OpenE8ProjectRunIntegrationTest {
         assertTrue(selection.at("/inputs/2/id").isNull());
         assertEquals("STRUCTURED_PROJECT_SOURCE_YEAR",selection.at("/inputs/3/basis").asText());
         assertEquals("TIMING_UNRESOLVED",selection.at("/inputs/3/state").asText());
-        assertEquals("LEGACY_SOURCE_YEAR_PIN",selection.at("/inputs/4/basis").asText());
+        assertEquals("STRUCTURED_PROJECT_YEAR",selection.at("/inputs/4/basis").asText());
+        assertEquals("TIMING_UNRESOLVED",selection.at("/inputs/4/state").asText());
         assertEquals(id, json(listed).at("/runs/0/id").asText());
         assertEquals(200, call("GET", path + "/" + id, owner.cookie(), null, null, null).statusCode());
 

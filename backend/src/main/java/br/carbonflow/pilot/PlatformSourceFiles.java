@@ -374,7 +374,7 @@ class PlatformSourceFiles {
         return result;
     }
 
-    Grant granted(Connection connection,Set<UUID> organizations,String source,
+    static Grant granted(Connection connection,Set<UUID> organizations,String source,
             String edition,UUID bound,String operation) throws SQLException {
         var array=connection.createArrayOf("uuid",organizations.toArray(UUID[]::new));
         try {
