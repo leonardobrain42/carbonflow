@@ -233,4 +233,16 @@ class MethodologyPackageContractTest {
         assertNotEquals(da, MethodologyPackages.digestOf(withPd(b), "TESTPROG", 1, "TEST_ONLY_SYNTHETIC", CAPS));
         assertNotEquals(da, MethodologyPackages.digestOf(withPd(c), "TESTPROG", 1, "TEST_ONLY_SYNTHETIC", CAPS));
     }
+
+    @Test
+    void aPackageIsFoundByItsPackageIdAndAnythingElseGetsTheNeutralProfile() {
+        assertSame(ProjectJourney.VM0038, ProjectJourney.profileById("VM0038_V1_1"));
+        assertSame(ProjectJourney.GENERAL, ProjectJourney.profileById("PACOTE_DE_TESTE"));
+        assertSame(ProjectJourney.GENERAL, ProjectJourney.profileById("GENERAL"));
+        assertSame(ProjectJourney.GENERAL, ProjectJourney.profileById(null));
+        // A test-only package is never reachable by id: it is not in the production list.
+        assertSame(ProjectJourney.GENERAL, ProjectJourney.profileById("TEST_ONLY_RESIDUES"));
+        assertEquals("SRC-007_PD_v5.0B.docx", ProjectJourney.profileById("VM0038_V1_1").pd().template());
+        assertEquals("A_DEFINIR_APOS_TRIAGEM", ProjectJourney.profileById("GENERAL").pd().template());
+    }
 }

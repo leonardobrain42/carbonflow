@@ -84,7 +84,11 @@ class PdSections {
 
     Version save(String token, String project, String id, String match, Input input) {
         return scopes.write(token, project, "PREPARE_DOSSIER", (c,scope) -> {
-            var guide = visible(c,scope,id);
+            var catalog = guides.catalog(c, scope);
+            var guide = catalog.guides().stream().filter(g -> g.id().equals(id)).findFirst()
+                    .orElseThrow(PdSections::missing);
+            // A04: template and edition come from the package of the project's methodology, not from a constant.
+            var pd = ProjectJourney.profileById(catalog.methodology()).pd();
             if (input == null || input.narrative() == null || input.narrative().isBlank()
                     || input.narrative().length() > 12000) {
                 throw new PilotProblem(400,"TEXTO_INVALIDO","narrative","CF-IMP-023","Informe uma narrativa de até 12.000 caracteres.");
@@ -114,7 +118,7 @@ class PdSections {
             artifact.put("kind","PD_SECTION_DRAFT").put("exposure","RESERVED").put("projectId",project)
                     .put("sectionId",id).put("version",version).put("authorId",scope.actor().id().toString())
                     .put("createdAt",OffsetDateTime.now(java.time.ZoneOffset.UTC).toString())
-                    .put("template",DocumentRules.Act.DESENVOLVIMENTO.template()).put("edition",DocumentRules.EDITION)
+                    .put("template",pd.template()).put("edition",pd.templateEdition())
                     .put("guideVersion",guide.version()).put("narrative",text);
             if (java.util.Set.of("monitoring","quantification").contains(id) && currentMrManifest!=null)
                 artifact.put("mrDependencyManifestSha256",currentMrManifest);

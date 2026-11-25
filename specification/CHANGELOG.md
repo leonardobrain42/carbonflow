@@ -1,4 +1,7 @@
 # Changelog da especificação viva
+## 0.3.0-rc.50 — 25/11/2026 (proposta)
+- **A04, residuais**, nível **plataforma/pacote**. `PdSections` grava template/edição do plano do pacote (VM0038 inalterado); o catálogo de guias devolve o `journeyProfile` do pacote do projeto e o cliente deixa de embutir um perfil VM0038. Guarda de `ProjectRequirementProjection` mantida de propósito (adaptador OPEN; sem segundo pacote). Sem regra, licença ou admissão alterados.
+- Verificado: backend 335/335; Angular compila; `project-technical-profile.test.mjs` 2/2 e `typed-guide.test.mjs` passaram (Chromium, API mockada). Não executados: demais testes de navegador, pilha Compose, CI.
 ## 0.3.0-rc.48 — 25/11/2026 (proposta)
 - **D18, tela da fatia 3 (capacidade efetiva e fixação de versão)**, nível **plataforma/projeto**, somente frontend. A etapa de resumo da triagem mostra a fixação de versão do projeto, os avisos de versão nova do registro e de pacote alterado e a capacidade por finalidade (código, dados, licença), com cálculo/admissão e atos externos apresentados como gates fechados com decisão própria. A tela só exibe o que o servidor deriva. Sem migração, API, regra, licença ou prioridade alterados. Verificado localmente: Angular compila; `project-triage.test.mjs` 8/8 em Chromium real com API mockada (inclui 2 casos novos e verificação de largura em 390 px). Não executados: demais testes de navegador, teste ponta a ponta com o backend, pilha Compose e CI. Migração explícita de versão segue não iniciada.
 ## 0.3.0-rc.47 — 25/11/2026 (proposta)

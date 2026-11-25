@@ -217,6 +217,11 @@ final class ProjectJourney {
                 || code.equals(profile.candidate() + " V" + profile.edition())).findFirst().orElse(GENERAL);
     }
 
+    /** Package profile by its packageId (the id the guide catalog carries); unknown ids get the neutral profile. */
+    static Profile profileById(String id) {
+        return CONFIGURED.stream().filter(profile -> profile.id().equals(id)).findFirst().orElse(GENERAL);
+    }
+
     static String candidate(JsonNode answers) {
         return answers.path("1").path("methodologyCandidate").asText(null);
     }
