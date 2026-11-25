@@ -117,6 +117,37 @@ class ProjectRequirementProjectionTest {
     }
 
     @Test
+    void internalAdditionalityOpinionChangesTheTextButNeverAdmitsOrConcludes() {
+        for (var entry : java.util.Map.of(
+                "CHECKED_INTERNAL_NOT_ADMITTED", "CHECKED_INTERNAL_NOT_ADMITTED",
+                "RETURNED_NOT_ADMITTED", "RETURNED_NOT_ADMITTED",
+                "STALE_NOT_ADMITTED", "RECHECK_REQUIRED").entrySet()) {
+            var view = ProjectRequirementProjection.project(new ProjectRequirementProjection.Input(
+                "p", "VM0038", true, true, true, true, true, false,
+                disclosurePresent(), preflight(false),
+                new ProjectRequirementProjection.Owners(false, "FLEET_SELECTION_MISSING", "BINDING_MISSING",
+                    OpenProjectStations.EnergyPosture.NONE,
+                    java.util.Map.of("POSITIVE_LIST", entry.getKey(), "REGULATORY_SURPLUS", "PENDING_HUMAN_OPINION",
+                        "CHRONOLOGY", entry.getKey()))));
+            assertEquals(entry.getValue(), item(view, "VMD0049_ROUTE").state(), entry.getKey());
+            assertEquals("AWAITING_REVIEW", item(view, "VMD0049_ROUTE").group());
+            assertEquals("AWAITING_NORMATIVE_EVALUATION", item(view, "REGULATORY_SURPLUS").state(),
+                "an opinion on another criterion does not move this one");
+            assertTrue(view.requirements().stream().noneMatch(item -> item.admitsE8()));
+            assertTrue(view.requirements().stream().noneMatch(item -> item.clientAction() && item.requirementId().equals("VMD0049_ROUTE")));
+            assertFalse(view.canRunE8());
+            assertFalse(view.canIssueVcu());
+        }
+        var hidden = ProjectRequirementProjection.project(new ProjectRequirementProjection.Input(
+            "p", "VM0038", false, true, false, false, true, false,
+            null, preflight(false),
+            new ProjectRequirementProjection.Owners(false, "FLEET_SELECTION_MISSING", "BINDING_MISSING",
+                OpenProjectStations.EnergyPosture.NONE, java.util.Map.of("POSITIVE_LIST", "CHECKED_INTERNAL_NOT_ADMITTED"))));
+        assertTrue(hidden.requirements().stream().noneMatch(item -> "VMD0049_ROUTE".equals(item.requirementId())),
+            "without applicability access no additionality item appears");
+    }
+
+    @Test
     void reviewedCatalogCandidateStaysUnadmitted() {
         var view = ProjectRequirementProjection.project(new ProjectRequirementProjection.Input(
             "p", "VM0038", true, true, true, true, true, false,

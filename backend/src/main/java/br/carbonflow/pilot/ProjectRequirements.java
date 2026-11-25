@@ -5,6 +5,7 @@ import static br.carbonflow.pilot.PilotSql.query;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
@@ -58,7 +59,8 @@ class ProjectRequirements {
         return new ProjectRequirementProjection.Owners(
             applicability && rightsRecheck(connection, project), fleet, binding,
             monitoring ? OpenProjectStations.posture(connection, project)
-                : OpenProjectStations.EnergyPosture.NONE);
+                : OpenProjectStations.EnergyPosture.NONE,
+            applicability ? OpenAdditionality.opinionStates(connection, project) : Map.of());
     }
 
     /** A present proof that changed needs review. A still-missing proof stays a gap. */

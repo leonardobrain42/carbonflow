@@ -63,6 +63,8 @@ class OpenAdditionalityReviewIntegrationTest {
         grantRev(s.project(),s.org(),s.owner().id(),reviewer.id());
         guideRevision(s.project(),s.org(),author.id(),1);
         String url="/v1/projects/"+s.project()+"/technical/open-additionality";
+        String requirements="/v1/projects/"+s.project()+"/technical/requirements";
+        assertEquals("AWAITING_NORMATIVE_EVALUATION",requirement(fx.json(fx.call("GET",requirements,s.owner().cookie(),null,null)),"VMD0049_ROUTE").path("state").asText());
         String chronology=url+"/CHRONOLOGY/reviews";
         String positive=url+"/POSITIVE_LIST/reviews";
 
@@ -97,6 +99,11 @@ class OpenAdditionalityReviewIntegrationTest {
         assertFalse(done.at("/review/stale").asBoolean());
         assertEquals("PENDING_HUMAN_OPINION",criterion(view,"CHRONOLOGY").at("/review/state").asText(),"other criteria stay pending");
 
+        var projected=requirement(fx.json(fx.call("GET",requirements,s.owner().cookie(),null,null)),"VMD0049_ROUTE");
+        assertEquals("CHECKED_INTERNAL_NOT_ADMITTED",projected.path("state").asText());
+        assertFalse(projected.path("admitsE8").asBoolean());
+        assertEquals("AWAITING_REVIEW",projected.path("group").asText());
+
         // Idempotency: the same command replays, another content under the same key conflicts.
         var replay=fx.postMethod(positive,reviewer.cookie(),key,"\"0\"",BODY);
         assertEquals(200,replay.statusCode(),replay.body());
@@ -124,11 +131,19 @@ class OpenAdditionalityReviewIntegrationTest {
         }
         assertEquals("PENDING_HUMAN_OPINION",criterion(stale,"REGULATORY_SURPLUS").at("/review/state").asText());
 
+        assertEquals("RECHECK_REQUIRED",requirement(fx.json(fx.call("GET",requirements,s.owner().cookie(),null,null)),"VMD0049_ROUTE").path("state").asText());
+        assertEquals("AWAITING_NORMATIVE_EVALUATION",requirement(fx.json(fx.call("GET",requirements,s.owner().cookie(),null,null)),"REGULATORY_SURPLUS").path("state").asText());
+
         // Records are immutable.
         assertThrows(RuntimeException.class,()->database.transaction(c->{
             update(c,"UPDATE app_open_additionality_opinion SET outcome='RETURNED' WHERE project_id=?",s.project());
             return null;
         }));
+    }
+
+    private static JsonNode requirement(JsonNode view,String id) {
+        for(JsonNode item:view.path("requirements")) if(id.equals(item.path("requirementId").asText())) return item;
+        throw new AssertionError("requirement "+id+" in "+view);
     }
 
     private static JsonNode criterion(JsonNode opinion,String code) {
