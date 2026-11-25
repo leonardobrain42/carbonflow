@@ -22,9 +22,13 @@ As tabelas `app_content_license`, `app_content_license_decision` e `app_content_
 ## O que NÃO faz (limites explícitos)
 - **O comprovante é declarado.** O servidor recebe o SHA-256 e **não verifica o documento nem guarda seus bytes**; não calcula o hash. A integridade do arquivo, o cofre do anexo e o upload protegido (CF-IMP-029) seguem pendentes.
 - Só licenças de plataforma (sem organização, projeto ou ator). Licenças com escopo mantêm seus fluxos.
-- Não há tela de administração nesta fatia (só API).
+- A tela (rc.55) é só a interface da API; ela não conhece o papel de quem a usa (o servidor decide e responde 404/403).
 - As tabelas de licença continuam sem gatilho de imutabilidade (fixtures de testes as limpam); a aplicação só acrescenta linhas.
 - Uma licença aprovada **não habilita cálculo, admissão de dados nem atos externos**, e uma autorização de uma fonte não vale para outra.
 
 ## Testes
 `ContentLicensesIntegrationTest`: 401/403/404 por perfil; validações; 428/412; dupla custódia; aprovação independente; decisão final; revogação com histórico preservado; negação; auditoria (7 eventos); limpeza das fixtures.
+
+## Tela (rc.55)
+`/workspace/platform/licenses` (item "Licenças" no menu administrativo). MFA, formulário de registro (fonte, edição, finalidade, referência, SHA-256, datas), lista com o estado derivado pelo servidor, "Decidir" (operações em caixas de seleção, motivo, aprovar ou negar) e "Revogar" em dois passos. Mostra que o comprovante é declarado e que a licença não habilita cálculo, admissão nem atos. Mensagens específicas para dupla custódia (403), versão desatualizada (412), decisão já encerrada (409) e perfil sem privilégio (404, sem formulário). A data escolhida vira o início do dia em UTC. Rota SPA registrada em `WorkspaceSpaRouteResource` e coberta por teste de integração.
+Testes: `platform-content-licenses.test.mjs` (2 casos, Chromium real, API mockada) e `ContentLicensesIntegrationTest` (inclui o deep link).

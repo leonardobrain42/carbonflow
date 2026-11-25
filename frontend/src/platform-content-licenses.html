@@ -1,0 +1,150 @@
+<a class="cf-skip-link" href="#cf-licenses-main">Pular para o conteúdo</a>
+<div class="cf-workspace-shell">
+  <aside class="cf-workspace-sidebar" aria-label="Navegação administrativa">
+    <a routerLink="/workspace" class="cf-workspace-brand">Carbon<span>Flow</span></a>
+    <p class="cf-workspace-kicker">ADMIN CARBONFLOW</p>
+    <nav class="cf-workspace-nav" aria-label="Console interno">
+      <a routerLink="/workspace">Meus projetos</a>
+      <a routerLink="/workspace/compliance">Conformidade</a>
+      <a routerLink="/workspace/platform/sources">Fontes e prontidão</a>
+      <a routerLink="/workspace/platform/methodologies">Metodologias</a>
+      <a routerLink="/workspace/platform/licenses" aria-current="page">Licenças</a>
+    </nav>
+    <p class="cf-platform-sidebar-note">Registrar ou aprovar uma licença não verifica o documento, não admite dados e não habilita cálculo nem atos externos.</p>
+  </aside>
+
+  <div class="cf-workspace-stage">
+    <header class="cf-workspace-topbar">
+      <span>Admin CarbonFlow</span>
+      <a routerLink="/workspace" class="cf-workspace-link">Voltar à conta</a>
+    </header>
+    <main id="cf-licenses-main" class="cf-workspace-content cf-platform-content">
+      <header class="cf-workspace-heading">
+        <span class="cf-workspace-chip">PAINEL INTERNO · LICENÇAS DE FONTES</span>
+        <h1>Licenças e autorizações de fontes</h1>
+        <p>Registre a autorização que a organização possui para usar uma fonte e decida, por outra pessoa, quais operações ela cobre. O comprovante é informado pelo seu SHA-256: o sistema não verifica nem guarda o documento. Uma autorização vale só para a fonte e a edição indicadas.</p>
+      </header>
+
+      @if (error()) {
+        <p class="cf-workspace-alert" role="alert">{{ error() }}</p>
+      }
+      @if (feedback()) {
+        <p class="cf-platform-success" role="status">{{ feedback() }}</p>
+      }
+      @if (loading()) {
+        <p role="status">Conferindo acesso e consultando as licenças…</p>
+      }
+
+      @if (!loading() && !session()) {
+        <section class="cf-workspace-card">
+          <h2>Acesso interno indisponível</h2>
+          <p>Entre na conta e utilize uma identidade com o privilégio de gestão de licenças.</p>
+          <a routerLink="/workspace" class="cf-workspace-link">Ir para minha conta</a>
+        </section>
+      } @else if (!loading() && session() && !unlocked() && !denied()) {
+        <section class="cf-workspace-card">
+          <h2>Verificação da equipe interna</h2>
+          <p>A gestão de licenças exige autenticação multifator e um privilégio próprio.</p>
+          <form (submit)="verify($event, code)">
+            <label for="cf-licenses-mfa">Código de seis dígitos do autenticador</label>
+            <input #code id="cf-licenses-mfa" inputmode="numeric" type="text" pattern="[0-9]{6}"
+              autocomplete="one-time-code" maxlength="6" required [disabled]="loading()"/>
+            <button type="submit" class="cf-workspace-primary" [disabled]="loading()">Desbloquear licenças</button>
+          </form>
+        </section>
+      }
+
+      @if (unlocked()) {
+        <section class="cf-workspace-card cf-platform-source-form-card" aria-labelledby="cf-licenses-form-title">
+          <h2 id="cf-licenses-form-title">Registrar autorização</h2>
+          <form (submit)="submit($event)" class="cf-platform-source-form">
+            <label for="cf-lic-source">Fonte (código já registrado)</label>
+            <input id="cf-lic-source" name="sourceId" type="text" required maxlength="120"
+              [value]="form().sourceId" (input)="edit('sourceId', $event)"/>
+            <label for="cf-lic-edition">Edição</label>
+            <input id="cf-lic-edition" name="edition" type="text" required maxlength="60"
+              [value]="form().edition" (input)="edit('edition', $event)"/>
+            <label for="cf-lic-purpose">Finalidade</label>
+            <select id="cf-lic-purpose" name="purpose" (change)="edit('purpose', $event)">
+              <option value="REQUIREMENT_CATALOG" [selected]="form().purpose === 'REQUIREMENT_CATALOG'">Catálogo de requisitos</option>
+              <option value="CONTEXTUAL_HELP" [selected]="form().purpose === 'CONTEXTUAL_HELP'">Ajuda contextual</option>
+              <option value="AUTHORIZED_PROCESSING" [selected]="form().purpose === 'AUTHORIZED_PROCESSING'">Processamento autorizado</option>
+            </select>
+            <label for="cf-lic-ref">Referência da autorização (contrato ou termos)</label>
+            <input id="cf-lic-ref" name="authorizationRef" type="text" required minlength="3" maxlength="500"
+              [value]="form().authorizationRef" (input)="edit('authorizationRef', $event)"/>
+            <label for="cf-lic-hash">SHA-256 do comprovante (64 caracteres hexadecimais)</label>
+            <input id="cf-lic-hash" name="proofSha256" type="text" required maxlength="64" pattern="[0-9a-fA-F]{64}"
+              [value]="form().proofSha256" (input)="edit('proofSha256', $event)"/>
+            <label for="cf-lic-start">Início da vigência</label>
+            <input id="cf-lic-start" name="startsAt" type="date" required
+              [value]="form().startsAt" (input)="edit('startsAt', $event)"/>
+            <label for="cf-lic-end">Fim da vigência (opcional)</label>
+            <input id="cf-lic-end" name="endsAt" type="date"
+              [value]="form().endsAt" (input)="edit('endsAt', $event)"/>
+            <p class="cf-platform-meta">Não anexe nem cole o conteúdo do documento. A fonte e a edição precisam estar registradas antes. A autorização fica aguardando a decisão de outra pessoa.</p>
+            <button type="submit" class="cf-workspace-primary" [disabled]="saving()">Registrar autorização</button>
+          </form>
+        </section>
+
+        <section aria-labelledby="cf-licenses-list-title">
+          <div class="cf-platform-heading-line">
+            <h2 id="cf-licenses-list-title">Autorizações registradas</h2>
+            <button type="button" class="cf-workspace-outline" (click)="load()">Atualizar</button>
+          </div>
+          @if (items().length === 0) {
+            <p>Nenhuma autorização registrada.</p>
+          }
+          <ul class="cf-tech-gates">
+            @for (item of items(); track item.id) {
+              <li>
+                <h3>{{ item.sourceId }} · edição {{ item.edition }}</h3>
+                <p><strong>{{ stateLabel(item) }}</strong> · {{ purposeLabel(item) }}</p>
+                <p class="cf-platform-meta">{{ item.authorizationRef }} · comprovante {{ shortHash(item) }} (declarado, não verificado)</p>
+                <p class="cf-platform-meta">Vigência: {{ item.startsAt }} até {{ item.endsAt ?? 'sem data final' }}</p>
+                @if (item.reason) { <p class="cf-platform-meta">Motivo da última decisão: {{ item.reason }}</p> }
+                @if (item.operations.length > 0) {
+                  <p>Operações autorizadas:</p>
+                  <ul>
+                    @for (operation of item.operations; track operation) { <li>{{ operationLabel(operation) }}</li> }
+                  </ul>
+                }
+                @if (acting()?.id === item.id) {
+                  <form (submit)="$event.preventDefault()" class="cf-platform-source-form">
+                    @if (acting()?.mode === 'DECIDE') {
+                      <fieldset>
+                        <legend>Operações que o documento autoriza</legend>
+                        @for (operation of operations; track operation.value) {
+                          <label><input type="checkbox" [checked]="chosen().includes(operation.value)"
+                            (change)="toggle(operation.value, $event)"/> {{ operation.label }}</label>
+                        }
+                      </fieldset>
+                    }
+                    <label [attr.for]="'cf-reason-' + item.id">Motivo (mín. 10 caracteres)</label>
+                    <input #reason [id]="'cf-reason-' + item.id" type="text" minlength="10" maxlength="1000" required/>
+                    @if (acting()?.mode === 'DECIDE') {
+                      <button type="button" class="cf-workspace-primary" [disabled]="saving() || chosen().length === 0"
+                        (click)="decide(item, 'APPROVED', reason.value)">Aprovar operações marcadas</button>
+                      <button type="button" class="cf-workspace-outline" [disabled]="saving()"
+                        (click)="decide(item, 'DENIED', reason.value)">Negar</button>
+                    } @else {
+                      <button type="button" class="cf-workspace-primary" [disabled]="saving()"
+                        (click)="revoke(item, reason.value)">Confirmar revogação</button>
+                    }
+                    <button type="button" class="cf-workspace-outline" (click)="cancel()">Cancelar</button>
+                  </form>
+                } @else if (item.state === 'PENDING') {
+                  <button type="button" class="cf-workspace-outline" (click)="act(item, 'DECIDE')"
+                    [attr.aria-label]="'Decidir licença de ' + item.sourceId + ' ' + item.edition">Decidir</button>
+                } @else if (item.state === 'APPROVED') {
+                  <button type="button" class="cf-workspace-outline" (click)="act(item, 'REVOKE')"
+                    [attr.aria-label]="'Revogar licença de ' + item.sourceId + ' ' + item.edition">Revogar</button>
+                }
+              </li>
+            }
+          </ul>
+        </section>
+      }
+    </main>
+  </div>
+</div>
