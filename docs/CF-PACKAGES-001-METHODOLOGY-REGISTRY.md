@@ -21,6 +21,19 @@ API de administração (mesma equipe, MFA e privilégio do registro; o privilég
 - Metodologia não registrada: 404. Validação: 422.
 Migração V104: os atributos do contexto, antes presos à recarga de veículos, passam a ser opcionais (relaxamento aditivo) e entram as três ações de auditoria. O console de prontidão existente lê os contextos novos sem alteração; o estado de cada necessidade continua derivado da ingestão e das licenças, nunca declarado aqui. Cadastrar necessidade não registra fonte, não concede licença, não admite dado e não habilita cálculo. Sem tela nesta fatia. Teste: `MethodologySourcesIntegrationTest`.
 
+## Fatia 3: capacidade efetiva e fixação de versão
+Leitura do projeto (já protegida pelo acesso ao projeto): `GET /v1/projects/{id}/triage` e as respostas de salvamento passam a trazer `methodologyPin` e `capabilities`.
+
+**Fixação (`app_project_methodology_pin`, V105, só acréscimo, trigger de imutabilidade).** Ao salvar uma revisão da triagem, se a candidata, a versão do registro ou o digest do pacote mudou, grava-se uma linha com: revisão da triagem, metodologia/edição, versão e digest do registro, `packageId`, versão e digest do pacote, versão do catálogo, autor e data. Candidata removida também é registrada (pin sem metodologia). Salvar sem mudança não grava. Uma versão nova do registro ou do pacote **não altera** o projeto: a leitura só levanta `newerRegistryVersion` e `packageChanged`. Migrar para a versão nova é operação explícita e versionada, ainda não implementada. A fixação registra contra o que o projeto foi preparado; não admite dados, não licencia, não habilita cálculo nem confirma elegibilidade.
+
+**Capacidade efetiva (derivada a cada leitura, nunca gravada nem editável).** Por finalidade, com os eixos código, dados e licença (`MET`, `NOT_MET` ou `NOT_REQUIRED`) e um estado efetivo (`ENABLED` ou `NOT_ENABLED`) com motivo:
+- `TRIAGE`: exige código (pacote com schema de triagem). Registrada sem pacote fica `NOT_ENABLED` com a lacuna explícita.
+- `SOURCE_REFERENCE`: exige código, metadados publicados de **todas** as fontes obrigatórias (não evidência de projeto) e decisão de licença `REFERENCE_REQUIREMENT` vigente, aprovada por quem não submeteu, com prova, no ambiente de testes (mesmas regras do console de prontidão). Sem necessidades cadastradas, dados é `NOT_MET`.
+- `CALCULATION_ADMISSION` e `EXTERNAL_ACTS`: sempre `NOT_ENABLED`; são gates próprios e não derivam de código, dados ou licença.
+A visão do cliente traz só estados e motivos: sem nomes de fontes, contagens ou licenças (o inventário administrativo segue restrito à equipe).
+
+Teste: `MethodologyPinIntegrationTest` (pin v1 do VM0038, sem nova linha ao repetir, pin sem pacote, deriva sem alterar o projeto, candidata removida, imutabilidade, isolamento, ausência de inventário). **Não coberto por teste:** o caminho positivo de `SOURCE_REFERENCE` (fontes com metadados e licença aprovada); só o negativo foi exercitado. Sem tela nesta fatia.
+
 ## Escolhas reversíveis (aprovadas em D18, §8)
 Privilégio próprio; somente acréscimo; sem segundo aprovador no cadastro; sandbox.
 

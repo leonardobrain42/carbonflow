@@ -36,7 +36,8 @@ class ProjectTriageWizard {
                 String nextAction, ProjectJourney.Profile journey, List<ProjectJourney.Option> methodologies,
                 MethodologyPackages.Catalog catalog, MethodologyRegistry.CandidateStatus candidateStatus,
                 ProjectJourney.Guidance guidance, ProjectTriageDiagnosis.Result diagnosis,
-                List<RetiredAnswer> retiredAnswers) {}
+                List<RetiredAnswer> retiredAnswers, MethodologyPin.Pin methodologyPin,
+                List<MethodologyCapabilities.Purpose> capabilities) {}
     /** D16: an older answer that the triage no longer asks; shown read-only with the screen that owns it now. */
     record RetiredAnswer(int step, String key, String label, JsonNode value, String valueLabel,
                          String section, String sectionTitle) {}
@@ -325,7 +326,9 @@ class ProjectTriageWizard {
                     : "Salve as respostas e deixe em aberto o que ainda precisa confirmar.",
                 journey, methodologyOptions(connection), MethodologyPackages.current(),
                 MethodologyRegistry.candidateStatus(connection, ProjectJourney.candidate(answers)), guidance, ProjectTriageDiagnosis.evaluate(effective, guidance),
-                retiredAnswers(answers));
+                retiredAnswers(answers), MethodologyPin.current(connection, context.id()),
+                MethodologyCapabilities.evaluate(connection,
+                    MethodologyRegistry.candidateStatus(connection, ProjectJourney.candidate(answers))));
     }
 
     View current(Connection connection, DynamicProjectScope.Context context) throws SQLException {
@@ -358,6 +361,7 @@ class ProjectTriageWizard {
                 VALUES (?, ?, ?, ?, ?, ?, ?::jsonb)
                 """, actor.id(), actor.organization(), actor.environment(), revision.version(),
                 actor.actor().id(), revision.currentStep(), revision.answers().toString());
+        MethodologyPin.record(connection, actor, revision.version(), ProjectJourney.candidate(revision.answers()));
     }
 
     private static void serialise(Connection connection, UUID actor, String key) throws SQLException {
