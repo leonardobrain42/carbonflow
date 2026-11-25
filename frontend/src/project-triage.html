@@ -75,7 +75,9 @@
                         (input)="input(1,'methodologyCandidate',$event)" />
                     }
                     <p id="cf-wz-method-help" class="cf-workspace-helper">
-                      @if (methodologyChoice() === otherOption) {
+                      @if (registeredWithoutPackage()) {
+                        Metodologia registrada no CarbonFlow, ainda sem pacote executável. A triagem segue com lacunas explícitas, sem cálculo nem regras de outra metodologia.
+                      } @else if (methodologyChoice() === otherOption) {
                         O código será registrado como hipótese. A triagem inicial continua disponível.
                       } @else {
                         A seleção define as perguntas da jornada. A aplicabilidade depende de avaliação técnica.

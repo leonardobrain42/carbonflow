@@ -1,0 +1,17 @@
+# CF-PACKAGES-001 — Fatia 1: registro de metodologias (D18)
+Camada D17: **plataforma** (registro de metadados); não pertence a programa, método, jurisdição nem projeto. Jornada: J01 (seleção metodológica). Owner: #90. Estratégia e sequência: [CF-PACKAGES-001](../specification/CF-PACKAGES-001-ESTRATEGIA-DE-PACOTES.md).
+
+## O que entrega
+- Migração aditiva `V103__methodology_registry.sql`: `app_methodology_registry`, **somente de acréscimo** (gatilho recusa `UPDATE`/`DELETE`; correção é nova versão da mesma chave `programa + metodologia + edição`). Guarda metadados: programa, metodologia, edição, título, titular dos direitos, URL oficial `https`, origem (`SEED` ou `ADMIN`), autor, data e `digest` SHA-256. Não guarda texto nem bytes de fontes. Semeia o VM0038 1.1 (programa VCS) como versão 1, a partir do que a V37 já cadastra. Acrescenta `VIEW_METHODOLOGY_REGISTRY` e `REGISTER_METHODOLOGY` à auditoria de staff.
+- API `GET /v1/platform/methodology-registry` (última versão de cada chave, com `hasPackage`) e `POST` (registrar). Exige conta de staff com MFA **e** o privilégio próprio `carbonflow.platform.methodology-registry.managers` (variável `CARBONFLOW_PLATFORM_METHODOLOGY_REGISTRY_MANAGERS`, UUIDs de identidade separados por vírgula). **Padrão seguro: ninguém.** Staff sem o privilégio recebe 404; sem MFA, 403; cliente e anônimo não acessam. Toda leitura e escrita é auditada; `private, no-store`.
+- Escrita: chave nova exige `If-Match: "0"`; nova versão exige a versão atual (412 se obsoleta, 428 se ausente). Mesmo conteúdo da última versão não gera versão nova (200). Escritores da mesma chave são serializados. Campos inválidos retornam 422.
+- Triagem e intake: a lista de metodologias passa a ser **pacotes em código + metodologias registradas sem pacote**, sem duplicar a que tem pacote. Escolher uma registrada sem pacote grava o candidato `CÓDIGO V<edição>`, que continua resolvendo ao perfil genérico (lacuna explícita, sem fallback). A visão da triagem ganha `candidateStatus` derivado (`PACKAGE`, `REGISTERED_NO_PACKAGE`, `UNREGISTERED`, `NONE`) e a tela mostra o aviso de que a metodologia está registrada, ainda sem pacote executável.
+
+## O que não faz
+Registrar **não** cria pacote, não habilita capacidade, não admite dado, não concede licença nem executa cálculo, regra ou ato externo (a prontidão de cálculo de um projeto com candidata registrada devolve só a lacuna de metodologia). Não anexa fontes (fatia 2), não calcula capacidade efetiva nem fixa versão no projeto (fatia 3), não define o contrato de pacote em código (fatia 4). **Não há tela de administração nesta fatia**: a operação é por API. Regime sandbox, como as licenças atuais.
+
+## Escolhas reversíveis (aprovadas em D18, §8)
+Privilégio próprio; somente acréscimo; sem segundo aprovador no cadastro; sandbox.
+
+## Verificação
+`MethodologyRegistryIntegrationTest` (acesso por perfil e MFA, seed, versões, repetição idempotente, 412/428/422, imutabilidade no banco, auditoria, triagem com candidata registrada, prontidão neutra, cliente sem acesso) e `project-triage.test.mjs` (aviso de registrada sem pacote). O ensaio de reversão da V79 no CI passou a conhecer a tabela e a versão 103.
