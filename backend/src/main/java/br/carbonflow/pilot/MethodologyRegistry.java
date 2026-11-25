@@ -30,7 +30,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 class MethodologyRegistry {
     record Entry(String program, String methodology, String edition, int version, String title,
                  String rightsHolder, String officialUri, String origin, OffsetDateTime registeredAt,
-                 String digest, boolean hasPackage) {}
+                 String digest, boolean hasPackage, int sourceNeeds, int registeredSources) {}
     record Input(String program, String methodology, String edition, String title, String rightsHolder,
                  String officialUri) {}
     /** Derived state of a project's candidate, never stored: what the platform knows about it today. */
@@ -89,25 +89,39 @@ class MethodologyRegistry {
         });
     }
 
+    /** Needs of the methodology and how many already have published source metadata (derived, never stored). */
+    private static final String COUNTS = """
+            (SELECT count(*) FROM app_methodology_source_need n
+              WHERE (n.methodology,n.methodology_edition)=(r.methodology,r.methodology_edition)),
+            (SELECT count(*) FROM app_methodology_source_need n
+              WHERE (n.methodology,n.methodology_edition)=(r.methodology,r.methodology_edition)
+                AND n.source_id IS NOT NULL
+                AND EXISTS (SELECT 1 FROM app_source_version s
+                            WHERE s.project_id IS NULL AND s.source_id=n.source_id
+                              AND (n.edition_policy<>'EXACT' OR s.edition=n.source_edition)))
+            """;
+
     /** Latest version of every registered key, whether or not a code package exists for it. */
     static List<Entry> latest(Connection connection) throws SQLException {
         return query(connection, """
-                SELECT DISTINCT ON (program,methodology,methodology_edition)
-                       program,methodology,methodology_edition,version,title,rights_holder,official_uri,
-                       origin,registered_at,digest
-                FROM app_methodology_registry
-                ORDER BY program,methodology,methodology_edition,version DESC
+                SELECT DISTINCT ON (r.program,r.methodology,r.methodology_edition)
+                       r.program,r.methodology,r.methodology_edition,r.version,r.title,r.rights_holder,
+                       r.official_uri,r.origin,r.registered_at,r.digest,
+                       """ + COUNTS + """
+                FROM app_methodology_registry r
+                ORDER BY r.program,r.methodology,r.methodology_edition,r.version DESC
                 """, MethodologyRegistry::row);
     }
 
     private static Entry latest(Connection connection, String program, String methodology, String edition)
             throws SQLException {
         return first(connection, """
-                SELECT program,methodology,methodology_edition,version,title,rights_holder,official_uri,
-                       origin,registered_at,digest
-                FROM app_methodology_registry
-                WHERE program=? AND methodology=? AND methodology_edition=?
-                ORDER BY version DESC LIMIT 1
+                SELECT r.program,r.methodology,r.methodology_edition,r.version,r.title,r.rights_holder,
+                       r.official_uri,r.origin,r.registered_at,r.digest,
+                       """ + COUNTS + """
+                FROM app_methodology_registry r
+                WHERE r.program=? AND r.methodology=? AND r.methodology_edition=?
+                ORDER BY r.version DESC LIMIT 1
                 """, MethodologyRegistry::row, program, methodology, edition);
     }
 
@@ -115,7 +129,7 @@ class MethodologyRegistry {
         String methodology = r.getString(2), edition = r.getString(3);
         return new Entry(r.getString(1), methodology, edition, r.getInt(4), r.getString(5), r.getString(6),
                 r.getString(7), r.getString(8), r.getObject(9, OffsetDateTime.class), r.getString(10),
-                MethodologyPackages.hasPackage(methodology, edition));
+                MethodologyPackages.hasPackage(methodology, edition), r.getInt(11), r.getInt(12));
     }
 
     /** Value the triage stores for a registered methodology that has no package. */
@@ -190,7 +204,7 @@ class MethodologyRegistry {
         return text.replaceAll("\\s+", " ");
     }
 
-    private ComplianceStaff.Staff requireManager(Connection connection, String token) throws SQLException {
+    ComplianceStaff.Staff requireManager(Connection connection, String token) throws SQLException {
         ComplianceStaff.Staff actor = staff.require(connection, token);
         if (!managers.contains(actor.id())) throw new PilotProblem(404, "RECURSO_NAO_VISIVEL", "manager", RULE,
                 "Registro de metodologias não disponível para este perfil.");

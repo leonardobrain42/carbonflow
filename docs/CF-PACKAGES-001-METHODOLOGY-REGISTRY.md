@@ -13,6 +13,14 @@ Registrar **não** cria pacote, não habilita capacidade, não admite dado, não
 ## Tela de administração
 Página `/workspace/platform/methodologies` (componente `PlatformMethodologyRegistryComponent`), com o mesmo shell e a mesma porta de MFA da página de fontes e link em "Metodologias" nas duas telas administrativas. Mostra, para cada metodologia, programa, código, edição, versão, titular, endereço oficial, origem (cadastro inicial ou administração), assinatura abreviada e o **estado vindo do servidor** (`Pacote em código` ou `Registrada, sem pacote executável`); a tela não deduz estado nem capacidade. Formulário de registro (`If-Match "0"`) e de nova versão (chave travada, `If-Match` com a versão atual); repetir o mesmo conteúdo informa que não houve alteração; conflito e validação têm mensagens claras. Se o servidor negar o registro (staff sem o privilégio, 404), a tela mostra só o aviso, sem formulário nem lista. Rótulos associados, foco visível herdado do painel, sem texto protegido (aviso no formulário).
 
+## Fatia 2: fontes por metodologia
+API de administração (mesma equipe, MFA e privilégio do registro; o privilégio de consulta de fontes é distinto e não concede escrita):
+- `GET /v1/platform/methodology-registry/{methodology}/{edition}/sources`: contextos da metodologia com `needCount` e `registeredSourceCount` (derivados; uma fonte só conta quando a ingestão já publicou seus metadados).
+- `POST .../sources/contexts`: cria um contexto (`scenario`, `title`, `country`; `networkMode`, `vehicleCategory`, `chargerType`, `energySystem` opcionais). Só cria; repetição idêntica devolve 200; conteúdo diferente para o mesmo cenário, 409.
+- `POST .../sources/contexts/{scenario}/needs`: cria uma necessidade de fonte (metadados apenas: etapa, tipo, título, finalidade, `sourceId`/`sourceEdition`, endereço oficial https, capacidade bloqueada, política de edição, responsável, prioridade). O código é global; repetição idêntica 200, conteúdo diferente 409. Evidência de projeto não tem fonte; política YEAR/LATEST exige a edição correspondente.
+- Metodologia não registrada: 404. Validação: 422.
+Migração V104: os atributos do contexto, antes presos à recarga de veículos, passam a ser opcionais (relaxamento aditivo) e entram as três ações de auditoria. O console de prontidão existente lê os contextos novos sem alteração; o estado de cada necessidade continua derivado da ingestão e das licenças, nunca declarado aqui. Cadastrar necessidade não registra fonte, não concede licença, não admite dado e não habilita cálculo. Sem tela nesta fatia. Teste: `MethodologySourcesIntegrationTest`.
+
 ## Escolhas reversíveis (aprovadas em D18, §8)
 Privilégio próprio; somente acréscimo; sem segundo aprovador no cadastro; sandbox.
 
