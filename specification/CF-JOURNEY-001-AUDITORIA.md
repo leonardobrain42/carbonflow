@@ -57,3 +57,13 @@ Base: [documentos oficiais VCS](https://verra.org/programs/verified-carbon-stand
 
 ## C. Decisão de execução
 Manter #4/#89 e E8 vigente; D17 não promove agnosticidade implementada nem inicia segundo método real. Reusar #10/#90/#16/#19/#124/#43 e seus testes. Adicionar critérios J04 ao #41, cobertura #122/#101, sem segundo épico de implementação. Reconciliar novas PRs antes de cada fatia, inclusive #277; não fechar issues pelo documento. BNDES: validação de mercado, piloto autorizado e impacto em paralelo; nenhuma necessidade de reduzir escopo metodológico futuro.
+
+## Situação por linha (rc.53, leitura do código; não é nova auditoria)
+| Linha | Situação | O que resta |
+|---|---|---|
+| A03 | Triagem dirigida pelo pacote; `evaluateVm0038` é o adaptador nomeado e é despachado por perfil. | Segundo schema real de triagem (depende de segundo pacote). |
+| A04 | Plano de PD, template e edição vêm do pacote; fallback do cliente usa o perfil do servidor. `"VM0038".equals` em `ProjectRequirementProjection` mantido como adaptador OPEN. | Template real de um segundo pacote. |
+| A05 | Guias tipados dirigidos por dados; prova AGN-01 por teste (rc.52). | Schema real de outro pacote. |
+| A06 | Calculadora piloto isolada mantida como guarda, por decisão da auditoria. | Nada a generalizar sem fonte. |
+| A02, A07–A12 | Sem acoplamento de código identificado como seguro de alterar; dependem de decisões e contratos (#10/#13 vigência, #43/#122 compositor, #42 atos, #15/#24 papéis) ou de segundo pacote. | AGN-03 (dois métodos/edições simultâneos, vigência por ato) exige a decisão de vigência de #10/#13, que D18 não toma. |
+Os restos de `VM0038` fora dos adaptadores (`ProgramRequests`, `ListingWorkflow`, `CarbonCalculator`, `ProjectIntake`) pertencem ao piloto PIL-SYN ou ao recorte OPEN e continuam como guardas.

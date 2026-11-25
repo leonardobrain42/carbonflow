@@ -1,4 +1,6 @@
 # Changelog da especificação viva
+## 0.3.0-rc.53 — 25/11/2026 (proposta)
+- **G10, situação por linha da auditoria**, somente documentação, nível plataforma. Corrige o texto defasado das PENDENCIAS ("fatias 2–5 não iniciadas") e registra em CF-JOURNEY-001-AUDITORIA o que está resolvido, mantido como guarda ou dependente de decisão/segundo pacote. Sem código, regra, contrato ou migração alterados; nenhum teste executado (não há código novo).
 ## 0.3.0-rc.52 — 25/11/2026 (proposta)
 - **A05, prova AGN-01 dos guias tipados**, nível **plataforma/pacote**; somente teste, sem mudança de código, regra ou migração. O catálogo de guias tipados já é dirigido por dados (`app_typed_guide_schema` por metodologia). `MethodologyPinIntegrationTest` passa a afirmar que, com candidata registrada sem pacote, `/technical/guides` e `/technical/typed-guides` devolvem perfil `GENERAL` e nenhuma guia, e que ler ou gravar a guia `applicability` do VM0038 por esse projeto dá 404. Não prova um segundo schema real: isso depende de um segundo pacote.
 - Verificado: backend 337/337 em banco limpo. Não executados: navegador, Compose, CI.
