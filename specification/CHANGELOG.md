@@ -1,4 +1,7 @@
 # Changelog da especificação viva
+## 0.3.0-rc.32 — 25/11/2026 (proposta)
+- Linha 2, fatia Dy (D14/Q05.1): itemização opcional do acumulado (`cumulativeIssuances`, migração aditiva V101, tabela imutável): emissões entre o início da creditação e o início da janela anual, sem repetir itens anuais, com licença vigente por fonte e conciliação exata (totais anuais + itens = acumulados declarados); estado `CUMULATIVE_ITEMIZED_NOT_ADMITTED`. Só a partir do ano 3 há período anterior à janela anual. Hashes e replays anteriores não mudam. **Não faz:** estender a matriz de cobertura nacional a esse período, consumir o acumulado no executor ou admitir qualquer dado. Testes: `OpenDyCumulativeItemsTest` e guardas em `OpenProjectParameterBindingsIntegrationTest`; suíte do backend 305/305 em PostgreSQL 16 local. A conciliação positiva com licença vigente ficou só no teste unitário (o integrado cobre as recusas).
+
 ## D17 — 25/11/2026 (decisão de produto aprovada; documentação)
 - Consolida jornada J01–J07, núcleo metodológico agnóstico, auditoria dirigida de 65 issues e matriz normativa preliminar. Preserva recorte OPEN e ordem E8; registra lacunas de extensibilidade e cobertura. Sem mudança de código, cálculo, migração ou aceite. Ver CF-JOURNEY-001 e auditoria.
 ## 0.3.0-rc.31 — 25/11/2026 (proposta)

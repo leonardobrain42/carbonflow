@@ -24,6 +24,12 @@ Em 24/11/2026 o responsável pelo produto aprovou as quatro recomendações do Q
 - Migração V99 aditiva (três colunas anuláveis e uma restrição). O acumulado entra no hash do comando e no da avaliação **somente quando informado**, então hashes, idempotência e histórico anteriores não mudam; uma nova versão sem acumulado não herda o da anterior. Registros imutáveis, como os demais.
 - **Não faz:** não itemiza emissões anteriores à janela anual, não estende a matriz de cobertura nacional a essa janela e não prova os totais. Também não decide a interpretação (anual versus acumulada), que continua dependendo de confirmação externa (Q05). Interface administrativa: os campos existem na API; o formulário do Angular ainda não os expõe.
 
+## Itens do acumulado (Q05.1, V101)
+- Campo opcional `cumulativeIssuances` (mesma forma de `issuances`), aceito só com `cumulativeErc/Erf`. Cada item fica entre o início da creditação (inclusive) e o início da janela anual (exclusivo); não pode repetir uma emissão anual (programa, projeto e emissão, sem diferenciar caixa). Na prática só há esse intervalo do ano 3 em diante, porque no ano 2 a janela anual começa no próprio início da creditação.
+- Conciliação exata: ERC/ERF anuais declarados + soma dos itens = acumulados declarados. Cada fonte (edição com URI oficial cadastrada) exige licença organizacional vigente, como nas demais emissões; revogação bloqueia números e detalhes.
+- **V101, aditiva:** tabela imutável `app_open_dy_cumulative_item`. Os itens entram no hash do comando só quando informados, então replays e hashes anteriores não mudam. A resposta passa a `CUMULATIVE_ITEMIZED_NOT_ADMITTED` com `itemCount` (e itens só para quem vê detalhes); a leitura vigente continua anual e `usableForE8` falso.
+- **Não faz:** a matriz de cobertura nacional não é estendida a esse período, então os itens não provam exaustividade; o executor E8 não consome o acumulado; nada é admitido.
+
 ## Rateio por EVs em circulação
 - `DOCUMENTED_SHARE` exige `basisUnit = EV_IN_CIRCULATION`; qualquer outra base é recusada (decisão específica). `DIRECT_BR` (1/1) não é afetada. Registros históricos permanecem imutáveis.
 - Havendo rateio, `GEOGRAPHIC_ALLOCATION` fica `BLOCKED` com a razão "denominador nacional de EVR ainda não admitido (G03)", **sem estimar** a fração. A contagem de rateios é feita em SQL, de modo que equipe e conta do projeto veem o mesmo diagnóstico agregado, sem conteúdo.
