@@ -19,6 +19,7 @@ import {OperationsPanel} from './operations-panel';
 import {WorkspaceComponent} from './workspace';
 import {ComplianceQueueComponent} from './compliance-queue';
 import {PlatformSourceReadinessComponent} from './platform-source-readiness';
+import {PlatformMethodologyRegistryComponent} from './platform-methodology-registry';
 import {ProjectAuthorityRequestsComponent} from './project-authority-requests';
 import {ProjectReceivedInvitationsComponent} from './project-received-invitations';
 import {ProjectInvitationPlansComponent} from './project-invitation-plans';
@@ -280,6 +281,7 @@ const routes: Routes = [
   {path: 'workspace', component: WorkspaceComponent},
   {path: 'workspace/compliance', component: ComplianceQueueComponent},
   {path: 'workspace/platform/sources', component: PlatformSourceReadinessComponent},
+  {path: 'workspace/platform/methodologies', component: PlatformMethodologyRegistryComponent},
   {path: 'workspace/invitations', component: ProjectReceivedInvitationsComponent},
   {path: 'workspace/projects/new', component: WorkspaceComponent},
   {path: 'workspace/projects/:projectId/overview', component: ProjectOverviewComponent},
