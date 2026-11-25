@@ -66,8 +66,10 @@ async function setup(page) {
     candidateStatus: state.answers['1']?.methodologyCandidate === 'METHX V2.1'
       ? {state:'REGISTERED_NO_PACKAGE', methodology:'METHX', edition:'2.1', registryVersion:1} : undefined,
     methodologyPin: state.answers['1']?.methodologyCandidate === 'VM0038'
-      ? {version:1,triageVersion:1,methodology:'VM0038',edition:'1.1',registryVersion:1,packageId:'VM0038_V1_1',
-         packageVersion:1,pinnedAt:'2026-11-25T12:00:00Z',newerRegistryVersion:false,packageChanged:state.packageChanged === true}
+      ? {version:state.migrated?2:1,triageVersion:1,methodology:'VM0038',edition:'1.1',registryVersion:1,packageId:'VM0038_V1_1',
+         packageVersion:state.migrated?2:1,pinnedAt:'2026-11-25T12:00:00Z',newerRegistryVersion:false,
+         packageChanged:state.migrated?false:state.packageChanged === true,
+         origin:state.migrated?'MIGRATION':'TRIAGE',migratedFrom:state.migrated?1:null}
       : state.answers['1']?.methodologyCandidate === 'METHX V2.1'
       ? {version:1,triageVersion:1,methodology:'METHX',edition:'2.1',registryVersion:1,packageId:null,
          packageVersion:null,pinnedAt:'2026-11-25T12:00:00Z',newerRegistryVersion:true,packageChanged:false}
@@ -162,6 +164,13 @@ async function setup(page) {
       '_example':'25_BEV_BRASILIA_DF_2027_09_27',
     };
     state.exampleKind = state.answers._example;
+    await route.fulfill({status:200,json:view()});
+  });
+  await page.route('**/v1/projects/*/triage/methodology-pin/migrate', async route => {
+    state.migrateCalls = [...(state.migrateCalls ?? []), {ifMatch:route.request().headers()['if-match'],
+      body:route.request().postDataJSON()}];
+    if (state.migrateStatus) return route.fulfill({status:state.migrateStatus,json:{message:'x'}});
+    state.migrated = true;
     await route.fulfill({status:200,json:view()});
   });
   await page.route('**/v1/projects/PIL-SYN-BR-001/**', route => {
@@ -388,7 +397,7 @@ test('D18 fatia 3: a tela mostra a fixação de versão e a capacidade por final
     state.packageChanged = true;
     await page.reload();
     await page.getByText('O pacote desta metodologia mudou desde a fixação.',{exact:false}).waitFor();
-    await page.getByText('migração explícita, que ainda não está disponível',{exact:false}).waitFor();
+    await page.getByText('continua na versão fixada até você migrar',{exact:false}).waitFor();
     await page.setViewportSize({width:390,height:844});
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth),false);
   } finally {
@@ -412,6 +421,44 @@ test('D18 fatia 3: metodologia registrada sem pacote mostra a lacuna e a versão
     await page.getByText('ainda sem pacote executável)',{exact:false}).waitFor();
     await page.getByText('Há uma versão mais nova do registro desta metodologia.',{exact:false}).waitFor();
     await page.locator('#cf-triage-capability').locator('..').getByText('Triagem guiada',{exact:true}).locator('..').getByText('ainda não disponível').waitFor();
+  } finally {
+    await browser.close();
+  }
+});
+
+test('D18 migração explícita: pede confirmação, envia a versão da fixação e mostra a nova fixação', async () => {
+  const browser = await chromium.launch({executablePath});
+  try {
+    const page = await browser.newPage({viewport:{width:1360,height:850}});
+    const {state} = await setup(page);
+    state.packageChanged = true;
+    await page.goto(base + '/workspace/projects/' + projectId + '/triage');
+    await page.getByText('Testar com um exemplo sintético',{exact:true}).click();
+    await page.getByRole('button',{name:'Preencher exemplo de 25 BEVs'}).click();
+    await page.getByRole('heading',{name:'Situação da metodologia no CarbonFlow'}).waitFor();
+    // Asking is not migrating: nothing is sent until the confirmation, and cancelling sends nothing.
+    await page.getByRole('button',{name:'Migrar para a versão atual'}).click();
+    await page.getByText('A fixação anterior continua registrada',{exact:false}).first().waitFor();
+    await page.getByRole('button',{name:'Cancelar'}).click();
+    assert.equal(state.migrateCalls, undefined);
+    // A failed attempt (the pin changed elsewhere) explains itself and keeps the old pin.
+    state.migrateStatus = 412;
+    await page.getByRole('button',{name:'Migrar para a versão atual'}).click();
+    await page.getByRole('button',{name:'Confirmar migração'}).click();
+    await page.getByRole('alert').getByText('A fixação mudou em outra aba',{exact:false}).waitFor();
+    await page.getByText('O pacote desta metodologia mudou desde a fixação.',{exact:false}).waitFor();
+    // Confirmed: the pin version goes in If-Match, the body only confirms, and the new pin is shown.
+    state.migrateStatus = 0;
+    await page.getByRole('button',{name:'Migrar para a versão atual'}).click();
+    await page.getByRole('button',{name:'Confirmar migração'}).click();
+    await page.getByRole('status').getByText('Projeto migrado para a versão atual',{exact:false}).waitFor();
+    const call = state.migrateCalls.at(-1);
+    assert.equal(call.ifMatch,'"1"');
+    assert.deepEqual(call.body,{confirm:true});
+    await page.getByText('migrada da fixação 1',{exact:false}).waitFor();
+    await page.getByText('pacote versão 2',{exact:false}).waitFor();
+    assert.equal(await page.getByText('O pacote desta metodologia mudou desde a fixação.',{exact:false}).count(),0);
+    assert.equal(await page.getByRole('button',{name:'Migrar para a versão atual'}).count(),0);
   } finally {
     await browser.close();
   }

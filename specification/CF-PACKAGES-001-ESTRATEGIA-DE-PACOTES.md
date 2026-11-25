@@ -41,7 +41,7 @@ Um schema declarativo (dados em vez de código) só será considerado se houver 
 
 ## 5. Versões, fixação e migração
 - Registro e anexos são **somente de acréscimo**, com versão e digest; correção é nova versão, nunca edição de linha.
-- O projeto **fixa** a versão do pacote e do registro quando a metodologia é escolhida e quando atos são congelados. Uma versão nova não altera projetos existentes. Migrar é operação explícita e versionada que reabre só os dependentes e preserva os congelados (D17, readiness).
+- O projeto **fixa** a versão do pacote e do registro quando a metodologia é escolhida e quando atos são congelados. Uma versão nova não altera projetos existentes. Migrar é operação explícita e versionada que reabre só os dependentes e preserva os congelados (D17, readiness). *Entregue na rc.49 para a fixação; hoje não há dependentes a reabrir.*
 - Resolução por data e ato (edição vigente, transição de edições) segue os contratos de #10/#13; este documento não decide vigência.
 - Ambiente: as licenças hoje são `SANDBOX`; o registro nasce no mesmo regime. Produção depende de decisão separada.
 

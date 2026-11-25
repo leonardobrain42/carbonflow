@@ -29,6 +29,8 @@ import jakarta.enterprise.context.ApplicationScoped;
 class ProjectTriageWizard {
     record Mutation(JsonNode answers, int nextStep) {}
     record Cursor(int nextStep) {}
+    /** The caller confirms the migration to the version in force; nothing else is accepted. */
+    record Migration(Boolean confirm) {}
     record StepSummary(int number, String title, String status, List<String> missingFields) {}
     record View(String projectId, String environment, int version, int currentStep,
                 String analysisState, String exampleKind, JsonNode answers,
@@ -329,6 +331,17 @@ class ProjectTriageWizard {
                 retiredAnswers(answers), MethodologyPin.current(connection, context.id()),
                 MethodologyCapabilities.evaluate(connection,
                     MethodologyRegistry.candidateStatus(connection, ProjectJourney.candidate(answers))));
+    }
+
+    /** Explicit migration of the pinned methodology version (If-Match is the PIN version, not the triage version). */
+    JsonNode migratePin(String cookie, String projectId, String ifMatch, Migration input) {
+        if (input == null || !Boolean.TRUE.equals(input.confirm())) throw invalid("confirm");
+        int expected = PilotCommands.expected(ifMatch);
+        return scope.write(cookie, projectId, "SAVE_TRIAGE", (connection, actor) -> {
+            Snapshot latest = latestOrEmpty(connection, projectId);
+            MethodologyPin.migrate(connection, actor, expected, latest.version());
+            return mapper.valueToTree(view(connection, actor, latest));
+        });
     }
 
     View current(Connection connection, DynamicProjectScope.Context context) throws SQLException {
