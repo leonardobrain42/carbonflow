@@ -47,5 +47,8 @@ Cada programa que o produto declarar tem de ter as duas linhas, ERC e ERF; um pr
 - **Licenças** dos registros (quem consulta e registra).
 - Se vale endurecer a evidência da consulta (captura e hash).
 
+## 6.1 Releitura das fontes (25/11/2026): o que não foi possível confirmar
+Tentei ler os termos e as buscas públicas dos registros. **Nada foi verificado:** `verra.org/terms-of-use` e `goldstandard.org/terms-of-use` deram 404; `registry.verra.org`, `registry.goldstandard.org` e a busca de projetos do MDL (`cdm.unfccc.int/Projects/projsearch.html`) respondem sem texto legível pelo método usado (páginas dinâmicas), então **filtros por país/metodologia, existência de atividades de frota elétrica no Brasil e condições de uso/automação permanecem desconhecidos**. A coluna "O que falta" da seção 3 continua valendo integralmente. Caminho para fechar: alguém com navegador abre cada registro, anota a URL dos termos e como filtrar, e registra a licença (V37). Os dados abertos do ONS (CC-BY) não tratam de créditos e não ajudam aqui.
+
 ## 7. Não coberto
 Consulta aos registros em si (Verra, Gold Standard, MDL e outros) e seus termos de uso; texto integral da VM0038/VMR0014; valores de créditos emitidos (deliberadamente não levantados); a pergunta de titularidade.
