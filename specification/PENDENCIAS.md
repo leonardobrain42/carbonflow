@@ -24,7 +24,7 @@ Fonte verificável: [E8-013 — pendências e efeito no backlog](../evidencias/e
 | CF-SPEC-G06 | ED/EC real e alternativa de eficiência DCFC | Evidenciar amostra, QA, origem e rota derivada | #98/#101 |
 | CF-SPEC-G07 | PD/MR interno completo e atos | Projeção, autoria, exportação e manifesto, sem alegar aprovação | #43/#122/#128 |
 | CF-SPEC-G08 | Papéis, UX, autorização e jornada real | Confrontar gates e usuários representativos | #13/#19/#24/#124/#101 |
-| CF-SPEC-G09 | E2E e validação externa | Provas por cenário, ambiente e ato; decisão humana independente | #101 |
+| CF-SPEC-G09 | E2E e validação externa | Provas por cenário, ambiente e ato; decisão humana independente. **Parcial (25/11/2026):** primeiro E2E numérico sintético do ano 2 até `REVIEWED_INTERNAL` com Dy ≠ 1 (`OpenNumericRunE2eIntegrationTest`); **seguem abertos** E2E negativos por ato, ano inteiro coberto, amostra real autorizada, parecer independente e decisão de liberação | #101 |
 
 A atualização de estado exige link de prova, commit/versão e responsável. Não fechar PEN por existir código ou teste sintético.
 
