@@ -80,6 +80,13 @@ API interna `/v1/platform/vehicle-ratings`:
 
 A UI está em **Admin CarbonFlow → Fontes e prontidão → Eficiências e comparáveis**.
 
+## Extrator offline das linhas elétricas do PBEV (rc.57)
+`scripts/extract_pbev_electric.py` lê o PDF oficial (via `pdftotext -layout`) e lista as linhas de propulsão elétrica **como impressas** (categoria, marca, modelo, versão), mais o SHA-256 do arquivo. É ferramenta de pesquisa offline: não grava tabelas da aplicação, não decide alias, classe, comparabilidade nem circulação, e **não substitui** o importador nativo pendente abaixo.
+- A contagem extraída é comparada com a do cabeçalho do PDF; divergência é relatada. Linhas de layout inesperado vão para `skipped_lines`, nunca são adivinhadas. A categoria é a observada (lista no resultado), não uma lista fechada; duplicatas da própria tabela (mesmo modelo em duas categorias) são relatadas, não removidas.
+- **Evidência obtida em 25/11/2026** na página oficial do Inmetro (PDFs fora do repositório, por direitos de reuso não confirmados): edição 2026 (`mascara-pbev-2026_19_jan-rev01.pdf`, atualização 14/ago/26) SHA-256 `43e928f89a526f7b59013faca3501b2b0716e5a8cdc2e097b8653638aa688ba0`, **186 de 186** linhas elétricas; edição 2025 (`mascara-pbev-2025-mar-11.pdf`) SHA-256 `9528deace7d2cdf9db07d640eb086ef8191d35ef17f4ed467df08f7a57b1f39b`, **174 de 174**.
+- Observação: o `I/NISSAN LEAF TEKNA` da amostra da Senatran não tem linha elétrica no PBEV 2026 extraído, o que confirma a lacuna de rating já registrada em CF-OPEN-005.
+- Testes: `test_extract_pbev_electric.py` (5 casos, com texto sintético; não depende do PDF) no gate de sandbox do CI. O extrator não foi validado linha a linha contra o PDF: só pela contagem do cabeçalho e por amostras.
+
 ## A completar antes de encerrar a issue #95
 
 - Importador PBEV nativo por PDF (dependente de direitos, assinaturas/QA e cobertura do catálogo) e ligação material dos campos de ciclo/capacidade por linha;
