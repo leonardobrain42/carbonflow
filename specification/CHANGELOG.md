@@ -1,4 +1,6 @@
 # Changelog da especificação viva
+## D17 — 25/11/2026 (decisão de produto aprovada; documentação)
+- Consolida jornada J01–J07, núcleo metodológico agnóstico, auditoria dirigida de 65 issues e matriz normativa preliminar. Preserva recorte OPEN e ordem E8; registra lacunas de extensibilidade e cobertura. Sem mudança de código, cálculo, migração ou aceite. Ver CF-JOURNEY-001 e auditoria.
 ## 0.3.0-rc.31 — 25/11/2026 (proposta)
 - Linha 5, fatia #13/#19/#124: o diagnóstico de requisitos passa a refletir o parecer interno de adicionalidade (#99): conferido internamente, devolvido ou `RECHECK_REQUIRED` quando o guia ou a declaração mudam depois do parecer. Só texto/estado do item; segue não admitido, sem ação do cliente e sem liberar E8. Sem migração. G08 (ensaio com pessoas) e o grafo G2–G5 completo seguem abertos.
 ## 0.3.0-rc.30 — 25/11/2026 (proposta)

@@ -11,3 +11,6 @@ Conta → projetos autorizados/retomada → visão geral do projeto → prepara�
 - [IR](../../docs/CF-OPEN-007-IR-JOURNEY.md): planejamento ex ante na linha de base/premissas, parecer de staff na área de fontes, histórico do projeto em leitura e prova anual datada.
 
 Distinguir papel previsto, pessoa, poder e grant; estado ausente vs zero; informação técnica vs normativa; resultado ensaio vs estimativa vs medido vs ato externo. Evitar menu instável e perda de contexto. Testar 390x844 e desktop, teclado, erro, retomada, permissão e revisão de versão; validar com pessoas representativas. Não anunciar porcentagem de certificação ou quantidade de recargas sem dado correspondente. Issues #19/#27/#24/#124/#101 e #45 para aceite, sem assumir encerramento.
+
+## D17 — Jornada de referência
+A [jornada canônica J01–J07](../CF-JOURNEY-001.md) passa a orientar navegação, schemas, tarefas, documentos e critérios de aceite. As telas e grupos atuais são projeções do recorte OPEN; não substituem as sete macroetapas nem se tornam obrigatórios em outros métodos. Preserve D16, deep links, owners e dependências paralelas. #19/#124/#27/#7 fazem transição incremental; #41 aprofunda J04/J05.

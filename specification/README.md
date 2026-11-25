@@ -28,3 +28,7 @@ Esta árvore organiza a especificação **existente**, os contratos atuais e as 
 | [E10](e10/README.md) | release e evolução (nova organização, não etapa original) |
 
 E0–E8 são rótulos históricos de organização, não fases novamente executadas. E9/E10 são índices adicionais. IDs CF-SPEC-* são síntese nova e **não substituem** RF/CT/CAM/OP/PEN do kit original. Não criar outro motor ou catálogo de regras para satisfazer esta documentação.
+
+## Direção transversal aprovada — D17
+- [CF-JOURNEY-001 — Jornada de sete etapas e núcleo metodológico agnóstico](CF-JOURNEY-001.md): contrato de produto e extensão, sem impor VM0038/VCS ao núcleo.
+- [CF-JOURNEY-001-AUDITORIA — alinhamento do repositório e matriz normativa preliminar](CF-JOURNEY-001-AUDITORIA.md): achados, owners, escopo da revisão e lacunas. A primeira fatia OPEN e a ordem técnica E8 permanecem.

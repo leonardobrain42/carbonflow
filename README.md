@@ -297,3 +297,6 @@ Ao encerrar, use `"$PG_BIN/pg_ctl" -D "$PG_PILOT_DIR/data" stop`.
 A E8-001 recorta OP-E6-04/07 em uma execução local síncrona e imutável com marcos simulados. A E8-002 exige sessão para relatórios e snapshots e aplica OP-E6-03 ao compartilhamento de versões sintéticas para auditoria V1. O preparo e a revisão das amostras exercitam a autorização de OP-E6-08. A migração preserva a autoria e os bytes das execuções anteriores. A porta publicada fica restrita ao loopback.
 
 [Verificação da E8-001](evidencias/e8-001/VERIFICACAO.md) · [Verificação da E8-002](evidencias/e8-002/VERIFICACAO.md) · [Verificação da E8-003](evidencias/e8-003/VERIFICACAO.md) · [Verificação da E8-004](evidencias/e8-004/VERIFICACAO.md) · [Verificação da E8-005](evidencias/e8-005/VERIFICACAO.md)
+
+## Direção de produto (D17)
+CarbonFlow é uma plataforma de projetos de carbono com núcleo metodológico agnóstico; VM0038 v1.1 OPEN é o primeiro recorte e PIL-SYN o ensaio histórico. Consulte a [jornada canônica de sete etapas](specification/CF-JOURNEY-001.md) e a [auditoria de alinhamento](specification/CF-JOURNEY-001-AUDITORIA.md). Outros métodos/áreas podem ser candidatos; execução real requer pack autorizado e homologado. Esta decisão não altera o roteiro Docker acima.

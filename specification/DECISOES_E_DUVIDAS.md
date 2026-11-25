@@ -31,3 +31,6 @@ Este registro resume decisões **documentadas no repositório/backlog**, não re
 - Q07: metas de operação/hospedagem, amostra real, parecer independente e critérios de release (#101, PEN-006/008).
 
 **Novas decisões propostas nesta reorganização:** árvore de especificação viva, registro de síntese com identificadores próprios e revisão documental no PR. Não alteram normas, comportamento do aplicativo ou critérios de admissão. Após merge, passam a ser convenção de engenharia; conflitos de produto continuam exigindo decisão explícita.
+
+## CF-SPEC-D17 — Jornada canônica e núcleo metodológico agnóstico (25/11/2026)
+**Aprovada pelo responsável pelo produto nesta conversa:** receber qualquer metodologia/área, preservar núcleo agnóstico, rejeitar arquitetura obrigatória em três núcleos e adotar a jornada de sete etapas (concepção; estruturação; preparação técnica; sustentabilidade/integridade; planejamento operacional; documentação/revisão; certificação). [Contrato](CF-JOURNEY-001.md) e [auditoria](CF-JOURNEY-001-AUDITORIA.md). VCS/VM0038 são primeiro programa/método, não limite global; suporte executável exige pack e autorização. Preservar D12–D16, #89 e ordem E8. A implementação é incremental; não aprovar norma ou criar segunda metodologia real por esta decisão.
