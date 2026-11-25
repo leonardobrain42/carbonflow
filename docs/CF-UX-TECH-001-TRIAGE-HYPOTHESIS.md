@@ -1,6 +1,6 @@
 # CF-UX-TECH-001 — Fatia 6: triagem como hipótese inicial (D16) — desenho para aprovação
 
-**Estado: aprovado** pelo responsável pelo produto em 24/11/2026 (Q1–Q7 conforme as recomendações). **6a e 6b implementadas** (seções 9 e 10); 6c e Q7 pendentes. Levantamento feito no código em 24/11/2026 (`ProjectJourney`, `ProjectTriageWizard`, `ProjectTriageDiagnosis`, `OpenApplicability`, `OpenCalculationReadiness`, `OpenIrExAntePlans` e guardas de versão).
+**Estado: aprovado** pelo responsável pelo produto em 24/11/2026 (Q1–Q7 conforme as recomendações). **6a, 6b e 6c implementadas** (seções 9 a 11); Q7 pendente. Levantamento feito no código em 24/11/2026 (`ProjectJourney`, `ProjectTriageWizard`, `ProjectTriageDiagnosis`, `OpenApplicability`, `OpenCalculationReadiness`, `OpenIrExAntePlans` e guardas de versão).
 
 ## 1. Objetivo e limites
 - **D16:** a triagem registra a **hipótese inicial** (objetivo, atividade, metodologia candidata, local e o recorte mínimo para dizer se o projeto cabe no produto). Detalhes técnicos, direitos e adicionalidade vivem só nas telas técnicas, que já têm donos para eles.
@@ -57,7 +57,7 @@ As chaves de armazenamento continuam `"1"`..`"4"`; só mudam títulos e pergunta
 5. **`vehicleClass`** continua lido da triagem por `OpenCalculationReadiness` e `OpenIrExAntePlans`; nada muda nessas guardas.
 
 ## 6. D15 e guardas de versão
-- **D15 não precisa de código novo**, desde que a regra de cópia da seção 4 seja implementada. Os campos relevantes que saem (direitos, `network`/`access`/energia da etapa 3) deixam de mudar pela triagem e, copiados sem alteração, não disparam desatualização. Sem a cópia, salvar a etapa 3 deixaria a aplicabilidade desatualizada. A lista relevante passa a ser, na prática: `methodologyCandidate`, `activityType`, `installsChargers`, as 4 perguntas da etapa 3 e `country`. Atualizar o texto de D15 quando implementar.
+- **D15 não precisa de código novo**, desde que a regra de cópia da seção 4 seja implementada. Os campos relevantes que saem (direitos, `network`/`access`/energia da etapa 3) deixam de mudar pela triagem e, copiados sem alteração, não disparam desatualização. Sem a cópia, salvar a etapa 3 deixaria a aplicabilidade desatualizada. A lista relevante passa a ser, na prática: `methodologyCandidate`, `activityType`, `installsChargers`, as 4 perguntas da etapa 3 e `country`. Texto de D15 atualizado na 6c; o código (`OpenApplicability.RELEVANT_TRIAGE`) não mudou e continua comparando direitos, que agora só mudam fora da triagem.
 - **Guardas de versão** (início E8, IR, Dy, plano ex ante, vínculos de parâmetro): continuam comparando a versão da triagem, como hoje.
 - **Inconsistência encontrada (fora de D16):** o pré-cálculo (`OpenCalculationPreflight`, gate `OPEN_APPLICABILITY`/`STALE`) ainda compara só a versão da triagem, sem a regra de D15. Mover o cursor deixa a ficha "atual" mas o pré-cálculo "desatualizado". Ver Q7.
 
@@ -101,3 +101,10 @@ Correção do levantamento: `associatedInfrastructure`, `metering` e as quantida
 - **Exemplo de 25 BEVs**: passa a registrar só a hipótese inicial (sem quantidades, energia, direitos e dados de origem); "25 BEVs" fica na descrição da atividade e no marcador do exemplo. Revisões de exemplo já gravadas não mudam.
 - **Sem mudança:** banco, revisões gravadas, D15, guardas de versão, diagnóstico (`v3`).
 - **Testes:** `ProjectTriageWizardTest` (projeto antigo semeado como revisão anterior: cópia, recusa de mudança e de `null`, reenvio aceito, `retiredAnswers` com tela dona; projeto novo completo só com a hipótese; exemplo), `OpenApplicabilityIntegrationTest` (D15 continua "atual" com projeto antigo e recusa de mudança) e `frontend/test/project-triage.test.mjs` (bloco só leitura, campos antigos não enviados, etapa 4 sem direitos/dados/investimento, links do resumo, sem rolagem horizontal em 390 px).
+
+## 11. 6c — especificação
+- **D15** (`DECISOES_E_DUVIDAS`, backlog): lista relevante na prática depois de D16; limite do pré-cálculo (Q7) registrado. Sem mudança de código.
+- **D16**: implementada; regra consolidada (hipótese inicial, tela técnica vale, respostas antigas preservadas e só leitura), PRs #264 e #265.
+- **Matriz**: nova capacidade CF-SPEC-S17 (triagem como hipótese inicial), dona #17 (CF-IMP-009), com âncoras de teste de backend e navegador.
+- **Contratos**: CF-IMP-009 (o que a triagem persiste, regra consolidada) e CF-OPEN-004 (desatualização só por resposta relevante, CF-SPEC-D15). Catálogo e estado do trabalho atualizados.
+- **Pendente**: Q7, fatia de backend própria, com teste de integração.
