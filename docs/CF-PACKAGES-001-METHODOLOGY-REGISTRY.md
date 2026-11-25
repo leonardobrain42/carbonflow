@@ -37,6 +37,25 @@ A visão do cliente traz só estados e motivos: sem nomes de fontes, contagens o
 
 Teste: `MethodologyPinIntegrationTest` (pin v1 do VM0038, sem nova linha ao repetir, pin sem pacote, deriva sem alterar o projeto, candidata removida, imutabilidade, isolamento, ausência de inventário). **Não coberto por teste:** o caminho positivo de `SOURCE_REFERENCE` (fontes com metadados e licença aprovada); só o negativo foi exercitado. Sem tela nesta fatia.
 
+## Fatia 4: contrato de pacote e kit de conformidade
+`MethodologyPackageContract` (código de produção) fixa o que todo pacote cumpre, em regras executáveis. O catálogo é montado por `requireProduction`: um pacote que viola o contrato **não chega ao catálogo** e a versão não inicia, de modo que o erro aparece no CI e não para o cliente. O kit verifica estrutura, vocabulário, isolamento e neutralidade; não avalia se as regras de uma metodologia estão certas, não admite dados, não licencia e não habilita cálculo.
+
+| Regra | O que exige |
+|---|---|
+| `PKG-ID`, `PKG-KEY`, `PKG-VERSION`, `PKG-STATUS`, `PKG-TEXT` | `packageId`, programa, metodologia e edição no formato do registro; versão ≥ 1; título e descrição |
+| `PKG-ACTIVITY` | ao menos uma atividade, todas do vocabulário da plataforma |
+| `PKG-QUESTION` | chaves válidas, únicas no pacote e que não redefinem chaves da plataforma; rótulo; tipo `choice` ou `number`; escolha com 2+ opções únicas |
+| `PKG-CAPABILITY` | exatamente `triageSchema`, `calculationAdmission`, `externalActs`; as duas últimas sempre `NOT_ENABLED` (gates próprios, fora do pacote) |
+| `PKG-EVALUATOR`, `PKG-NEUTRAL` | avaliador presente; com respostas vazias, malformadas ou de outra metodologia responde sem falhar e diz onde está |
+| `PKG-PRESENTATION` | apresentação presente |
+| `PKG-DIGEST` | o digest muda com programa, versão, status e capacidades (assim a fixação do projeto enxerga a mudança) |
+| `PKG-DUPLICATE`, `PKG-ISOLATION` (entre pacotes) | identidade única; nenhuma chave de resposta compartilhada; o texto visível de um pacote não cita o código nem o id de outro (AGN-01) |
+| `PKG-TEST-ONLY` | pacote de teste (`TEST_ONLY*`, `TEST-ONLY`) nunca entra no catálogo de produção (AGN-02) |
+
+**Como adicionar um pacote (por PR):** (1) registrar a metodologia/edição pela administração, ou deixar para depois: um pacote sem registro e um registro sem pacote são estados derivados, não erro; (2) criar o perfil de triagem em `ProjectJourney` e incluí-lo em `CONFIGURED`; (3) declarar programa, versão, status e capacidades em `MethodologyPackages.META` (sem habilitar cálculo ou atos); (4) rodar `MethodologyPackageContractTest`: o pacote de produção passa pelo kit e a suíte falha se violar uma regra; (5) atualizar especificação, matriz e CHANGELOG no mesmo PR. Alterar um pacote muda o digest; subir a versão do pacote e do catálogo quando mudar o comportamento. Pacotes de teste vivem só em testes.
+
+Teste: `MethodologyPackageContractTest` (8 casos: catálogo de produção conforme; pacote de teste conforme mas barrado em produção; um pacote construído para violar cada grupo de regras). **Limites:** a neutralidade usa quatro amostras fixas de respostas, não prova o comportamento para qualquer entrada; só há um pacote de produção, então o isolamento entre pacotes de produção ainda só é exercitado contra o pacote de teste. Nada disso exige migração, API ou tela.
+
 ## Escolhas reversíveis (aprovadas em D18, §8)
 Privilégio próprio; somente acréscimo; sem segundo aprovador no cadastro; sandbox.
 
