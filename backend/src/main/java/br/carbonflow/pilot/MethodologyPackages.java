@@ -32,13 +32,13 @@ final class MethodologyPackages {
             new ActivityType("DESCONHECIDO", "Preciso de orientação"));
 
     /** Catalog version: bump when a descriptor is added, removed or changed. */
-    static final int CATALOG_VERSION = 1;
+    static final int CATALOG_VERSION = 2;
 
     private record Meta(String program, int version, String status, Map<String, String> capabilities) {}
 
     // What the platform declares about each package. Values restate existing limits: no admission, no external act.
     private static final Map<String, Meta> META = Map.of(
-            ProjectJourney.VM0038.id(), new Meta("VCS", 1, "FIRST_SLICE_OPEN_BR_LDV_BEV_DCFC_SIN",
+            ProjectJourney.VM0038.id(), new Meta("VCS", 2, "FIRST_SLICE_OPEN_BR_LDV_BEV_DCFC_SIN",
                     Map.of("triageSchema", "AVAILABLE", "calculationAdmission", "NOT_ENABLED",
                             "externalActs", "NOT_ENABLED")));
 
@@ -90,7 +90,10 @@ final class MethodologyPackages {
         String canonical = String.join("|", profile.id(), Integer.toString(meta.version()), meta.program(),
                 profile.candidate(), profile.edition(), profile.title(), meta.status(),
                 capabilities.toString(), activities.toString(),
-                profile.questions().toString(), profile.activityQuestions().toString());
+                profile.questions().toString(), profile.activityQuestions().toString(),
+                // A04: the project-document plan is part of the package; changing it moves the digest.
+                profile.pd().template(), profile.pd().templateEdition(), profile.pd().sections().toString(),
+                profile.pd().blockers().toString());
         return new Descriptor(profile.id(), meta.version(), meta.program(), profile.candidate(), profile.edition(),
                 profile.title(), meta.status(), Map.copyOf(capabilities), Set.copyOf(activities), sha256(canonical));
     }

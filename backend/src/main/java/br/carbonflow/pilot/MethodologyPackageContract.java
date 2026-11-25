@@ -40,6 +40,7 @@ final class MethodologyPackageContract {
     private static final Pattern EDITION = Pattern.compile("[0-9A-Za-z][0-9A-Za-z._-]{0,19}");
     private static final Pattern PACKAGE_ID = Pattern.compile("[A-Z][A-Z0-9_]{2,59}");
     private static final Pattern STATUS = Pattern.compile("[A-Z][A-Z0-9_]{2,79}");
+    private static final Pattern PD_TOKEN = Pattern.compile("[A-Za-z0-9][A-Za-z0-9._ -]{0,119}");
     private static final Pattern QUESTION_KEY = Pattern.compile("[a-z][A-Za-z0-9]{1,39}");
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -112,6 +113,27 @@ final class MethodologyPackageContract {
             }
         }
 
+        var pd = p.pd();
+        if (pd == null || blank(pd.template()) || blank(pd.templateEdition())
+                || !PD_TOKEN.matcher(String.valueOf(pd.template())).matches()
+                || !PD_TOKEN.matcher(String.valueOf(pd.templateEdition())).matches()) {
+            out.add(new Violation("PKG-PD", id, "O plano do documento do projeto precisa de template e edição "
+                    + "(identificadores, sem texto protegido)."));
+        } else {
+            if (pd.template().equals(ProjectJourney.PdDescriptor.NEUTRAL.template())
+                    != pd.templateEdition().equals(ProjectJourney.PdDescriptor.NEUTRAL.templateEdition()))
+                out.add(new Violation("PKG-PD", id, "Template e edição devem ser ambos neutros ou ambos definidos."));
+            if (pd.sections().isEmpty() || pd.sections().size() > 12
+                    || pd.sections().stream().anyMatch(s -> blank(s) || s.length() > 80)
+                    || pd.sections().stream().distinct().count() != pd.sections().size())
+                out.add(new Violation("PKG-PD", id, "Seções do PD: de 1 a 12, únicas, até 80 caracteres."));
+            for (var blocker : pd.blockers()) {
+                if (blank(blocker.code()) || blank(blocker.rule()) || blank(blocker.message()))
+                    out.add(new Violation("PKG-PD", id, "Bloqueio do PD incompleto."));
+            }
+            if (pd.neutral() && !pd.blockers().isEmpty())
+                out.add(new Violation("PKG-PD", id, "O plano neutro não traz bloqueios próprios."));
+        }
         if (p.presentation() == null || p.presentation().next() == null)
             out.add(new Violation("PKG-PRESENTATION", id, "Apresentação ausente."));
         out.addAll(neutrality(id, p));
@@ -236,6 +258,10 @@ final class MethodologyPackageContract {
             text.append(question.label()).append('\n');
             if (question.help() != null) text.append(question.help()).append('\n');
             question.options().forEach(option -> text.append(option.label()).append('\n'));
+        }
+        if (p.pd() != null) {
+            p.pd().sections().forEach(item -> text.append(item).append('\n'));
+            p.pd().blockers().forEach(item -> text.append(item.message()).append('\n'));
         }
         if (p.presentation() != null) {
             text.append(p.presentation().activityPlaceholder()).append('\n')
