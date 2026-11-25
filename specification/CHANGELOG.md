@@ -1,4 +1,6 @@
 # Changelog da especificação viva
+## 0.3.0-rc.63 — 25/11/2026 (proposta)
+- **CF-DATA-004, matriz de créditos concorrentes (Dy)**, nível **plataforma/dados com efeito no VM0038 v1.1 (Eq. 7 e 8)**; só documentação, sem código, migração ou dado. Descreve a matriz já existente (V84/V86/V99/V101/V102), os candidatos a programa apurados em fonte primária da Verra (VMR0014, AMS-III.C) e o que **não** foi apurado (Gold Standard, MDL, programas brasileiros), a matriz de lacunas e as decisões: universo de programas, anual × acumulada, licenças dos registros. Nenhum registro foi consultado.
 ## 0.3.0-rc.62 — 25/11/2026 (proposta)
 - **CF-DATA-003, dossiê de admissibilidade SIN/MCTI para o EFel**, nível **plataforma/dados com efeito no método VM0038 v1.1/VT0011/TOOL07**; só documentação: sem código, migração, dado ou admissão. Matriz de lacunas (método OM, CO₂ × CO₂e, mensal × horário, vintage e quebra de base de 2025, licença, autenticidade) e decisões que cabem a Q03 e à licença. **As informações sobre a publicação do MCTI vêm de fontes secundárias; a página primária, os termos do ONS e o texto da VT0011/TOOL07 não foram consultados nesta fatia.**
 ## 0.3.0-rc.61 — 25/11/2026 (proposta)
