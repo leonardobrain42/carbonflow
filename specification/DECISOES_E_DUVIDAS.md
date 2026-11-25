@@ -26,7 +26,7 @@ Este registro resume decisões **documentadas no repositório/backlog**, não re
 - Q03: opção OM/TOOL07, gases, vintage e fonte SIN; revisão competente (#96).
 - Q04/Q05: ver [documento de decisão com alternativas e recomendação](../docs/CF-OPEN-007-DECISION-Q04-Q05.md). **Q04 decidida (D13, opção B); Q05 decidida (D14), implementação parcial.**
 - Q04: **decidida** (D13, opção B); resta confirmar com especialista/VVB se a política interna D12/D13 é suficiente para a revisão normativa (#96/#97).
-- Q05: **decidida** (D14); pendentes a versão itemizada da totalização acumulada (os totais declarados existem desde a V99, sem itens e sem uso no cálculo), a confirmação externa da interpretação (anual versus acumulada, ano inicial), o denominador nacional de EVR (G03) e a integração do Dy versionado ao executor (#97).
+- Q05: **decidida** (D14); pendentes a cobertura da matriz de pesquisa para o período anterior à janela anual (os totais declarados existem desde a V99 e os itens desse período desde a V101, sem uso no cálculo), a confirmação externa da interpretação (anual versus acumulada, ano inicial), o denominador nacional de EVR (G03) e a integração do Dy versionado ao executor (#97).
 - Q06: poderes, convites, competência, provas por ato, regime VCS e versões de templates (#24/#10/#122).
 - Q07: metas de operação/hospedagem, amostra real, parecer independente e critérios de release (#101, PEN-006/008).
 

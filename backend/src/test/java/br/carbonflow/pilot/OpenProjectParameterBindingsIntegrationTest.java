@@ -570,6 +570,21 @@ class OpenProjectParameterBindingsIntegrationTest {
         assertEquals(cumulative,json(call("POST",dyPath,manager,cumulativeKey,match,withCumulative),200));
         assertEquals(409,call("POST",dyPath,manager,cumulativeKey,match,
             withCumulative.replace("\"cumulativeErf\":\"40\"","\"cumulativeErf\":\"41\"")).statusCode());
+        // Itemized earlier span: needs declared cumulative totals, licenses and an exact reconciliation.
+        String earlier="[{\"program\":\"TEST-PROGRAM\",\"registryProject\":\"C\",\"issuanceId\":\"ISS-C\","
+            +"\"creditKind\":\"ERC\",\"issuedOn\":\"2033-08-01\",\"geography\":\"BR\",\"creditsTco2e\":\"25\","
+            +"\"sourceId\":\"TEST-DY-REGISTRY\",\"sourceEdition\":\"1\",\"locator\":\"TEST_ONLY earlier C\"},"
+            +"{\"program\":\"TEST-PROGRAM\",\"registryProject\":\"D\",\"issuanceId\":\"ISS-D\","
+            +"\"creditKind\":\"ERF\",\"issuedOn\":\"2034-06-30\",\"geography\":\"BR\",\"creditsTco2e\":\"15\","
+            +"\"sourceId\":\"TEST-DY-REGISTRY\",\"sourceEdition\":\"1\",\"locator\":\"TEST_ONLY earlier D\"}]";
+        String withEarlier=withCumulative.substring(0,withCumulative.length()-1)+",\"cumulativeIssuances\":"+earlier
+            +",\"sourceLicenses\":[{\"sourceId\":\"TEST-DY-REGISTRY\",\"sourceEdition\":\"1\",\"licenseId\":\""+dyLicense+"\"}]}";
+        assertEquals(422,call("POST",dyPath,manager,key(),match,annualFound.substring(0,annualFound.length()-1)
+            +",\"cumulativeIssuances\":"+earlier+"}").statusCode(),"earlier items need declared cumulative totals");
+        assertEquals(422,call("POST",dyPath,manager,key(),match,withCumulative.substring(0,withCumulative.length()-1)
+            +",\"cumulativeIssuances\":"+earlier+"}").statusCode(),"earlier items need a license per source");
+        assertEquals(422,call("POST",dyPath,manager,key(),match,withEarlier).statusCode(),
+            "in project year 2 the annual window starts at the credit start, so there is no earlier span to itemize");
         String annualOnlyKey=key();
         JsonNode annualOnly=json(call("POST",dyPath,manager,annualOnlyKey,"\""+(dyLatest+1)+"\"",annualFound),201);
         assertTrue(annualOnly.path("cumulative").isNull(),"a version without cumulative totals does not inherit them");
