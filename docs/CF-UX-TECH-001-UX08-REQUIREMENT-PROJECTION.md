@@ -43,6 +43,19 @@ Uma segunda revisão da declaração só pede rechecagem de direitos quando o co
 
 Quando o projeto já tem seleção de frota ou vínculo de fatores, o diagnóstico deixa de dizer que o dado está simplesmente ausente: a situação passa a ser fonte candidata, ou desatualizada se o dono marcou o vínculo como obsoleto. IR e Dy não acompanham essa seleção. Nenhuma dessas situações admite E8. O catálogo interno de fontes não é lido por esta rota; o estado usado é o do vínculo do próprio projeto.
 
+## Parecer interno de adicionalidade no diagnóstico (linha 5, dependência entre etapas)
+
+O diagnóstico agora lê o parecer interno do dono da #99 ([CF-OPEN-010-ADDITIONALITY-REVIEW](CF-OPEN-010-ADDITIONALITY-REVIEW.md)); não cria regra nem tabela. Só com `VIEW_OPEN_APPLICABILITY`:
+
+| Parecer do critério | Item `VMD0049_ROUTE` (critério `POSITIVE_LIST`) e `REGULATORY_SURPLUS` |
+|---|---|
+| sem parecer | `AWAITING_NORMATIVE_EVALUATION` (como antes) |
+| `CHECKED_INTERNAL` vigente | `CHECKED_INTERNAL_NOT_ADMITTED`, "Conferido internamente, não admitido" |
+| `RETURNED` vigente | `RETURNED_NOT_ADMITTED`, "Devolvido pelo revisor" |
+| obsoleto (guia ou declaração mudou) | `RECHECK_REQUIRED`, "Precisa rechecagem"; a versão anterior permanece |
+
+Cada item só muda pelo seu próprio critério. O grupo continua `AWAITING_REVIEW`, não há ação do cliente, `admitsE8` fica falso e `canRunE8`/`canIssueVcu` seguem falsos. O critério `CHRONOLOGY` tem parecer próprio, mas não tem item neste diagnóstico (a regra de datas continua em `RIGHTS_DATE_GAP`). O frontend mostra `situation` e `reason` do servidor, sem mapa de estados.
+
 ## Homologação do diagnóstico
 
 A leitura passa por PostgreSQL e pela API, com a conta dona no lugar do papel de proponente. Preparador com triagem, revisor com documentação e operador com monitoramento recebem a rota, sem itens de aplicabilidade, sem EVR e sem a referência do contrato. O operador não grava retomada em Analisar. Preparador e revisor gravam, porque enxergam as informações iniciais.

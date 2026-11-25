@@ -3,6 +3,7 @@ package br.carbonflow.pilot;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -31,9 +32,14 @@ final class ProjectRequirementProjection {
             String limits, Summary summary, List<Item> requirements) {}
     /** Owner signals already decided elsewhere. Missing means the owner has no row. */
     record Owners(boolean rightsRecheck, String fleetState, String bindingState,
-            OpenProjectStations.EnergyPosture inventory) {
+            OpenProjectStations.EnergyPosture inventory, Map<String, String> opinions) {
         static final Owners NONE = new Owners(false, "FLEET_SELECTION_MISSING", "BINDING_MISSING",
             OpenProjectStations.EnergyPosture.NONE);
+
+        Owners(boolean rightsRecheck, String fleetState, String bindingState,
+                OpenProjectStations.EnergyPosture inventory) {
+            this(rightsRecheck, fleetState, bindingState, inventory, Map.of());
+        }
 
         Owners(boolean rightsRecheck, String fleetState, String bindingState) {
             this(rightsRecheck, fleetState, bindingState, OpenProjectStations.EnergyPosture.NONE);
@@ -222,6 +228,7 @@ final class ProjectRequirementProjection {
                 destination(input.canOpenApplicability(), "analisar", null), false,
                 List.of("direitos")));
         }
+        if (input.canViewApplicability()) applyOpinions(input, items, owners.opinions());
         if (!input.canViewCalculation()) return;
         if (owners.fleetPrepared()) {
             boolean stale = owners.fleetState().startsWith("STALE");
@@ -393,6 +400,44 @@ final class ProjectRequirementProjection {
                 + "O envio não admite o direito.",
             "Abrir direitos do projeto", destination(input.canOpenApplicability(), "direitos", null),
             input.canOpenApplicability(), List.of("direitos"));
+    }
+
+    /**
+     * Internal opinions recorded by the owner of #99. They change only what the item says; the item stays
+     * unadmitted, in the review group, and never concludes additionality or opens E8.
+     */
+    private static void applyOpinions(Input input, LinkedHashMap<String, Item> items,
+            Map<String, String> opinions) {
+        if (opinions == null) return;
+        var mapping = Map.of("VMD0049_ROUTE", "POSITIVE_LIST", "REGULATORY_SURPLUS", "REGULATORY_SURPLUS");
+        for (var entry : mapping.entrySet()) {
+            Item current = items.get(entry.getKey());
+            String state = opinions.get(entry.getValue());
+            if (current == null || state == null || state.startsWith("PENDING")) continue;
+            Destination analyze = destination(input.canOpenApplicability(), "analisar", null);
+            Item updated = switch (state) {
+                case "CHECKED_INTERNAL_NOT_ADMITTED" -> review(input, entry.getKey(), "CHECKED_INTERNAL_NOT_ADMITTED",
+                    "Conferido internamente, não admitido",
+                    "Há parecer interno independente para este critério. Ele registra a conferência e a evidência; "
+                        + "não conclui a adicionalidade, não admite a rota e não libera o cálculo.",
+                    "Aguardar a decisão competente. O parecer interno não substitui o ato externo.",
+                    analyze, false, current.affectedOutputs());
+                case "RETURNED_NOT_ADMITTED" -> review(input, entry.getKey(), "RETURNED_NOT_ADMITTED",
+                    "Devolvido pelo revisor",
+                    "O revisor independente devolveu este critério. A justificativa fica registrada e o critério "
+                        + "continua sem conclusão.",
+                    "A equipe responsável responde à devolução e o revisor registra uma nova versão.",
+                    analyze, false, current.affectedOutputs());
+                case "STALE_NOT_ADMITTED" -> review(input, entry.getKey(), "RECHECK_REQUIRED",
+                    "Precisa rechecagem",
+                    "O guia de adicionalidade ou a declaração mudou depois do parecer interno. "
+                        + "A versão anterior permanece registrada, mas não vale para o conteúdo atual.",
+                    "O revisor independente registra um novo parecer sobre o conteúdo atual.",
+                    analyze, false, current.affectedOutputs());
+                default -> null;
+            };
+            if (updated != null) items.put(entry.getKey(), updated);
+        }
     }
 
     private static Item waitingReview(Input input, String id, String reason, List<String> outputs) {
