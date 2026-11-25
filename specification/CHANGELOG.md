@@ -1,4 +1,6 @@
 # Changelog da especificação viva
+## 0.3.0-rc.24 — 25/11/2026 (proposta)
+- Proposta de revisão da ordem das 10 entregas (CF-ROADMAP-001): Dy passa para a admissibilidade de fontes (D14/G03), issues repetidas com a parte de cada linha, aplicabilidade em paralelo, qualidade contínua e trilha de dependências de terceiros. Só documentação; não é decisão nem prazo.
 ## 0.3.0-rc.23 — 24/11/2026 (proposta)
 - D16 Q7: o pré-cálculo (gate `OPEN_APPLICABILITY`/`STALE`) passa a usar a regra de CF-SPEC-D15, a mesma da ficha de aplicabilidade (`OpenApplicability.stale`); mover o cursor ou editar texto narrativo não o desatualiza mais. Sem migração; demais guardas de versão da triagem, estados `BLOCKED_*` e E8 inalterados.
 ## 0.3.0-rc.22 — 24/11/2026 (proposta)
