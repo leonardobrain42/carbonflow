@@ -1,4 +1,6 @@
 # Changelog da especificação viva
+## 0.3.0-rc.25 — 25/11/2026 (proposta)
+- Testes (preparação da linha 1 do roteiro revisado): o fluxo que leva um período E8 até a entrega de frota e ratings pela equipe foi extraído de `OpenPeriodSupportIntegrationTest` para `OpenE8TestFixture`, parametrizado por ano e mês, e um teste novo prova que ele prepara três períodos em dois anos-fonte no mesmo projeto. Nenhuma regra, contrato, migração ou comportamento de produção mudou; o teste integrado de IR em dois períodos (CF-SPEC-G05) continua pendente e não é dado como feito.
 ## 0.3.0-rc.24 — 25/11/2026 (proposta)
 - Proposta de revisão da ordem das 10 entregas (CF-ROADMAP-001): Dy passa para a admissibilidade de fontes (D14/G03), issues repetidas com a parte de cada linha, aplicabilidade em paralelo, qualidade contínua e trilha de dependências de terceiros. Só documentação; não é decisão nem prazo.
 ## 0.3.0-rc.23 — 24/11/2026 (proposta)

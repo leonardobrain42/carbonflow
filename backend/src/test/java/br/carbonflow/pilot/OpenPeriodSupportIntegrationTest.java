@@ -11,6 +11,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
+import br.carbonflow.pilot.OpenE8TestFixture.Actor;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.test.common.QuarkusTestResource;
@@ -20,34 +21,43 @@ import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
-@QuarkusTestResource(value=OpenPeriodSupportIntegrationTest.Settings.class,restrictToAnnotatedClass=true)
+@QuarkusTestResource(value=OpenE8TestFixture.Settings.class,restrictToAnnotatedClass=true)
 class OpenPeriodSupportIntegrationTest {
-    static final UUID E8_STAFF_MANAGER=UUID.fromString("e8000000-0000-4000-8000-000000000001");
-    static final UUID E8_STAFF_REVIEWER=UUID.fromString("e8000000-0000-4000-8000-000000000002");
-    static final UUID E8_STAFF_ORG=UUID.fromString("e8000000-0000-4000-8000-000000000003");
-    static final byte[] E8_STAFF_SECRET="12345123451234512345"
-        .getBytes(StandardCharsets.US_ASCII);
     @Inject PilotDatabase database;
     @Inject ObjectMapper mapper;
+    // Shared fixture: see OpenE8TestFixture (helpers were extracted verbatim, behaviour unchanged).
+    static final UUID E8_STAFF_MANAGER=OpenE8TestFixture.STAFF_MANAGER;
+    static final UUID E8_STAFF_REVIEWER=OpenE8TestFixture.STAFF_REVIEWER;
+    static final UUID E8_STAFF_ORG=OpenE8TestFixture.STAFF_ORG;
+    private OpenE8TestFixture fixture;
+    private OpenE8TestFixture fx(){
+        if(fixture==null)fixture=new OpenE8TestFixture(database,mapper,base);
+        return fixture;
+    }
+    private static String key(){return OpenE8TestFixture.key();}
+    private static String efelFixture(String energy,String hour,String value){return OpenE8TestFixture.efelFixture(energy,hour,value);}
+    private static String methodAssessment(){return OpenE8TestFixture.methodAssessment();}
+    private static JsonNode calcGate(JsonNode readiness,String code){return OpenE8TestFixture.calcGate(readiness,code);}
+    private HttpResponse<String> postMethod(String path,String cookie,String key,String match,String payload) throws Exception {return fx().postMethod(path,cookie,key,match,payload);}
+    private void configure(Actor owner,String project) throws Exception {fx().configure(owner,project,"2027-01-01T00:00:00Z","2028-01-01T00:00:00Z");}
+    private JsonNode uploadCsv(String path,Actor actor,String payload) throws Exception {return fx().uploadCsv(path,actor,payload);}
+    private HttpResponse<String> uploadPdf(String path,String cookie,String kind,String subject,String key,String payload) throws Exception {return fx().uploadPdf(path,cookie,kind,subject,key,payload);}
+    private HttpResponse<String> postEvent(String path,String cookie,String idempotency,String body) throws Exception {return fx().postEvent(path,cookie,idempotency,body);}
+    private HttpResponse<String> putWithMatch(String path,String cookie,String match,String body) throws Exception {return fx().putWithMatch(path,cookie,match,body);}
+    private HttpResponse<String> call(String method,String path,String cookie,String match,String body) throws Exception {return fx().call(method,path,cookie,match,body);}
+    private JsonNode json(HttpResponse<String> response) throws Exception {return fx().json(response);}
+    private Actor actor(){return fx().actor();}
+    private Actor actorWithId(UUID id){return fx().actorWithId(id);}
+    private UUID organization(UUID owner){return fx().organization(owner);}
+    private UUID organization(UUID owner,UUID org){return fx().organization(owner,org);}
+    private String project(Actor owner,UUID org) throws Exception {return fx().project(owner,org);}
+    private UUID[] seedScopedRatingCatalog(UUID org,UUID manager,UUID reviewer){return fx().seedScopedRatingCatalog(org,manager,reviewer,2027);}
+    private void verifyStaff(Actor manager) throws Exception {fx().verifyStaff(manager);}
+    private void addIrPin(String project,UUID org,UUID author,int year,int version){fx().addIrPin(project,org,author,year,version);}
+    private void pinCompleteSet(String project,UUID org,UUID author,UUID reviewer){fx().pinCompleteSet(project,org,author,reviewer,2027);}
+    private void grant(String project,UUID org,UUID owner,UUID actor,String role){fx().grant(project,org,owner,actor,role);}
     @TestHTTPResource URL base;
     private final HttpClient http=HttpClient.newHttpClient();
-    private record Actor(UUID id,String cookie) {}
-    private static String key(){return UUID.randomUUID().toString();}
-    private static final String CHARGER="""
-        {"siteCode":"SITE-1","chargerKind":"DCFC","ratedPowerKw":150,
-         "grid":"SIN","topology":"GRID_ONLY","timeZone":"America/Sao_Paulo",
-         "sourceReference":"COMMISSION-123"}
-        """;
-    private static String meter(String kind) {
-        return """
-          {"chargerCode":"DCFC-1","energyKind":"%s","meterPosition":"%s",
-           "sourceSystem":"METER-API-1","calibrationEvidenceRef":"CAL-2027-01",
-           "calibrationValidFrom":"2027-01-01T00:00:00Z",
-           "calibrationValidUntil":"2028-01-01T00:00:00Z",
-           "configuredFrom":"2027-01-01T00:00:00Z",
-           "configuredUntil":"2028-01-01T00:00:00Z","timeZone":"America/Sao_Paulo"}
-          """.formatted(kind,"ED".equals(kind)?"DOWNSTREAM":"UPSTREAM");
-    }
     private static final String DATA=
         "meterCode,sequence,kind,start,endExclusive,zone,quantity,unit\n"+
         "ED-1,SEQ-1,ED,2027-02-01T00:00:00Z,2027-02-01T01:00:00Z,UTC,2700,kWh\n"+
@@ -1113,441 +1123,8 @@ class OpenPeriodSupportIntegrationTest {
           """.formatted(efel,om,"b".repeat(64));
     }
 
-    private static String efelFixture(String energy,String hour,String value) {
-        return """
-          {"energyCandidateId":"%s",
-           "sourceTitle":"Série horária sintética de teste, sem fonte real",
-           "sourcePublisher":"Laboratório sintético",
-           "sourceUri":"https://example.org/test/efel-synthetic-source",
-           "sourceEdition":"fixture-v1","claimedProcedure":"Procedimento VT0011 apenas alegado e ainda não verificado",
-           "publicationDate":"2026-11-01","sourceVintage":"2027-02 (apenas fixture)",
-           "sourceSha256":"%s",
-           "sourceRightsReference":"Declaração de uso para testes automatizados",
-           "evidenceNote":"Dado exclusivamente sintético, não inserir no E8 real.",
-           "unit":"tCO2e/MWh",
-           "hours":[{"hour":"%s","value":%s}]}
-          """.formatted(energy,"a".repeat(64),hour,value);
-    }
 
-    private static String methodAssessment() {
-        StringBuilder body=new StringBuilder("{\"dossierVersion\":1,\"outcome\":\"CHECKED_INTERNAL\",")
-            .append("\"rationale\":\"Justificativa final da conformidade documental interna.\",")
-            .append("\"checks\":[");
-        String[] requirements={
-            "BOUNDARY_DCFC_SIN","METER_CALIBRATION","SOURCE_RIGHTS",
-            "HOURLY_ED_EC","CLOCK_GAPS_MAINTENANCE","DOUBLE_CLAIMING"
-        };
-        for(int i=0;i<requirements.length;i++) {
-            if(i>0)body.append(',');
-            body.append("{\"requirement\":\"").append(requirements[i])
-                .append("\",\"finding\":\"SUPPORTED_INTERNAL\",")
-                .append("\"evidenceReference\":\"DOC-VM0038-2027-")
-                .append(i+1).append("\",")
-                .append("\"reason\":\"Evidência documental revisada internamente para o critério. \"}");
-        }
-        return body.append("]}").toString();
-    }
 
-    private HttpResponse<String> postMethod(String path,String cookie,String key,
-                                             String match,String payload) throws Exception {
-        var request=HttpRequest.newBuilder(URI.create(base.toExternalForm()).resolve(path))
-            .header("Cookie",cookie).header("Content-Type","application/json")
-            .header("If-Match",match).header("Idempotency-Key",key)
-            .POST(HttpRequest.BodyPublishers.ofString(payload)).build();
-        return http.send(request,HttpResponse.BodyHandlers.ofString());
-    }
-
-    private void configure(Actor owner,String project) throws Exception {
-        String base="/v1/projects/"+project+"/technical/open-monitoring";
-        assertEquals(200,call("PUT",base+"/chargers/DCFC-1",owner.cookie(),null,CHARGER).statusCode());
-        for(String kind:new String[]{"ED","EC"}) {
-            assertEquals(200,call("PUT",base+"/meters/"+kind+"-1",
-                owner.cookie(),null,meter(kind)).statusCode());
-        }
-    }
-    private JsonNode uploadCsv(String path,Actor actor,String payload) throws Exception {
-        var request=HttpRequest.newBuilder(URI.create(base.toExternalForm()).resolve(path))
-            .header("Cookie",actor.cookie()).header("Content-Type","text/csv")
-            .header("X-Source-Id","METER-API-1").header("X-File-Name","meter-qa.csv")
-            .header("Idempotency-Key",key())
-            .POST(HttpRequest.BodyPublishers.ofString(payload)).build();
-        var result=http.send(request,HttpResponse.BodyHandlers.ofString());
-        assertEquals(202,result.statusCode(),result.body());
-        return json(result);
-    }
-    private HttpResponse<String> uploadPdf(String path,String cookie,String kind,
-                            String subject,String key,String payload) throws Exception {
-        var request=HttpRequest.newBuilder(URI.create(base.toExternalForm()).resolve(path))
-            .header("Cookie",cookie).header("Content-Type","application/pdf")
-            .header("X-Evidence-Kind",kind).header("X-Subject-Code",subject)
-            .header("X-Evidence-Reference","Documento de suporte verificado #1")
-            .header("X-File-Name","support-evidence.pdf").header("Idempotency-Key",key)
-            .POST(HttpRequest.BodyPublishers.ofString(payload)).build();
-        return http.send(request,HttpResponse.BodyHandlers.ofString());
-    }
-    private HttpResponse<String> postEvent(String path,String cookie,String idempotency,
-                                            String body) throws Exception {
-        var request=HttpRequest.newBuilder(URI.create(base.toExternalForm()).resolve(path))
-            .header("Cookie",cookie).header("Content-Type","application/json")
-            .header("Idempotency-Key",idempotency)
-            .POST(HttpRequest.BodyPublishers.ofString(body)).build();
-        return http.send(request,HttpResponse.BodyHandlers.ofString());
-    }
-    private HttpResponse<String> putWithMatch(String path,String cookie,String match,String body)
-        throws Exception {
-        var request=HttpRequest.newBuilder(URI.create(base.toExternalForm()).resolve(path))
-            .header("Cookie",cookie).header("Content-Type","application/json")
-            .header("If-Match",match)
-            .PUT(HttpRequest.BodyPublishers.ofString(body)).build();
-        return http.send(request,HttpResponse.BodyHandlers.ofString());
-    }
-    private HttpResponse<String> call(String method,String path,String cookie,
-                    String match,String body) throws Exception {
-        var builder=HttpRequest.newBuilder(URI.create(base.toExternalForm()).resolve(path));
-        if(cookie!=null)builder.header("Cookie",cookie);
-        if(body!=null)builder.header("Content-Type","application/json");
-        if(match!=null)builder.header("If-Match",match);
-        if("PUT".equals(method)) {
-            builder.header("If-Match","\"0\"");
-            builder.header("Idempotency-Key",key());
-        }
-        return http.send(builder.method(method,body==null?HttpRequest.BodyPublishers.noBody():
-            HttpRequest.BodyPublishers.ofString(body)).build(),HttpResponse.BodyHandlers.ofString());
-    }
-    private static JsonNode calcGate(JsonNode readiness,String code) {
-        for(JsonNode gate:readiness.path("gates")){
-            if(code.equals(gate.path("code").asText()))return gate;
-        }
-        throw new AssertionError("Gate ausente no diagnóstico: "+code);
-    }
-
-    private JsonNode json(HttpResponse<String> response) throws Exception {
-        return mapper.readTree(response.body());
-    }
-    private Actor actor(){return actorWithId(UUID.randomUUID());}
-    private Actor actorWithId(UUID id){
-        String token=AccessSecrets.newToken();
-        database.transaction(c->{
-            update(c,"""
-                INSERT INTO app_identity(id,email_normalized,display_name,status,email_verified_at)
-                VALUES (?,?,'QA documentary','ACTIVE',statement_timestamp())
-                ON CONFLICT (id) DO NOTHING
-                """,id,id+"@example.invalid");
-            update(c,"""
-                INSERT INTO app_account_session(token_hash,identity_id,expires_at)
-                VALUES (?,?,statement_timestamp()+interval '1 hour')
-                """,AccessSecrets.digest(token),id);
-            return null;
-        });
-        return new Actor(id,AccountAccess.COOKIE+"="+token);
-    }
-    private UUID organization(UUID owner){return organization(owner,UUID.randomUUID());}
-    private UUID organization(UUID owner,UUID org){
-        database.transaction(c->{
-            update(c,"""
-                INSERT INTO app_organization(id,environment,display_name)
-                VALUES (?,'SANDBOX','Docs carbon')
-                ON CONFLICT (id) DO NOTHING
-                """,org);
-            update(c,"INSERT INTO app_organization_membership(organization_id,identity_id,role) VALUES (?,?,'DRAFT_OWNER')",org,owner);
-            return null;
-        });
-        return org;
-    }
-    private String project(Actor owner,UUID org) throws Exception {
-        var req=HttpRequest.newBuilder(URI.create(base.toExternalForm()).resolve("/v1/projects"))
-            .header("Cookie",owner.cookie()).header("Content-Type","application/json")
-            .header("Idempotency-Key",key()).POST(HttpRequest.BodyPublishers.ofString(
-                "{\"organizationId\":\""+org+"\",\"title\":\"Documents QA\"}")).build();
-        var result=http.send(req,HttpResponse.BodyHandlers.ofString());
-        assertEquals(201,result.statusCode(),result.body());
-        return json(result).path("projectId").asText();
-    }
-    /** Entirely fabricated licensed PBEV/EVR fixture in the project's OWN org.
-     * Uses the same canonical V48/V49 tables and rights as the admin workbench.
-     * No example number may reach a live E8 run. */
-    private UUID[] seedScopedRatingCatalog(UUID org,UUID manager,UUID reviewer) {
-        UUID bevA=UUID.randomUUID(),bevB=UUID.randomUUID();
-        UUID iceA=UUID.randomUUID(),iceB=UUID.randomUUID();
-        UUID fleetSub=UUID.randomUUID(),ratingsSub=UUID.randomUUID();
-        UUID fleetLic=UUID.randomUUID(),ratingsLic=UUID.randomUUID();
-        UUID fleetObj=UUID.randomUUID(),ratingsObj=UUID.randomUUID();
-        UUID fleetImport=UUID.randomUUID(),fleetSnapshot=UUID.randomUUID();
-        UUID ratingSnapshot=UUID.randomUUID();
-        String edition="E8-2027-"+UUID.randomUUID().toString().substring(0,8);
-        database.transaction(c->{
-            UUID[] models={bevA,bevB,iceA,iceB};
-            String suffix=UUID.randomUUID().toString().substring(0,8);
-            for(int i=0;i<models.length;i++)update(c,"""
-                INSERT INTO app_fleet_model
-                (id,organization_id,manufacturer,model_name,variant,
-                 vehicle_class,propulsion,created_by)
-                VALUES (?,?,'Ficticia',?,'Base','LDV',?,?)
-                """,models[i],org,(i<2?"Synthetic BEV ":"Synthetic ICE ")+suffix+" "+i,
-                i<2?"BEV":"OTHER",manager);
-            // Project-integration-only identifiers: do not mutate the global
-            // official-source catalogue used by PlatformSourceReadiness tests.
-            String[] sourceIds={"TEST-E8-EVR-"+edition,"TEST-E8-PBEV-"+edition};
-            String[] codes={"OPEN-EVR","OPEN-PBEV"};
-            UUID[] subs={fleetSub,ratingsSub};
-            UUID[] licenses={fleetLic,ratingsLic};
-            UUID[] objects={fleetObj,ratingsObj};
-            for(int i=0;i<2;i++){
-                update(c,"""
-                    INSERT INTO app_source_version
-                    (source_id,edition,category,title,rights_holder,official_uri,origin)
-                    VALUES (?,?,'EXTERNAL_SOURCE','Synthetic test fixture',
-                        'Only internal fictional source','https://example.org/fixture','EXTERNAL')
-                    """,sourceIds[i],edition);
-                update(c,"""
-                    INSERT INTO app_platform_source_submission
-                    (id,need_code,source_id,edition,category,title,rights_holder,
-                     publisher,official_uri,reference_year,locator,metadata_fingerprint,
-                     state,submitted_by,reviewed_by)
-                    VALUES (?,?,?,?,'EXTERNAL_SOURCE','Synthetic fixture',
-                        'Only internal fictional source','Test editor',
-                        'https://example.org/fixture',2027,'TEST:1',?,
-                        'METADATA_ACCEPTED',?,?)
-                    """,subs[i],codes[i],sourceIds[i],edition,
-                    AccessSecrets.digest("metadata "+subs[i]),manager,reviewer);
-                update(c,"""
-                    INSERT INTO app_content_license
-                    (id,source_id,edition,organization_id,submitted_by,environment,
-                     purpose,authorization_ref,proof_sha256,starts_at,ends_at)
-                    VALUES (?,?,?,?,?,'SANDBOX','AUTHORIZED_PROCESSING',
-                        'Fictional fixture approved exclusively in isolated tests',
-                        ?,'2020-01-01',statement_timestamp()+interval '1 hour')
-                    """,licenses[i],sourceIds[i],edition,org,manager,"a".repeat(64));
-                update(c,"""
-                    INSERT INTO app_content_license_decision
-                    (license_id,version,outcome,decided_by,reason)
-                    VALUES (?,1,'APPROVED',?,'Test-only independently checked licence')
-                    """,licenses[i],reviewer);
-                update(c,"""
-                    INSERT INTO app_content_license_capability
-                    (license_id,decision_version,operation)
-                    VALUES (?,1,'STORE_ORIGINAL'),(?,1,'EXTRACT_TEXT'),
-                           (?,1,'SHOW_EXCERPTS'),(?,1,'EXPORT_DERIVATIVES')
-                    """,licenses[i],licenses[i],licenses[i],licenses[i]);
-                update(c,"""
-                    INSERT INTO app_platform_source_object
-                    (id,submission_id,organization_id,uploaded_by,license_id,
-                     license_version,file_name,file_format,sha256,bytes_count,
-                     nonce,encrypted,state,parsed_rows,parser_version)
-                    VALUES (?,?,?,?,?,1,'fictional.csv','CSV',?,16,?,?,
-                        'APPROVED_FOR_SCOPE',4,'TEST-ONLY')
-                    """,objects[i],subs[i],org,manager,licenses[i],
-                    AccessSecrets.digest("fixture "+subs[i]),new byte[12],new byte[32]);
-            }
-            update(c,"""
-                INSERT INTO app_fleet_ingestion
-                (id,organization_id,source_object_id,source_license_id,source_sha256,
-                 data_kind,observation_year,geography,imported_by)
-                VALUES (?,?,?,?,?,'STOCK_IN_CIRCULATION',2027,'BR',?)
-                """,fleetImport,org,fleetObj,fleetLic,
-                AccessSecrets.digest("fleet-2027"),manager);
-            update(c,"""
-                INSERT INTO app_fleet_composition_snapshot
-                (id,ingestion_id,organization_id,observation_year,denominator,
-                 number_of_models,source_sha256)
-                VALUES (?,?,?,2027,20,2,?)
-                """,fleetSnapshot,fleetImport,org,AccessSecrets.digest("fleet-2027"));
-            update(c,"""
-                INSERT INTO app_fleet_composition_weight
-                (snapshot_id,organization_id,model_id,source_row,observed_stock,
-                 weight,source_locator)
-                VALUES (?,?,?,2,12,0.6,'TEST:2'),(?,?,?,3,8,0.4,'TEST:3')
-                """,fleetSnapshot,org,bevA,fleetSnapshot,org,bevB);
-            UUID[] ratings=new UUID[4];
-            String[] metric={"ev_energy","ev_energy","fuel_economy","fuel_economy"};
-            String[] unit={"kWh/100mi","kWh/100mi","mi/USgal","mi/USgal"};
-            int[] values={18,23,32,27};
-            for(int i=0;i<4;i++){
-                ratings[i]=UUID.randomUUID();
-                update(c,"""
-                    INSERT INTO app_vehicle_rating
-                    (id,organization_id,model_id,source_object_id,source_license_id,
-                     source_row,source_sha256,year,role,fuel,cycle,seats,cycle_evidence,
-                     original_value,original_unit,normalized_value,normalized_unit,
-                     metric,locator,created_by)
-                    VALUES (?,?,?,?,?,?,?,2027,?,?,'COMBINED',5,
-                        'Synthetic combined cycle evidence',?,?,?,?,?,?,?)
-                    """,ratings[i],org,models[i],ratingsObj,ratingsLic,i+2,
-                    AccessSecrets.digest("fixture "+ratingsSub),
-                    i<2?"BEV":"FOSSIL",i<2?"ELECTRICITY":"GASOLINE",
-                    values[i],unit[i],values[i],unit[i],metric[i],"TEST:"+(i+2),manager);
-            }
-            UUID[] pairs=new UUID[2];
-            for(int i=0;i<2;i++){
-                pairs[i]=UUID.randomUUID();
-                update(c,"""
-                    INSERT INTO app_vehicle_comparable_pair
-                    (id,organization_id,fleet_snapshot_id,bev_model_id,
-                     bev_rating_id,fossil_rating_id,reason,service_description,
-                     status,version,proposed_by,reviewed_by,review_reason,reviewed_at)
-                    VALUES (?,?,?,?,?,?,'Same LDV capacity and service in synthetic test',
-                        'Five-seat passenger service','ACCEPTED',2,?,?,
-                        'Independent synthetic test review',statement_timestamp())
-                    """,pairs[i],org,fleetSnapshot,models[i],ratings[i],
-                    ratings[i+2],manager,reviewer);
-                update(c,"""
-                    INSERT INTO app_vehicle_pair_review_event
-                    (pair_id,version,outcome,reviewed_by,reason)
-                    VALUES (?,2,'ACCEPTED',?,
-                        'Independent synthetic same-cycle and capacity acceptance')
-                    """,pairs[i],reviewer);
-            }
-            update(c,"""
-                INSERT INTO app_vehicle_rating_snapshot
-                (id,organization_id,fleet_snapshot_id,year,cycle,lineage_digest,
-                 afec_kwh_per_100mi,mpg_us,model_count,constructed_by)
-                VALUES (?,?,?,2027,'COMBINED',?,20,30,2,?)
-                """,ratingSnapshot,org,fleetSnapshot,
-                AccessSecrets.digest("rating-2027"),manager);
-            update(c,"""
-                INSERT INTO app_vehicle_rating_snapshot_line
-                (snapshot_id,organization_id,model_id,pair_id,evr,
-                 ev_kwh_per_100mi,fossil_mpg_us)
-                VALUES (?,?,?,?,12,18,32),(?,?,?,?,8,23,27)
-                """,ratingSnapshot,org,bevA,pairs[0],ratingSnapshot,org,bevB,pairs[1]);
-            return null;
-        });
-        return new UUID[]{ratingSnapshot,ratingsLic};
-    }
-
-    private void verifyStaff(Actor manager) throws Exception {
-        long counter=database.read(c->first(c,
-            "SELECT floor(extract(epoch from statement_timestamp())/30)::bigint",
-            r->r.getLong(1)));
-        String body="{\"code\":\""+ComplianceStaff.codeAt(
-            E8_STAFF_SECRET,counter)+"\"}";
-        var response=call("POST","/v1/compliance/session",
-            manager.cookie(),null,body);
-        assertEquals(200,response.statusCode(),response.body());
-    }
-    public static class Settings extends AccountAccessTest.Inbox {
-        @Override public java.util.Map<String,String> start(){
-            var properties=new java.util.HashMap<>(super.start());
-            String secret=java.util.Base64.getUrlEncoder().withoutPadding()
-                .encodeToString(E8_STAFF_SECRET);
-            properties.put("carbonflow.compliance.staff",
-                E8_STAFF_MANAGER+":"+secret+":"+E8_STAFF_ORG+";"+
-                E8_STAFF_REVIEWER+":"+secret+":"+E8_STAFF_ORG);
-            properties.put("carbonflow.platform.source-readiness.viewers",
-                E8_STAFF_MANAGER+","+E8_STAFF_REVIEWER);
-            properties.put("carbonflow.platform.source-work.managers",
-                E8_STAFF_MANAGER.toString());
-            return properties;
-        }
-    }
-
-    /** Synthetic fossil reference plus explicit IR and Dy. Not an official factor. */
-    private void addIrPin(String project,UUID org,UUID author,int year,int version) {
-        database.transaction(c->{
-            update(c,"""
-                INSERT INTO app_open_project_parameter_binding
-                 (id,project_id,organization_id,environment,parameter_kind,vintage_year,
-                  version,declared_value,rule_reference,evidence_locator,value_kind,
-                  triage_version,binding_sha256,published_by)
-                VALUES (?, ?, ?,'SANDBOX','IR',?,?,0,'VM0038 explicit declaration',
-                        'DOC-IR','DECLARED_ZERO',1,?,?)
-                """,UUID.randomUUID(),project,org,year,version,AccessSecrets.digest("ir-"+year+"-"+version),author);
-            return null;
-        });
-    }
-
-    private void pinCompleteSet(String project,UUID org,UUID author,UUID reviewer) {
-        database.transaction(c->{
-            String edition="E8-FUEL-"+UUID.randomUUID().toString().substring(0,8);
-            String source=first(c,"""
-                SELECT source_id FROM app_methodology_source_need
-                WHERE code='OPEN-FOSSIL-EF' AND methodology='VM0038'
-                  AND methodology_edition='1.1'
-                """,r->r.getString(1));
-            UUID submission=UUID.randomUUID(),license=UUID.randomUUID(),object=UUID.randomUUID();
-            UUID candidate=UUID.randomUUID(),assessment=UUID.randomUUID();
-            byte[] sha=AccessSecrets.digest(edition);
-            update(c,"""
-                INSERT INTO app_source_version
-                 (source_id,edition,category,title,rights_holder,official_uri,origin)
-                VALUES (? ,?,'EXTERNAL_SOURCE','Fator fossil ficticio','Autor sintetico',
-                        'https://example.org/factor','EXTERNAL')
-                """,source,edition);
-            update(c,"""
-                INSERT INTO app_platform_source_submission
-                 (id,need_code,source_id,edition,category,title,rights_holder,publisher,
-                  official_uri,reference_year,locator,metadata_fingerprint,state,
-                  submitted_by,reviewed_by)
-                VALUES (?, 'OPEN-FOSSIL-EF', ?, ?,'EXTERNAL_SOURCE','Fator fossil ficticio',
-                        'Autor sintetico','Editor sintetico','https://example.org/factor',
-                        2027,'CSV registro 1',?,'METADATA_ACCEPTED',?,?)
-                """,submission,source,edition,sha,author,reviewer);
-            update(c,"""
-                INSERT INTO app_content_license
-                 (id,source_id,edition,organization_id,submitted_by,environment,purpose,
-                  authorization_ref,proof_sha256,starts_at,ends_at)
-                VALUES (?, ?, ?, ? ,?,'SANDBOX','AUTHORIZED_PROCESSING','Somente teste',
-                        ?,'2024-01-01',statement_timestamp()+interval '1 hour')
-                """,license,source,edition,org,author,"d".repeat(64));
-            update(c,"""
-                INSERT INTO app_content_license_decision
-                 (license_id,version,outcome,decided_by,reason)
-                VALUES (?,1,'APPROVED',?,'Autorizacao sintetica independente')
-                """,license,reviewer);
-            update(c,"""
-                INSERT INTO app_content_license_capability
-                 (license_id,decision_version,operation)
-                VALUES (?,1,'STORE_ORIGINAL'),(?,1,'EXTRACT_TEXT'),
-                       (?,1,'SHOW_EXCERPTS'),(?,1,'EXPORT_DERIVATIVES')
-                """,license,license,license,license);
-            update(c,"""
-                INSERT INTO app_platform_source_object
-                 (id,submission_id,organization_id,uploaded_by,license_id,license_version,
-                  file_name,file_format,sha256,bytes_count,nonce,encrypted,state,
-                  parsed_rows,parser_version)
-                VALUES (?,?,?,?,?,1,'fator.csv','CSV',?,16,?,?,'APPROVED_FOR_SCOPE',1,'TABULAR-1')
-                """,object,submission,org,author,license,sha,new byte[12],new byte[32]);
-            update(c,"""
-                INSERT INTO app_open_parameter_candidate
-                 (id,organization_id,source_object_id,source_license_id,source_row,
-                  source_sha256,source_locator,created_by,methodology,methodology_edition,
-                  scenario,geography,period_year,parameter_kind,gas,fuel,
-                  original_unit,original_value,normalized_unit,normalized_value,
-                  conversion_formula,technical_rule_ref,technical_evidence)
-                VALUES (?,?,?,?,2,?, 'CSV registro 1',?,'VM0038','1.1',
-                        'OPEN_LDV_DCFC_SIN_BR','BR',2027,'EF_FUEL','CO2e','GASOLINE',
-                        'tCO2e/USgal',0.009,'tCO2e/USgal',0.009,
-                        'identity','VM0038-1.1-EQ1-EF_FUEL','CSV registro 1')
-                """,candidate,org,object,license,sha,author);
-            update(c,"""
-                INSERT INTO app_open_parameter_assessment
-                 (id,candidate_id,methodology,methodology_edition,scenario,blocked_capability,
-                  outcome,rule_reference,evidence_locator,reason,reviewed_by)
-                VALUES (?,?,'VM0038','1.1','OPEN_LDV_DCFC_SIN_BR','BASELINE_BE',
-                        'APPROVED_FOR_SCOPE','VM0038-1.1-EQ1','CSV registro 1',
-                        'Checagem interna ficticia da fonte',?)
-                """,assessment,candidate,reviewer);
-            update(c,"""
-                INSERT INTO app_open_project_parameter_binding
-                 (id,project_id,organization_id,environment,parameter_kind,vintage_year,
-                  version,candidate_id,source_sha256,normalized_unit,conversion_formula,
-                  value_kind,triage_version,binding_sha256,published_by)
-                VALUES (?, ?, ?,'SANDBOX','EF_FUEL',2027,1,?,?, 'tCO2e/USgal','identity',
-                        'REFERENCE',1,?,?)
-                """,UUID.randomUUID(),project,org,candidate,sha,AccessSecrets.digest("fuel-pin"),author);
-            for (String kind : new String[]{"IR","DY"}) {
-                update(c,"""
-                    INSERT INTO app_open_project_parameter_binding
-                     (id,project_id,organization_id,environment,parameter_kind,vintage_year,
-                      version,declared_value,rule_reference,evidence_locator,value_kind,
-                      triage_version,binding_sha256,published_by)
-                    VALUES (?, ?, ?,'SANDBOX',?,2027,1,1,
-                            'VM0038 explicit declaration','DOC-1','DECLARED_EXPLICIT',1,?,?)
-                    """,UUID.randomUUID(),project,org,kind,AccessSecrets.digest(kind+"-pin"),author);
-            }
-            return null;
-        });
-    }
 
     private static JsonNode calculationNote(JsonNode sections) {
         for (JsonNode section : sections)
@@ -1556,16 +1133,4 @@ class OpenPeriodSupportIntegrationTest {
         return null;
     }
 
-    private void grant(String project,UUID org,UUID owner,UUID actor,String role) {
-        database.transaction(c->{
-            update(c,"""
-                INSERT INTO app_project_collaborator_grant
-                (id,project_id,organization_id,environment,identity_id,granted_by,
-                 role,activities,valid_until)
-                VALUES (?,?,?,'SANDBOX',?,?,?,ARRAY['MONITORING']::text[],
-                        statement_timestamp()+interval '3 days')
-                """,UUID.randomUUID(),project,org,actor,owner,role);
-            return null;
-        });
-    }
 }
