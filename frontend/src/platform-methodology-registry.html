@@ -105,6 +105,9 @@
                   @if (entry.officialUri) { <a class="cf-workspace-link" [href]="entry.officialUri" rel="noopener noreferrer">Endereço oficial</a> }
                 </p>
                 <p class="cf-platform-meta">Assinatura {{ shortDigest(entry) }} · {{ entry.registeredAt }}</p>
+                <p class="cf-platform-meta">{{ entry.sourceNeeds }} necessidade(s) de fonte; {{ entry.registeredSources }} com metadados publicados.</p>
+                <a class="cf-workspace-link" [routerLink]="['/workspace/platform/methodologies', entry.methodology, entry.edition, 'sources']"
+                  [attr.aria-label]="'Fontes de ' + entry.methodology + ' ' + entry.edition">Fontes</a>
                 <button type="button" class="cf-workspace-outline" (click)="revise(entry)"
                   [attr.aria-label]="'Nova versão de ' + entry.methodology + ' ' + entry.edition">Nova versão</button>
               </li>

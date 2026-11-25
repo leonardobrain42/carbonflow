@@ -18,6 +18,8 @@ interface RegistryEntry {
   registeredAt: string;
   digest: string;
   hasPackage: boolean;
+  sourceNeeds: number;
+  registeredSources: number;
 }
 
 interface Form {
