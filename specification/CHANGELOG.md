@@ -1,4 +1,7 @@
 # Changelog da especificação viva
+## 0.3.0-rc.51 — 25/11/2026 (proposta)
+- **D18 fatia 3, teste do caminho positivo de `SOURCE_REFERENCE`**, nível **plataforma**; somente teste, sem mudança de código, regra, licença ou migração. `MethodologyCapabilitiesTest` semeia, numa transação sempre revertida, metadados e licenças aprovadas (decisor diferente de quem submeteu) para todas as fontes obrigatórias do VM0038 1.1 e confirma: sem licença não habilita; submetente igual ao decisor não conta; com tudo, `SOURCE_REFERENCE` fica `ENABLED`; faltar uma capacidade ou revogar fecha de novo; `CALCULATION_ADMISSION` e `EXTERNAL_ACTS` seguem `NOT_ENABLED`; nada vaza após o rollback.
+- Verificado: backend 337/337 em banco limpo. Não executados: navegador, Compose, CI.
 ## 0.3.0-rc.50 — 25/11/2026 (proposta)
 - **A04, residuais**, nível **plataforma/pacote**. `PdSections` grava template/edição do plano do pacote (VM0038 inalterado); o catálogo de guias devolve o `journeyProfile` do pacote do projeto e o cliente deixa de embutir um perfil VM0038. Guarda de `ProjectRequirementProjection` mantida de propósito (adaptador OPEN; sem segundo pacote). Sem regra, licença ou admissão alterados.
 - Verificado: backend 335/335; Angular compila; `project-technical-profile.test.mjs` 2/2 e `typed-guide.test.mjs` passaram (Chromium, API mockada). Não executados: demais testes de navegador, pilha Compose, CI.
