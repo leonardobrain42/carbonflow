@@ -1,0 +1,135 @@
+<a class="cf-skip-link" href="#cf-methodology-sources-main">Pular para o conteúdo</a>
+<div class="cf-workspace-shell">
+  <aside class="cf-workspace-sidebar" aria-label="Navegação administrativa">
+    <a routerLink="/workspace" class="cf-workspace-brand">Carbon<span>Flow</span></a>
+    <p class="cf-workspace-kicker">ADMIN CARBONFLOW</p>
+    <nav class="cf-workspace-nav" aria-label="Console interno">
+      <a routerLink="/workspace">Meus projetos</a>
+      <a routerLink="/workspace/platform/sources">Fontes e prontidão</a>
+      <a routerLink="/workspace/platform/methodologies" aria-current="page">Metodologias</a>
+    </nav>
+    <p class="cf-platform-sidebar-note">Cadastrar uma necessidade não registra a fonte, não concede licença, não admite dados e não habilita cálculo.</p>
+  </aside>
+  <div class="cf-workspace-stage">
+    <header class="cf-workspace-topbar">
+      <span>Admin CarbonFlow</span>
+      <a routerLink="/workspace/platform/methodologies" class="cf-workspace-link">Voltar ao registro</a>
+    </header>
+    <main id="cf-methodology-sources-main" class="cf-workspace-content cf-platform-content">
+      <header class="cf-workspace-heading">
+        <span class="cf-workspace-chip">PAINEL INTERNO · FONTES POR METODOLOGIA</span>
+        <h1>Fontes de {{ methodology }} {{ edition }}</h1>
+        <p>Descreva os contextos de uso e as fontes que esta metodologia espera, só com metadados. O cadastro só aceita acréscimos. O estado de cada fonte (faltante, só metadados, com direito de referência) é calculado pelo console de <a routerLink="/workspace/platform/sources" class="cf-workspace-link">Fontes e prontidão</a>, a partir da ingestão e das licenças.</p>
+      </header>
+      @if (error()) { <p class="cf-workspace-alert" role="alert">{{ error() }}</p> }
+      @if (feedback()) { <p class="cf-platform-success" role="status">{{ feedback() }}</p> }
+      @if (loading()) { <p role="status">Conferindo acesso…</p> }
+
+      @if (!loading() && !session()) {
+        <section class="cf-workspace-card"><h2>Acesso interno indisponível</h2>
+          <a routerLink="/workspace" class="cf-workspace-link">Ir para minha conta</a></section>
+      } @else if (!loading() && session() && !session()?.verified) {
+        <section class="cf-workspace-card">
+          <h2>Verificação da equipe interna</h2>
+          <form (submit)="verify($event, code)">
+            <label for="cf-sources-mfa">Código de seis dígitos do autenticador</label>
+            <input #code id="cf-sources-mfa" inputmode="numeric" type="text" pattern="[0-9]{6}"
+              autocomplete="one-time-code" maxlength="6" required [disabled]="loading()"/>
+            <button type="submit" class="cf-workspace-primary" [disabled]="loading()">Desbloquear</button>
+          </form>
+        </section>
+      }
+
+      @if (unlocked()) {
+        <section class="cf-workspace-card" aria-labelledby="cf-ctx-form-title">
+          <h2 id="cf-ctx-form-title">Registrar contexto</h2>
+          <form (submit)="saveContext($event)" class="cf-platform-source-form">
+            <label for="cf-ctx-scenario">Cenário (código, em maiúsculas)</label>
+            <input id="cf-ctx-scenario" name="scenario" required maxlength="60" pattern="[A-Z][A-Z0-9_]{2,59}"/>
+            <label for="cf-ctx-title">Título</label>
+            <input id="cf-ctx-title" name="title" required minlength="3" maxlength="200"/>
+            <label for="cf-ctx-country">País (2 letras)</label>
+            <input id="cf-ctx-country" name="country" required maxlength="2" pattern="[A-Z]{2}"/>
+            <label for="cf-ctx-network">Modalidade de rede (opcional)</label>
+            <input id="cf-ctx-network" name="networkMode" maxlength="60" pattern="[A-Z0-9_]{1,60}"/>
+            <label for="cf-ctx-vehicle">Categoria de veículo (opcional)</label>
+            <input id="cf-ctx-vehicle" name="vehicleCategory" maxlength="60" pattern="[A-Z0-9_]{1,60}"/>
+            <label for="cf-ctx-charger">Tipo de carregador (opcional)</label>
+            <input id="cf-ctx-charger" name="chargerType" maxlength="60" pattern="[A-Z0-9_]{1,60}"/>
+            <label for="cf-ctx-energy">Sistema de energia (opcional)</label>
+            <input id="cf-ctx-energy" name="energySystem" maxlength="60" pattern="[A-Z0-9_]{1,60}"/>
+            <p class="cf-platform-meta">Os campos opcionais ficam em branco quando não se aplicam à metodologia. Não inclua trechos de normas.</p>
+            <button type="submit" class="cf-workspace-primary" [disabled]="saving()">Registrar contexto</button>
+          </form>
+        </section>
+
+        <section aria-labelledby="cf-ctx-list-title">
+          <h2 id="cf-ctx-list-title">Contextos registrados</h2>
+          @if (contexts().length === 0) { <p>Nenhum contexto registrado para esta metodologia.</p> }
+          <ul class="cf-tech-gates">
+            @for (ctx of contexts(); track ctx.scenario) {
+              <li>
+                <h3>{{ ctx.title }}</h3>
+                <p class="cf-platform-meta">{{ ctx.scenario }} · {{ ctx.country }}@if (ctx.networkMode) { · {{ ctx.networkMode }} }@if (ctx.vehicleCategory) { · {{ ctx.vehicleCategory }} }@if (ctx.chargerType) { · {{ ctx.chargerType }} }@if (ctx.energySystem) { · {{ ctx.energySystem }} }</p>
+                <p><strong>{{ ctx.needCount }}</strong> necessidade(s) de fonte; <strong>{{ ctx.registeredSourceCount }}</strong> com metadados já publicados pela ingestão.</p>
+                <button type="button" class="cf-workspace-outline" (click)="openNeed(ctx.scenario)"
+                  [attr.aria-expanded]="needFor() === ctx.scenario"
+                  [attr.aria-label]="'Nova necessidade de fonte em ' + ctx.scenario">Nova necessidade de fonte</button>
+                @if (needFor() === ctx.scenario) {
+                  <form (submit)="saveNeed($event, ctx.scenario)" class="cf-platform-source-form">
+                    <label [attr.for]="'n-code-' + ctx.scenario">Código da necessidade (global, em maiúsculas)</label>
+                    <input [id]="'n-code-' + ctx.scenario" name="code" required maxlength="60" pattern="[A-Z][A-Z0-9_\-]{2,59}"/>
+                    <label [attr.for]="'n-stage-' + ctx.scenario">Etapa</label>
+                    <select [id]="'n-stage-' + ctx.scenario" name="stage">
+                      @for (o of stages; track o[0]) { <option [value]="o[0]">{{ o[1] }}</option> }
+                    </select>
+                    <label [attr.for]="'n-kind-' + ctx.scenario">Tipo</label>
+                    <select [id]="'n-kind-' + ctx.scenario" name="kind" (change)="onKind($event)">
+                      @for (o of kinds; track o[0]) { <option [value]="o[0]">{{ o[1] }}</option> }
+                    </select>
+                    <label [attr.for]="'n-title-' + ctx.scenario">Título</label>
+                    <input [id]="'n-title-' + ctx.scenario" name="title" required minlength="3" maxlength="200"/>
+                    <label [attr.for]="'n-purpose-' + ctx.scenario">Finalidade</label>
+                    <input [id]="'n-purpose-' + ctx.scenario" name="purpose" required minlength="3" maxlength="500"/>
+                    @if (kind() !== 'PROJECT_EVIDENCE') {
+                      <label [attr.for]="'n-sid-' + ctx.scenario">Identificador da fonte</label>
+                      <input [id]="'n-sid-' + ctx.scenario" name="sourceId" required maxlength="80" pattern="[A-Za-z0-9][A-Za-z0-9._\-]{1,79}"/>
+                      <label [attr.for]="'n-sed-' + ctx.scenario">Edição da fonte (ignorada nas políticas "do ano" e "mais recente")</label>
+                      <input [id]="'n-sed-' + ctx.scenario" name="sourceEdition" maxlength="20"/>
+                    }
+                    <label [attr.for]="'n-pol-' + ctx.scenario">Política de edição</label>
+                    <select [id]="'n-pol-' + ctx.scenario" name="editionPolicy">
+                      @for (o of policies; track o[0]) { <option [value]="o[0]">{{ o[1] }}</option> }
+                    </select>
+                    <label [attr.for]="'n-uri-' + ctx.scenario">Endereço oficial (https, opcional)</label>
+                    <input [id]="'n-uri-' + ctx.scenario" name="officialUri" type="url" maxlength="255"/>
+                    <label [attr.for]="'n-cap-' + ctx.scenario">Capacidade bloqueada sem esta fonte</label>
+                    <select [id]="'n-cap-' + ctx.scenario" name="blockedCapability">
+                      @for (o of capabilities; track o[0]) { <option [value]="o[0]">{{ o[1] }}</option> }
+                    </select>
+                    <label [attr.for]="'n-par-' + ctx.scenario">Responsável</label>
+                    <select [id]="'n-par-' + ctx.scenario" name="responsibleParty">
+                      @for (o of parties; track o[0]) { <option [value]="o[0]">{{ o[1] }}</option> }
+                    </select>
+                    <label [attr.for]="'n-pri-' + ctx.scenario">Prioridade</label>
+                    <select [id]="'n-pri-' + ctx.scenario" name="priority">
+                      <option value="P0">P0</option><option value="P1">P1</option><option value="P2">P2</option>
+                    </select>
+                    <label [attr.for]="'n-man-' + ctx.scenario">Obrigatória</label>
+                    <select [id]="'n-man-' + ctx.scenario" name="mandatory">
+                      <option value="true">Sim</option><option value="false">Não</option>
+                    </select>
+                    <label [attr.for]="'n-note-' + ctx.scenario">Observação (opcional)</label>
+                    <input [id]="'n-note-' + ctx.scenario" name="conditionNote" maxlength="500"/>
+                    <p class="cf-platform-meta">Só metadados. Não informe textos protegidos nem dados pessoais.</p>
+                    <button type="submit" class="cf-workspace-primary" [disabled]="saving()">Registrar necessidade</button>
+                  </form>
+                }
+              </li>
+            }
+          </ul>
+        </section>
+      }
+    </main>
+  </div>
+</div>
