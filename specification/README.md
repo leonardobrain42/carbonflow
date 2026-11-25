@@ -31,4 +31,5 @@ E0–E8 são rótulos históricos de organização, não fases novamente executa
 
 ## Direção transversal aprovada — D17
 - [CF-JOURNEY-001 — Jornada de sete etapas e núcleo metodológico agnóstico](CF-JOURNEY-001.md): contrato de produto e extensão, sem impor VM0038/VCS ao núcleo.
+- [CF-PACKAGES-001 — Estratégia de pacotes: administração, fontes e código](CF-PACKAGES-001-ESTRATEGIA-DE-PACOTES.md): decisão D18 e sequência de entregas do registro de metodologias.
 - [CF-JOURNEY-001-AUDITORIA — alinhamento do repositório e matriz normativa preliminar](CF-JOURNEY-001-AUDITORIA.md): achados, owners, escopo da revisão e lacunas. A primeira fatia OPEN e a ordem técnica E8 permanecem.
