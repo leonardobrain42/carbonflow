@@ -49,6 +49,10 @@ class ContentLicensesIntegrationTest {
 
     @Test
     void aLicenceIsSubmittedDecidedByAnotherPersonAndRevokedWithoutEnablingAnything() throws Exception {
+        // The deep link of the administration screen is served as the SPA (CI serves routes from this list).
+        var page = call("GET", "/workspace/platform/licenses", null, null, null);
+        assertEquals(200, page.statusCode());
+        assertTrue(page.headers().firstValue("Content-Type").orElse("").startsWith("text/html"));
         String hash = "e".repeat(64);
         String ok = licence(hash, "REQUIREMENT_CATALOG", "2026-01-01T00:00:00Z", "2099-01-01T00:00:00Z");
         database.transaction(c -> {
