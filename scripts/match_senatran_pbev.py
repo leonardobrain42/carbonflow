@@ -92,6 +92,18 @@ def cross(names, pbev):
     }
 
 
+def import_payload(result, period):
+    """Body for POST /v1/platform/fleet/alias-candidates. NONE names have no candidate and are not imported; the
+    record key is the same one the CSV bridge writes, so the candidate and the stock row can be joined later."""
+    from build_evr_stock_csv import key_for
+    items = [{"literalName": m["literal_name"], "recordKey": key_for(m["literal_name"]), "level": m["level"],
+              "reason": m["reason"],
+              "matches": [{"brand": c["brand"], "model": c["model"], "version": c["version"],
+                           "category": c["category"], "pbevLine": c["pbev_line"]} for c in m["candidates"]]}
+             for m in result["matches"] if m["status"] != "NONE"]
+    return {"observationPeriod": period, "pbevSourceSha256": result["pbev_source_sha256"], "items": items}
+
+
 def names_from(args):
     if args.senatran_report:
         report = json.loads(Path(args.senatran_report).read_text(encoding="utf-8"))
@@ -105,12 +117,20 @@ def main():
     parser.add_argument("--senatran-report", type=Path, help="saída de inspect_senatran_stock_sample.py")
     parser.add_argument("--name", action="append", default=[], help="nome literal da Senatran; repita")
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--emit-import", type=Path, help="grava o corpo de POST /v1/platform/fleet/alias-candidates")
     args = parser.parse_args()
     names = names_from(args)
     if not names:
         parser.error("informe --senatran-report ou ao menos um --name")
     result = cross(names, json.loads(args.pbev_json.read_text(encoding="utf-8")))
     args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    if args.emit_import:
+        if not args.senatran_report:
+            parser.error("--emit-import exige --senatran-report (o período vem do relatório)")
+        period = json.loads(args.senatran_report.read_text(encoding="utf-8"))["observation_period"]
+        payload = import_payload(result, period)
+        args.emit_import.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print(f"{len(payload['items'])} candidatos para importar em {args.emit_import}")
     print(f"{len(names)} nomes; {result['status_counts']}; saída em {args.output}")
 
 
