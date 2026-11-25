@@ -1,4 +1,7 @@
 # Changelog da especificação viva
+## 0.3.0-rc.54 — 25/11/2026 (proposta)
+- **CF-DATA-001, administração de licenças de fontes (API)**, nível **plataforma**. Migração aditiva V107 (só as ações de auditoria). `/v1/platform/source-licenses`: listar, submeter, decidir (aprovar/negar, dupla custódia) e revogar, com rosters configuráveis de submetentes e aprovadores, `If-Match`, auditoria e histórico preservado. Fecha a lacuna de que as licenças só existiam por SQL. Comprovante é hash declarado (não verificado, bytes não guardados); sem tela; nada habilita cálculo, admissão ou atos. Quem integra cada roster fica a decidir. Contrato em [CF-DATA-001](../docs/CF-DATA-001-CONTENT-LICENSES.md).
+- CI: ensaio V79 atualizado para V107 (26 versões; só o CI executa). Verificado localmente: backend 338/338 em banco limpo. Não executados: navegador, Compose, CI.
 ## 0.3.0-rc.53 — 25/11/2026 (proposta)
 - **G10, situação por linha da auditoria**, somente documentação, nível plataforma. Corrige o texto defasado das PENDENCIAS ("fatias 2–5 não iniciadas") e registra em CF-JOURNEY-001-AUDITORIA o que está resolvido, mantido como guarda ou dependente de decisão/segundo pacote. Sem código, regra, contrato ou migração alterados; nenhum teste executado (não há código novo).
 ## 0.3.0-rc.52 — 25/11/2026 (proposta)
