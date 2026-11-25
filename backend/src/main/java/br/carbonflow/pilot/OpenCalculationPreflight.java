@@ -54,10 +54,17 @@ final class OpenCalculationPreflight {
         boolean outside = false;
         boolean stale = false;
         if (!"VM0038".equals(context.methodology())) {
-            outside = true;
-            gates.add(new Gate("METHODOLOGY", "OUT_OF_SCOPE",
-                "Selecione e confirme VM0038 para avaliar o ramo OPEN brasileiro.",
-                "Revisar triagem e metodologia candidata", "PP/PREP"));
+            // D17/AGN-01: a draft without a VM0038 candidate gets a neutral gap, never the EV/OPEN gates,
+            // scenario, engine or equation plan of this adapter, and never a fallback calculation.
+            boolean undefined = context.methodology() == null || context.methodology().isBlank();
+            return new Result(context.projectId(), context.environment(), null,
+                context.methodology(), null, "REQUEST_DATA", "BLOCKED_NOT_ADMISSIBLE",
+                true, false, false, new Emissions(null, null, null, null, null),
+                List.of(new Gate("METHODOLOGY", undefined ? "MISSING" : "OUT_OF_SCOPE",
+                    undefined ? "A metodologia candidata ainda não foi definida; nenhum cálculo é preparado."
+                        : "Não há pacote de cálculo configurado para a metodologia indicada; o rascunho segue sem cálculo.",
+                    "Revisar triagem e metodologia candidata", "PP/PREP")),
+                List.of());
         }
         if (context.country() == null || context.country().isBlank()) {
             gates.add(new Gate("COUNTRY", "MISSING",

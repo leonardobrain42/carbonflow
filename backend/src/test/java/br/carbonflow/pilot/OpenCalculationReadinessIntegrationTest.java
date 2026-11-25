@@ -115,7 +115,9 @@ class OpenCalculationReadinessIntegrationTest {
         });
         var preparerResponse=call("GET",path,preparer.cookie(),null,null,null);
         assertEquals(200,preparerResponse.statusCode());
-        assertEquals(7,json(preparerResponse).path("equationPlan").size());
+        // D17/AGN-01: a project without a candidate gets no VM0038 equation plan, only the methodology gap.
+        assertEquals(0,json(preparerResponse).path("equationPlan").size());
+        assertEquals("METHODOLOGY",json(preparerResponse).at("/gates/0/code").asText());
         assertNull(json(preparerResponse).at("/emissions/erTco2e").textValue());
         assertFalse(json(preparerResponse).path("canRunE8").asBoolean());
         assertFalse(json(preparerResponse).path("canIssueVcu").asBoolean());

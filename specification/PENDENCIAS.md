@@ -29,5 +29,5 @@ Fonte verificável: [E8-013 — pendências e efeito no backlog](../evidencias/e
 A atualização de estado exige link de prova, commit/versão e responsável. Não fechar PEN por existir código ou teste sintético.
 
 ## Lacunas D17
-- CF-SPEC-G10: contratos de pacote e projeção da jornada agnóstica; acoplamentos A02–A07/A09–A12 da [auditoria](CF-JOURNEY-001-AUDITORIA.md); #16/#90/#10/#13/#19/#124/#43/#42. Provar AGN-01–05/08 por fatia, sem liberar segundo método real.
+- CF-SPEC-G10: contratos de pacote e projeção da jornada agnóstica; acoplamentos A02–A07/A09–A12 da [auditoria](CF-JOURNEY-001-AUDITORIA.md); #16/#90/#10/#13/#19/#124/#43/#42. Provar AGN-01–05/08 por fatia, sem liberar segundo método real. **Progresso:** AGN-01 provado para triagem, prontidão de cálculo e requisitos (`AgnosticDraftIntakeTest`, rc.35); falta `open-applicability` (categoria OPEN para qualquer projeto), schema/catálogo de triagem por contexto de servidor (A03) e seções/template do PD por pacote (A04).
 - CF-SPEC-G11: cobertura atômica VCS, metodologia, ferramentas, regras de transição e templates autorizados (incluindo J04), com requisitos/evidências/saídas/testes por ato; #10/#41/#43/#122/#101, AGN-06/07. Não declarar conformidade por mapa de grupos.
