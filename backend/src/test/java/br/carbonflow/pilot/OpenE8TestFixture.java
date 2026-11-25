@@ -390,9 +390,20 @@ public final class OpenE8TestFixture {
      */
     void verifyStaff(Actor manager) throws Exception {
         for(int attempt=0;;attempt++) {
-            long counter=database.read(c->first(c,
-                "SELECT floor(extract(epoch from statement_timestamp())/30)::bigint",
-                r->r.getLong(1)));
+            long counter;
+            while(true) {
+                counter=database.read(c->first(c,
+                    "SELECT floor(extract(epoch from statement_timestamp())/30)::bigint",
+                    r->r.getLong(1)));
+                // The step is consumed once per identity. A replay is recorded as an MFA failure, and failures are
+                // limited per identity across every test class, so wait for the next step instead of provoking one.
+                Long used=database.read(c->first(c,"SELECT last_counter FROM app_compliance_mfa WHERE identity_id=?",
+                    r->r.getLong(1),manager.id()));
+                if(used==null || used<counter) break;
+                long wait=database.read(c->first(c,
+                    "SELECT 30-(floor(extract(epoch from statement_timestamp()))::bigint % 30)",r->r.getLong(1)));
+                Thread.sleep((wait+1)*1000L);
+            }
             var response=call("POST","/v1/compliance/session",manager.cookie(),null,
                 "{\"code\":\""+ComplianceStaff.codeAt(STAFF_SECRET,counter)+"\"}");
             if(response.statusCode()==200)return;

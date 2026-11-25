@@ -23,16 +23,22 @@ final class OpenE8AnnualMath {
         }
         boolean firstYearExAnte() { return OpenE8IrContext.FIRST_YEAR_EX_ANTE.equals(state); }
     }
+    /** Structured Dy assessment behind one period run (D14); the same assessment must serve the whole year. */
+    record DyReference(UUID assessmentId, Integer version, String assessmentSha256, String state) {
+        boolean complete() {
+            return assessmentId != null && version != null && assessmentSha256 != null && state != null;
+        }
+    }
     record Member(String period, UUID runId, int version, String inputSha256,
                   Instant windowStart, Instant windowEndExclusive, Integer projectYear,
                   String state, boolean stale, Totals totals, IrReference ir,
-                  OpenIrIntraYearReuse.Canonical canonical) {
-        /** Without canonical fleet/fuel references; a calculated window in this form blocks the annual total. */
+                  OpenIrIntraYearReuse.Canonical canonical, DyReference dy) {
+        /** Without canonical fleet/fuel and Dy references; a calculated window in this form blocks the annual total. */
         Member(String period, UUID runId, int version, String inputSha256, Instant windowStart,
                Instant windowEndExclusive, Integer projectYear, String state, boolean stale, Totals totals,
                IrReference ir) {
             this(period, runId, version, inputSha256, windowStart, windowEndExclusive, projectYear, state,
-                stale, totals, ir, null);
+                stale, totals, ir, null, null);
         }
     }
     record Issue(String code, String period, Instant from, Instant until, String detail) {}
@@ -102,6 +108,18 @@ final class OpenE8AnnualMath {
         if (references.size() > 1)
             issues.add(issue("IR_REFERENCE_MISMATCH", null, null, null,
                 "As janelas do ano usam avaliações de IR diferentes. O mesmo ano do projeto exige a mesma avaliação; registre novas tentativas."));
+
+        // Same project year => the same Dy assessment for every calculated window (D14, #97).
+        var dyReferences = new HashSet<DyReference>();
+        for (var member : calculated) {
+            if (member.dy() == null || !member.dy().complete())
+                issues.add(issue("DY_REFERENCE_MISSING", member.period(), member.windowStart(), member.windowEndExclusive(),
+                    "A memória desta janela não registra a avaliação estruturada de Dy. Registre nova tentativa."));
+            else dyReferences.add(member.dy());
+        }
+        if (dyReferences.size() > 1)
+            issues.add(issue("DY_REFERENCE_MISMATCH", null, null, null,
+                "As janelas do ano usam avaliações de Dy diferentes. O mesmo ano do projeto exige a mesma avaliação; registre novas tentativas."));
 
         // Internal policy (not a Verra rule): the annual parameters are one set per project year, so every calculated
         // window must read the same fleet/rating snapshots, cycle and fossil-fuel candidate, as the IR reuse does.

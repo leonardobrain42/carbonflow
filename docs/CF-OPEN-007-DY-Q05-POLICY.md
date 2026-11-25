@@ -30,13 +30,22 @@ Em 24/11/2026 o responsável pelo produto aprovou as quatro recomendações do Q
 - **V101, aditiva:** tabela imutável `app_open_dy_cumulative_item`. Os itens entram no hash do comando só quando informados, então replays e hashes anteriores não mudam. A resposta passa a `CUMULATIVE_ITEMIZED_NOT_ADMITTED` com `itemCount` (e itens só para quem vê detalhes); a leitura vigente continua anual e `usableForE8` falso.
 - **Não faz:** a matriz de cobertura nacional não é estendida a esse período, então os itens não provam exaustividade; o executor E8 não consome o acumulado; nada é admitido.
 
+## Consumo pelo executor E8 (V102, #97)
+- **Fonte do Dy:** a última versão da avaliação do **ano de projeto** da tentativa (a janela lida é a do ano y−1, D14). O pino escalar legado não alimenta mais tentativas novas, como já ocorre com o IR (D07). Tentativas anteriores à V102 não têm contexto de Dy: ficam com o gate `RUN_DY_LEGACY` e obsoletas; o histórico permanece.
+- **Quando é utilizável (`CHECKED_INTERNAL_NOT_ADMITTED`):** a avaliação existe, não está obsoleta (calendário, triagem, licença vigente), é conclusiva e aritmeticamente consistente, tem parecer `CHECKED_INTERNAL` da **versão e do hash exatos**, não tem rateio por EVs (`ALLOCATION_BLOCKED`, G03) e, se positiva (`FLEET_CREDITS_FOUND`), tem emissões itemizadas conciliadas. Ano 1: só ausência comprovada na janela exploratória (`FIRST_YEAR_ABSENCE_CHECKED_NOT_ADMITTED`). Outros estados: `TIMING_UNRESOLVED`, `FIRST_YEAR_REVIEW_REQUIRED`, `MISSING_FOR_PROJECT_YEAR`, `STALE`, `REVIEW_REQUIRED`.
+- **Valor:** `Dy = ERC/(ERC+ERF)` das totalizações **anuais declaradas** (Eq. 8), ou 1 com ausência comprovada. **O acumulado (V99/V101) não entra no cálculo**; a leitura vigente continua anual.
+- **V102, aditiva:** colunas `dy_assessment_*` e `dy_context_*` em `app_open_e8_run`, chave estrangeira à avaliação exata e restrição de forma; o estado `REVIEWED_INTERNAL` aceita Dy por pino (legado) ou por contexto checado. O hash da tentativa passa a `E8-RUN-SET-V6-STRUCTURED-IR-DY` e inclui o hash do contexto, que muda com a avaliação, o parecer, os direitos e o calendário.
+- **Consolidação anual:** todas as janelas calculadas do mesmo ano precisam ter lido a mesma avaliação (`DY_REFERENCE_MISSING`, `DY_REFERENCE_MISMATCH`), como no IR.
+- **Independência:** quem escreveu ou revisou a avaliação não pode ser o ator da tentativa.
+- **Não faz:** não admite parâmetro, não substitui a confirmação externa (anual versus acumulada) nem o denominador nacional de EVR; ainda não há tentativa numérica integrada com Dy real (o cálculo com Dy diferente de 1 está só nos testes unitários do kernel e do contexto).
+
 ## Rateio por EVs em circulação
 - `DOCUMENTED_SHARE` exige `basisUnit = EV_IN_CIRCULATION`; qualquer outra base é recusada (decisão específica). `DIRECT_BR` (1/1) não é afetada. Registros históricos permanecem imutáveis.
 - Havendo rateio, `GEOGRAPHIC_ALLOCATION` fica `BLOCKED` com a razão "denominador nacional de EVR ainda não admitido (G03)", **sem estimar** a fração. A contagem de rateios é feita em SQL, de modo que equipe e conta do projeto veem o mesmo diagnóstico agregado, sem conteúdo.
 - UI: apenas um *placeholder* na base declarada; nenhum cálculo no Angular.
 
 ## Limites e o que continua bloqueando
-- O ano 1 não ganha número: o executor E8 ainda não consome a avaliação versionada de Dy (usa o pino legado) e faltam dados reais admitidos (EVR, ratings, EFfuel, EFel, ED/EC: G03/G04/G06).
+- O executor E8 consome a avaliação versionada de Dy desde a V102 (seção abaixo), mas só em ensaio interno; faltam dados reais admitidos (EVR, ratings, EFfuel, EFel, ED/EC: G03/G04/G06).
 - A ausência é declarada e revisada internamente; não prova exaustividade dos programas nem existência de registros oficiais.
 - Se Verra/VVB interpretar de outra forma, a política pode ser desligada sem apagar histórico.
 

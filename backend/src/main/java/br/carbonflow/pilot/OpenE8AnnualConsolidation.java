@@ -53,7 +53,9 @@ class OpenE8AnnualConsolidation {
                             memory.erTco2e(), memory.erDisplay()),
                     run.irContext() == null ? null : new OpenE8AnnualMath.IrReference(run.irContext().assessmentId(),
                         run.irContext().version(), run.irContext().assessmentSha256(), run.irContext().state()),
-                    canonical(c, project, run.id())));
+                    canonical(c, project, run.id()),
+                    run.dyContext() == null ? null : new OpenE8AnnualMath.DyReference(run.dyContext().assessmentId(),
+                        run.dyContext().version(), run.dyContext().assessmentSha256(), run.dyContext().state())));
             }
             for (var window : windows) if (!seen.contains(window.period()))
                 members.add(missing(window.period(), window.window()));

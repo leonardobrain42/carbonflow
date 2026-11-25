@@ -11,8 +11,8 @@ seleção padrão atual, não a memória de tentativa histórica nem um parecer.
   EVR/ratings e pinos EFfuel, IR e Dy. Não usa fator elétrico anual como fallback.
 - Pinos respeitam exclusivamente o ano da fonte, sem fallback ao mais recente
   de outro ano. Reusa as verificações de valor do ensaio e de atualidade/direitos.
-  Dy escalar permanece LEGACY_SOURCE_YEAR_PIN, separado da avaliação estruturada
-  por ano de projeto. Não presume que a avaliação de Dy esteja admitida.
+  Dy vem da avaliação estruturada do ano de projeto (`STRUCTURED_PROJECT_YEAR`, V102),
+  não de pino; o pino escalar legado deixou de alimentar tentativas novas. Não presume que a avaliação de Dy esteja admitida.
 - Metadados sob VIEW_OPEN_E8_RUN e no-store já existentes. Não inclui valores,
   regras/evidências privadas, pesos ou linhas do catálogo. A projeção não
   reproduz todas as checagens de execução nem de segregação do autor.

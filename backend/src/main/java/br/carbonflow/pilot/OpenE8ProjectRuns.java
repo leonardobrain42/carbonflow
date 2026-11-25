@@ -39,9 +39,11 @@ class OpenE8ProjectRuns {
                    UUID energyBindingId, UUID fleetSelectionId, String inputSha256,
                    List<OpenCalculationPreflight.Gate> gates,
                    List<OpenCalculationTransparency.Stage> equationPlan,
-                   OpenE8RunDecision.Memory memory, OffsetDateTime createdAt, Timing timing, IrTrace irContext) {}
+                   OpenE8RunDecision.Memory memory, OffsetDateTime createdAt, Timing timing, IrTrace irContext,
+                   DyTrace dyContext) {}
 
     record IrTrace(UUID assessmentId,Integer version,String assessmentSha256,String contextSha256,String state) {}
+    record DyTrace(UUID assessmentId,Integer version,String assessmentSha256,String contextSha256,String state) {}
 
     record InputReference(String code,String basis,UUID id,Integer version,String sha256,String state) {}
     record Selection(String policyVersion,String projectId,String period,Timing timing,String timingGate,
@@ -57,7 +59,8 @@ class OpenE8ProjectRuns {
                           String state, boolean canIssueVcu, String engine,
                           String afec, String mpg, String be, String pe, String le,
                           String dy, String er, String erDisplay, String trace,
-                          String gates, OffsetDateTime created, String timingSha, Timing timing, IrTrace irContext) {}
+                          String gates, OffsetDateTime created, String timingSha, Timing timing, IrTrace irContext,
+                          DyTrace dyContext) {}
 
     private final DynamicProjectScope scope;
 
@@ -115,21 +118,20 @@ class OpenE8ProjectRuns {
         InputReference fuel=sourcePinReference(c,project,"EF_FUEL",year);
         inputs.add(fuel);
         inputs.add(OpenIrAssessments.forRun(c,project,period,fleet,fuel.id(),context).reference());
-        inputs.add(sourcePinReference(c,project,"DY",year));
+        inputs.add(OpenDyAssessments.forRun(c,project,context.year().projectYear()).reference());
         return new Selection("OPEN-E8-INPUT-SELECTION@2",project,period,timing,context.year().gate(),
             List.copyOf(inputs),false,false);
     }
 
     // Source-year pin is the exact same selector as load() and moved().
     static InputReference sourcePinReference(Connection c,String project,String kind,Integer year) throws SQLException {
-        String basis="DY".equals(kind)?"LEGACY_SOURCE_YEAR_PIN":"SOURCE_YEAR_PIN";
+        String basis="SOURCE_YEAR_PIN";
         if (year==null) return new InputReference(kind,basis,null,null,null,"TIMING_UNRESOLVED");
         var selected=pin(c,project,kind,year);
         if (selected==null) return new InputReference(kind,basis,null,null,null,"MISSING_FOR_SOURCE_YEAR");
         boolean usable=!selected.stale() && switch(kind) {
             case "EF_FUEL" -> fuelValue(c,selected)!=null;
             case "IR" -> scalar(selected,true)!=null;
-            case "DY" -> discount(selected)!=null;
             default -> false;
         };
         String state=pinState(selected,usable,year);
@@ -209,16 +211,17 @@ class OpenE8ProjectRuns {
                  fuel_pin_id,ir_pin_id,dy_pin_id,input_sha256,
                  state,engine,afec,mpg,be_tco2e,pe_tco2e,le_tco2e,dy,er_tco2e,
                  er_display,trace_json,gate_codes,created_by,
-                 ir_assessment_id,ir_assessment_sha256,ir_assessment_version,ir_context_sha256,ir_context_state)
+                 ir_assessment_id,ir_assessment_sha256,ir_assessment_version,ir_context_sha256,ir_context_state,
+                 dy_assessment_id,dy_assessment_sha256,dy_assessment_version,dy_context_sha256,dy_context_state)
                 VALUES (?,?,?,?,?,?,
                   NULLIF(?, '')::uuid, NULLIF(?, '')::uuid, NULLIF(?, '')::uuid,
                   NULLIF(?, '')::uuid, NULLIF(?, '')::uuid, NULLIF(?, '')::uuid, ?,
                   ?, NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, ''),
                   NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, ''),
-                  NULLIF(?, ''), NULLIF(?, '')::jsonb, string_to_array(?, E'\\n'), ?, ?,?,?,?,?)
+                  NULLIF(?, ''), NULLIF(?, '')::jsonb, string_to_array(?, E'\\n'), ?, ?,?,?,?,?, ?,?,?,?,?)
                 """, id, project, ctx.organization(), ctx.environment(), code, current + 1,
                 text(latest == null ? null : latest.id()), text(binding), text(fleet),
-                text(loaded.fuelPin()), text(loaded.irPin()), text(loaded.dyPin()),
+                text(loaded.fuelPin()), text(loaded.irPin()), "",
                 fingerprint, decision.state(),
                 reviewed ? memory.engine() : "",
                 reviewed ? memory.afecKwhPer100Miles() : "",
@@ -232,7 +235,9 @@ class OpenE8ProjectRuns {
                 reviewed ? OpenE8RunDecision.traceJson(memory) : "",
                 OpenE8RunDecision.encode(decision.gates()), ctx.actor().id(),
                 loaded.ir().assessmentId(), hexBytes(loaded.ir().assessmentSha256()),
-                loaded.ir().version(), hexBytes(loaded.ir().contextSha256()), loaded.ir().state());
+                loaded.ir().version(), hexBytes(loaded.ir().contextSha256()), loaded.ir().state(),
+                loaded.dy().assessmentId(), hexBytes(loaded.dy().assessmentSha256()), loaded.dy().version(),
+                hexBytes(loaded.dy().contextSha256()), loaded.dy().state());
             OpenE8Timing.Context timing = loaded.timing();
             OpenE8Timing.Window window = timing.window();
             update(c, """
@@ -249,8 +254,8 @@ class OpenE8ProjectRuns {
         });
     }
 
-    private record Loaded(OpenE8RunDecision.OperandSet set, UUID fuelPin, UUID irPin, UUID dyPin,
-                          OpenE8Timing.Context timing, OpenE8IrContext ir) {}
+    private record Loaded(OpenE8RunDecision.OperandSet set, UUID fuelPin, UUID irPin,
+                          OpenE8Timing.Context timing, OpenE8IrContext ir, OpenE8DyContext dy) {}
 
     /**
      * Reads the project set. A rehearsal needs paired hourly ED/EC/EFel, fleet lines,
@@ -310,17 +315,17 @@ class OpenE8ProjectRuns {
         }
         ExecutionPin fuel = pin(c, project, "EF_FUEL", sourceYear);
         OpenE8IrContext ir = OpenIrAssessments.forRun(c,project,period,fleet,fuel==null?null:fuel.id(),timing);
-        ExecutionPin dy = pin(c, project, "DY", sourceYear);
+        OpenE8DyContext dy = OpenDyAssessments.forRun(c, project, timing.year().projectYear());
         BigDecimal fuelValue = fuelValue(c, fuel);
         BigDecimal irValue = ir.rehearsalValue();
-        OpenGridCalculationMath.Discount discount = discount(dy);
+        OpenGridCalculationMath.Discount discount = dy.discount();
         gates.add(OpenE8RunDecision.gate("EF_FUEL", pinState(fuel, fuelValue != null, sourceYear)));
         gates.add(OpenE8RunDecision.gate("IR_STRUCTURED", ir.state()));
-        gates.add(OpenE8RunDecision.gate("DY", pinState(dy, discount != null, sourceYear)));
+        gates.add(OpenE8RunDecision.gate("DY", dy.state()));
         gates.add(OpenE8RunDecision.gate("NORMATIVE_PACK", "NOT_ADMITTED"));
         gates.add(OpenE8RunDecision.gate("CARBON_RIGHTS", "NOT_ADMITTED"));
         gates.add(OpenE8RunDecision.gate("TECHNICAL_BRANCH", "NOT_ADMITTED"));
-        if (fuel != null && fuel.stale() || "STALE".equals(ir.state()) || dy != null && dy.stale())
+        if (fuel != null && fuel.stale() || "STALE".equals(ir.state()) || "STALE".equals(dy.state()))
             stale = true;
         Integer year = timing.year().projectYear();
         boolean numbers = energy != null && usable(ed, false) && usable(ec, false)
@@ -331,11 +336,11 @@ class OpenE8ProjectRuns {
                 ed, ec, fuelValue, null, irValue, discount)
             : null;
         boolean author = authored(c, project, binding, fleet, actor)
-            || publishedBy(fuel, actor) || ir.authoredBy(actor) || publishedBy(dy, actor);
+            || publishedBy(fuel, actor) || ir.authoredBy(actor) || dy.authoredBy(actor);
         return new Loaded(new OpenE8RunDecision.OperandSet(input != null, stale, author,
             List.copyOf(gates), input, hourly),
             fuel == null ? null : fuel.id(), null,
-            dy == null ? null : dy.id(), timing, ir);
+            timing, ir, dy);
     }
 
     private static Attempt view(Connection c, Stored row) throws SQLException {
@@ -349,11 +354,12 @@ class OpenE8ProjectRuns {
             gates.add(OpenE8RunDecision.gate("RUN_REFERENCES", "STALE"));
         }
         if (row.irContext()==null) gates.add(OpenE8RunDecision.gate("RUN_IR_LEGACY","STALE"));
+        if (row.dyContext()==null) gates.add(OpenE8RunDecision.gate("RUN_DY_LEGACY","STALE"));
         OpenE8RunDecision.Memory memory = memory(row);
         return new Attempt(row.id(), row.project(), row.period(), row.version(),
             OpenE8RunDecision.responseState(row.state(), stale), stale, false, row.engine(),
             row.binding(), row.fleet(), row.sha(), List.copyOf(gates),
-            OpenCalculationTransparency.plan(gates), memory, row.created(), row.timing(), row.irContext());
+            OpenCalculationTransparency.plan(gates), memory, row.created(), row.timing(), row.irContext(), row.dyContext());
     }
 
     private static OpenE8RunDecision.Memory memory(Stored row) {
@@ -393,7 +399,14 @@ class OpenE8ProjectRuns {
         return !row.irContext().contextSha256().equals(ir.contextSha256())
             || "STALE".equals(ir.state())
             || pinMoved(c, row.project(), "EF_FUEL", sourceYear, row.fuelPin())
-            || pinMoved(c, row.project(), "DY", sourceYear, row.dyPin());
+            || dyMoved(c, row, timing);
+    }
+
+    /** Structured rows compare the Dy context hash; a row recorded before V102 read a legacy scalar and is stale. */
+    private static boolean dyMoved(Connection c, Stored row, OpenE8Timing.Context timing) throws SQLException {
+        if (row.dyContext() == null) return true;
+        var now = OpenDyAssessments.forRun(c, row.project(), timing.year().projectYear());
+        return !row.dyContext().contextSha256().equals(now.contextSha256()) || "STALE".equals(now.state());
     }
 
     private static boolean pinMoved(Connection c, String project, String kind, Integer sourceYear, UUID stored)
@@ -458,15 +471,7 @@ class OpenE8ProjectRuns {
         return usable(pin.declared(), positive) ? pin.declared() : null;
     }
 
-    /** Dy enters the rehearsal only as an explicit 1 backed by a stated absence of fleet credits. */
-    private static OpenGridCalculationMath.Discount discount(ExecutionPin dy) {
-        if (dy == null || dy.stale() || dy.declared() == null) return null;
-        if (!"DECLARED_EXPLICIT".equals(dy.valueKind())) return null;
-        if (dy.rule() == null || dy.evidence() == null) return null;
-        if (dy.declared().compareTo(BigDecimal.ONE) != 0) return null;
-        return new OpenGridCalculationMath.Discount(BigDecimal.ZERO, BigDecimal.ZERO, true);
-    }
-
+    /** Legacy rows recorded before V102 still carry a Dy pin; it only stays comparable and never feeds a new attempt. */
     private static String pinState(ExecutionPin pin, boolean usable, Integer sourceYear) {
         if (pin == null) return sourceYear == null ? "MISSING" : "MISSING_FOR_SOURCE_YEAR";
         if (pin.stale()) return "STALE";
@@ -630,10 +635,10 @@ class OpenE8ProjectRuns {
 
     private static String material(String project, String period, UUID binding, UUID fleet,
                                    Loaded loaded) {
-        return "E8-RUN-SET-V5-STRUCTURED-IR|" + project + "|" + period + "|"
+        return "E8-RUN-SET-V6-STRUCTURED-IR-DY|" + project + "|" + period + "|"
             + id(binding) + "|" + id(fleet) + "|"
-            + id(loaded.fuelPin()) + "|" + id(loaded.irPin()) + "|" + id(loaded.dyPin())
-            + "|" + loaded.timing().fingerprint() + "|" + loaded.ir().contextSha256() + "|" + loaded.set().stale()
+            + id(loaded.fuelPin()) + "|" + id(loaded.irPin())
+            + "|" + loaded.timing().fingerprint() + "|" + loaded.ir().contextSha256() + "|" + loaded.dy().contextSha256() + "|" + loaded.set().stale()
             + "|" + (loaded.set().actorIsAuthor() ? "AUTHOR" : "OTHER");
     }
 
@@ -655,7 +660,9 @@ class OpenE8ProjectRuns {
           array_to_string(gate_codes, E'\\n'),created_at,
           encode(timing_sha256,'hex'),window_start,window_end_exclusive,project_year,source_year,
           ir_assessment_id,ir_assessment_version,encode(ir_assessment_sha256,'hex'),
-          encode(ir_context_sha256,'hex'),ir_context_state
+          encode(ir_context_sha256,'hex'),ir_context_state,
+          dy_assessment_id,dy_assessment_version,encode(dy_assessment_sha256,'hex'),
+          encode(dy_context_sha256,'hex'),dy_context_state
         FROM app_open_e8_run LEFT JOIN app_open_e8_run_timing USING (project_id,id)
         """;
 
@@ -673,7 +680,9 @@ class OpenE8ProjectRuns {
             r.getString(22), r.getString(23), r.getString(24),
             r.getObject(25, OffsetDateTime.class), timingSha, timing,
             r.getString(34)==null?null:new IrTrace(r.getObject(31,UUID.class),r.getObject(32,Integer.class),
-                r.getString(33),r.getString(34),r.getString(35)));
+                r.getString(33),r.getString(34),r.getString(35)),
+            r.getString(39)==null?null:new DyTrace(r.getObject(36,UUID.class),r.getObject(37,Integer.class),
+                r.getString(38),r.getString(39),r.getString(40)));
     }
 
     private static PilotProblem unavailable() {

@@ -39,7 +39,7 @@ Mapeamento: `OPEN-PD-CALCULATION-PROVENANCE@1`; seção: `quantification`.
 - Janela, fuso, ano civil, ano do projeto e datas da janela vêm de `Attempt.timing`
   da tentativa. Vintage da frota e dos parâmetros vem das referências pinadas.
 - ED, EC e EFel apontam ao vínculo imutável de energia do período; EVR, AFEC e MPG à
-  seleção de frota/ratings. Fóssil, IR e Dy apontam aos pinos exatos da tentativa.
+  seleção de frota/ratings. Fóssil e IR apontam aos pinos/avaliações exatos da tentativa; Dy aponta à avaliação estruturada lida (id, versão e ano, com ligação ao histórico do projeto), sem copiar ERC/ERF.
   As consultas usam projeto, período quando aplicável e ID, nunca a última versão como substituta.
 - As unidades de energia e ratings são as normalizadas do contrato E8; a unidade fóssil
   vem do pino. IR e Dy são adimensionais por seu tipo, mesmo quando o pino legado não
