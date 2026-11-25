@@ -26,6 +26,8 @@ class TriageSchemaByPackageTest {
                     List.of(new ProjectJourney.Option("LANDFILL", "Aterro"), new ProjectJourney.Option("OTHER", "Outro")))),
             List.of(new ProjectJourney.Question("gasCapture", "Há captura de gás?", "choice", null, List.of(YES, NO))),
             Set.of("RESIDUOS"),
+            new ProjectJourney.Presentation("Descreva a área", "Descreva a destinação atual", List.of(
+                    new ProjectJourney.NextSection("residuos-base", "Linha de base de resíduos", "Item de teste."))),
             new ProjectJourney.Evaluator() {
                 @Override public ProjectJourney.Guidance guidance(JsonNode answers) {
                     return new ProjectJourney.Guidance("A_CONFIRMAR", List.of(), List.of());

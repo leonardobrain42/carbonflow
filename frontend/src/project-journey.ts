@@ -11,6 +11,19 @@ export interface JourneyQuestion {
   options: JourneyOption[];
 }
 
+export interface JourneyNextSection {
+  section: string;
+  title: string;
+  detail: string;
+}
+
+/** Texts and the technical sections announced by the package; the screen holds no per-methodology branch. */
+export interface JourneyPresentation {
+  activityPlaceholder: string;
+  baselinePlaceholder: string;
+  next: JourneyNextSection[];
+}
+
 export interface JourneyProfile {
   id: string;
   candidate: string | null;
@@ -22,6 +35,10 @@ export interface JourneyProfile {
   sourceUrl: string | null;
   technicalTopics: string[];
   questions: JourneyQuestion[];
+  /** Questions the package adds to the activity step. */
+  activityQuestions?: JourneyQuestion[];
+  activities?: string[];
+  presentation?: JourneyPresentation;
 }
 
 export const OTHER_METHODOLOGY = '__OTHER__';

@@ -86,22 +86,22 @@
                     </p>
                   }
                   @case (2) {
-                    @if (vm0038()) {
-                      <label for="cf-wz-installs">O projeto inclui instalar sistemas de recarga?</label>
-                      <select id="cf-wz-installs" name="installsChargers" [value]="field(2,'installsChargers')" (change)="input(2,'installsChargers',$event)">
+                    @for (item of activityQuestions(); track item.key) {
+                      <label [for]="'cf-wz-' + item.key">{{ item.label }}</label>
+                      <select [id]="'cf-wz-' + item.key" [name]="item.key" [value]="field(2,item.key)" (change)="input(2,item.key,$event)">
                         <option value="">Ainda não informado</option>
-                        <option value="YES">Sim</option>
-                        <option value="NO">Não</option>
-                        <option value="DESCONHECIDO">Ainda não sei</option>
+                        @for (option of item.options; track option.value) {
+                          <option [value]="option.value">{{ option.label }}</option>
+                        }
                       </select>
                     }
                     <label for="cf-wz-description">Como a atividade funcionará?</label>
                     <textarea id="cf-wz-description" rows="4" maxlength="800" [value]="field(2,'activityDescription')"
-                      [placeholder]="vm0038() ? 'Descreva onde, para quem e como os carregadores serão instalados' : 'Descreva a atividade que pretende realizar'"
+                      [placeholder]="presentation().activityPlaceholder"
                       (input)="input(2,'activityDescription',$event)"></textarea>
                     <label for="cf-wz-baseline">O que acontece hoje, antes do projeto? (opcional)</label>
                     <textarea id="cf-wz-baseline" rows="3" maxlength="800" [value]="field(2,'baselinePractice')"
-                      [placeholder]="vm0038() ? 'Ex.: viagens atendidas por veículos equivalentes a combustão' : 'Descreva como a atividade ocorreria sem o projeto'"
+                      [placeholder]="presentation().baselinePlaceholder"
                       (input)="input(2,'baselinePractice',$event)"></textarea>
                     <label for="cf-wz-benefit">Qual benefício ambiental você espera? (opcional)</label>
                     <textarea id="cf-wz-benefit" rows="3" maxlength="800" [value]="field(2,'expectedBenefit')"

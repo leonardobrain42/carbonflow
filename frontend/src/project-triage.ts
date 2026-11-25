@@ -4,7 +4,7 @@ import {afterNextRender, Component, computed, effect, ElementRef, inject, Inject
 import {HttpClient, HttpErrorResponse} from '@angular/common/http';
 import {ActivatedRoute, RouterLink} from '@angular/router';
 import {firstValueFrom} from 'rxjs';
-import {JourneyOption, JourneyProfile, JourneyQuestion, methodologyOption, OTHER_METHODOLOGY} from './project-journey';
+import {JourneyOption, JourneyPresentation, JourneyProfile, JourneyQuestion, methodologyOption, OTHER_METHODOLOGY} from './project-journey';
 
 interface ProjectMetadata {
   projectId: string;
@@ -55,15 +55,11 @@ export interface LaterItem {
   detail: string;
 }
 
-const LATER_VM0038: LaterItem[] = [
-  {section:'rede', title:'Acesso à rede', detail:'Acesso aos carregadores, identificação da frota, origem da eletricidade e infraestrutura associada.'},
-  {section:'estacoes', title:'Estações e fronteira', detail:'Estações, carregadores e veículos do projeto.'},
-  {section:'monitorar', title:'Monitorar energia', detail:'Medidores e medição da energia entregue e consumida.'},
-  {section:'linha-base', title:'Linha de base', detail:'Cenário sem o projeto e veículos comparáveis.'},
-  {section:'adicionalidade', title:'Adicionalidade', detail:'Cronologia do investimento e da receita de carbono, com evidências.'},
-  {section:'direitos', title:'Direitos do projeto', detail:'Titulares das reduções e documentos de titularidade.'},
-];
-const LATER_GENERAL: LaterItem[] = LATER_VM0038.filter(item => ['linha-base','adicionalidade','direitos'].includes(item.section));
+const DEFAULT_PRESENTATION: JourneyPresentation = {
+  activityPlaceholder: 'Descreva a atividade que pretende realizar',
+  baselinePlaceholder: 'Descreva como a atividade ocorreria sem o projeto',
+  next: [],
+};
 
 interface TriageView {
   projectId: string;
@@ -126,9 +122,11 @@ export class ProjectTriageComponent {
     return this.otherMethodology() ? OTHER_METHODOLOGY
       : methodologyOption(this.field(1, 'methodologyCandidate'), current?.methodologies ?? [], current?.journey);
   });
-  readonly vm0038 = computed(() => this.view()?.journey.id === 'VM0038_V1_1');
+  /** Package schema for the activity step, read from the server (A03). */
+  readonly activityQuestions = computed(() => this.view()?.journey.activityQuestions ?? []);
+  readonly presentation = computed(() => this.view()?.journey.presentation ?? DEFAULT_PRESENTATION);
   readonly otherOption = OTHER_METHODOLOGY;
-  readonly later = computed(() => this.vm0038() ? LATER_VM0038 : LATER_GENERAL);
+  readonly later = computed<LaterItem[]>(() => this.presentation().next);
 
   retired(step?: number): RetiredAnswer[] {
     const items = this.view()?.retiredAnswers ?? [];
@@ -225,7 +223,7 @@ export class ProjectTriageComponent {
     const details = this.view()?.journey.questions ?? [];
     switch (step) {
       case 1: return ['objective', 'activityType', 'methodologyCandidate'];
-      case 2: return [...(this.vm0038() ? ['installsChargers'] : []),
+      case 2: return [...this.activityQuestions().map(question => question.key),
         'activityDescription', 'baselinePractice', 'expectedBenefit'];
       case 3: return [...details.map(question => question.key),
         ...(this.field(3, 'notApplicableReason') ? ['notApplicableReason'] : [])];
@@ -362,7 +360,8 @@ export class ProjectTriageComponent {
       rightsStatus: 'Direitos e titularidade', rightsJustification: 'Justificativa sobre direitos',
     };
     return this.view()?.journey.questions.find(question => question.key === key)?.label
-      ?? this.retired().find(item => item.key === key)?.label ?? labels[key] ?? key;
+      ?? this.retired().find(item => item.key === key)?.label ?? labels[key]
+      ?? this.activityQuestions().find(question => question.key === key)?.label ?? key;
   }
 
   missingLabels(fields: string[]) {
