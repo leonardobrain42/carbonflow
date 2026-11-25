@@ -50,7 +50,7 @@ Um schema declarativo (dados em vez de código) só será considerado se houver 
 2. **Fontes por metodologia.** Generalizar as necessidades de fonte hoje específicas do VM0038/OPEN (V42) para qualquer metodologia registrada; o console passa a receber a chave da metodologia em vez de uma constante.
 3. **Capacidade efetiva.** Cálculo derivado (código ∧ dados ∧ licença) por finalidade, exposto ao projeto sem inventário administrativo; fixação da versão do pacote no projeto.
 4. **Contrato e kit de conformidade do pacote.** Formalizar o descritor, ligar o VM0038 ao registro e executar o kit contra o VM0038 e um pacote TEST_ONLY (AGN-02/03); incluir ausência de licença revogando só o afetado.
-5. **A04.** Seções e template do PD por pacote seguem o mesmo padrão: dados descrevem, código implementa, licença autoriza.
+5. **A04.** Seções e template do PD por pacote seguem o mesmo padrão: dados descrevem, código implementa, licença autoriza. *Entregue em parte (rc.47): o dossiê preliminar lê o plano do PD do pacote; residuais em [docs/CF-PACKAGES-001-METHODOLOGY-REGISTRY.md](../docs/CF-PACKAGES-001-METHODOLOGY-REGISTRY.md).*
 
 ## 7. Critérios de aceite propostos (ainda não executados)
 - Administrador registra uma metodologia sem pacote: projeto a escolhe como candidata, vê a lacuna e a próxima ação, e nenhum campo, gate, motor ou cálculo de outra metodologia aparece (AGN-01).

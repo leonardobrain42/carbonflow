@@ -56,6 +56,19 @@ Teste: `MethodologyPinIntegrationTest` (pin v1 do VM0038, sem nova linha ao repe
 
 Teste: `MethodologyPackageContractTest` (8 casos: catálogo de produção conforme; pacote de teste conforme mas barrado em produção; um pacote construído para violar cada grupo de regras). **Limites:** a neutralidade usa quatro amostras fixas de respostas, não prova o comportamento para qualquer entrada; só há um pacote de produção, então o isolamento entre pacotes de produção ainda só é exercitado contra o pacote de teste. Nada disso exige migração, API ou tela.
 
+## Fatia 5: plano do documento do projeto (PD) por pacote (A04)
+Nível **método/edição**. O dossiê preliminar deixa de ter template, edição, seções e bloqueios reais fixos para o VM0038 dentro de `DynamicProjectTechnical`. Cada pacote declara um `PdDescriptor` no seu perfil (`ProjectJourney.Profile.pd`, fora do JSON da API): identificador do template, edição do template, seções e **bloqueios próprios** (somados aos bloqueios padrão da plataforma). Sem pacote, vale o plano neutro (`A_DEFINIR_APOS_TRIAGEM`, `INDEFINIDA`, as oito seções propostas pela plataforma, só os bloqueios padrão). `DynamicProjectTechnical.pdPlan(profile)` é a única leitura.
+- **Sem mudança de comportamento para o VM0038:** mesmo template (`SRC-007_PD_v5.0B.docx`), edição `5.0B`, oito seções e os mesmos bloqueios; os testes existentes do dossiê continuam verdes.
+- **Contrato (`PKG-PD`):** template e edição são identificadores (nunca texto protegido) e ambos neutros ou ambos definidos; de 1 a 12 seções únicas de até 80 caracteres; bloqueios completos; plano neutro sem bloqueios próprios. O texto do plano entra na checagem de isolamento entre pacotes (não pode citar outra metodologia).
+- **Digest e versão:** o plano passa a compor o digest do pacote. Por isso o pacote VM0038 vai à versão **2** e o catálogo à **2**. Projetos já fixados (fatia 3) passam a mostrar `packageChanged = true`: é o sinal previsto de que o pacote mudou, sem alterar o projeto; migrar continua sendo operação explícita, ainda não implementada.
+- Teste: `MethodologyPackageContractTest` (plano do VM0038 idêntico ao anterior; plano neutro; plano próprio sem os bloqueios do VM0038; violações de `PKG-PD`; texto que cita outra metodologia; digest sensível ao plano).
+
+**Residuais da A04, não resolvidos nesta fatia (guardas mantidos, conforme a auditoria):**
+1. `PdSections` (rascunhos de seção do PD) ainda fixa o template e a edição do VM0038 ao gravar o artefato; só roda no fluxo OPEN, já protegido por ações de escopo.
+2. `ProjectRequirements` ainda calcula `open` por `"VM0038".equals(methodology)` para decidir quais projeções ler.
+3. `project-technical.ts` mantém um perfil de VM0038 reconstruído no cliente como fallback de clientes legados com escopo só de guias.
+4. Os textos do PD continuam vindo de documentos do VM0038; não existe ainda um segundo pacote que prove o contrato com um template real.
+
 ## Escolhas reversíveis (aprovadas em D18, §8)
 Privilégio próprio; somente acréscimo; sem segundo aprovador no cadastro; sandbox.
 

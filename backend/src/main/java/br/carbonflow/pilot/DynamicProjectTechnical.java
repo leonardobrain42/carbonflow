@@ -46,11 +46,15 @@ class DynamicProjectTechnical {
     private record IntakeRow(int version, IntakeData data) {}
     private record DossierRow(int revision, String json) {}
 
-    private static final List<String> PD_SECTIONS = List.of(
-            "Descrição do projeto", "Aplicabilidade e versão metodológica",
-            "Cenário de linha de base", "Adicionalidade e datas",
-            "Plano de monitoramento", "Salvaguardas e direitos",
-            "Rastreabilidade de evidências", "Revisões e encaminhamentos");
+    /** A04: the document plan comes from the candidate's package; no package means the neutral plan. */
+    record PdPlan(String template, String edition, List<String> sections, List<IntakeModel.Reason> blockers) {}
+
+    static PdPlan pdPlan(ProjectJourney.Profile profile) {
+        var pd = profile.pd();
+        var blockers = new java.util.ArrayList<>(STANDARD_BLOCKERS);
+        blockers.addAll(pd.blockers());
+        return new PdPlan(pd.template(), pd.templateEdition(), pd.sections(), List.copyOf(blockers));
+    }
     private static final List<IntakeModel.Reason> STANDARD_BLOCKERS = List.of(
             new IntakeModel.Reason("ANALISE_NAO_EXECUTADA", "CF-IMP-008",
                     "O cadastro preliminar não executa a análise de aplicabilidade, adicionalidade ou elegibilidade."),
@@ -163,13 +167,11 @@ class DynamicProjectTechnical {
             int revision = previousRevision == null ? 1 : previousRevision + 1;
             IntakeData data = current.data();
             // A template identifier is metadata only: protected Verra text is not copied into this preview.
-            boolean vm0038 = ProjectJourney.profile(data.candidateMethodology()) == ProjectJourney.VM0038;
-            String template = vm0038 ? DocumentRules.Act.DESENVOLVIMENTO.template() : "A_DEFINIR_APOS_TRIAGEM";
-            String edition = vm0038 ? DocumentRules.EDITION : "INDEFINIDA";
+            var plan = pdPlan(ProjectJourney.profile(data.candidateMethodology()));
             var dossier = new PreliminaryDossier(UUID.randomUUID(), project, scope.organization(),
                     scope.environment(), revision, current.version(),
                     "RASCUNHO_PRELIMINAR_NAO_ADMISSIVEL", "PD_PREPARATORY_SCAFFOLD",
-                    template, edition, PD_SECTIONS, blockers(data.candidateMethodology()), data);
+                    plan.template(), plan.edition(), plan.sections(), plan.blockers(), data);
             update(connection, """
                     INSERT INTO app_project_preliminary_dossier
                       (id, project_id, organization_id, environment, revision,
@@ -198,17 +200,8 @@ class DynamicProjectTechnical {
         }
         return new IntakeView(scope.id(), scope.organization(), scope.environment(),
                 row == null ? 0 : row.version(), row == null ? "NAO_INICIADO" : "RASCUNHO",
-                "NAO_AVALIADO", data, blockers(candidate), triageCandidate, journey, ProjectTriageWizard.methodologyOptions(connection),
+                "NAO_AVALIADO", data, pdPlan(journey).blockers(), triageCandidate, journey, ProjectTriageWizard.methodologyOptions(connection),
                 experienceMode, summary);
-    }
-
-    private static List<IntakeModel.Reason> blockers(String candidate) {
-        if (ProjectJourney.profile(candidate) == ProjectJourney.VM0038) {
-            var result = new java.util.ArrayList<>(STANDARD_BLOCKERS);
-            result.addAll(IntakeRules.REAL_GATES);
-            return List.copyOf(result);
-        }
-        return STANDARD_BLOCKERS;
     }
 
     static LocalDate referenceActDate(Connection connection, String project) throws SQLException {

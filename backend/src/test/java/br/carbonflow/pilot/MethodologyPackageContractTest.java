@@ -171,4 +171,66 @@ class MethodologyPackageContractTest {
             assertNotEquals(base, changed);
         }
     }
+
+    private static ProjectJourney.Profile withPd(ProjectJourney.PdDescriptor pd) {
+        var base = good().profile();
+        return new ProjectJourney.Profile(base.id(), base.candidate(), base.edition(), base.title(),
+                base.activitiesTitle(), base.detailsTitle(), base.description(), base.sourceUrl(),
+                base.technicalTopics(), base.questions(), base.activityQuestions(), base.activities(),
+                base.presentation(), base.evaluator(), pd);
+    }
+
+    @Test
+    void theProjectDocumentPlanComesFromThePackageNotFromAMethodology() {
+        // VM0038 keeps exactly what was hard-coded before: template, edition, eight sections, standard plus real gates.
+        var vm = DynamicProjectTechnical.pdPlan(ProjectJourney.VM0038);
+        assertEquals("SRC-007_PD_v5.0B.docx", vm.template());
+        assertEquals("5.0B", vm.edition());
+        assertEquals(8, vm.sections().size());
+        assertEquals(2 + IntakeRules.REAL_GATES.size(), vm.blockers().size());
+        // No package (or an unregistered candidate): neutral template, platform sections, only standard blockers.
+        var none = DynamicProjectTechnical.pdPlan(ProjectJourney.GENERAL);
+        assertEquals("A_DEFINIR_APOS_TRIAGEM", none.template());
+        assertEquals("INDEFINIDA", none.edition());
+        assertEquals(8, none.sections().size());
+        assertEquals(2, none.blockers().size());
+        assertTrue(none.blockers().stream().noneMatch(item -> IntakeRules.REAL_GATES.contains(item)));
+        // A package with its own plan gets it, and none of the VM0038 gates.
+        var own = new ProjectJourney.PdDescriptor("PD-TESTE-RESIDUOS.docx", "2.0", List.of("Área e destinação", "Linha de base"),
+                List.of(new IntakeModel.Reason("TESTE-1", "REG-TESTE", "Confirmar a destinação com prova.")));
+        var plan = DynamicProjectTechnical.pdPlan(withPd(own));
+        assertEquals("PD-TESTE-RESIDUOS.docx", plan.template());
+        assertEquals("2.0", plan.edition());
+        assertEquals(List.of("Área e destinação", "Linha de base"), plan.sections());
+        assertEquals(3, plan.blockers().size());
+        assertTrue(plan.blockers().stream().noneMatch(item -> IntakeRules.REAL_GATES.contains(item)));
+        assertEquals(List.of(), MethodologyPackageContract.check(declaration(withPd(own))));
+    }
+
+    @Test
+    void theProjectDocumentPlanIsPartOfTheContractAndOfTheDigest() {
+        var badEdition = new ProjectJourney.PdDescriptor("PD-X.docx", "INDEFINIDA", List.of("Seção"), List.of());
+        var noSections = new ProjectJourney.PdDescriptor("PD-X.docx", "1.0", List.of(), List.of());
+        var duplicate = new ProjectJourney.PdDescriptor("PD-X.docx", "1.0", List.of("A", "A"), List.of());
+        var spaces = new ProjectJourney.PdDescriptor("trecho \n protegido", "1.0", List.of("A"), List.of());
+        var emptyGate = new ProjectJourney.PdDescriptor("PD-X.docx", "1.0", List.of("A"),
+                List.of(new IntakeModel.Reason("", "", "")));
+        for (var pd : List.of(badEdition, noSections, duplicate, spaces, emptyGate)) {
+            assertTrue(rules(MethodologyPackageContract.check(declaration(withPd(pd)))).contains("PKG-PD"), pd.toString());
+        }
+        // The plan's own text cannot name another methodology (AGN-01).
+        var vmDecl = new MethodologyPackageContract.Declaration(ProjectJourney.VM0038, "VCS", 2,
+                MethodologyPackages.current().packages().get(0).status(), MethodologyPackages.current().packages().get(0).capabilities());
+        var naming = new ProjectJourney.PdDescriptor("PD-X.docx", "1.0", List.of("Seção"),
+                List.of(new IntakeModel.Reason("T", "R", "Aplicar a regra da VM0038 aqui.")));
+        assertTrue(rules(MethodologyPackageContract.checkSet(List.of(vmDecl, declaration(withPd(naming)))))
+                .contains("PKG-ISOLATION"));
+        // Changing the plan moves the package digest.
+        var a = new ProjectJourney.PdDescriptor("PD-X.docx", "1.0", List.of("A"), List.of());
+        var b = new ProjectJourney.PdDescriptor("PD-X.docx", "1.1", List.of("A"), List.of());
+        var c = new ProjectJourney.PdDescriptor("PD-X.docx", "1.0", List.of("A", "B"), List.of());
+        String da = MethodologyPackages.digestOf(withPd(a), "TESTPROG", 1, "TEST_ONLY_SYNTHETIC", CAPS);
+        assertNotEquals(da, MethodologyPackages.digestOf(withPd(b), "TESTPROG", 1, "TEST_ONLY_SYNTHETIC", CAPS));
+        assertNotEquals(da, MethodologyPackages.digestOf(withPd(c), "TESTPROG", 1, "TEST_ONLY_SYNTHETIC", CAPS));
+    }
 }

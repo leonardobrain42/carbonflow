@@ -28,10 +28,44 @@ final class ProjectJourney {
     record Profile(String id, String candidate, String edition, String title, String activitiesTitle, String detailsTitle,
                    String description, String sourceUrl, List<String> technicalTopics, List<Question> questions,
                    List<Question> activityQuestions, Set<String> activities, Presentation presentation,
-                   @JsonIgnore Evaluator evaluator) {
+                   @JsonIgnore Evaluator evaluator, @JsonIgnore PdDescriptor pd) {
         Profile {
             activityQuestions = List.copyOf(activityQuestions);
             activities = Set.copyOf(activities);
+            pd = pd == null ? PdDescriptor.NEUTRAL : pd;
+        }
+        /** A profile that declares no project-document plan gets the neutral one (no template, no real gates). */
+        Profile(String id, String candidate, String edition, String title, String activitiesTitle,
+                String detailsTitle, String description, String sourceUrl, List<String> technicalTopics,
+                List<Question> questions, List<Question> activityQuestions, Set<String> activities,
+                Presentation presentation, Evaluator evaluator) {
+            this(id, candidate, edition, title, activitiesTitle, detailsTitle, description, sourceUrl,
+                    technicalTopics, questions, activityQuestions, activities, presentation, evaluator, null);
+        }
+    }
+    /**
+     * A04: what the package says about the project document (PD) of its methodology, so the platform does not
+     * hard-code one methodology's template, edition, sections or gates. Metadata only: it names a template, never
+     * copies protected text, and does not make a dossier admissible. {@code blockers} are the package's own real
+     * gates, added to the platform's standard ones.
+     */
+    record PdDescriptor(String template, String templateEdition, List<String> sections,
+                        List<IntakeModel.Reason> blockers) {
+        PdDescriptor {
+            sections = List.copyOf(sections);
+            blockers = List.copyOf(blockers);
+        }
+        /** Section outline the platform proposes when a package does not define its own. */
+        static final List<String> PLATFORM_SECTIONS = List.of(
+                "Descrição do projeto", "Aplicabilidade e versão metodológica",
+                "Cenário de linha de base", "Adicionalidade e datas",
+                "Plano de monitoramento", "Salvaguardas e direitos",
+                "Rastreabilidade de evidências", "Revisões e encaminhamentos");
+        /** No package, no template: the dossier is a scaffold that says the template is still to be defined. */
+        static final PdDescriptor NEUTRAL = new PdDescriptor("A_DEFINIR_APOS_TRIAGEM", "INDEFINIDA",
+                PLATFORM_SECTIONS, List.of());
+        boolean neutral() {
+            return NEUTRAL.template().equals(template) && NEUTRAL.templateEdition().equals(templateEdition);
         }
     }
     /** Package-owned triage rules. Compares answers with the package scope; never decides eligibility. */
@@ -103,7 +137,8 @@ final class ProjectJourney {
                 @Override public ProjectTriageDiagnosis.Result diagnose(JsonNode answers, Guidance guidance) {
                     return ProjectTriageDiagnosis.evaluateVm0038(answers, guidance);
                 }
-            });
+            }, new PdDescriptor(DocumentRules.Act.DESENVOLVIMENTO.template(), DocumentRules.EDITION,
+                    PdDescriptor.PLATFORM_SECTIONS, IntakeRules.REAL_GATES));
 
 
     /**
