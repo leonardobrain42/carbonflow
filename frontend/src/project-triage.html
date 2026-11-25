@@ -304,15 +304,25 @@
                 <section class="cf-journey-context" aria-labelledby="cf-triage-capability">
                   <h3 id="cf-triage-capability">Situação da metodologia no CarbonFlow</h3>
                   @if (pin(); as pinned) {
-                    <p>Preparação fixada em <strong>{{ pinned.methodology }} {{ pinned.edition }}</strong>,
+                    <p>Preparação fixada em <strong>{{ pinned.methodology }} {{ pinned.edition }}</strong>@if (pinned.origin === 'MIGRATION') { (migrada da fixação {{ pinned.migratedFrom }}) },
                       registro versão {{ pinned.registryVersion ?? '—' }}@if (pinned.packageVersion) {, pacote versão {{ pinned.packageVersion }}}
                       @else { (ainda sem pacote executável)}. A fixação registra contra o que o projeto foi preparado; não indica aprovação nem elegibilidade.</p>
                     @if (pinned.newerRegistryVersion || pinned.packageChanged) {
                       <p class="cf-workspace-note" role="status">
                         @if (pinned.newerRegistryVersion) { Há uma versão mais nova do registro desta metodologia. }
                         @if (pinned.packageChanged) { O pacote desta metodologia mudou desde a fixação. }
-                        Seu projeto continua na versão fixada; a mudança só acontece por uma migração explícita, que ainda não está disponível.
+                        Seu projeto continua na versão fixada até você migrar.
                       </p>
+                      @if (!confirmingMigration()) {
+                        <button type="button" class="cf-workspace-outline" (click)="askMigration()">Migrar para a versão atual</button>
+                      } @else {
+                        <div role="group" aria-labelledby="cf-migrate-title" class="cf-workspace-note">
+                          <strong id="cf-migrate-title">Confirmar migração?</strong>
+                          <p>O projeto passa a ser preparado contra a versão atual do registro e do pacote. A fixação anterior continua registrada, nada é apagado e nenhum dado ou ato já congelado é alterado. Revise o resumo depois de migrar: as orientações podem mudar.</p>
+                          <button type="button" class="cf-workspace-primary" [disabled]="migrating()" (click)="migrate()">Confirmar migração</button>
+                          <button type="button" class="cf-workspace-outline" [disabled]="migrating()" (click)="cancelMigration()">Cancelar</button>
+                        </div>
+                      }
                     }
                   } @else {
                     <p>Ainda não há metodologia candidata fixada para este projeto.</p>

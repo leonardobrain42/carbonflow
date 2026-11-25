@@ -88,6 +88,7 @@ interface TriageView {
 }
 
 interface MethodologyPin {
+  origin?: 'TRIAGE' | 'MIGRATION'; migratedFrom?: number | null;
   version: number; triageVersion: number; methodology: string | null; edition: string | null;
   registryVersion: number | null; packageId: string | null; packageVersion: number | null;
   pinnedAt: string; newerRegistryVersion: boolean; packageChanged: boolean;
@@ -144,6 +145,39 @@ export class ProjectTriageComponent {
       : methodologyOption(this.field(1, 'methodologyCandidate'), current?.methodologies ?? [], current?.journey);
   });
   readonly registeredWithoutPackage = computed(() => this.view()?.candidateStatus?.state === 'REGISTERED_NO_PACKAGE');
+  /** Explicit migration of the pinned version: two steps (ask, confirm); never automatic. */
+  readonly confirmingMigration = signal(false);
+  readonly migrating = signal(false);
+  askMigration() { this.confirmingMigration.set(true); this.error.set(''); this.notice.set(''); }
+  cancelMigration() { this.confirmingMigration.set(false); }
+  async migrate() {
+    const pin = this.pin();
+    const current = this.view();
+    if (!pin || !current || this.migrating()) return;
+    this.migrating.set(true);
+    this.error.set('');
+    this.notice.set('');
+    try {
+      const result = await firstValueFrom(this.http.post<TriageView>(
+        '/v1/projects/' + this.projectId + '/triage/methodology-pin/migrate', {confirm: true},
+        {headers: {'If-Match': '"' + pin.version + '"'}}));
+      // Only the pin and the derived capabilities change: unsaved answers on screen are kept.
+      this.view.update(value => value ? {...value, methodologyPin: result.methodologyPin,
+        capabilities: result.capabilities} : value);
+      this.confirmingMigration.set(false);
+      this.notice.set('Projeto migrado para a versão atual do registro e do pacote. A fixação anterior continua registrada.');
+    } catch (reason: unknown) {
+      const status = reason instanceof HttpErrorResponse ? reason.status : 0;
+      this.error.set(status === 412
+        ? 'A fixação mudou em outra aba ou sessão. Recarregue a página antes de migrar.'
+        : status === 403 || status === 404
+        ? 'Você não tem permissão para migrar a versão deste projeto.'
+        : this.message(reason, 'Não foi possível migrar. Tente novamente.'));
+      this.confirmingMigration.set(false);
+    } finally {
+      this.migrating.set(false);
+    }
+  }
   readonly pin = computed(() => {
     const pin = this.view()?.methodologyPin;
     return pin && pin.methodology ? pin : null;

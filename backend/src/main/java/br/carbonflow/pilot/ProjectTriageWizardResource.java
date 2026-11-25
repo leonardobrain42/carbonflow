@@ -58,6 +58,18 @@ public class ProjectTriageWizardResource {
     }
 
     @POST
+    @Path("/methodology-pin/migrate")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response migratePin(@CookieParam(AccountAccess.COOKIE) String token,
+                               @PathParam("project") String project,
+                               @HeaderParam("If-Match") String pinVersion,
+                               ProjectTriageWizard.Migration input) {
+        var result = wizard.migratePin(token, project, pinVersion, input);
+        return Response.ok(result).tag(Integer.toString(result.at("/methodologyPin/version").asInt()))
+                .header("Cache-Control", "private, no-store").build();
+    }
+
+    @POST
     @Path("/examples/bev-df-2027")
     public Response example(@CookieParam(AccountAccess.COOKIE) String token,
                             @PathParam("project") String project,
