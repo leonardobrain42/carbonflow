@@ -1,0 +1,135 @@
+<a class="cf-skip-link" href="#cf-candidates-main">Pular para o conteúdo</a>
+<div class="cf-workspace-shell">
+  <aside class="cf-workspace-sidebar" aria-label="Navegação administrativa">
+    <a routerLink="/workspace" class="cf-workspace-brand">Carbon<span>Flow</span></a>
+    <p class="cf-workspace-kicker">ADMIN CARBONFLOW</p>
+    <nav class="cf-workspace-nav" aria-label="Console interno">
+      <a routerLink="/workspace">Meus projetos</a>
+      <a routerLink="/workspace/compliance">Conformidade</a>
+      <a routerLink="/workspace/platform/sources">Fontes e prontidão</a>
+      <a routerLink="/workspace/platform/methodologies">Metodologias</a>
+      <a routerLink="/workspace/platform/licenses">Licenças</a>
+      <a routerLink="/workspace/platform/alias-candidates" aria-current="page">Candidatos de alias</a>
+    </nav>
+    <p class="cf-platform-sidebar-note">Aceitar um candidato não cria modelo nem alias, não classifica o veículo, não admite dados e não habilita cálculo.</p>
+  </aside>
+
+  <div class="cf-workspace-stage">
+    <header class="cf-workspace-topbar">
+      <span>Admin CarbonFlow</span>
+      <a routerLink="/workspace" class="cf-workspace-link">Voltar à conta</a>
+    </header>
+    <main id="cf-candidates-main" class="cf-workspace-content cf-platform-content">
+      <header class="cf-workspace-heading">
+        <span class="cf-workspace-chip">PAINEL INTERNO · FROTA EVR</span>
+        <h1>Candidatos de alias (Senatran × PBEV)</h1>
+        <p>Cada candidato liga um nome literal da Senatran a linhas elétricas da tabela do Inmetro, com o motivo do casamento. Quem importou o lote não decide sobre ele. Estar no PBEV não prova circulação, classe LDV, comparabilidade nem compatibilidade com carregamento rápido.</p>
+      </header>
+
+      @if (error()) {
+        <p class="cf-workspace-alert" role="alert">{{ error() }}</p>
+      }
+      @if (feedback()) {
+        <p class="cf-platform-success" role="status">{{ feedback() }}</p>
+      }
+      @if (loading()) {
+        <p role="status">Conferindo acesso e consultando os candidatos…</p>
+      }
+
+      @if (!loading() && !session()) {
+        <section class="cf-workspace-card">
+          <h2>Acesso interno indisponível</h2>
+          <p>Entre na conta e utilize uma identidade com o privilégio da fila de candidatos.</p>
+          <a routerLink="/workspace" class="cf-workspace-link">Ir para minha conta</a>
+        </section>
+      } @else if (!loading() && session() && !unlocked() && !denied()) {
+        <section class="cf-workspace-card">
+          <h2>Verificação da equipe interna</h2>
+          <p>A fila exige autenticação multifator e um privilégio próprio.</p>
+          <form (submit)="verify($event, code)">
+            <label for="cf-candidates-mfa">Código de seis dígitos do autenticador</label>
+            <input #code id="cf-candidates-mfa" inputmode="numeric" type="text" pattern="[0-9]{6}"
+              autocomplete="one-time-code" maxlength="6" required [disabled]="loading()"/>
+            <button type="submit" class="cf-workspace-primary" [disabled]="loading()">Desbloquear fila</button>
+          </form>
+        </section>
+      }
+
+      @if (unlocked()) {
+        <section class="cf-workspace-card cf-platform-source-form-card" aria-labelledby="cf-candidates-import-title">
+          <h2 id="cf-candidates-import-title">Importar lote</h2>
+          <form (submit)="importBatch($event, batch)" class="cf-platform-source-form">
+            <label for="cf-candidates-batch">Lote em JSON (saída de match_senatran_pbev.py --emit-import)</label>
+            <textarea #batch id="cf-candidates-batch" rows="6" required></textarea>
+            <p class="cf-platform-meta">O lote é idempotente por nome, período e arquivo do PBEV. Importar não cria modelo nem alias.</p>
+            <button type="submit" class="cf-workspace-primary" [disabled]="saving()">Importar lote</button>
+          </form>
+        </section>
+
+        <section aria-labelledby="cf-candidates-list-title">
+          <div class="cf-platform-heading-line">
+            <h2 id="cf-candidates-list-title">Candidatos</h2>
+            <label for="cf-candidates-filter">Situação</label>
+            <select id="cf-candidates-filter" (change)="setFilter($event)">
+              @for (option of filters; track option.value) {
+                <option [value]="option.value" [selected]="filter() === option.value">{{ option.label }}</option>
+              }
+            </select>
+            <button type="button" class="cf-workspace-outline" (click)="load()">Atualizar</button>
+          </div>
+          @if (items().length === 0) {
+            <p>Nenhum candidato nesta situação.</p>
+          }
+          <ul class="cf-tech-gates">
+            @for (item of items(); track item.id) {
+              <li>
+                <h3>{{ item.literalName }}</h3>
+                <p><strong>{{ stateLabel(item) }}</strong> · {{ levelLabel(item) }}</p>
+                <p class="cf-platform-meta">Período {{ item.observationPeriod }} · chave {{ item.recordKey }} · PBEV {{ shortHash(item) }}</p>
+                <p class="cf-platform-meta">{{ item.reason }}</p>
+                <table>
+                  <caption>Linhas candidatas do PBEV</caption>
+                  <thead><tr><th scope="col">Linha</th><th scope="col">Categoria</th><th scope="col">Marca</th><th scope="col">Modelo</th><th scope="col">Versão</th></tr></thead>
+                  <tbody>
+                    @for (match of item.matches; track match.pbevLine) {
+                      <tr>
+                        <td>{{ match.pbevLine }}</td><td>{{ match.category }}</td><td>{{ match.brand }}</td>
+                        <td>{{ match.model }}</td><td>{{ match.version ?? 'sem versão impressa' }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+                @if (item.state !== 'PENDING') {
+                  <p class="cf-platform-meta">
+                    @if (chosen(item); as pick) { Linha escolhida: {{ pick.pbevLine }} ({{ pick.brand }} {{ pick.model }} {{ pick.version }}). }
+                    Motivo da decisão: {{ item.decisionReason }}
+                  </p>
+                } @else if (deciding() === item.id) {
+                  <form (submit)="$event.preventDefault()" class="cf-platform-source-form">
+                    <fieldset>
+                      <legend>Linha do PBEV que corresponde ao nome (obrigatória para aceitar)</legend>
+                      @for (match of item.matches; track match.pbevLine) {
+                        <label><input type="radio" name="line-{{ item.id }}" [checked]="line() === match.pbevLine"
+                          (change)="pick(match.pbevLine)"/> Linha {{ match.pbevLine }}: {{ match.brand }} {{ match.model }} {{ match.version ?? '' }}</label>
+                      }
+                    </fieldset>
+                    <label [attr.for]="'cf-cand-reason-' + item.id">Motivo (mín. 10 caracteres)</label>
+                    <input #reason [id]="'cf-cand-reason-' + item.id" type="text" minlength="10" maxlength="1000" required/>
+                    <button type="button" class="cf-workspace-primary" [disabled]="saving() || line() === null"
+                      (click)="decide(item, 'ACCEPTED', reason.value)">Aceitar candidato</button>
+                    <button type="button" class="cf-workspace-outline" [disabled]="saving()"
+                      (click)="decide(item, 'REJECTED', reason.value)">Recusar</button>
+                    <button type="button" class="cf-workspace-outline" (click)="cancel()">Cancelar</button>
+                  </form>
+                } @else {
+                  <button type="button" class="cf-workspace-outline" (click)="open(item)"
+                    [attr.aria-label]="'Revisar candidato ' + item.literalName">Revisar</button>
+                }
+              </li>
+            }
+          </ul>
+        </section>
+      }
+    </main>
+  </div>
+</div>

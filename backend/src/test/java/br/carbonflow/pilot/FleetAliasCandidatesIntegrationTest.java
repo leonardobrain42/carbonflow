@@ -61,6 +61,10 @@ class FleetAliasCandidatesIntegrationTest {
 
     @Test
     void candidatesAreImportedOnceDecidedByAnotherPersonAndNeverTouchTheCatalog() throws Exception {
+        // The deep link of the administration screen is served as the SPA (CI serves routes from this list).
+        var page = call("GET", "/workspace/platform/alias-candidates", null, null, null);
+        assertEquals(200, page.statusCode());
+        assertTrue(page.headers().firstValue("Content-Type").orElse("").startsWith("text/html"));
         String suffix = UUID.randomUUID().toString().substring(0, 8);
         String nameA = "I/BYD DOLPHIN GS 180EV " + suffix, nameB = "I/RENAULT E-KWID TECHNO " + suffix;
         String itemA = item(nameA, "I_BYD_DOLPHIN_" + suffix, "EXACT", "[" + match(1, "GS 180EV") + "]");
