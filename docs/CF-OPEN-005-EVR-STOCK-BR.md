@@ -89,6 +89,15 @@ Rotas:
 
 A API não aceita inserção arbitrária de quantidades em objeto de projeto, não cria `ProjectSelection`, não envia EVR/AFEC/MPG ao E8 e não oferece fallback numérico para fontes ausentes.
 
+## Ponte da Senatran para o CSV de importação (rc.56)
+`scripts/build_evr_stock_csv.py` lê o ZIP autorizado da Senatran e **uma lista explícita de nomes literais** (a mesma seleção de `inspect_senatran_stock_sample.py`) e grava o CSV no formato do parser (`record_key,period_year,metric,value,unit,geography`) mais um manifesto. Regras:
+- **Quem escolhe os modelos é quem chama**, com a sua evidência de propulsão/classe; o script não classifica nem faz correspondência automática.
+- `record_key` do parser só aceita `[A-Za-z0-9._-]` (até 100); os nomes literais têm `/` e espaços, então a chave é o nome com os caracteres inválidos trocados por `_`, e **duas chaves iguais são recusadas** (nada é fundido). O manifesto guarda chave → nome literal.
+- `period_year` é o **ano de observação** do arquivo (não o ano de fabricação); `metric=stock`, `unit=vehicles`, `geography=BR`; a quantidade é de veículos **registrados** (a limitação fica no manifesto).
+- Modelo sem linha continua **ausente** (nunca vira zero); zero literal continua zero. Limite de 2000 linhas do parser respeitado.
+- O manifesto traz o SHA-256 do arquivo, o total registrado e `usableForE8=false`, `evr_total=null`, `weights=null`.
+- O CSV segue pela quarentena, aliases, direitos e revisão existentes; nada é pulado. Não houve execução sobre o arquivo real nesta fatia (o ZIP não está no repositório): os testes usam ZIP sintético, e um teste do parser Java confirma que o formato é aceito e que o nome literal cru é recusado.
+
 ## Checklist futuro da #94
 
 - [ ] Adquirir amostra real da Senatran e demonstrar granularidade por modelo/ano de observação/propulsão.
