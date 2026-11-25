@@ -100,6 +100,11 @@ final class ProjectCollaboration {
                             actions.add("REVIEW_OPEN_VT0011_WORKBOOK");
                         }
                     }
+                    if ("ADDITIONALITY".equals(activity) && "REV".equals(grant.role())) {
+                        // A reviewer reads the declaration and guide it opines on, and records the opinion.
+                        actions.add("VIEW_OPEN_APPLICABILITY");
+                        actions.add("REVIEW_OPEN_ADDITIONALITY");
+                    }
                     if ("APPLICABILITY".equals(activity)) {
                         actions.add("VIEW_OPEN_APPLICABILITY");
                         if (preparer) actions.add("SAVE_OPEN_APPLICABILITY");
