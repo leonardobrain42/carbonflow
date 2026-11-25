@@ -77,6 +77,8 @@ interface TriageView {
   methodologies: JourneyOption[];
   /** Versioned catalog of packages and the activity vocabulary (A03/#90); the screen lists nothing by itself. */
   catalog?: {version: number; digest: string; activityTypes: JourneyOption[]};
+  /** Derived by the server from the candidate: PACKAGE, REGISTERED_NO_PACKAGE, UNREGISTERED or NONE. */
+  candidateStatus?: {state: string; methodology: string | null; edition: string | null; registryVersion: number | null};
   guidance: {state: string; outsideMethodology: string[]; outsidePilot: string[]};
   retiredAnswers?: RetiredAnswer[];
 }
@@ -124,6 +126,7 @@ export class ProjectTriageComponent {
     return this.otherMethodology() ? OTHER_METHODOLOGY
       : methodologyOption(this.field(1, 'methodologyCandidate'), current?.methodologies ?? [], current?.journey);
   });
+  readonly registeredWithoutPackage = computed(() => this.view()?.candidateStatus?.state === 'REGISTERED_NO_PACKAGE');
   readonly activityTypes = computed(() => this.view()?.catalog?.activityTypes ?? []);
   /** Package schema for the activity step, read from the server (A03). */
   readonly activityQuestions = computed(() => this.view()?.journey.activityQuestions ?? []);

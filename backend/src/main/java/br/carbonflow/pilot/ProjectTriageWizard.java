@@ -34,7 +34,7 @@ class ProjectTriageWizard {
                 String analysisState, String exampleKind, JsonNode answers,
                 List<StepSummary> stages, List<String> pending,
                 String nextAction, ProjectJourney.Profile journey, List<ProjectJourney.Option> methodologies,
-                MethodologyPackages.Catalog catalog,
+                MethodologyPackages.Catalog catalog, MethodologyRegistry.CandidateStatus candidateStatus,
                 ProjectJourney.Guidance guidance, ProjectTriageDiagnosis.Result diagnosis,
                 List<RetiredAnswer> retiredAnswers) {}
     /** D16: an older answer that the triage no longer asks; shown read-only with the screen that owns it now. */
@@ -284,6 +284,13 @@ class ProjectTriageWizard {
         if (rejected != null) throw invalid(rejected);
     }
 
+    /** Packages in code first, then registered methodologies that still have no package (a candidate with a gap). */
+    static List<ProjectJourney.Option> methodologyOptions(Connection connection) throws SQLException {
+        var all = new ArrayList<>(MethodologyPackages.options());
+        all.addAll(MethodologyRegistry.unpackaged(connection));
+        return List.copyOf(all);
+    }
+
     private View view(Connection connection, DynamicProjectScope.Context context, Snapshot snapshot) throws SQLException {
         List<StepSummary> stages = new ArrayList<>();
         List<String> pending = new ArrayList<>();
@@ -316,7 +323,8 @@ class ProjectTriageWizard {
                 List.copyOf(pending), snapshot.currentStep() == 5
                     ? "Revise as respostas e organize na preparação técnica o que precisa ser comprovado."
                     : "Salve as respostas e deixe em aberto o que ainda precisa confirmar.",
-                journey, MethodologyPackages.options(), MethodologyPackages.current(), guidance, ProjectTriageDiagnosis.evaluate(effective, guidance),
+                journey, methodologyOptions(connection), MethodologyPackages.current(),
+                MethodologyRegistry.candidateStatus(connection, ProjectJourney.candidate(answers)), guidance, ProjectTriageDiagnosis.evaluate(effective, guidance),
                 retiredAnswers(answers));
     }
 

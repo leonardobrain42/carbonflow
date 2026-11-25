@@ -63,11 +63,13 @@ async function setup(page) {
     analysisState: 'NAO_AVALIADO', exampleKind: state.exampleKind,
     answers: state.answers,
     journey: journeys[{'VM0038':'VM0038','TEST-ONLY':'TEST'}[state.answers['1']?.methodologyCandidate] ?? 'GENERAL'],
+    candidateStatus: state.answers['1']?.methodologyCandidate === 'METHX V2.1'
+      ? {state:'REGISTERED_NO_PACKAGE', methodology:'METHX', edition:'2.1', registryVersion:1} : undefined,
     catalog: {version:1, digest:'0'.repeat(64), activityTypes:[
       {value:'MOBILIDADE_ELETRICA',label:'Mobilidade elétrica e recarga'},{value:'RESIDUOS',label:'Resíduos e economia circular'},
       {value:'ENERGIA',label:'Energia e eficiência energética'},{value:'AGRICULTURA',label:'Agricultura, solo e florestas'},
       {value:'OUTRO',label:'Outra atividade'},{value:'DESCONHECIDO',label:'Preciso de orientação'}]},
-    methodologies: [{value:'VM0038',label:vmTitle},{value:'TEST-ONLY',label:'Pacote de teste · resíduos'}],
+    methodologies: [{value:'VM0038',label:vmTitle},{value:'TEST-ONLY',label:'Pacote de teste · resíduos'},{value:'METHX V2.1',label:'Metodologia registrada X'}],
     diagnosis: {
       ruleVersion:'REG-E2 / CF-IMP-010 v2',
       classification:state.answers['3']?.chargerType === 'AC' ? 'UNSUPPORTED_MVP' : 'UNKNOWN_REVIEW_REQUIRED',
@@ -315,6 +317,23 @@ test('A03: a triagem segue o schema do pacote escolhido, sem campos de recarga d
     await page.getByRole('heading',{name:'O que será pedido na preparação técnica'}).waitFor();
     await page.getByRole('link',{name:'Linha de base de resíduos'}).waitFor();
     assert.equal(await page.getByRole('link',{name:'Acesso à rede'}).count(),0);
+  } finally {
+    await browser.close();
+  }
+});
+
+test('D18: metodologia registrada sem pacote é candidata com aviso de lacuna, sem campos de outro pacote', async () => {
+  const browser = await chromium.launch({executablePath});
+  try {
+    const page = await browser.newPage({viewport:{width:1360,height:850}});
+    await setup(page);
+    await page.goto(base + '/workspace/projects/' + projectId + '/triage');
+    await page.getByLabel('Metodologia candidata').selectOption('METHX V2.1');
+    await page.getByRole('button',{name:'Salvar e avançar'}).click();
+    await page.getByRole('button',{name:/Objetivo e metodologia/}).click();
+    await page.getByText('ainda sem pacote executável',{exact:false}).waitFor();
+    await page.getByRole('button',{name:'Salvar e avançar'}).click();
+    assert.equal(await page.getByLabel('O projeto inclui instalar sistemas de recarga?').count(),0);
   } finally {
     await browser.close();
   }

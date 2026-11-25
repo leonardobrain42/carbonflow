@@ -46,6 +46,12 @@ final class MethodologyPackages {
 
     private MethodologyPackages() {}
 
+    /** Whether a code package exists for the methodology and edition (candidate code and edition of its profile). */
+    static boolean hasPackage(String methodology, String edition) {
+        return CURRENT.packages().stream().anyMatch(item -> item.methodology().equals(methodology)
+                && item.edition().equals(edition));
+    }
+
     static boolean knownActivity(String value) {
         return ACTIVITY_TYPES.stream().anyMatch(item -> item.value().equals(value));
     }
