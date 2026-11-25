@@ -30,3 +30,6 @@ A matriz completa do kit histórico ainda não foi recuperada. [E0](e0/README.md
 
 ## Próximas decisões
 CI do #242 confirmado: os cinco jobs da main (inclusive Quarkus/PostgreSQL) passaram nos pushes dos merges #242 ([run 45445796764](https://github.com/leonardobrain42/carbonflow/actions/runs/45445796764)) e #243 ([run 45449006684](https://github.com/leonardobrain42/carbonflow/actions/runs/45449006684)); o HTTP 429 do run #573 não se repetiu. Reuso de IR entre períodos do mesmo ano (mesma dupla ano relativo/ano fonte, referências canônicas equivalentes, vigência cobrindo cada janela) implementado nesta fatia; o ano 1 passou a ter IR ex ante (D13, opção B do Q04) e segue bloqueado por Dy; resta a prova documental. Resolver a cadeia de vigência e segregação. Em paralelo avançar nas lacunas de admissão e Dy sem substituir dados reais por números de fixture. A sequência detalhada está em [E8](e8/README.md).
+
+## D17 — Direção e lacunas de plataforma
+Agnosticidade é decisão de produto aprovada, não comportamento integral demonstrado. A [auditoria dirigida de 25/11](CF-JOURNEY-001-AUDITORIA.md) identifica acoplamentos atuais de triagem, guias, requisitos, atos e compositor, e lacunas J04. [Jornada canônica](CF-JOURNEY-001.md); manter OPEN, D16 e gates sem regressão. Não confundir aceitação de candidato com pacote executável.

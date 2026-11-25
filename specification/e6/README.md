@@ -17,3 +17,6 @@ Interfaces concretas: [adapters](../../docs/CF-IMP-008-ADAPTERS-PROJETO-DINAMICO
 
 ## Extensão metodológica
 Separar catálogo de método/edição/cenário, regra/entrada, cálculo, projeção e regime do ato; evitar condicionais globais VM0038 para todo projeto. Novo método exige pacote de regras, parâmetros, telas, gates, testes e validação próprios; o inventário extensível não comprova suporte completo. A matriz de ADR/OP-E6 original está pendente de recuperação; fronteiras registradas aqui não autorizam refatoração ampla não planejada.
+
+## D17 — Contrato de plataforma
+A fronteira acima é descrição do código observado, não arquitetura fixa por setor. A plataforma deve receber qualquer metodologia; programa, método, atividade, unidades, esquema, atos, regras e documentos são resolvidos por contexto e packs versionados. Preserve o E8 OPEN e PIL-SYN isolados. [Contratos lógicos e testes AGN](../CF-JOURNEY-001.md), [acoplamentos atuais](../CF-JOURNEY-001-AUDITORIA.md). Não iniciar refatoração geral nem criar três núcleos obrigatórios.

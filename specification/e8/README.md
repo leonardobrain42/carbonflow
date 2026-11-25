@@ -15,3 +15,6 @@ A [issue #89](https://github.com/leonardobrain42/carbonflow/issues/89) é a epic
 | Posterior | Infraestrutura associada, novos ramos e outras metodologias | Epic a confirmar | Especificação, regras e dados próprios, testes e autorização |
 
 Paralelismo: fontes/admissibilidade e UX/jornada podem avançar sem liberar E8; seleção temporal coordena IR/Dy/monitoramento. Não adiar #101 para o fim de todas as features — ampliar a fixture integrada a cada contrato. Se uma issue mudou desde o corte, reconciliar com seu corpo e CI antes de implementar.
+
+## D17 — Direção transversal (sem alterar a sequência acima)
+O roadmap OPEN é primeira instância da [jornada agnóstica J01–J07](../CF-JOURNEY-001.md). Reconciliar cada fatia com os [achados e cobertura](../CF-JOURNEY-001-AUDITORIA.md); #10/#90/#16/#19/#124/#43 mantêm owners, #41 aprofunda J04/J05 e #122/#101 exigem cobertura por ato/template e teste. Não trocar prioridade de cálculo, admitir fontes por conveniência ou implementar outro método comercial nesta fase.

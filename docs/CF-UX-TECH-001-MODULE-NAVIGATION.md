@@ -69,3 +69,6 @@ A entrega realiza **navegação, organização e descoberta**. Ainda faltam: sch
 - Grupos: **Começar** (Painel de trabalho, Preparar informações), **Aplicabilidade** (Situação do projeto, Acesso à rede, Direitos do projeto, Estações e fronteira), **Fundamentação** (Linha de base, Adicionalidade, Guias técnicos), **Medição** (Monitorar energia, Quantificação) e **Documentação** (Redigir, Revisar).
 - **Entender**, **Evidências** e **Fontes e parâmetros** deixam de ocupar o menu, mas continuam com URL própria (`?secao=entender|evidencias|fontes`) e com acesso pela tela-mãe: o Painel de trabalho tem o cartão "Entender a metodologia"; Evidências é a mesma vista do Monitorar, etapa 3 (QA e evidências); Quantificação tem o botão "Fontes e parâmetros nacionais". Com uma delas aberta, o item da tela-mãe fica destacado no menu.
 - Se a conta não tiver acesso à tela-mãe, a tela continua no menu (nenhum acesso é perdido). Permissões, ponto de retomada e destinos de pendências não mudam.
+
+## Escopo D17
+Os agrupamentos, links e guias descritos neste contrato são projeções da preparação técnica do recorte OPEN, não menu obrigatório para outras metodologias. A [jornada canônica J01–J07](../specification/CF-JOURNEY-001.md) orienta evolução incremental; #124/#19 resolvem subetapas pelo pack e mantêm compatibilidade dos deep links e D16.

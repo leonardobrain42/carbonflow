@@ -55,3 +55,6 @@ Nenhum desses itens é resolvido por código ou por teste sintético; `PENDENCIA
 2. Aprovar a linha 4 em paralelo (M3), o que supõe haver pessoas diferentes para ela; se for a mesma equipe, a ordem original da trilha B passa a ser sequencial e perde o ganho.
 3. Indicar quem é responsável por cada item da trilha T, que hoje não tem dono registrado.
 4. Informar se o roteiro tem mais de 10 linhas.
+
+## Direção D17 (25/11/2026)
+A [jornada de sete etapas](../specification/CF-JOURNEY-001.md) e o núcleo metodológico agnóstico são aprovados como direção de produto. Esta proposta de ordem de entrega permanece uma sequência técnica do primeiro recorte; não é a sequência universal da jornada nem altera a decisão sobre M1–M5. [Auditoria e lacunas](../specification/CF-JOURNEY-001-AUDITORIA.md). Integrar J04/J05 na trilha B e cobertura documental no marco #122; qualidade e gates contínuos.
