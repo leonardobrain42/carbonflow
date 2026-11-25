@@ -1,4 +1,7 @@
 # Changelog da especificação viva
+## 0.3.0-rc.61 — 25/11/2026 (proposta)
+- **#94/#95, plano de cadastro dos modelos aceitos**, nível **plataforma**; sem migração, sem mudança de API e sem envio. `build_fleet_model_registrations.py` gera o plano de `POST /models` e de aliases adicionais a partir dos candidatos aceitos e de um arquivo de decisões de classe e propulsão feito por pessoas; recusa o que não tem decisão e nunca presume LDV nem BEV. Gate no CI. Contrato em CF-OPEN-005-EVR-STOCK-BR.
+- Verificado: `unittest` do script (7). Não executados: CI, cadastro em ambiente real (não há ambiente neste fluxo). A decisão de classe e propulsão de cada modelo, inclusive se a categoria Comercial do PBEV é LDV, continua com vocês.
 ## 0.3.0-rc.60 — 25/11/2026 (proposta)
 - **#94/#95, tela da fila de candidatos de alias**, nível **plataforma**; sem migração nem mudança de API. Rota `/workspace/platform/alias-candidates` (deep link no `WorkspaceSpaRouteResource`, com teste) e link "Candidatos de alias" no menu administrativo. Importar lote, filtrar, revisar com a evidência do PBEV, aceitar com a linha escolhida ou recusar. Aceitar não cria modelo nem alias. Contrato em CF-OPEN-005-EVR-STOCK-BR.
 - Verificado localmente: build Angular; 2 testes de navegador com API simulada (Playwright 1.58.2); `FleetAliasCandidatesIntegrationTest` incluindo o deep link. Não executados: Compose, CI, backend completo nesta fatia, teste com API real.
