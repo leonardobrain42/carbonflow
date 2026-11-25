@@ -1,4 +1,4 @@
-# CF-OPEN-007 — Dy: política interna do Q05 (D14), primeira fatia (V98)
+# CF-OPEN-007 — Dy: política interna do Q05 (D14), primeira fatia (V98) e totais acumulados (V99)
 
 Continuação de #96/#97 e do documento de decisão [CF-OPEN-007-DECISION-Q04-Q05](CF-OPEN-007-DECISION-Q04-Q05.md). Recorte: VM0038 v1.1, OPEN BR LDV BEV DCFC SIN GRID_ONLY, ensaio interno. **Nada aqui admite metodologia, parâmetro, fonte ou crédito; `usableForE8=false` e o gate `E8_ADMISSION` permanecem.**
 
@@ -7,7 +7,7 @@ Em 24/11/2026 o responsável pelo produto aprovou as quatro recomendações do Q
 
 | Sub-decisão | Política D14 | Estado nesta fatia |
 |---|---|---|
-| Q05.1 janela | Registrar a totalização anual e a acumulada; leitura vigente = anual (y−1) | **Anual vigente (já implementada). O registro da totalização acumulada NÃO está implementado** (exige itens anteriores à janela anual e matriz de busca estendida); fica como próxima fatia |
+| Q05.1 janela | Registrar a totalização anual e a acumulada; leitura vigente = anual (y−1) | **Anual vigente (já implementada). Totais acumulados declarados (V99): implementados como registro opcional, sem itens**; a versão itemizada, com emissões anteriores à janela anual e matriz de busca estendida, **não está implementada** e fica como próxima fatia |
 | Q05.2 ano 1 | Janela exploratória de 12 meses antes do início de creditação; Dy = 1 somente com ausência comprovada e parecer independente | **Implementada** (abaixo) |
 | Q05.3 rateio | Base = EVs em circulação; bloqueado até o denominador nacional de EVR ser admitido (G03) | **Implementada** (base restrita + gate) |
 | Q05.4 inconclusivo | Bloqueia o cálculo; sem faixa de sensibilidade | **Mantida** (testada) |
@@ -17,6 +17,12 @@ Em 24/11/2026 o responsável pelo produto aprovou as quatro recomendações do Q
 - A avaliação grava `calendar_gate = FIRST_YEAR_EXPLORATORY_WINDOW`, janela canônica nula (a exploratória **não** vira ano anterior normativo) e Dy prévio 1. Nova avaliação por versão, hash, idempotência e histórico como as demais; o contexto exploratório integra o hash. Obsolescência por mudança de início, triagem ou licença segue as regras existentes.
 - **V98, aditiva:** amplia a restrição de resultado de `app_open_dy_assessment` para esse caso (nunca estreita) e cria uma *constraint trigger* adiada que exige, no commit, o contexto exploratório resolvido.
 - Prontidão: o gate `CALENDAR` do ano 1 passa a `SATISFIED_INTERNAL` apenas com a ausência declarada; com parecer interno independente da versão exata, `internalChecksComplete` pode ser verdadeiro. **O estado continua `BLOCKED`**: `NORMATIVE_WINDOW`, `EXTERNAL_EVIDENCE` e `E8_ADMISSION` permanecem bloqueados (o texto do primeiro cita a D14 e a falta de confirmação externa). Ausência declarada não é prova externa.
+
+## Totais acumulados declarados (Q05.1, V99)
+- Campos opcionais `cumulativeErc` e `cumulativeErf` na avaliação: totais declarados em tCO2e do **início da creditação até o fim do ano y−1**, incluindo a janela anual. Vêm em par, exigem ano 2 ou posterior e pesquisa não inconclusiva, **não podem ser menores que ERC/ERF anuais**, e totais zerados só valem com ausência declarada no ano anterior.
+- A resposta traz `cumulative` com estado `CUMULATIVE_DECLARED_UNITEMIZED_NOT_ADMITTED`, `reading = ANNUAL_PRIOR_YEAR`, os totais e uma prévia ERC/(ERC+ERF). **A leitura vigente continua sendo a anual**: `dyPreview`, o gate de prontidão e o executor não usam o acumulado, e `usableForE8` segue falso.
+- Migração V99 aditiva (três colunas anuláveis e uma restrição). O acumulado entra no hash do comando e no da avaliação **somente quando informado**, então hashes, idempotência e histórico anteriores não mudam; uma nova versão sem acumulado não herda o da anterior. Registros imutáveis, como os demais.
+- **Não faz:** não itemiza emissões anteriores à janela anual, não estende a matriz de cobertura nacional a essa janela e não prova os totais. Também não decide a interpretação (anual versus acumulada), que continua dependendo de confirmação externa (Q05). Interface administrativa: os campos existem na API; o formulário do Angular ainda não os expõe.
 
 ## Rateio por EVs em circulação
 - `DOCUMENTED_SHARE` exige `basisUnit = EV_IN_CIRCULATION`; qualquer outra base é recusada (decisão específica). `DIRECT_BR` (1/1) não é afetada. Registros históricos permanecem imutáveis.
@@ -29,4 +35,4 @@ Em 24/11/2026 o responsável pelo produto aprovou as quatro recomendações do Q
 - Se Verra/VVB interpretar de outra forma, a política pode ser desligada sem apagar histórico.
 
 ## Testes
-`OpenDyReadinessTest` (ano 1: calendário só com ausência, inconclusivo e sem avaliação bloqueiam, anos posteriores inalterados, E8 nunca admitido; rateio bloqueia, atribuição direta não), `OpenDyAllocationsTest` (base única do rateio), `OpenIrAssessmentPersistenceTest` (V98: restrição única e ampliada, gatilho adiado, sem registros órfãos) e a integração Quarkus/PostgreSQL `OpenProjectParameterBindingsIntegrationTest` (ano 1: sem matriz, com créditos, ERC positivo, matriz parcial/janela curta/incompleta → 422; sucesso, replay, prontidão, parecer por revisor distinto, equivalência entre staff e conta do projeto; inconclusivo segue bloqueado; rateio mantém a atribuição bloqueada). O build Angular e os testes de navegador dependem do CI.
+`OpenDyAssessmentRulesTest` (acumulados: par, inclusão da janela anual, ano 1, inconclusivo, zero só com ausência) e a integração `OpenProjectParameterBindingsIntegrationTest` (422 nos casos inválidos, 201 com `cumulative`, replay 200, conflito 409, versão sem acumulado não herda e hash diferente), além de `OpenDyReadinessTest` (ano 1: calendário só com ausência, inconclusivo e sem avaliação bloqueiam, anos posteriores inalterados, E8 nunca admitido; rateio bloqueia, atribuição direta não), `OpenDyAllocationsTest` (base única do rateio), `OpenIrAssessmentPersistenceTest` (V98: restrição única e ampliada, gatilho adiado, sem registros órfãos) e a integração Quarkus/PostgreSQL `OpenProjectParameterBindingsIntegrationTest` (ano 1: sem matriz, com créditos, ERC positivo, matriz parcial/janela curta/incompleta → 422; sucesso, replay, prontidão, parecer por revisor distinto, equivalência entre staff e conta do projeto; inconclusivo segue bloqueado; rateio mantém a atribuição bloqueada). O build Angular e os testes de navegador dependem do CI.

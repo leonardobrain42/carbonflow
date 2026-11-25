@@ -545,6 +545,36 @@ class OpenProjectParameterBindingsIntegrationTest {
         assertEquals("NOT_EVALUATED",revokedReadiness.at("/gates/4/status").asText());
         assertFalse(revokedReadiness.path("usableForE8").asBoolean());
 
+        // D14 Q05.1: optional declared cumulative totals sit beside the annual reading and never replace it.
+        int dyLatest=json(call("GET",dyPath+"/2",manager,null,null,null),200).path("latestVersion").asInt();
+        String annualFound=inconclusive.strip().replace("\"INCONCLUSIVE\"","\"FLEET_CREDITS_FOUND\",\"erc\":\"75\",\"erf\":\"25\"");
+        String withCumulative=annualFound.substring(0,annualFound.length()-1)+",\"cumulativeErc\":\"100\",\"cumulativeErf\":\"40\"}";
+        String match="\""+dyLatest+"\"";
+        assertEquals(422,call("POST",dyPath,manager,key(),match,annualFound.substring(0,annualFound.length()-1)
+            +",\"cumulativeErc\":\"100\"}").statusCode(),"cumulative totals come in pairs");
+        assertEquals(422,call("POST",dyPath,manager,key(),match,withCumulative.replace("\"cumulativeErc\":\"100\"",
+            "\"cumulativeErc\":\"70\"")).statusCode(),"cumulative includes the annual window");
+        assertEquals(422,call("POST",dyPath,manager,key(),match,inconclusive.strip().substring(0,inconclusive.strip().length()-1)
+            +",\"cumulativeErc\":\"1\",\"cumulativeErf\":\"1\"}").statusCode(),"inconclusive search has no totals");
+        assertEquals(422,call("POST",dyPath,manager,key(),"\"0\"",firstYearBody.strip().substring(0,firstYearBody.strip().length()-1)
+            +",\"cumulativeErc\":\"1\",\"cumulativeErf\":\"1\"}").statusCode(),"year 1 has no previous year");
+        String cumulativeKey=key();
+        JsonNode cumulative=json(call("POST",dyPath,manager,cumulativeKey,match,withCumulative),201);
+        assertEquals("CUMULATIVE_DECLARED_UNITEMIZED_NOT_ADMITTED",cumulative.at("/cumulative/state").asText());
+        assertEquals("ANNUAL_PRIOR_YEAR",cumulative.at("/cumulative/reading").asText());
+        assertEquals("100",cumulative.at("/cumulative/erc").asText());
+        assertEquals("40",cumulative.at("/cumulative/erf").asText());
+        assertTrue(cumulative.at("/cumulative/dyPreview").asText().startsWith("0.714285"));
+        assertEquals("0.75",cumulative.path("dyPreview").asText(),"the current reading stays annual");
+        assertFalse(cumulative.path("usableForE8").asBoolean());
+        assertEquals(cumulative,json(call("POST",dyPath,manager,cumulativeKey,match,withCumulative),200));
+        assertEquals(409,call("POST",dyPath,manager,cumulativeKey,match,
+            withCumulative.replace("\"cumulativeErf\":\"40\"","\"cumulativeErf\":\"41\"")).statusCode());
+        String annualOnlyKey=key();
+        JsonNode annualOnly=json(call("POST",dyPath,manager,annualOnlyKey,"\""+(dyLatest+1)+"\"",annualFound),201);
+        assertTrue(annualOnly.path("cumulative").isNull(),"a version without cumulative totals does not inherit them");
+        assertFalse(cumulative.path("assessmentSha256").asText().equals(annualOnly.path("assessmentSha256").asText()));
+
 
         assertEquals(0L,database.read(c->first(c,"SELECT count(*) FROM app_open_project_parameter_binding WHERE project_id=? AND parameter_kind='DY'",
             r->r.getLong(1),project)).longValue());
