@@ -84,4 +84,20 @@ class TabularCandidateParserTest {
             return output.toByteArray();
         }
     }
+
+    /** The CSV written by scripts/build_evr_stock_csv.py (#94) is exactly this shape: keys sanitised, one year, vehicles. */
+    @Test
+    void evrBridgeCsvIsAcceptedAndStaysACandidateNeverAdmitted() {
+        String csv=HEADER+"I_BYD_DOLPHIN_GS_180EV,2026,stock,69235,vehicles,BR\r\n"+
+            "BYD_DOLPHIN_MINI_GS5EV,2026,stock,43839,vehicles,BR\r\n";
+        var parsed=TabularCandidateParser.parse(csv.getBytes(StandardCharsets.UTF_8),"CSV",2026);
+        assertTrue(parsed.valid(),parsed.issues().toString());
+        assertEquals(2,parsed.candidates().size());
+        assertEquals("stock",parsed.candidates().get(0).metric());
+        assertEquals("vehicles",parsed.candidates().get(0).unit());
+        // A literal Senatran name is NOT a valid key: the bridge exists because of this.
+        var raw=TabularCandidateParser.parse((HEADER+"I/BYD DOLPHIN GS 180EV,2026,stock,1,vehicles,BR\r\n")
+            .getBytes(StandardCharsets.UTF_8),"CSV",2026);
+        assertFalse(raw.valid());
+    }
 }
