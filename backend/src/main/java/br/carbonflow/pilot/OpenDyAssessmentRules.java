@@ -6,6 +6,8 @@ import java.util.Set;
 /** Metadata and arithmetic preview only; a declaration is not independent proof. */
 final class OpenDyAssessmentRules {
     record Values(String outcome, BigDecimal erc, BigDecimal erf, BigDecimal preview) {}
+    /** Declared totals from the start of crediting through the end of year y-1 (Q05.1, D14). Never the current reading. */
+    record Cumulative(BigDecimal erc, BigDecimal erf, BigDecimal preview) {}
     private OpenDyAssessmentRules() {}
 
     static Values values(String outcome, String erc, String erf, String calendarGate) {
@@ -29,6 +31,26 @@ final class OpenDyAssessmentRules {
         var preview = OpenGridCalculationMath.factor(
             new OpenGridCalculationMath.Discount(charging,fleet,absence));
         return new Values(outcome, charging, fleet, preview);
+    }
+
+    /**
+     * Cumulative totals are optional, come in pairs, need a resolved previous year and a non-inconclusive search,
+     * and include the annual window, so they can never be smaller than the annual totals.
+     */
+    static Cumulative cumulative(String erc,String erf,int projectYear,Values annual) {
+        if (erc==null && erf==null) return null;
+        if (erc==null || erf==null)
+            throw new IllegalArgumentException("Informe ERC e ERF acumulados juntos.");
+        if (projectYear<2 || annual==null || annual.erc()==null)
+            throw new IllegalArgumentException("Totais acumulados exigem ano 2 ou posterior e pesquisa não inconclusiva.");
+        var charging=decimal(erc);
+        var fleet=decimal(erf);
+        if (charging.compareTo(annual.erc())<0 || fleet.compareTo(annual.erf())<0)
+            throw new IllegalArgumentException("Totais acumulados incluem a janela anual e não podem ser menores que ela.");
+        if (charging.signum()==0 && fleet.signum()==0 && !"NO_FLEET_CREDITS_DECLARED".equals(annual.outcome()))
+            throw new IllegalArgumentException("Totais acumulados zerados só são coerentes com ausência declarada no ano anterior.");
+        var preview=OpenGridCalculationMath.factor(new OpenGridCalculationMath.Discount(charging,fleet,fleet.signum()==0));
+        return new Cumulative(charging,fleet,preview);
     }
 
     static BigDecimal decimal(String raw) {

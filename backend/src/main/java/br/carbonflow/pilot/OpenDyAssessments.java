@@ -26,7 +26,10 @@ class OpenDyAssessments {
     record Input(Integer projectYear, String outcome, String erc, String erf,
                  String programs, String projectReferences, String evidenceLocator, String coverageNote,
                  List<OpenDyIssuances.Input> issuances, List<OpenDySourceRights.Input> sourceLicenses,
-                 List<OpenDySearchCoverage.Row> searchCoverage,List<OpenDyAllocations.Input> allocations) {}
+                 List<OpenDySearchCoverage.Row> searchCoverage,List<OpenDyAllocations.Input> allocations,
+                 String cumulativeErc,String cumulativeErf) {}
+    /** Declared, unitemized, not admitted; the current reading stays the annual window (D14 Q05.1). */
+    record Cumulative(String state,String reading,String erc,String erf,String dyPreview) {}
     record ReviewInput(String assessmentSha256, String outcome, String ruleReference,
                        String evidenceReferences, String reason) {}
     record Review(UUID reviewerId, String outcome, String assessmentSha256, String ruleReference,
@@ -43,7 +46,7 @@ class OpenDyAssessments {
                 String sourceRightsState, List<OpenDySourceRights.Pin> sourceLicenses,
                 String coverageState, int coverageCount, List<OpenDySearchCoverage.Row> searchCoverage,
                 String allocationState,int allocationCount,List<OpenDyAllocations.Row> allocations,
-                OpenDyFirstYear.Context firstYearContext) {}
+                OpenDyFirstYear.Context firstYearContext,Cumulative cumulative) {}
     record Result(View view, boolean created) {}
     record History(String projectId, int projectYear, int latestVersion, OffsetDateTime priorStart,
                    OffsetDateTime priorEndExclusive, String calendarGate, List<View> assessments,
@@ -138,6 +141,7 @@ class OpenDyAssessments {
             List<OpenDySourceRights.Input> licenses;
             List<OpenDySearchCoverage.Row> coverage;
             List<OpenDyAllocations.Row> allocations;
+            OpenDyAssessmentRules.Cumulative cumulative;
             try {
                 programs=OpenDyAssessmentRules.text(input.programs(),3,1000);
                 refs=OpenDyAssessmentRules.text(input.projectReferences(),3,2000);
@@ -145,6 +149,7 @@ class OpenDyAssessments {
                 note=OpenDyAssessmentRules.text(input.coverageNote(),8,2000);
                 // Replay identity does not depend on the *current* calendar.
                 values=OpenDyAssessmentRules.values(input.outcome(),input.erc(),input.erf(),null);
+                cumulative=OpenDyAssessmentRules.cumulative(input.cumulativeErc(),input.cumulativeErf(),year,values);
                 issuances=OpenDyIssuances.normalize(input.issuances());
                 coverage=OpenDySearchCoverage.normalize(input.searchCoverage());
                 allocations=OpenDyAllocations.normalize(input.allocations(),issuances);
@@ -154,6 +159,9 @@ class OpenDyAssessments {
             String erf=OpenDyAssessmentRules.number(values.erf());
             String fingerprint=digest("OPEN-DY-COMMAND@1",project,year,expected,values.outcome(),
                 erc,erf,programs,refs,locator,note);
+            if (cumulative!=null)
+                fingerprint=digest("OPEN-DY-CUMULATIVE@1",fingerprint,
+                    OpenDyAssessmentRules.number(cumulative.erc()),OpenDyAssessmentRules.number(cumulative.erf()));
             if (!issuances.isEmpty()) {
                 // Canonical length-prefixed material; preserve replay of legacy requests.
                 var parts=new java.util.ArrayList<Object>();
@@ -244,6 +252,8 @@ class OpenDyAssessments {
                 for (var pin:pins) {parts.add(pin.sourceId());parts.add(pin.sourceEdition());parts.add(pin.licenseId());parts.add(pin.decisionVersion());}
                 hash=digest(parts.toArray());
             }
+            if (cumulative!=null) hash=digest("OPEN-DY-CUMULATIVE-ASSESSMENT@1",hash,
+                OpenDyAssessmentRules.number(cumulative.preview()));
             if (firstYear!=null) hash=digest("OPEN-DY-FIRST-YEAR@1",hash,firstYear.policyVersion(),
                 firstYear.creditStart(),firstYear.exploratoryFrom(),firstYear.exploratoryUntilExclusive(),firstYear.contextGate());
             update(c,"""
@@ -251,12 +261,13 @@ class OpenDyAssessments {
                 (id,project_id,organization_id,environment,project_year,version,triage_version,
                  prior_start,prior_end_exclusive,calendar_gate,outcome,erc,erf,dy_preview,
                  programs,project_references,evidence_locator,coverage_note,assessment_sha256,
-                 author_id,command_key,command_sha256)
-                VALUES (?,?,?,'SANDBOX',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                 author_id,command_key,command_sha256,cumulative_erc,cumulative_erf,cumulative_dy_preview)
+                VALUES (?,?,?,'SANDBOX',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 """,id,project,organization,year,expected+1,triage,calendar.from(),calendar.until(),
                 gate,values.outcome(),values.erc(),values.erf(),values.preview(),
                 programs,refs,locator,note,HexFormat.of().parseHex(hash),actor.id(),command,
-                HexFormat.of().parseHex(fingerprint));
+                HexFormat.of().parseHex(fingerprint),cumulative==null?null:cumulative.erc(),
+                cumulative==null?null:cumulative.erf(),cumulative==null?null:cumulative.preview());
             int ordinal=0;
             for (var row:issuances) {
                 update(c,"""
@@ -437,7 +448,18 @@ class OpenDyAssessments {
             items.isEmpty()?"UNITEMIZED":"DECLARED_TOTALS_RECONCILED",details?List.copyOf(items):List.of(),
             check.state(),staff?check.pins():List.of(),coverageState,coverage.size(),details?List.copyOf(coverage):List.of(),
             allocationState,allocations.size(),details?List.copyOf(allocations):List.of(),
-            row.year()==1?OpenDyFirstYear.read(c,row.id()):null);
+            row.year()==1?OpenDyFirstYear.read(c,row.id()):null,
+            cumulative(c,row.id(),numbers));
+    }
+
+    private static Cumulative cumulative(Connection c,UUID id,boolean numbers) throws SQLException {
+        return first(c,"""
+            SELECT cumulative_erc,cumulative_erf,cumulative_dy_preview FROM app_open_dy_assessment
+            WHERE id=? AND cumulative_erc IS NOT NULL
+            """,r->new Cumulative("CUMULATIVE_DECLARED_UNITEMIZED_NOT_ADMITTED","ANNUAL_PRIOR_YEAR",
+                numbers?OpenDyAssessmentRules.number(r.getBigDecimal(1)):null,
+                numbers?OpenDyAssessmentRules.number(r.getBigDecimal(2)):null,
+                numbers?OpenDyAssessmentRules.number(r.getBigDecimal(3)):null),id);
     }
 
     private static Calendar calendar(Connection c,String project,int year) throws SQLException {
