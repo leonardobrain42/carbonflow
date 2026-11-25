@@ -64,6 +64,13 @@ class OpenAdditionality {
             List.copyOf(criteria));
     }
 
+    /** Opinion state per criterion, for read models that propagate it. Same owner, no second rule. */
+    static Map<String, String> opinionStates(Connection c, String project) throws SQLException {
+        var states = new java.util.LinkedHashMap<String, String>();
+        for (String criterion : CRITERIA) states.put(criterion, review(c, project, criterion).state());
+        return Map.copyOf(states);
+    }
+
     /** Latest opinion of a criterion; it goes stale when the declaration it saw changes. */
     private static OpenAdditionalityOpinion.Review review(Connection c, String project, String criterion)
             throws SQLException {

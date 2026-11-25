@@ -27,6 +27,9 @@ Em toda resposta `concludesAdditionality`, `usableForE8` e `criteria[].concludes
 - Hoje a leitura `VIEW_OPEN_APPLICABILITY` só era possível ao dono: a atividade `APPLICABILITY` citada no código de permissões não existe na constraint de grants. Concedi leitura ao `REV` com `ADDITIONALITY`; a atividade inexistente permanece como estava.
 - Sem tela Angular: o frontend ainda não consome `review`.
 
+## Propagação para o diagnóstico
+`GET .../technical/requirements` consome o estado do parecer (lista positiva e excedente) e marca `RECHECK_REQUIRED` quando ele fica obsoleto. Ver [CF-UX-TECH-001-UX08](CF-UX-TECH-001-UX08-REQUIREMENT-PROJECTION.md). Nada admite rota nem E8.
+
 ## Persistência e testes
 Migração aditiva V100: `app_open_additionality_opinion` (PK projeto+critério+versão, imutável), `app_open_additionality_command` (idempotência, imutável) e a ação `REVIEW_OPEN_ADDITIONALITY` na lista auditada. O passo de recuperação histórica V79 do CI foi estendido à V100.
 Teste: `OpenAdditionalityReviewIntegrationTest` (permissões, independência, validação, ETag, idempotência, versões, obsolescência, imutabilidade, flags sempre falsos).
