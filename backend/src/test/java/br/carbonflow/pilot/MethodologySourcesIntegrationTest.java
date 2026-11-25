@@ -49,6 +49,13 @@ class MethodologySourcesIntegrationTest {
 
     @Test
     void sourcesBelongToOneRegisteredMethodologyAndNeverAdmitAnything() throws Exception {
+        // The deep links of the administration screens are served as the SPA (CI serves routes from this list).
+        for (String page : new String[]{"/workspace/platform/methodologies",
+                "/workspace/platform/methodologies/METHS/1.0/sources"}) {
+            var html = call("GET", page, null, null, null);
+            assertEquals(200, html.statusCode(), page);
+            assertTrue(html.headers().firstValue("Content-Type").orElse("").startsWith("text/html"), page);
+        }
         String manager = session(MANAGER), other = session(OTHER_STAFF);
         database.transaction(c -> update(c,
                 "INSERT INTO app_organization(id,environment,display_name) VALUES (?,'SANDBOX','Organização de teste') ON CONFLICT(id) DO NOTHING", ORG));
