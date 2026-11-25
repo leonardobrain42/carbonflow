@@ -1,4 +1,6 @@
 # Changelog da especificação viva
+## 0.3.0-rc.29 — 25/11/2026 (proposta)
+- Linha 3, consolidação anual: janelas calculadas do mesmo ano precisam usar a mesma frota, os mesmos ratings, o mesmo ciclo e o mesmo candidato de fator fóssil (`FLEET_REFERENCE_MISMATCH`, `FUEL_REFERENCE_MISMATCH`, `FLEET_FUEL_REFERENCE_MISSING`); membros trazem `canonical` e o manifesto os inclui. Política interna, a confirmar; sem migração, sem admissão, `usableForE8`/`canIssueVcu` falsos. Ainda sem E2E com memórias calculadas.
 ## 0.3.0-rc.27 — 25/11/2026 (proposta)
 - G05, restante sintético: o teste integrado de IR passa a cobrir validade temporal que não cobre um período posterior (`ANNUAL_EVIDENCE_RECHECK_REQUIRED`, execução bloqueada) e ano 1 com duas janelas (parecer inicial por período; a revisão da 2ª torna a 1ª não vigente, comportamento observado a decidir). G05 segue aberta só por falta de dados reais autorizados. Sem mudança de regra, contrato ou migração.
 ## 0.3.0-rc.26 — 25/11/2026 (proposta)

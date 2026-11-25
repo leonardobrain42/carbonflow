@@ -9,6 +9,9 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class OpenE8AnnualMathTest {
+    private static final OpenIrIntraYearReuse.Canonical CANONICAL = new OpenIrIntraYearReuse.Canonical(
+        UUID.fromString("00000000-0000-4000-8000-0000000000f1"), UUID.fromString("00000000-0000-4000-8000-0000000000f2"),
+        UUID.fromString("00000000-0000-4000-8000-0000000000f3"), "COMBINED");
     private static final Instant START = Instant.parse("2027-02-01T03:00:00Z");
     private static final Instant MID = Instant.parse("2027-08-01T03:00:00Z");
     private static final Instant END = Instant.parse("2028-02-01T03:00:00Z");
@@ -187,9 +190,58 @@ class OpenE8AnnualMathTest {
         assertTrue(has(annual(List.of(withIr(member("M1", START, END, "1", "0", "0", "1"), noState))), "IR_REFERENCE_MISSING"));
     }
 
+    @Test
+    void sameYearRequiresTheSameFleetRatingsCycleAndFuelInEveryCalculatedWindow() {
+        var mid = START.plusSeconds((END.getEpochSecond() - START.getEpochSecond()) / 2);
+        var first = member("M1", START, mid, "1", "0", "0", "1");
+        var second = member("M2", mid, END, "1", "0", "0", "1");
+        var same = annual(List.of(first, second));
+        assertEquals("REVIEWED_INTERNAL", same.state());
+        assertFalse(has(same, "FLEET_REFERENCE_MISMATCH") || has(same, "FUEL_REFERENCE_MISMATCH"));
+
+        var otherFleet = new OpenIrIntraYearReuse.Canonical(UUID.randomUUID(), CANONICAL.ratingSnapshot(),
+            CANONICAL.fuelCandidate(), CANONICAL.cycle());
+        var otherRating = new OpenIrIntraYearReuse.Canonical(CANONICAL.fleetSnapshot(), UUID.randomUUID(),
+            CANONICAL.fuelCandidate(), CANONICAL.cycle());
+        var otherCycle = new OpenIrIntraYearReuse.Canonical(CANONICAL.fleetSnapshot(), CANONICAL.ratingSnapshot(),
+            CANONICAL.fuelCandidate(), "URBAN");
+        for (var changed : List.of(otherFleet, otherRating, otherCycle)) {
+            var result = annual(List.of(first, withCanonical(second, changed)));
+            assertTrue(has(result, "FLEET_REFERENCE_MISMATCH"));
+            assertNull(result.totals());
+            assertEquals("BLOCKED", result.state());
+            assertFalse(result.usableForE8() || result.canIssueVcu());
+        }
+        var otherFuel = annual(List.of(first, withCanonical(second, new OpenIrIntraYearReuse.Canonical(
+            CANONICAL.fleetSnapshot(), CANONICAL.ratingSnapshot(), UUID.randomUUID(), CANONICAL.cycle()))));
+        assertTrue(has(otherFuel, "FUEL_REFERENCE_MISMATCH"));
+        assertFalse(has(otherFuel, "FLEET_REFERENCE_MISMATCH"));
+        assertNull(otherFuel.totals());
+        assertNotEquals(same.manifestSha256(), otherFuel.manifestSha256());
+    }
+
+    @Test
+    void aCalculatedWindowWithoutCanonicalReferencesBlocksTheAnnualTotal() {
+        var missing = annual(List.of(withCanonical(member("M1", START, END, "1", "0", "0", "1"), null)));
+        assertTrue(has(missing, "FLEET_FUEL_REFERENCE_MISSING"));
+        assertNull(missing.totals());
+        var incomplete = annual(List.of(withCanonical(member("M1", START, END, "1", "0", "0", "1"),
+            new OpenIrIntraYearReuse.Canonical(UUID.randomUUID(), null, UUID.randomUUID(), "COMBINED"))));
+        assertTrue(has(incomplete, "FLEET_FUEL_REFERENCE_MISSING"));
+        // A window that is not calculated is not compared: only the missing run is reported.
+        var notCalculated = annual(List.of(new OpenE8AnnualMath.Member("M1", null, 0, null, START, END, null,
+            "MISSING", false, null, null)));
+        assertFalse(has(notCalculated, "FLEET_FUEL_REFERENCE_MISSING"));
+    }
+
     private static OpenE8AnnualMath.Member withIr(OpenE8AnnualMath.Member m, OpenE8AnnualMath.IrReference ir) {
         return new OpenE8AnnualMath.Member(m.period(), m.runId(), m.version(), m.inputSha256(), m.windowStart(),
-            m.windowEndExclusive(), m.projectYear(), m.state(), m.stale(), m.totals(), ir);
+            m.windowEndExclusive(), m.projectYear(), m.state(), m.stale(), m.totals(), ir, m.canonical());
+    }
+
+    private static OpenE8AnnualMath.Member withCanonical(OpenE8AnnualMath.Member m, OpenIrIntraYearReuse.Canonical canonical) {
+        return new OpenE8AnnualMath.Member(m.period(), m.runId(), m.version(), m.inputSha256(), m.windowStart(),
+            m.windowEndExclusive(), m.projectYear(), m.state(), m.stale(), m.totals(), m.ir(), canonical);
     }
 
     private static OpenE8AnnualMath.Result annual(List<OpenE8AnnualMath.Member> members) {
@@ -200,7 +252,7 @@ class OpenE8AnnualMathTest {
                                                  String be, String pe, String le, String er) {
         return new OpenE8AnnualMath.Member(period, UUID.randomUUID(), 1, "hash-" + period,
             start, end, 1, "REVIEWED_INTERNAL", false,
-            new OpenE8AnnualMath.Totals(be, pe, le, er, "0.00"), IR);
+            new OpenE8AnnualMath.Totals(be, pe, le, er, "0.00"), IR, CANONICAL);
     }
 
     private static boolean has(OpenE8AnnualMath.Result result, String code) {
