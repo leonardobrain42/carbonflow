@@ -167,7 +167,7 @@
     "locator": "¶65–69, Eq. (13)/(14)"
    },
    "platformState": "CANNOT_DETERMINE",
-   "evidence": "Série importada com a mesma designação do MCTI (Análise de Despacho).",
+   "evidence": "Série importada com a mesma designação do MCTI (Análise de Despacho). Hipótese de trabalho (V115, decisão do responsável do produto em 26/11/2026): DISPATCH_TOP, rotulada como declarada por pessoas e com porta SERIES_DEFINITION_HYPOTHESIS_*_NOT_CONFIRMED; SYSTEM_AVERAGE disponível.",
    "gap": "O título da tabela do arquivo é 'Fator de Emissão Médio (tCO2/MWh) - HORÁRIO'. O arquivo não informa se o valor horário é o do topo do despacho (¶69) ou uma média do sistema (¶70, Average OM). É a pergunta central de elegibilidade.",
    "blocks": "admissão da série",
    "toResolve": "Obter a nota metodológica do MCTI ou os dados primários do ONS (ordem de mérito e despacho horário) e comparar a definição."

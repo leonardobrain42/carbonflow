@@ -595,6 +595,13 @@ public final class OpenE8TestFixture {
      * fleet/rating hand-off in state PREPARATORY_NOT_ADMITTED. The rating catalogue is seeded once per source year.
      */
     Prepared preparePeriod(Scenario s,String code,int year,int month) throws Exception {
+        return preparePeriod(s,code,year,month,null);
+    }
+
+    /** Supplies the id of the hourly EFel candidate of a period (already created and reviewed); null keeps the synthetic one. */
+    interface EfelSupplier { String supply(Scenario s,String dossierUrl,String code,String energy) throws Exception; }
+
+    Prepared preparePeriod(Scenario s,String code,int year,int month,EfelSupplier supplier) throws Exception {
         String day=String.format("%04d-%02d-01T",year,month);
         String from=day+"00:00:00Z",middle=day+"01:00:00Z",until=day+"02:00:00Z";
         String data="meterCode,sequence,kind,start,endExclusive,zone,quantity,unit\n"
@@ -634,19 +641,23 @@ public final class OpenE8TestFixture {
             "{\"dossierVersion\":1,\"methodReviewVersion\":1}");
         assertEquals(201,energyCreated.statusCode(),energyCreated.body());
         String energy=json(energyCreated).path("id").asText();
-        var efelPayload=mapper.readTree(efelFixture(energy,from,"0.5"));
-        ((com.fasterxml.jackson.databind.node.ArrayNode)efelPayload.path("hours"))
-            .add(mapper.createObjectNode().put("hour",middle).put("value",0.4));
-        String efelUrl=dossierUrl+"/"+code+"/efel-candidates";
-        var efelCreated=postMethod(efelUrl,s.owner().cookie(),key(),"\"0\"",mapper.writeValueAsString(efelPayload));
-        assertEquals(201,efelCreated.statusCode(),efelCreated.body());
-        String efel=json(efelCreated).path("id").asText();
-        var efelReviewed=postMethod(efelUrl+"/"+efel+"/reviews",s.docsReviewer().cookie(),key(),"\"0\"","""
-            {"outcome":"CHECKED_INTERNAL",
-             "rationale":"Origem e coerência conferidas apenas internamente, sem aprovação normativa.",
-             "evidenceReference":"Dossiê documental interno, versão de fonte declarada."}
-            """);
-        assertEquals(200,efelReviewed.statusCode(),efelReviewed.body());
+        String efel;
+        if(supplier!=null) efel=supplier.supply(s,dossierUrl,code,energy);
+        else {
+            var efelPayload=mapper.readTree(efelFixture(energy,from,"0.5"));
+            ((com.fasterxml.jackson.databind.node.ArrayNode)efelPayload.path("hours"))
+                .add(mapper.createObjectNode().put("hour",middle).put("value",0.4));
+            String efelUrl=dossierUrl+"/"+code+"/efel-candidates";
+            var efelCreated=postMethod(efelUrl,s.owner().cookie(),key(),"\"0\"",mapper.writeValueAsString(efelPayload));
+            assertEquals(201,efelCreated.statusCode(),efelCreated.body());
+            efel=json(efelCreated).path("id").asText();
+            var efelReviewed=postMethod(efelUrl+"/"+efel+"/reviews",s.docsReviewer().cookie(),key(),"\"0\"","""
+                {"outcome":"CHECKED_INTERNAL",
+                 "rationale":"Origem e coerência conferidas apenas internamente, sem aprovação normativa.",
+                 "evidenceReference":"Dossiê documental interno, versão de fonte declarada."}
+                """);
+            assertEquals(200,efelReviewed.statusCode(),efelReviewed.body());
+        }
         var binding=postMethod(dossierUrl+"/"+code+"/e8-input-bindings",s.owner().cookie(),key(),"\"0\"",
             "{\"energyCandidateId\":\""+energy+"\",\"efelCandidateId\":\""+efel+"\"}");
         assertEquals(201,binding.statusCode(),binding.body());

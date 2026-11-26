@@ -28,10 +28,10 @@ import java.util.UUID;
 @ApplicationScoped
 class OpenGridSeriesBindings {
     static final String RULE = "CF-OPEN-007";
-    record Input(UUID energyCandidateId, UUID gridSeriesId, String boundary) {}
+    record Input(UUID energyCandidateId, UUID gridSeriesId, String boundary, String definitionHypothesis) {}
     record Binding(UUID id, UUID candidateId, UUID gridSeriesId, String boundary, String sourceGas, String gwpCo2,
                    String conversion, int coveredHours, String seriesContentSha256, String timezone,
-                   String hourConvention, String timeBasis, UUID licenseId, String licenseBasis, OffsetDateTime createdAt) {}
+                   String hourConvention, String timeBasis, String definitionHypothesis, UUID licenseId, String licenseBasis, OffsetDateTime createdAt) {}
     record Result(OpenEfelCandidates.View candidate, Binding binding, List<String> gates, String admission) {}
 
     private final DynamicProjectScope scope;
@@ -47,6 +47,9 @@ class OpenGridSeriesBindings {
             if (!ctx.owner() && !"PREP".equals(ctx.role())) throw new PilotProblem(404, "RECURSO_NAO_VISIVEL", "project", RULE, "Recurso não disponível.");
             if (input == null || input.energyCandidateId() == null || input.gridSeriesId() == null || input.boundary() == null)
                 throw bad("input", "Informe o pacote de energia, a série nacional e a fronteira de gases.");
+            String hypothesis = input.definitionHypothesis() == null ? "DISPATCH_TOP" : input.definitionHypothesis();
+            if (!java.util.Set.of("DISPATCH_TOP", "SYSTEM_AVERAGE").contains(hypothesis))
+                throw bad("definitionHypothesis", "Use DISPATCH_TOP (topo do despacho) ou SYSTEM_AVERAGE (média do sistema).");
             var boundary = FuelBoundaries.preset(input.boundary());
             if (boundary == null) throw bad("boundary", "Fronteira desconhecida.");
             if (!boundary.projectGases().equals(List.of("CO2")))
@@ -93,7 +96,8 @@ class OpenGridSeriesBindings {
             String note = "Derivado da série nacional " + series[0] + " (conteúdo " + ((String) series[4]).substring(0, 12) + "…), "
                     + hours.size() + " hora(s) do pacote de energia. Fronteira CO2_ONLY (VM0038 v1.1, seção 6, Tabela 1): fator de CO2 "
                     + "convertido em CO2e com GWP(CO2)=1 aplicado de forma explícita. Fuso " + series[6] + " e convenção " + series[7]
-                    + " declarados por pessoas (sem definição oficial encontrada). Data de publicação da planilha desconhecida: usada a data de importação.";
+                    + " declarados por pessoas (sem definição oficial encontrada). Hipótese de trabalho sobre o valor horário: " + hypothesis
+                    + " (declarada por pessoas; matriz R11 em aberto até resposta do MCTI/ONS). Data de publicação da planilha desconhecida: usada a data de importação.";
             var candidateInput = new OpenEfelCandidates.Input(input.energyCandidateId(), (String) series[12], (String) series[13],
                     (String) series[14], ((String) series[2]).length() >= 2 ? (String) series[2] : "ed-" + series[2],
                     "Margem de Operação por Análise de Despacho do MCTI, série horária de CO2, vinculada sob CO2_ONLY (GWP do CO2 = 1); elegibilidade VT0011/TOOL07 não avaliada",
@@ -105,12 +109,12 @@ class OpenGridSeriesBindings {
             UUID id = UUID.randomUUID();
             update(c, """
                     INSERT INTO app_open_efel_series_binding(id,project_id,candidate_id,grid_series_id,boundary,source_gas,gwp_co2,conversion,
-                        covered_hours,series_content_sha256,timezone,hour_convention,time_basis,license_id,license_basis,created_by)
-                    VALUES (?,?,?,?,'CO2_ONLY','CO2',1,?,?,?,?,?,'DECLARED_BY_PEOPLE',?,?,?)
+                        covered_hours,series_content_sha256,timezone,hour_convention,time_basis,definition_hypothesis,license_id,license_basis,created_by)
+                    VALUES (?,?,?,?,'CO2_ONLY','CO2',1,?,?,?,?,?,'DECLARED_BY_PEOPLE',?,?,?,?)
                     ON CONFLICT (project_id,candidate_id) DO NOTHING
                     """, id, project, candidate.id(), input.gridSeriesId(),
                     "EF_CO2e = EF_CO2 x GWP(CO2), GWP(CO2) = 1; unidade " + series[5] + " -> " + unit, hours.size(), series[4],
-                    series[6], series[7], series[9], basis, ctx.actor().id());
+                    series[6], series[7], hypothesis, series[9], basis, ctx.actor().id());
             return result(c, project, candidate);
         });
     }
@@ -126,15 +130,16 @@ class OpenGridSeriesBindings {
     private static Result result(Connection c, String project, OpenEfelCandidates.View candidate) throws SQLException {
         var binding = first(c, """
                 SELECT id,candidate_id,grid_series_id,boundary,source_gas,gwp_co2::text,conversion,covered_hours,series_content_sha256,
-                       timezone,hour_convention,time_basis,license_id,license_basis,created_at
+                       timezone,hour_convention,time_basis,definition_hypothesis,license_id,license_basis,created_at
                 FROM app_open_efel_series_binding WHERE project_id=? AND candidate_id=?
                 """, r -> new Binding(r.getObject(1, UUID.class), r.getObject(2, UUID.class), r.getObject(3, UUID.class), r.getString(4),
                 r.getString(5), new BigDecimal(r.getString(6)).stripTrailingZeros().toPlainString(), r.getString(7), r.getInt(8), r.getString(9),
-                r.getString(10), r.getString(11), r.getString(12), r.getObject(13, UUID.class), r.getString(14), r.getObject(15, OffsetDateTime.class)),
+                r.getString(10), r.getString(11), r.getString(12), r.getString(13), r.getObject(14, UUID.class), r.getString(15), r.getObject(16, OffsetDateTime.class)),
                 project, candidate.id());
         var gates = new ArrayList<String>();
         if (binding != null) {
             gates.add("TIME_BASIS_DECLARED_BY_PEOPLE");
+            gates.add("SERIES_DEFINITION_HYPOTHESIS_" + binding.definitionHypothesis() + "_NOT_CONFIRMED");
             if (binding.licenseBasis().equals("OWNER_INTERNAL")) gates.add("LICENSE_NOT_INDEPENDENTLY_APPROVED");
         }
         gates.add("VT0011_TOOL07_ELIGIBILITY_NOT_EVALUATED");
