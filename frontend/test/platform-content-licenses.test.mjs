@@ -134,3 +134,51 @@ test('CF-DATA-001: dupla custódia explicada e identidade sem privilégio não v
     await browser.close();
   }
 });
+
+test('D19 estendida: licença pública declarada pelo responsável não aparece como aprovada', async () => {
+  const browser = await chromium.launch({executablePath});
+  try {
+    const page = await browser.newPage({viewport:{width:1280,height:900}});
+    const state = await setup(page);
+    const posts = [];
+    await page.route('**/v1/platform/source-licenses/public', async route => {
+      const body = route.request().postDataJSON();
+      posts.push(body);
+      if (body.operations.some(o => o.operation === 'EXPORT_DERIVATIVES'))
+        return route.fulfill({status:422,json:{code:'OPERACAO_FORA_DA_LICENCA',message:'x'}});
+      state.items = [{id:'22222222-2222-4222-8222-222222222222',sourceId:body.sourceId,edition:body.edition,purpose:body.purpose,
+        authorizationRef:'Licença pública CC-BY-ND-3.0',proofSha256:body.evidenceSha256,startsAt:body.startsAt,endsAt:null,
+        submittedBy:'x',decisionVersion:1,state:'DECLARED_INTERNAL',decidedBy:'x',decidedAt:null,reason:body.reason,
+        operations:body.operations.map(o => o.operation),limits:'l',kind:'PUBLIC_LICENSE',licenseIdentifier:'CC-BY-ND-3.0',
+        startsAtBasis:body.startsAtBasis,decisionBasis:'OWNER_INTERNAL'}];
+      return route.fulfill({status:201,json:state.items[0]});
+    });
+    await unlock(page);
+    await page.getByLabel('Código da fonte licenciada').fill('MCTI-SIN-DESPACHO');
+    await page.getByLabel('Versão publicada da fonte').fill('2026-janout-7f8e2292');
+    await page.getByLabel('Endereço da página com o aviso de licença (https)').fill('https://www.gov.br/mcti/pagina');
+    await page.getByLabel('Data e hora da captura', {exact:false}).fill('2026-11-25T20:44:00Z');
+    await page.getByLabel('SHA-256 da captura (64 caracteres)').fill('ab'.repeat(32));
+    await page.getByLabel('SHA-256 do texto jurídico da licença (64 caracteres)').fill('cd'.repeat(32));
+    await page.getByLabel('Vigência a partir de (ISO-8601)').fill('2026-11-25T20:44:00Z');
+    await page.getByLabel('Justificativa da declaração (mín. 10 caracteres)').fill('Rodapé do site declara a licença pública.');
+    await page.getByRole('checkbox',{name:'Guardar a cópia original'}).check();
+    await page.getByLabel('Fundamento de Guardar a cópia original', {exact:true}).fill('Cláusula 3: reproduzir a obra.');
+    await page.getByRole('checkbox',{name:'Redistribuir derivados'}).check();
+    await page.getByLabel('Fundamento de Redistribuir derivados', {exact:true}).fill('Tentativa de exportar derivados.');
+    await page.getByRole('button',{name:'Declarar licença pública'}).click();
+    await page.getByText('A licença não cobre uma das operações marcadas.').waitFor();
+    await page.getByRole('checkbox',{name:'Redistribuir derivados'}).uncheck();
+    await page.getByRole('button',{name:'Declarar licença pública'}).click();
+    await page.getByText('Ela ainda precisa de aprovação independente').waitFor();
+    assert.equal(posts.at(-1).purpose, 'AUTHORIZED_PROCESSING');
+    assert.equal(posts.at(-1).startsAtBasis, 'CAPTURE_DATE');
+    assert.equal(posts.at(-1).endsAt, null);
+    await page.getByText('Declarada internamente pelo responsável (sem aprovação independente)').waitFor();
+    assert.equal(await page.getByText('Aprovada', {exact:true}).count(), 0);
+    // Independent approval remains available (the server refuses the same person).
+    await page.getByRole('button',{name:'Decidir licença de MCTI-SIN-DESPACHO 2026-janout-7f8e2292'}).waitFor();
+  } finally {
+    await browser.close();
+  }
+});

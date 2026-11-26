@@ -89,6 +89,49 @@
           </form>
         </section>
 
+        <section class="cf-workspace-card cf-platform-source-form-card" aria-labelledby="cf-public-title">
+          <h2 id="cf-public-title">Declarar licença pública (responsável pelo produto)</h2>
+          <p class="cf-platform-meta">Para fontes publicadas sob licença pública (por exemplo, CC BY-ND 3.0). A declaração interna <strong>não é aprovação independente</strong>: fica registrada com o fundamento de cada operação e só vale como aprovada depois da decisão de outra pessoa. Sem prazo fixo: a vigência começa na data da captura da evidência, salvo disponibilização anterior comprovada.</p>
+          <form (submit)="declarePublic($event)" class="cf-platform-source-form">
+            <label for="cf-pub-source">Código da fonte licenciada</label>
+            <input id="cf-pub-source" type="text" required maxlength="120" [value]="publicForm()['sourceId']" (input)="editPublic('sourceId', $event)"/>
+            <label for="cf-pub-edition">Versão publicada da fonte</label>
+            <input id="cf-pub-edition" type="text" required maxlength="60" [value]="publicForm()['edition']" (input)="editPublic('edition', $event)"/>
+            <label for="cf-pub-uri">Endereço da página com o aviso de licença (https)</label>
+            <input id="cf-pub-uri" type="text" required maxlength="500" [value]="publicForm()['evidenceUri']" (input)="editPublic('evidenceUri', $event)"/>
+            <label for="cf-pub-captured">Data e hora da captura (ISO-8601, por exemplo 2026-11-25T20:44:00Z)</label>
+            <input id="cf-pub-captured" type="text" required [value]="publicForm()['evidenceCapturedAt']" (input)="editPublic('evidenceCapturedAt', $event)"/>
+            <label for="cf-pub-evidence">SHA-256 da captura (64 caracteres)</label>
+            <input id="cf-pub-evidence" type="text" required maxlength="64" pattern="[0-9a-fA-F]{64}" [value]="publicForm()['evidenceSha256']" (input)="editPublic('evidenceSha256', $event)"/>
+            <label for="cf-pub-legal">SHA-256 do texto jurídico da licença (64 caracteres)</label>
+            <input id="cf-pub-legal" type="text" required maxlength="64" pattern="[0-9a-fA-F]{64}" [value]="publicForm()['legalTextSha256']" (input)="editPublic('legalTextSha256', $event)"/>
+            <label for="cf-pub-basis">Critério de partida da vigência</label>
+            <select id="cf-pub-basis" (change)="editPublic('startsAtBasis', $event)">
+              <option value="CAPTURE_DATE">Data da captura</option>
+              <option value="PROVEN_AVAILABILITY">Disponibilização anterior comprovada</option>
+            </select>
+            <label for="cf-pub-starts">Vigência a partir de (ISO-8601)</label>
+            <input id="cf-pub-starts" type="text" required [value]="publicForm()['startsAt']" (input)="editPublic('startsAt', $event)"/>
+            <fieldset>
+              <legend>Operações e fundamento de cada uma</legend>
+              @for (key of publicOpKeys; track key) {
+                <label><input type="checkbox" [checked]="publicOps()[key].on" (change)="editPublicOp(key, 'on', $event)"/> {{ publicOpLabel(key) }}</label>
+                @if (publicOps()[key].on) {
+                  <select [attr.aria-label]="'Natureza do fundamento de ' + publicOpLabel(key)" (change)="editPublicOp(key, 'kind', $event)">
+                    <option value="LICENSE_GRANT" [selected]="publicOps()[key].kind === 'LICENSE_GRANT'">Cláusula da licença</option>
+                    <option value="LEGAL_INTERPRETATION" [selected]="publicOps()[key].kind === 'LEGAL_INTERPRETATION'">Interpretação jurídica</option>
+                  </select>
+                  <input type="text" minlength="20" maxlength="2000" [attr.aria-label]="'Fundamento de ' + publicOpLabel(key)"
+                    [value]="publicOps()[key].grounds" (input)="editPublicOp(key, 'grounds', $event)"/>
+                }
+              }
+            </fieldset>
+            <label for="cf-pub-reason">Justificativa da declaração (mín. 10 caracteres)</label>
+            <input id="cf-pub-reason" type="text" required minlength="10" maxlength="1000" [value]="publicForm()['reason']" (input)="editPublic('reason', $event)"/>
+            <button type="submit" class="cf-workspace-primary" [disabled]="saving()">Declarar licença pública</button>
+          </form>
+        </section>
+
         <section aria-labelledby="cf-licenses-list-title">
           <div class="cf-platform-heading-line">
             <h2 id="cf-licenses-list-title">Autorizações registradas</h2>
@@ -101,7 +144,7 @@
             @for (item of items(); track item.id) {
               <li>
                 <h3>{{ item.sourceId }} · edição {{ item.edition }}</h3>
-                <p><strong>{{ stateLabel(item) }}</strong> · {{ purposeLabel(item) }}</p>
+                <p><strong>{{ stateLabel(item) }}</strong> · {{ purposeLabel(item) }}@if (item.kind === 'PUBLIC_LICENSE') { · licença pública {{ item.licenseIdentifier }} }@if (basisLabel(item)) { · {{ basisLabel(item) }} }</p>
                 <p class="cf-platform-meta">{{ item.authorizationRef }} · comprovante {{ shortHash(item) }} (declarado, não verificado)</p>
                 <p class="cf-platform-meta">Vigência: {{ item.startsAt }} até {{ item.endsAt ?? 'sem data final' }}</p>
                 @if (item.reason) { <p class="cf-platform-meta">Motivo da última decisão: {{ item.reason }}</p> }
@@ -135,7 +178,7 @@
                     }
                     <button type="button" class="cf-workspace-outline" (click)="cancel()">Cancelar</button>
                   </form>
-                } @else if (item.state === 'PENDING') {
+                } @else if (item.state === 'PENDING' || item.state === 'DECLARED_INTERNAL') {
                   <button type="button" class="cf-workspace-outline" (click)="act(item, 'DECIDE')"
                     [attr.aria-label]="'Decidir licença de ' + item.sourceId + ' ' + item.edition">Decidir</button>
                 } @else if (item.state === 'APPROVED') {
