@@ -22,7 +22,7 @@ Regras: a base é gravada na decisão e exibida; `OWNER_INTERNAL` **nunca** sati
 |---|---|---|---|
 | 1 | **Entregue (rc.68):** estados de decisão interna (base `OWNER_INTERNAL`) na fila de candidatos; tela | Nenhum | Nenhum para ensaio; a base fica visível |
 | 2 | Tela de cadastro e gestão dos modelos canônicos (lista, cadastro, alias, classificação, pendente) | Nenhum | Admissão do modelo no recorte inicial exige classe LDV, propulsão BEV e evidência; `UNKNOWN` fica pendente |
-| 3 | Pipeline de classificação e conciliação Senatran/RENAVAM, PBEV e fabricantes, com evidência por modelo, variante e alias | Nenhum | Dado real: licença e arquivo oficial (Senatran/PBEV), denominador nacional (G03) |
+| 3 | **Entregue (rc.70, ferramenta offline):** pipeline de classificação e conciliação Senatran/RENAVAM, PBEV e fabricantes, com evidência por modelo, variante e alias | Nenhum | Dado real: licença e arquivo oficial (Senatran/PBEV), denominador nacional (G03) |
 | 4 | Importador das planilhas horárias do MCTI (original preservado, localizadores, normalização parametrizada, testes sintéticos) | Nenhum | **Fuso e convenção das horas** (parâmetro obrigatório sem padrão), **licença/uso** (CC BY-ND; "exclusivamente MDL"), CO₂ × CO₂e, elegibilidade VT0011/TOOL07 |
 | 5 | Catálogo extensível de combustíveis brasileiros (gases, unidades, composição, vigência, vintage, evidência, revisão) | Pesquisa de fontes oficiais confrontadas com a metodologia | Cada fator exige fonte e fundamento; sem valor inventado |
 | 6 | Dy: pesquisas de créditos concorrentes, cobertura anual e acumulada, importação de evidências, conciliação das emissões | Nenhum (D14 vigente) | Universo de programas e termos dos registros; confirmação anual × acumulada |
