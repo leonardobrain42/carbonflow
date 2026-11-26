@@ -34,22 +34,39 @@ class SeedTest(unittest.TestCase):
             if e.get("parameter") == "EMISSION_FACTOR":
                 self.assertRegex(e["unit"], UNIT)
 
-    def test_derived_and_secondary_values_are_not_marked_primary(self):
-        for e in SEED["entries"]:
-            if e["evidenceSource"].startswith("AEA"):
-                self.assertEqual(e["readState"], "SECONDARY")
+    def test_derived_entries_are_labelled_and_the_ipcc_comparison_uses_the_same_unit(self):
+        derived = [e for e in SEED["entries"] if e["evidenceLocator"].startswith("DERIVADO")]
+        self.assertEqual(len(derived), 2)  # gasolina C E32 and E30
+        compared = [e for e in SEED["entries"] if "ipccValue" in e]
+        self.assertEqual(len(compared), 1)
+        self.assertEqual((compared[0]["fuelId"], compared[0]["unit"], compared[0]["ipccUnit"]), ("GASOLINE_A", "gCO2/kg", "gCO2/kg"))
+        self.assertEqual(Decimal(compared[0]["ipccValue"]), Decimal("69300") * Decimal("44.3") / 1000)
+        self.assertIn("sem refinamento em 2019", compared[0]["ipccReference"])
+
+    def test_epe_license_is_recorded_with_its_scope_and_evidence(self):
+        lic = SEED["documents"]["EPE"]["license"]
+        self.assertIn("CC BY 4.0", lic["notice"])
+        self.assertIn("não verificadas", lic["scope"])
+        self.assertRegex(lic["evidenceSha256"], r"^[0-9a-f]{64}$")
+
+    def test_sources_are_primary_documents_that_were_read(self):
+        self.assertEqual({e["readState"] for e in SEED["entries"]}, {"PRIMARY_READ"})
+        self.assertTrue(all("AEA" not in e["evidenceSource"] for e in SEED["entries"]))
+
+    def test_e30_and_e32_windows_do_not_overlap_and_each_sums_to_one(self):
+        comps = [e for e in SEED["entries"] if e["kind"] == "COMPOSITION"]
+        windows = {(c["validFrom"], c["validTo"]) for c in comps}
+        self.assertEqual(windows, {("2025-08-01", "2026-07-31"), ("2026-08-01", "2027-01-27")})
+        for w, share in ((("2025-08-01", "2026-07-31"), "0.30"), (("2026-08-01", "2027-01-27"), "0.32")):
+            self.assertEqual(sum(Decimal(c["nominal"]) for c in comps if (c["validFrom"], c["validTo"]) == w and c.get("nominal")), Decimal(share))
+        e30 = next(e for e in SEED["entries"] if e["fuelId"] == "GASOLINE_C" and e.get("parameter") == "EMISSION_FACTOR" and e["validFrom"] == "2025-08-01")
+        self.assertEqual(Decimal(e30["value"]), Decimal("0.70") * Decimal("0.742") * Decimal("2981.1"))
 
     def test_biogenic_co2_is_registered_but_apart_from_the_fossil_factor(self):
         gases = {(e["fuelId"], e.get("gas")) for e in SEED["entries"] if e.get("parameter") == "EMISSION_FACTOR"}
         self.assertIn(("ETHANOL_ANHYDROUS", "CO2_BIOGENIC"), gases)
         self.assertIn(("ETHANOL_ANHYDROUS", "CO2_FOSSIL"), gases)
         self.assertNotIn(("GASOLINE_C", "CO2_UNSPECIFIED"), gases)
-
-    def test_composition_window_follows_the_cnpe_act(self):
-        comps = [e for e in SEED["entries"] if e["kind"] == "COMPOSITION"]
-        self.assertEqual({c["validFrom"] for c in comps}, {"2026-08-01"})
-        self.assertEqual({c["validTo"] for c in comps}, {"2027-01-27"})
-        self.assertEqual(sum(Decimal(c["nominal"]) for c in comps if c.get("nominal")), Decimal("0.32"))
 
 
 if __name__ == "__main__":

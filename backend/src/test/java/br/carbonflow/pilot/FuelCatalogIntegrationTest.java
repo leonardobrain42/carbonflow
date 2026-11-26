@@ -220,6 +220,11 @@ class FuelCatalogIntegrationTest {
                 if (body.get(name).isNull()) body.remove(name);
             var created = json.readTree(ok(call("POST", API + "/entries", manager, json.writeValueAsString(body))).body());
             assertEquals("NOT_ADMITTED", created.path("admission").asText());
+            if (item.has("ipccValue")) { // 2981.1 vs 3069.99 gCO2/kg: -2.8951...%, same unit, never a validation
+                assertEquals("COMPARED_SAME_UNIT", created.path("qaqc").path("state").asText());
+                assertTrue(new java.math.BigDecimal(created.path("qaqc").path("relativeDeviation").asText()).doubleValue() < -0.028
+                        && new java.math.BigDecimal(created.path("qaqc").path("relativeDeviation").asText()).doubleValue() > -0.030, created.toString());
+            }
             ids.add(created.path("id").asText());
         }
         var before = json.readTree(ok(call("GET", API + "/boundary-resolution?fuelId=GASOLINE_C&scope=TTW&boundary=CO2_ONLY&date=2026-09-01", manager, null)).body());
@@ -232,8 +237,13 @@ class FuelCatalogIntegrationTest {
         var expected = new java.math.BigDecimal("1504.143816").multiply(new java.math.BigDecimal("3.785411784")).divide(new java.math.BigDecimal("1000000"));
         assertEquals(0, expected.compareTo(new java.math.BigDecimal(after.path("requirements").get(0).path("methodValue").asText())), after.toString());
         assertEquals("tCO2/USgal", after.path("requirements").get(0).path("methodUnit").asText());
-        // Before the CNPE act enters into force the blend factor does not exist: nothing is presumed.
-        var early = json.readTree(ok(call("GET", API + "/boundary-resolution?fuelId=GASOLINE_C&scope=TTW&boundary=CO2_ONLY&date=2026-07-01", manager, null)).body());
+        // The E30 window (CNPE 9/2025) resolves its own factor, 1548.38334 gCO2/L, and does not borrow the E32 one.
+        var e30 = json.readTree(ok(call("GET", API + "/boundary-resolution?fuelId=GASOLINE_C&scope=TTW&boundary=CO2_ONLY&date=2026-01-15", manager, null)).body());
+        assertEquals("RESOLVED_CANDIDATE", e30.path("state").asText(), e30.toString());
+        assertEquals(0, new java.math.BigDecimal("1548.38334").multiply(new java.math.BigDecimal("3.785411784")).divide(new java.math.BigDecimal("1000000"))
+                .compareTo(new java.math.BigDecimal(e30.path("requirements").get(0).path("methodValue").asText())), e30.toString());
+        // Before E30 (CNPE 9/2025) there is no blend factor either: nothing is presumed.
+        var early = json.readTree(ok(call("GET", API + "/boundary-resolution?fuelId=GASOLINE_C&scope=TTW&boundary=CO2_ONLY&date=2025-07-01", manager, null)).body());
         assertEquals("UNRESOLVED", early.path("state").asText());
         // The 3-gas boundary stays unresolved: no CH4/N2O datum for gasolina C and no aggregate.
         var threeGas = json.readTree(ok(call("GET", API + "/boundary-resolution?fuelId=GASOLINE_C&scope=TTW&boundary=CO2_CH4_N2O&date=2026-09-01", manager, null)).body());

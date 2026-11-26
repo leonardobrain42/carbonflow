@@ -4,16 +4,28 @@
  "retrievedOn": "2026-11-26",
  "notice": "Nada aqui está revisado nem admitido; o valor de GASOLINE_C é derivado (ver locator). Revisão e admissão são atos humanos à parte.",
  "documents": {
-  "AEA": {
-   "title": "AEA, Nota Técnica: intensidade de carbono dos energéticos para veículos pesados (relatório MDIC, v15.12.25); reproduz EPE NT/DPG/SDB/2025/03 e a RenovaCalc",
-   "url": "https://www.gov.br/mdic/pt-br/assuntos/sdic/setor-automotivo/Relatorio_Intensidade_de_carbono_AEA_2025_v15.12.25.pdf",
-   "sha256": "1ce894f7f6566bd445ee10ff55e005bf5133e1b167e0df61781881c096f0e462",
-   "readState": "SECONDARY"
+  "EPE": {
+   "title": "EPE, Nota Técnica EPE/DPG/SDB/2025/03: intensidade de carbono das fontes de energia do transporte rodoviário (tabelas A 2 e 2 reproduzem ANP 2018/2024, EPE 2025a e RenovaCalc)",
+   "url": "https://www.epe.gov.br/sites-pt/publicacoes-dados-abertos/publicacoes/PublicacoesArquivos/publicacao-708/topico-770/NT-EPE-DPG-SDB-2025-03_Intensidade_de_Carbono_Transporte_Rodovi%C3%A1rio.pdf",
+   "sha256": "e51133b4dd5b288923f2f1a6f6784718d6646ea7fa89aa7648182ebb2bc9455d",
+   "readState": "PRIMARY_READ",
+   "license": {
+    "notice": "CC BY 4.0 (Atribuição 4.0 Internacional)",
+    "scope": "aviso do portal da EPE, rodapé da página da própria publicação; condições específicas do PDF não verificadas",
+    "evidence": "captura de tela de 26/11/2026 fornecida pelo responsável",
+    "evidenceSha256": "2c849e781ec7de3bcd1550aefe232d6189bb05322ce78800c5a8b217e2f683d0"
+   }
   },
   "ANP": {
    "title": "ANP, Fatores de conversão, densidades e poderes caloríficos inferiores, valores médios de 2025 (fonte: EPE/Balanço Energético Nacional)",
    "url": "https://www.gov.br/anp/pt-br/centrais-de-conteudo/publicacoes/anuario-estatistico/arquivos-anuario-estatistico-2026/outras-pecas-documentais/fatores-de-conversao-2026.pdf",
    "sha256": "cf7c9a5ba2b10ab703628150f93c8504713ed4b69678da970524c1ce19594854",
+   "readState": "PRIMARY_READ"
+  },
+  "CNPE25": {
+   "title": "Resolução CNPE nº 9, de 25/06/2025 (DOU 02/07/2025, Seção 1, p. 11): E30 na gasolina comum desde 01/08/2025",
+   "url": "https://www.gov.br/mme/pt-br/assuntos/conselhos-e-comites/cnpe/resolucoes-do-cnpe/2025/ResoluoCNPE9publicada.pdf",
+   "sha256": "acf21a0cc599458e202af8383d11f880a0ef230f6c1be73f59f3262d9e77d654",
    "readState": "PRIMARY_READ"
   },
   "CNPE": {
@@ -36,12 +48,15 @@
    "validFrom": "2025-01-01",
    "validTo": null,
    "validityRule": "Edição EPE 2025 (RenovaCalc); confirmar a edição seguinte a cada ano",
-   "evidenceSource": "AEA, Nota Técnica: intensidade de carbono dos energéticos para veículos pesados (relatório MDIC, v15.12.25); reproduz EPE NT/DPG/SDB/2025/03 e a RenovaCalc",
-   "evidenceLocator": "Apêndice, Tabela A1 (fatores de emissão no uso, RenovaCalc), linha Gasolina A, coluna CO2 Fóssil, g/kg. A nota técnica reproduz a EPE; o texto da EPE (NT/DPG/SDB/2025/03) não foi lido.",
-   "readState": "SECONDARY",
-   "evidenceSha256": "1ce894f7f6566bd445ee10ff55e005bf5133e1b167e0df61781881c096f0e462",
+   "evidenceSource": "EPE, Nota Técnica EPE/DPG/SDB/2025/03: intensidade de carbono das fontes de energia do transporte rodoviário (tabelas A 2 e 2 reproduzem ANP 2018/2024, EPE 2025a e RenovaCalc)",
+   "evidenceLocator": "Apêndice, Tabela A 2 (p. 38 do PDF; fatores de uso, RenovaCalc), linha Gasolina A, coluna CO2 Fóssil, g/kg.",
+   "readState": "PRIMARY_READ",
+   "evidenceSha256": "e51133b4dd5b288923f2f1a6f6784718d6646ea7fa89aa7648182ebb2bc9455d",
    "retrievedOn": "2026-11-26",
-   "evidenceUrl": "https://www.gov.br/mdic/pt-br/assuntos/sdic/setor-automotivo/Relatorio_Intensidade_de_carbono_AEA_2025_v15.12.25.pdf"
+   "evidenceUrl": "https://www.epe.gov.br/sites-pt/publicacoes-dados-abertos/publicacoes/PublicacoesArquivos/publicacao-708/topico-770/NT-EPE-DPG-SDB-2025-03_Intensidade_de_Carbono_Transporte_Rodovi%C3%A1rio.pdf",
+   "ipccReference": "IPCC 2006 Vol.2 Cap.3 Tab.3.2.1 (pág. 3.16): 69300 kgCO2/TJ (faixa 67500-73000) x PCI 44,3 TJ/Gg; cap. 3 sem refinamento em 2019",
+   "ipccValue": "3069.99",
+   "ipccUnit": "gCO2/kg"
   },
   {
    "kind": "DATUM",
@@ -55,12 +70,12 @@
    "validFrom": "2025-01-01",
    "validTo": null,
    "validityRule": "Edição EPE 2025 (RenovaCalc); confirmar a edição seguinte a cada ano",
-   "evidenceSource": "AEA, Nota Técnica: intensidade de carbono dos energéticos para veículos pesados (relatório MDIC, v15.12.25); reproduz EPE NT/DPG/SDB/2025/03 e a RenovaCalc",
-   "evidenceLocator": "Apêndice, Tabela A1, linha Gasolina A, coluna CH4 Fóssil, g/kg.",
-   "readState": "SECONDARY",
-   "evidenceSha256": "1ce894f7f6566bd445ee10ff55e005bf5133e1b167e0df61781881c096f0e462",
+   "evidenceSource": "EPE, Nota Técnica EPE/DPG/SDB/2025/03: intensidade de carbono das fontes de energia do transporte rodoviário (tabelas A 2 e 2 reproduzem ANP 2018/2024, EPE 2025a e RenovaCalc)",
+   "evidenceLocator": "Apêndice, Tabela A 2 (p. 38 do PDF), linha Gasolina A, coluna CH4 Fóssil, g/kg.",
+   "readState": "PRIMARY_READ",
+   "evidenceSha256": "e51133b4dd5b288923f2f1a6f6784718d6646ea7fa89aa7648182ebb2bc9455d",
    "retrievedOn": "2026-11-26",
-   "evidenceUrl": "https://www.gov.br/mdic/pt-br/assuntos/sdic/setor-automotivo/Relatorio_Intensidade_de_carbono_AEA_2025_v15.12.25.pdf"
+   "evidenceUrl": "https://www.epe.gov.br/sites-pt/publicacoes-dados-abertos/publicacoes/PublicacoesArquivos/publicacao-708/topico-770/NT-EPE-DPG-SDB-2025-03_Intensidade_de_Carbono_Transporte_Rodovi%C3%A1rio.pdf"
   },
   {
    "kind": "DATUM",
@@ -74,12 +89,12 @@
    "validFrom": "2025-01-01",
    "validTo": null,
    "validityRule": "Edição EPE 2025 (RenovaCalc); confirmar a edição seguinte a cada ano",
-   "evidenceSource": "AEA, Nota Técnica: intensidade de carbono dos energéticos para veículos pesados (relatório MDIC, v15.12.25); reproduz EPE NT/DPG/SDB/2025/03 e a RenovaCalc",
-   "evidenceLocator": "Apêndice, Tabela A1, linha Gasolina A, coluna N2O, g/kg.",
-   "readState": "SECONDARY",
-   "evidenceSha256": "1ce894f7f6566bd445ee10ff55e005bf5133e1b167e0df61781881c096f0e462",
+   "evidenceSource": "EPE, Nota Técnica EPE/DPG/SDB/2025/03: intensidade de carbono das fontes de energia do transporte rodoviário (tabelas A 2 e 2 reproduzem ANP 2018/2024, EPE 2025a e RenovaCalc)",
+   "evidenceLocator": "Apêndice, Tabela A 2 (p. 38 do PDF), linha Gasolina A, coluna N2O, g/kg.",
+   "readState": "PRIMARY_READ",
+   "evidenceSha256": "e51133b4dd5b288923f2f1a6f6784718d6646ea7fa89aa7648182ebb2bc9455d",
    "retrievedOn": "2026-11-26",
-   "evidenceUrl": "https://www.gov.br/mdic/pt-br/assuntos/sdic/setor-automotivo/Relatorio_Intensidade_de_carbono_AEA_2025_v15.12.25.pdf"
+   "evidenceUrl": "https://www.epe.gov.br/sites-pt/publicacoes-dados-abertos/publicacoes/PublicacoesArquivos/publicacao-708/topico-770/NT-EPE-DPG-SDB-2025-03_Intensidade_de_Carbono_Transporte_Rodovi%C3%A1rio.pdf"
   },
   {
    "kind": "DATUM",
@@ -91,12 +106,12 @@
    "validFrom": "2025-01-01",
    "validTo": null,
    "validityRule": "Média de 2025 (EPE/BEN)",
-   "evidenceSource": "AEA, Nota Técnica: intensidade de carbono dos energéticos para veículos pesados (relatório MDIC, v15.12.25); reproduz EPE NT/DPG/SDB/2025/03 e a RenovaCalc",
-   "evidenceLocator": "Tabela 1, linha Gasolina A, coluna PCI (MJ/kg); a ANP publica 10.400 kcal/kg.",
-   "readState": "SECONDARY",
-   "evidenceSha256": "1ce894f7f6566bd445ee10ff55e005bf5133e1b167e0df61781881c096f0e462",
+   "evidenceSource": "EPE, Nota Técnica EPE/DPG/SDB/2025/03: intensidade de carbono das fontes de energia do transporte rodoviário (tabelas A 2 e 2 reproduzem ANP 2018/2024, EPE 2025a e RenovaCalc)",
+   "evidenceLocator": "Tabela 2 (p. 19 do PDF), linha Gasolina A, coluna PCI (MJ/kg); 10.400 kcal/kg.",
+   "readState": "PRIMARY_READ",
+   "evidenceSha256": "e51133b4dd5b288923f2f1a6f6784718d6646ea7fa89aa7648182ebb2bc9455d",
    "retrievedOn": "2026-11-26",
-   "evidenceUrl": "https://www.gov.br/mdic/pt-br/assuntos/sdic/setor-automotivo/Relatorio_Intensidade_de_carbono_AEA_2025_v15.12.25.pdf"
+   "evidenceUrl": "https://www.epe.gov.br/sites-pt/publicacoes-dados-abertos/publicacoes/PublicacoesArquivos/publicacao-708/topico-770/NT-EPE-DPG-SDB-2025-03_Intensidade_de_Carbono_Transporte_Rodovi%C3%A1rio.pdf"
   },
   {
    "kind": "DATUM",
@@ -127,12 +142,12 @@
    "validFrom": "2025-01-01",
    "validTo": null,
    "validityRule": "Edição EPE 2025 (RenovaCalc); confirmar a edição seguinte a cada ano",
-   "evidenceSource": "AEA, Nota Técnica: intensidade de carbono dos energéticos para veículos pesados (relatório MDIC, v15.12.25); reproduz EPE NT/DPG/SDB/2025/03 e a RenovaCalc",
-   "evidenceLocator": "Apêndice, Tabela A1, linha Etanol Anidro, coluna CO2 Fóssil = 0,0 g/kg.",
-   "readState": "SECONDARY",
-   "evidenceSha256": "1ce894f7f6566bd445ee10ff55e005bf5133e1b167e0df61781881c096f0e462",
+   "evidenceSource": "EPE, Nota Técnica EPE/DPG/SDB/2025/03: intensidade de carbono das fontes de energia do transporte rodoviário (tabelas A 2 e 2 reproduzem ANP 2018/2024, EPE 2025a e RenovaCalc)",
+   "evidenceLocator": "Apêndice, Tabela A 2 (p. 38 do PDF), linha Etanol Anidro, coluna CO2 Fóssil = 0,0 g/kg.",
+   "readState": "PRIMARY_READ",
+   "evidenceSha256": "e51133b4dd5b288923f2f1a6f6784718d6646ea7fa89aa7648182ebb2bc9455d",
    "retrievedOn": "2026-11-26",
-   "evidenceUrl": "https://www.gov.br/mdic/pt-br/assuntos/sdic/setor-automotivo/Relatorio_Intensidade_de_carbono_AEA_2025_v15.12.25.pdf"
+   "evidenceUrl": "https://www.epe.gov.br/sites-pt/publicacoes-dados-abertos/publicacoes/PublicacoesArquivos/publicacao-708/topico-770/NT-EPE-DPG-SDB-2025-03_Intensidade_de_Carbono_Transporte_Rodovi%C3%A1rio.pdf"
   },
   {
    "kind": "DATUM",
@@ -146,12 +161,12 @@
    "validFrom": "2025-01-01",
    "validTo": null,
    "validityRule": "Edição EPE 2025 (RenovaCalc); confirmar a edição seguinte a cada ano",
-   "evidenceSource": "AEA, Nota Técnica: intensidade de carbono dos energéticos para veículos pesados (relatório MDIC, v15.12.25); reproduz EPE NT/DPG/SDB/2025/03 e a RenovaCalc",
-   "evidenceLocator": "Apêndice, Tabela A1, linha Etanol Anidro, coluna CO2 biogênico, g/kg. Registrado, mas fora da fronteira CO2_ONLY.",
-   "readState": "SECONDARY",
-   "evidenceSha256": "1ce894f7f6566bd445ee10ff55e005bf5133e1b167e0df61781881c096f0e462",
+   "evidenceSource": "EPE, Nota Técnica EPE/DPG/SDB/2025/03: intensidade de carbono das fontes de energia do transporte rodoviário (tabelas A 2 e 2 reproduzem ANP 2018/2024, EPE 2025a e RenovaCalc)",
+   "evidenceLocator": "Apêndice, Tabela A 2 (p. 38 do PDF), linha Etanol Anidro, coluna CO2 biogênico, g/kg. Registrado, mas fora da fronteira CO2_ONLY.",
+   "readState": "PRIMARY_READ",
+   "evidenceSha256": "e51133b4dd5b288923f2f1a6f6784718d6646ea7fa89aa7648182ebb2bc9455d",
    "retrievedOn": "2026-11-26",
-   "evidenceUrl": "https://www.gov.br/mdic/pt-br/assuntos/sdic/setor-automotivo/Relatorio_Intensidade_de_carbono_AEA_2025_v15.12.25.pdf"
+   "evidenceUrl": "https://www.epe.gov.br/sites-pt/publicacoes-dados-abertos/publicacoes/PublicacoesArquivos/publicacao-708/topico-770/NT-EPE-DPG-SDB-2025-03_Intensidade_de_Carbono_Transporte_Rodovi%C3%A1rio.pdf"
   },
   {
    "kind": "DATUM",
@@ -215,12 +230,12 @@
    "validFrom": "2026-08-01",
    "validTo": "2027-01-27",
    "validityRule": "180 dias a partir de 01/08/2026 (art. 1º, parágrafo único e art. 4º), prorrogável uma única vez por ato do Presidente do CNPE (prorrogação não lida); tolerância de 1 ponto percentual é metrológica (art. 3º)",
-   "evidenceSource": "AEA, Nota Técnica: intensidade de carbono dos energéticos para veículos pesados (relatório MDIC, v15.12.25); reproduz EPE NT/DPG/SDB/2025/03 e a RenovaCalc",
-   "evidenceLocator": "DERIVADO: 0.68 (1-0,32, CNPE 9/2026 art. 1) x 0.742 kg/L (ANP) x 2981.1 gCO2 fóssil/kg (EPE 2025, AEA Tab. A1) = 1504.143816 gCO2/L; etanol: CO2 fóssil 0; mistura ideal por volume",
-   "readState": "SECONDARY",
-   "evidenceSha256": "1ce894f7f6566bd445ee10ff55e005bf5133e1b167e0df61781881c096f0e462",
+   "evidenceSource": "EPE, Nota Técnica EPE/DPG/SDB/2025/03: intensidade de carbono das fontes de energia do transporte rodoviário (tabelas A 2 e 2 reproduzem ANP 2018/2024, EPE 2025a e RenovaCalc)",
+   "evidenceLocator": "DERIVADO: 0.68 (1-0,32, CNPE 9/2026 art. 1) x 0.742 kg/L (ANP) x 2981.1 gCO2 fóssil/kg (EPE 2025, EPE Tab. A 2) = 1504.143816 gCO2/L; etanol: CO2 fóssil 0; mistura ideal por volume",
+   "readState": "PRIMARY_READ",
+   "evidenceSha256": "e51133b4dd5b288923f2f1a6f6784718d6646ea7fa89aa7648182ebb2bc9455d",
    "retrievedOn": "2026-11-26",
-   "evidenceUrl": "https://www.gov.br/mdic/pt-br/assuntos/sdic/setor-automotivo/Relatorio_Intensidade_de_carbono_AEA_2025_v15.12.25.pdf"
+   "evidenceUrl": "https://www.epe.gov.br/sites-pt/publicacoes-dados-abertos/publicacoes/PublicacoesArquivos/publicacao-708/topico-770/NT-EPE-DPG-SDB-2025-03_Intensidade_de_Carbono_Transporte_Rodovi%C3%A1rio.pdf"
   },
   {
    "kind": "DATUM",
@@ -238,6 +253,58 @@
    "evidenceSha256": "cf7c9a5ba2b10ab703628150f93c8504713ed4b69678da970524c1ce19594854",
    "retrievedOn": "2026-11-26",
    "evidenceUrl": "https://www.gov.br/anp/pt-br/centrais-de-conteudo/publicacoes/anuario-estatistico/arquivos-anuario-estatistico-2026/outras-pecas-documentais/fatores-de-conversao-2026.pdf"
+  },
+  {
+   "kind": "COMPOSITION",
+   "fuelId": "GASOLINE_C",
+   "componentId": "ETHANOL_ANHYDROUS",
+   "compositionBasis": "VOLUME_FRACTION",
+   "nominal": "0.30",
+   "remainder": false,
+   "validFrom": "2025-08-01",
+   "validTo": "2026-07-31",
+   "validityRule": "Desde 01/08/2025 (Res. CNPE 9/2025, art. 3º); suspenso de 01/08/2026 pela Res. CNPE 9/2026 durante a vigência do E32",
+   "evidenceSource": "Resolução CNPE nº 9, de 25/06/2025 (DOU 02/07/2025, Seção 1, p. 11): E30 na gasolina comum desde 01/08/2025",
+   "evidenceLocator": "Art. 1º, I: 30% de etanol anidro na Gasolina Comum; art. 3º: vigência em 01/08/2025",
+   "readState": "PRIMARY_READ",
+   "evidenceSha256": "acf21a0cc599458e202af8383d11f880a0ef230f6c1be73f59f3262d9e77d654",
+   "retrievedOn": "2026-11-26",
+   "evidenceUrl": "https://www.gov.br/mme/pt-br/assuntos/conselhos-e-comites/cnpe/resolucoes-do-cnpe/2025/ResoluoCNPE9publicada.pdf"
+  },
+  {
+   "kind": "COMPOSITION",
+   "fuelId": "GASOLINE_C",
+   "componentId": "GASOLINE_A",
+   "compositionBasis": "VOLUME_FRACTION",
+   "remainder": true,
+   "validFrom": "2025-08-01",
+   "validTo": "2026-07-31",
+   "validityRule": "Desde 01/08/2025 (Res. CNPE 9/2025, art. 3º); suspenso de 01/08/2026 pela Res. CNPE 9/2026 durante a vigência do E32",
+   "evidenceSource": "Resolução CNPE nº 9, de 25/06/2025 (DOU 02/07/2025, Seção 1, p. 11): E30 na gasolina comum desde 01/08/2025",
+   "evidenceLocator": "Resto da mistura (70%): gasolina A, por diferença do art. 1º, I",
+   "readState": "PRIMARY_READ",
+   "evidenceSha256": "acf21a0cc599458e202af8383d11f880a0ef230f6c1be73f59f3262d9e77d654",
+   "retrievedOn": "2026-11-26",
+   "evidenceUrl": "https://www.gov.br/mme/pt-br/assuntos/conselhos-e-comites/cnpe/resolucoes-do-cnpe/2025/ResoluoCNPE9publicada.pdf"
+  },
+  {
+   "kind": "DATUM",
+   "fuelId": "GASOLINE_C",
+   "parameter": "EMISSION_FACTOR",
+   "gas": "CO2_FOSSIL",
+   "emissionScope": "TTW",
+   "value": "1548.383340",
+   "unit": "gCO2/L",
+   "vintageYear": 2025,
+   "validFrom": "2025-08-01",
+   "validTo": "2026-07-31",
+   "validityRule": "Desde 01/08/2025 (Res. CNPE 9/2025, art. 3º); suspenso de 01/08/2026 pela Res. CNPE 9/2026 durante a vigência do E32",
+   "evidenceSource": "EPE, Nota Técnica EPE/DPG/SDB/2025/03: intensidade de carbono das fontes de energia do transporte rodoviário (tabelas A 2 e 2 reproduzem ANP 2018/2024, EPE 2025a e RenovaCalc)",
+   "evidenceLocator": "DERIVADO: 0.70 (1-0,30, CNPE 9/2025 art. 1) x 0.742 kg/L (ANP) x 2981.1 gCO2 fóssil/kg (EPE Tab. A 2) = 1548.383340 gCO2/L; etanol: CO2 fóssil 0; mistura ideal por volume",
+   "readState": "PRIMARY_READ",
+   "evidenceSha256": "e51133b4dd5b288923f2f1a6f6784718d6646ea7fa89aa7648182ebb2bc9455d",
+   "retrievedOn": "2026-11-26",
+   "evidenceUrl": "https://www.epe.gov.br/sites-pt/publicacoes-dados-abertos/publicacoes/PublicacoesArquivos/publicacao-708/topico-770/NT-EPE-DPG-SDB-2025-03_Intensidade_de_Carbono_Transporte_Rodovi%C3%A1rio.pdf"
   }
  ]
 }
