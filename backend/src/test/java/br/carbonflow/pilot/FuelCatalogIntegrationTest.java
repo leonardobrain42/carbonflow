@@ -212,9 +212,27 @@ class FuelCatalogIntegrationTest {
         // Etapa 5: the Brazilian seed (docs/data/fuel-catalog-br-seed.json) is accepted by the API as published, nothing is
         // reviewed or admitted by registering it, and once reviewed the derived gasolina C factor resolves under CO2_ONLY.
         var seed = json.readTree(java.nio.file.Files.readString(java.nio.file.Path.of("../docs/data/fuel-catalog-br-seed.json")));
+        // All test classes share ONE database and the catalog is append-only: the seed VALUES are registered under private copies
+        // of the fuels (id + tag), so no other test's GASOLINE_C/DIESEL_A entries can overlap them, whatever the execution order.
+        String tag = "_T" + suffix;
+        var realFuels = new java.util.LinkedHashSet<String>();
+        for (var item : seed.path("entries")) {
+            realFuels.add(item.path("fuelId").asText());
+            if (item.has("componentId")) realFuels.add(item.path("componentId").asText());
+        }
+        for (String real : realFuels) {
+            com.fasterxml.jackson.databind.JsonNode meta = null;
+            for (var f : seen.path("fuels")) if (f.path("id").asText().equals(real)) meta = f;
+            assertNotNull(meta, real);
+            ok(call("POST", API + "/fuels", manager, "{\"id\":\"" + real + tag + "\",\"name\":\"Cópia de teste de " + real + "\",\"family\":\""
+                    + meta.path("family").asText() + "\",\"role\":\"" + meta.path("role").asText() + "\",\"phase\":\"" + meta.path("phase").asText()
+                    + "\",\"pending\":[\"só teste\"]}"));
+        }
         var ids = new java.util.ArrayList<String>();
         for (var item : seed.path("entries")) {
             var body = (com.fasterxml.jackson.databind.node.ObjectNode) item.deepCopy();
+            body.put("fuelId", item.path("fuelId").asText() + tag);
+            if (item.has("componentId")) body.put("componentId", item.path("componentId").asText() + tag);
             body.remove("evidenceUrl");
             for (var name : new java.util.ArrayList<String>() {{ body.fieldNames().forEachRemaining(this::add); }})
                 if (body.get(name).isNull()) body.remove(name);
@@ -228,10 +246,10 @@ class FuelCatalogIntegrationTest {
             }
             ids.add(created.path("id").asText());
         }
-        var before = json.readTree(ok(call("GET", API + "/boundary-resolution?fuelId=GASOLINE_C&scope=TTW&boundary=CO2_ONLY&date=2026-09-01", manager, null)).body());
+        var before = json.readTree(ok(call("GET", API + "/boundary-resolution?fuelId=GASOLINE_C" + tag + "&scope=TTW&boundary=CO2_ONLY&date=2026-09-01", manager, null)).body());
         assertEquals("NOT_REVIEWED_OK", before.path("requirements").get(0).path("review").asText());
         for (String id : ids) ok(call("POST", API + "/entries/" + id + "/reviews", owner, review("OWNER_INTERNAL", "REVIEWED_OK")));
-        var after = json.readTree(ok(call("GET", API + "/boundary-resolution?fuelId=GASOLINE_C&scope=TTW&boundary=CO2_ONLY&date=2026-09-01", manager, null)).body());
+        var after = json.readTree(ok(call("GET", API + "/boundary-resolution?fuelId=GASOLINE_C" + tag + "&scope=TTW&boundary=CO2_ONLY&date=2026-09-01", manager, null)).body());
         assertEquals("RESOLVED_CANDIDATE", after.path("state").asText(), after.toString());
         assertEquals("INTERNAL_OK", after.path("requirements").get(0).path("review").asText());
         // 1504.143816 gCO2/L x 3.785411784 L/USgal / 1e6 g/t, exact.
@@ -239,20 +257,20 @@ class FuelCatalogIntegrationTest {
         assertEquals(0, expected.compareTo(new java.math.BigDecimal(after.path("requirements").get(0).path("methodValue").asText())), after.toString());
         assertEquals("tCO2/USgal", after.path("requirements").get(0).path("methodUnit").asText());
         // Diesel B15 (CNPE 8/2025) has no end date: it resolves in 2026 and in 2030, before 2025-08-01 it does not exist.
-        var b15 = json.readTree(ok(call("GET", API + "/boundary-resolution?fuelId=DIESEL_B&scope=TTW&boundary=CO2_ONLY&date=2026-01-15", manager, null)).body());
+        var b15 = json.readTree(ok(call("GET", API + "/boundary-resolution?fuelId=DIESEL_B" + tag + "&scope=TTW&boundary=CO2_ONLY&date=2026-01-15", manager, null)).body());
         assertEquals("RESOLVED_CANDIDATE", b15.path("state").asText(), b15.toString());
         assertClose("2212.5432", b15);
-        assertEquals("RESOLVED_CANDIDATE", json.readTree(ok(call("GET", API + "/boundary-resolution?fuelId=DIESEL_B&scope=TTW&boundary=CO2_ONLY&date=2030-01-15", manager, null)).body()).path("state").asText());
-        assertEquals("UNRESOLVED", json.readTree(ok(call("GET", API + "/boundary-resolution?fuelId=DIESEL_B&scope=TTW&boundary=CO2_ONLY&date=2025-07-01", manager, null)).body()).path("state").asText());
+        assertEquals("RESOLVED_CANDIDATE", json.readTree(ok(call("GET", API + "/boundary-resolution?fuelId=DIESEL_B" + tag + "&scope=TTW&boundary=CO2_ONLY&date=2030-01-15", manager, null)).body()).path("state").asText());
+        assertEquals("UNRESOLVED", json.readTree(ok(call("GET", API + "/boundary-resolution?fuelId=DIESEL_B" + tag + "&scope=TTW&boundary=CO2_ONLY&date=2025-07-01", manager, null)).body()).path("state").asText());
         // The E30 window (CNPE 9/2025) resolves its own factor, 1548.38334 gCO2/L, and does not borrow the E32 one.
-        var e30 = json.readTree(ok(call("GET", API + "/boundary-resolution?fuelId=GASOLINE_C&scope=TTW&boundary=CO2_ONLY&date=2026-01-15", manager, null)).body());
+        var e30 = json.readTree(ok(call("GET", API + "/boundary-resolution?fuelId=GASOLINE_C" + tag + "&scope=TTW&boundary=CO2_ONLY&date=2026-01-15", manager, null)).body());
         assertEquals("RESOLVED_CANDIDATE", e30.path("state").asText(), e30.toString());
         assertClose("1548.38334", e30);
         // Before E30 (CNPE 9/2025) there is no blend factor either: nothing is presumed.
-        var early = json.readTree(ok(call("GET", API + "/boundary-resolution?fuelId=GASOLINE_C&scope=TTW&boundary=CO2_ONLY&date=2025-07-01", manager, null)).body());
+        var early = json.readTree(ok(call("GET", API + "/boundary-resolution?fuelId=GASOLINE_C" + tag + "&scope=TTW&boundary=CO2_ONLY&date=2025-07-01", manager, null)).body());
         assertEquals("UNRESOLVED", early.path("state").asText());
         // The 3-gas boundary stays unresolved: no CH4/N2O datum for gasolina C and no aggregate.
-        var threeGas = json.readTree(ok(call("GET", API + "/boundary-resolution?fuelId=GASOLINE_C&scope=TTW&boundary=CO2_CH4_N2O&date=2026-09-01", manager, null)).body());
+        var threeGas = json.readTree(ok(call("GET", API + "/boundary-resolution?fuelId=GASOLINE_C" + tag + "&scope=TTW&boundary=CO2_CH4_N2O&date=2026-09-01", manager, null)).body());
         assertEquals("UNRESOLVED", threeGas.path("state").asText());
 
         // Append-only.

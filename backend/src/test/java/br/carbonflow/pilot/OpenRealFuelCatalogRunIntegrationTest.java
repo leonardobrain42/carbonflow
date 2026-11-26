@@ -30,6 +30,8 @@ class OpenRealFuelCatalogRunIntegrationTest {
 
     private OpenE8TestFixture fx;
     private OpenE8TestFixture.Scenario s;
+    /** All test classes share ONE database in CI and the catalog is append-only, so this rehearsal owns private fuel ids; the VALUES are the real ones. */
+    private String gasoline,diesel;
 
     private static final String DY_SOURCE="E2E-DY-REGISTRY";
     private static final String PLAN_ITEM="{\"source\":\"Registro interno de atualização\",\"responsible\":\"Equipe técnica\","
@@ -83,6 +85,14 @@ class OpenRealFuelCatalogRunIntegrationTest {
     void peFollowsTheSeriesBoundCandidateEndToEndAndNothingIsAdmitted() throws Exception {
         fx=new OpenE8TestFixture(database,mapper,base);
         s=fx.openProject("2025-08-01");
+        String suffix=UUID.randomUUID().toString().substring(0,8).toUpperCase().replace('-','A');
+        gasoline="RG"+suffix;
+        diesel="RD"+suffix;
+        database.transaction(c->{
+            update(c,"INSERT INTO app_fuel(id,name,family,role,phase,pending) VALUES (?,'Cópia de teste da gasolina C (valores reais do seed)','OTHER','PRODUCT','LIQUID',ARRAY['só teste'])",gasoline);
+            update(c,"INSERT INTO app_fuel(id,name,family,role,phase,pending) VALUES (?,'Combustível de teste para o caso negativo','OTHER','PRODUCT','LIQUID',ARRAY['só teste'])",diesel);
+            return null;
+        });
         fx.preparePeriod(s,"Y1-M1",2025,9);
         UUID seriesId=series(s.owner().id(),"2026-09-01T00:00:00Z","2026-09-01T01:00:00Z");
         fx.preparePeriod(s,"Y2-M1",2026,9,(sc,dossierUrl,code,energy)->bindAndReview(fx,sc,dossierUrl,code,energy,seriesId));
@@ -91,17 +101,17 @@ class OpenRealFuelCatalogRunIntegrationTest {
         registerSeedGasolineC();
         var threeGas=fx.postMethod("/v1/platform/open-parameter-bindings",s.staffManager().cookie(),key(),"\"0\"",
             "{\"projectId\":\""+s.project()+"\",\"parameterKind\":\"EF_FUEL\",\"vintageYear\":2025,"
-            +"\"catalog\":{\"fuelId\":\"GASOLINE_C\",\"boundary\":\"CO2_CH4_N2O\",\"scope\":\"TTW\",\"date\":\"2025-09-01\"}}");
+            +"\"catalog\":{\"fuelId\":\""+gasoline+"\",\"boundary\":\"CO2_CH4_N2O\",\"scope\":\"TTW\",\"date\":\"2025-09-01\"}}");
         assertEquals(422,threeGas.statusCode(),threeGas.body());
         var typed=fx.postMethod("/v1/platform/open-parameter-bindings",s.staffManager().cookie(),key(),"\"0\"",
             "{\"projectId\":\""+s.project()+"\",\"parameterKind\":\"EF_FUEL\",\"vintageYear\":2025,\"declaredValue\":\"0.009\","
-            +"\"catalog\":{\"fuelId\":\"GASOLINE_C\",\"boundary\":\"CO2_ONLY\",\"scope\":\"TTW\",\"date\":\"2025-09-01\"}}");
+            +"\"catalog\":{\"fuelId\":\""+gasoline+"\",\"boundary\":\"CO2_ONLY\",\"scope\":\"TTW\",\"date\":\"2025-09-01\"}}");
         assertEquals(422,typed.statusCode(),"a typed number never rides with a catalog reference: "+typed.body());
         for(int year:new int[]{2025,2026}) {
             fx.pinIrDy(s.project(),s.org(),s.staffManager().id(),year);
             var pinned=fx.postMethod("/v1/platform/open-parameter-bindings",s.staffManager().cookie(),key(),"\"0\"",
                 "{\"projectId\":\""+s.project()+"\",\"parameterKind\":\"EF_FUEL\",\"vintageYear\":"+year+","
-                +"\"catalog\":{\"fuelId\":\"GASOLINE_C\",\"boundary\":\"CO2_ONLY\",\"scope\":\"TTW\",\"date\":\""+year+"-09-01\"}}");
+                +"\"catalog\":{\"fuelId\":\""+gasoline+"\",\"boundary\":\"CO2_ONLY\",\"scope\":\"TTW\",\"date\":\""+year+"-09-01\"}}");
             assertEquals(201,pinned.statusCode(),pinned.body());
             assertEquals("CATALOG_REFERENCE",fx.json(pinned).at("/valueKind").asText());
             assertEquals("tCO2e/USgal",fx.json(pinned).at("/normalizedUnit").asText());
@@ -212,10 +222,10 @@ class OpenRealFuelCatalogRunIntegrationTest {
         // Window guard (etapa 5 data have real validity windows, e.g. E30 until 2026-07-31, E32 after): a catalog factor whose
         // validity does not cover the whole period window is never applied. Re-pin 2026 to an entry valid only from 2026-10-01;
         // the Y2-M1 window (2026-09-01) is outside it, so the attempt has no numbers and says why.
-        registerFuelDatum("DIESEL_A","2.6",2026,"2026-10-01","2027-01-27");
+        registerFuelDatum(diesel,"2.6",2026,"2026-10-01","2027-01-27");
         var narrowPin=fx.postMethod("/v1/platform/open-parameter-bindings",s.staffManager().cookie(),key(),"\"1\"",
             "{\"projectId\":\""+s.project()+"\",\"parameterKind\":\"EF_FUEL\",\"vintageYear\":2026,"
-            +"\"catalog\":{\"fuelId\":\"DIESEL_A\",\"boundary\":\"CO2_ONLY\",\"scope\":\"TTW\",\"date\":\"2026-11-01\"}}");
+            +"\"catalog\":{\"fuelId\":\""+diesel+"\",\"boundary\":\"CO2_ONLY\",\"scope\":\"TTW\",\"date\":\"2026-11-01\"}}");
         assertEquals(201,narrowPin.statusCode(),narrowPin.body());
         JsonNode narrow=post(runs("Y2-M1"),prep.cookie(),"\"2\"","{}",201);
         assertNotEquals("REVIEWED_INTERNAL",narrow.path("state").asText(),"the attempt never completes: "+narrow);
@@ -230,7 +240,7 @@ class OpenRealFuelCatalogRunIntegrationTest {
     }
 
 
-    /** Registers, straight from the versioned seed, the two real gasolina C fossil-CO2 entries (E30 and E32) with an internal OWNER review. */
+    /** Registers, from the versioned seed, the two real gasolina C fossil-CO2 values (E30 and E32) under this test's private fuel id, with a synthetic OWNER review. */
     private void registerSeedGasolineC() throws Exception {
         var seed=mapper.readTree(java.nio.file.Files.readString(java.nio.file.Path.of("../docs/data/fuel-catalog-br-seed.json")));
         int found=0;
@@ -244,7 +254,7 @@ class OpenRealFuelCatalogRunIntegrationTest {
                     INSERT INTO app_fuel_entry(id,kind,fuel_id,parameter,gas,emission_scope,value_text,unit,vintage_year,valid_from,valid_to,
                       validity_rule,evidence_source,evidence_locator,read_state,evidence_sha256,retrieved_on,registered_by)
                     VALUES (?,'DATUM',?,'EMISSION_FACTOR','CO2_FOSSIL','TTW',?,?,?,?::date,?::date,?,?,?,?,?,?::date,?)
-                    """,entry,e.path("fuelId").asText(),e.path("value").asText(),e.path("unit").asText(),e.path("vintageYear").asInt(),
+                    """,entry,gasoline,e.path("value").asText(),e.path("unit").asText(),e.path("vintageYear").asInt(),
                     e.path("validFrom").asText(),e.path("validTo").isNull()?null:e.path("validTo").asText(),e.path("validityRule").asText(),
                     e.path("evidenceSource").asText(),e.path("evidenceLocator").asText(),e.path("readState").asText(),
                     e.path("evidenceSha256").asText(),e.path("retrievedOn").asText(),s.staffManager().id());
@@ -256,10 +266,6 @@ class OpenRealFuelCatalogRunIntegrationTest {
             });
         }
         assertEquals(2,found,"the seed carries the E30 and E32 gasolina C factors");
-    }
-
-    private void registerFuelDatum(String value,int vintage,String from,String to) {
-        registerFuelDatum("GASOLINE_C",value,vintage,from,to);
     }
 
     private void registerFuelDatum(String fuel,String value,int vintage,String from,String to) {
