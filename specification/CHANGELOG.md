@@ -1,4 +1,6 @@
 # Changelog da especificação viva
+## 0.3.0-rc.86 — 26/11/2026 (proposta)
+- Backlog: registrada CF-SPEC-G12, alertas de vigência e de lacunas do catálogo de combustíveis e das séries (E32 acaba em 27/01/2027; revisão interna pendente; nova edição de fonte). **Sem prioridade** e sem issue; só documentação, nenhum código, contrato ou regra alterado.
 ## 0.3.0-rc.85 — 26/11/2026 (proposta)
 - **Roteiro #124, etapa 5b: resolução das lacunas do catálogo de combustíveis** (`docs/CF-DATA-010`, seed 15 entradas). Nível D17: jurisdição e projeto; sem migração, sem mudança de API. A fonte do fator passa de secundária (AEA) para primária lida (EPE NT/DPG/SDB/2025/03); E30 histórico (Res. CNPE 9/2025) cadastrado e resolvido na própria janela; QA/QC com o IPCC executado em gCO₂/kg (−2,9%, mesma unidade; IPCC 2006 Tab. 3.2.1, cap. 3 sem refinamento em 2019, evidência na página do IPCC). Inventário MMA/MT conferido e deliberadamente não cadastrado (A/C e fóssil/biogênico indefinidos).
 - **Segunda pasta de fontes:** licença CC BY 4.0 da EPE registrada como aviso do portal (captura de tela, com escopo explícito); relatório de referência MCTI 2015 (Tab. 14: gasolina A 69.300, fonte IPCC; biomassa fora do total) resolve a dúvida A/C do inventário, mas o fator nacional é o do IPCC e não foi cadastrado; NIR 2024 buscado, não lido por inteiro.
