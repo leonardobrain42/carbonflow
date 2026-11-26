@@ -4,9 +4,17 @@ import {firstValueFrom} from 'rxjs';
 
 type Model = {
   id:string;organizationId:string;manufacturer:string;modelName:string;
-  variant:string;vehicleClass:'LDV'|'HDV'|'UNKNOWN';
+  variant:string;vehicleClass:'LDV'|'HDV'|'OTHER'|'UNKNOWN';
   propulsion:'BEV'|'PHEV'|'OTHER'|'UNKNOWN';recordedAt:string;
+  /** Server-derived label for the initial cut; a label, never an admission. */
+  classificationVersion?:number;scope?:'CANDIDATE_INITIAL_SCOPE'|'OUTSIDE_INITIAL_SCOPE'|'PENDING_CLASSIFICATION';
 };
+const SCOPE_LABEL:Record<string,string>={
+  CANDIDATE_INITIAL_SCOPE:'Candidato ao recorte inicial (LDV BEV), não admitido',
+  OUTSIDE_INITIAL_SCOPE:'Fora do recorte inicial',
+  PENDING_CLASSIFICATION:'Classificação pendente',
+};
+const CLASS_LABEL:Record<string,string>={LDV:'LDV · leves',HDV:'HDV · pesados',OTHER:'Outro tipo',UNKNOWN:'Desconhecida'};
 type Alias = {organizationId:string;observationYear:number;recordKey:string;modelId:string};
 type Source = {
   id:string;organizationId:string;needCode:string;state:string;sourceId:string;
@@ -70,7 +78,13 @@ export class PlatformFleetComponent implements OnChanges {
   manufacturer='';
   modelName='';
   variant='';
-  vehicleClass:'LDV'|'HDV'|'UNKNOWN'='LDV';
+  vehicleClass:'LDV'|'HDV'|'OTHER'|'UNKNOWN'='LDV';
+  scopeFilter='';
+  classifyModel='';
+  classifyClass:'LDV'|'HDV'|'OTHER'|'UNKNOWN'='LDV';
+  classifyPropulsion:'BEV'|'PHEV'|'OTHER'|'UNKNOWN'='BEV';
+  classifyReason='';
+  classifyEvidence='';
   propulsion:'BEV'|'PHEV'|'OTHER'|'UNKNOWN'='BEV';
   recordKey='';
   aliasModel='';
@@ -130,6 +144,32 @@ export class PlatformFleetComponent implements OnChanges {
       },{headers:{'Idempotency-Key':crypto.randomUUID()}}));
       this.message.set('Identidade e alias registrados. Classificação declarada ainda requer prova da fonte.');
       this.manufacturer='';this.modelName='';this.variant='';this.recordKey='';
+      await this.refresh();
+    }catch(cause){this.error.set(this.problem(cause));}
+    finally{this.busy.set(false);}
+  }
+
+  scopeLabel(model:Model):string{return model.scope?SCOPE_LABEL[model.scope]??model.scope:'Sem classificação do servidor';}
+  classLabel(value:string):string{return CLASS_LABEL[value]??value;}
+  visibleModels():Model[]{
+    const all=this.board()?.models??[];
+    return this.scopeFilter?all.filter(m=>m.scope===this.scopeFilter):all;
+  }
+
+  async classify(event:Event){
+    event.preventDefault();
+    if(this.busy()||!this.board()?.canManage||!this.classifyModel)return;
+    this.busy.set(true);this.error.set('');this.message.set('');
+    const unknown=this.classifyClass==='UNKNOWN';
+    try{
+      await firstValueFrom(this.http.post<Model>(
+        '/v1/platform/fleet/models/'+encodeURIComponent(this.classifyModel)+'/classification',
+        {vehicleClass:this.classifyClass,propulsion:unknown?'UNKNOWN':this.classifyPropulsion,
+         reason:this.classifyReason,evidence:unknown?null:this.classifyEvidence},
+        {headers:{'Idempotency-Key':crypto.randomUUID()}}));
+      this.message.set(unknown?'Modelo marcado como pendente de classificação.'
+        :'Classificação registrada com evidência. Isso não admite o modelo no recorte inicial.');
+      this.classifyReason='';this.classifyEvidence='';
       await this.refresh();
     }catch(cause){this.error.set(this.problem(cause));}
     finally{this.busy.set(false);}
