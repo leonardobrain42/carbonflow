@@ -1,4 +1,6 @@
 # Changelog da especificação viva
+## 0.3.0-rc.67 — 25/11/2026 (proposta)
+- **CF-SPEC-D19, operação individual e destravamento de desenvolvimento** (decisão do responsável pelo produto), e [CF-DIRETRIZES-D19](CF-DIRETRIZES-D19.md): separa bloqueio de desenvolvimento de bloqueio de utilização, define as bases de decisão (`OWNER_INTERNAL` não substitui `INDEPENDENT` nem admissão), ordena seis fatias e liga cada questão pendente (Q02, Q03, Q05, Q08 a Q12) à evidência que a fecha. Só documentação; controles de segurança, licença, rastreabilidade e independência mantidos; nenhuma fonte admitida.
 ## 0.3.0-rc.66 — 25/11/2026 (proposta)
 - **Sincronização da especificação viva** com os PRs #299 a #315, só documentação: complemento em `ESTADO_DO_TRABALHO` (o corte anterior segue em 24/11 e **os PRs #243 a #298 não foram revistos**), linhas CF-SPEC-S20 a S23 na matriz, questões Q08 a Q11 em `DECISOES_E_DUVIDAS` e a linha G03 de `PENDENCIAS`. Nenhuma decisão substantiva nova, nenhuma regra alterada.
 ## 0.3.0-rc.65 — 25/11/2026 (proposta)
