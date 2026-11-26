@@ -69,6 +69,14 @@ Lida a [página oficial de fatores de emissão](https://www.gov.br/mcti/pt-br/ac
 - **Licença:** quem consulta o MCTI/ONS e registra a licença (V37).
 - **Gás:** como tratar CO₂ × CO₂e.
 
+## 5.1 Importador da estrutura horária (D19 fatia 4, rc.71)
+`scripts/import_mcti_hourly.py` (offline, biblioteca padrão; não grava na aplicação, não envia nem versiona o arquivo) lê a tabela **HORÁRIO** da planilha de despacho e **preserva o original**: SHA-256 e tamanho do arquivo, aba, célula do título, linha do cabeçalho, ano, unidade como no título, e, por registro, a **célula de origem**, o mês, o dia, a **hora como rotulada** e o **texto do valor como armazenado**. A visão normalizada só existe com parâmetros **obrigatórios e sem padrão**, escritos por pessoas:
+- `--timezone` (nome IANA) e `--hour-convention` (`HOUR_ENDING_1_24` ou `HOUR_START_LABEL_1_24`): a planilha não declara nenhum dos dois. Horários locais inexistentes ou ambíguos no fuso são **marcados** e ficam **sem instante UTC**.
+- `--unit` precisa **igualar a unidade do título**, senão a importação para; `--target-unit` faz só conversões exatas definidas (tCO2/MWh, kgCO2/MWh, gCO2/kWh).
+- O gás é CO2 como declarado; **CO2e não é presumido**. A saída diz sempre `usableForE8=false`, `rights=UNCONFIRMED`, `eligibilityVT0011Tool07=NOT_EVALUATED`.
+- Para (não adivinha) se a sequência dia/hora quebra, se o ano difere do informado ou se o marcador da tabela não é único. Valores em dia inexistente, não numéricos ou negativos viram anomalias listadas, nunca importadas. Meses sem valores saem `NOT_PUBLISHED`; incompletos, `PARTIAL`.
+- **Verificação em dado real, sem versionar nada:** a edição 2026 baixada localmente tem a aba `MDL`, 52 linhas de cabeçalho, 304 dias completos (jan a out; 7296 registros), 0 anomalias, nov e dez `NOT_PUBLISHED`. É só leitura estrutural: **não** valida valores, fuso nem convenção; essas respostas dependem da consulta ao MCTI (CF-DATA-003-CONSULTA-MCTI).
+
 ## 6. Não coberto
 - Das planilhas do MCTI, só a **estrutura** da de Despacho 2026 foi inspecionada; os demais anos, o fuso e a validade das correções não. A margem de construção de 2026 ainda não foi publicada pela própria planilha.
 - **Licença do ONS:** o portal de dados abertos do ONS ([dados.ons.org.br](https://dados.ons.org.br/about)) declara "Livres de Licença" e, no conjunto `carga-energia`, a licença "Creative Commons Atribuição" (CC-BY), com crédito ao ONS e dados "como estão". **Só esse conjunto foi lido**; não se sabe quais conjuntos do ONS alimentam o fator do MCTI nem se os de geração/despacho têm o mesmo aviso. A licença do MCTI sobre o fator publicado segue desconhecida.
