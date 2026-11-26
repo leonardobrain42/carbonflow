@@ -1,0 +1,37 @@
+{
+  "contractVersion": 1,
+  "note": "Catálogo inicial: identidades, uma composição com fonte primária lida e as lacunas de evidência. Nenhum fator ou propriedade foi admitido ou inventado (D19, Q12).",
+  "fuels": [
+    {"id": "GASOLINE_A", "name": "Gasolina A", "family": "GASOLINE", "role": "PRODUCT", "phase": "LIQUID",
+     "pending": ["fator por gás e unidade da metodologia", "propriedades (massa específica, PCI) de fonte primária", "especificação ANP vigente"]},
+    {"id": "GASOLINE_C", "name": "Gasolina C (comum)", "family": "GASOLINE", "role": "BLEND", "phase": "LIQUID",
+     "pending": ["teor anterior à Resolução CNPE nº 9/2026 (30%) a partir do texto primário", "vigência após os 180 dias e eventual prorrogação"]},
+    {"id": "ETHANOL_ANHYDROUS", "name": "Etanol anidro combustível", "family": "ETHANOL", "role": "PRODUCT", "phase": "LIQUID",
+     "pending": ["tratamento do CO2 biogênico pela metodologia", "fator por gás e unidade", "propriedades de fonte primária"]},
+    {"id": "ETHANOL_HYDROUS", "name": "Etanol hidratado combustível", "family": "ETHANOL", "role": "PRODUCT", "phase": "LIQUID",
+     "pending": ["tratamento do CO2 biogênico pela metodologia", "fator por gás e unidade", "propriedades de fonte primária (divergem do PBEV segundo a nota da AEA)"]},
+    {"id": "DIESEL_A", "name": "Óleo diesel A (mineral)", "family": "DIESEL", "role": "PRODUCT", "phase": "LIQUID",
+     "pending": ["fator por gás e unidade", "propriedades de fonte primária"]},
+    {"id": "DIESEL_B", "name": "Óleo diesel B (comercial)", "family": "DIESEL", "role": "BLEND", "phase": "LIQUID",
+     "pending": ["teor de biodiesel vigente a partir de ato primário (relatos de imprensa indicam B15; o ato não foi lido)", "vigência"]},
+    {"id": "BIODIESEL_B100", "name": "Biodiesel (B100)", "family": "BIODIESEL", "role": "PRODUCT", "phase": "LIQUID",
+     "pending": ["tratamento do CO2 biogênico pela metodologia", "fator por gás e unidade", "propriedades de fonte primária"]},
+    {"id": "CNG_VEHICULAR", "name": "Gás natural veicular (GNV)", "family": "NATURAL_GAS", "role": "PRODUCT", "phase": "GAS",
+     "pending": ["composição e variabilidade do gás", "fator por gás e unidade", "propriedades de fonte primária (divergem do PBEV segundo a nota da AEA)"]}
+  ],
+  "compositions": [
+    {"blendId": "GASOLINE_C", "componentId": "ETHANOL_ANHYDROUS", "basis": "VOLUME_FRACTION", "nominal": "0.32",
+     "validFrom": "2026-08-01", "validTo": null,
+     "validityRule": "excepcional e temporário: 180 dias da entrada em vigor, prorrogável uma única vez por ato do Presidente do CNPE; tolerância metrológica de 1 ponto percentual (art. 3º); o fim da vigência não foi calculado",
+     "evidence": {"source": "Resolução CNPE nº 9, de 14/07/2026 (DOU 30/07/2026, Seção 1 Extra B, p. 12)", "locator": "art. 1º, parágrafo único, art. 3º e art. 4º",
+                  "readState": "PRIMARY_READ", "sha256": "56c8440c3e95f9e6aa0766c55c5fc7acd41e724491d32c5a2906ae8e2be741fd", "retrievedOn": "2026-11-25"},
+     "state": "SOURCE_READ_NOT_REVIEWED"},
+    {"blendId": "GASOLINE_C", "componentId": "GASOLINE_A", "basis": "VOLUME_FRACTION", "remainder": true,
+     "validFrom": "2026-08-01", "validTo": null,
+     "validityRule": "complemento do teor de etanol anidro; a norma lida não define a gasolina A por volume, é só o resto da mistura",
+     "evidence": {"source": "Resolução CNPE nº 9, de 14/07/2026 (DOU 30/07/2026, Seção 1 Extra B, p. 12)", "locator": "art. 1º",
+                  "readState": "PRIMARY_READ", "sha256": "56c8440c3e95f9e6aa0766c55c5fc7acd41e724491d32c5a2906ae8e2be741fd", "retrievedOn": "2026-11-25"},
+     "state": "SOURCE_READ_NOT_REVIEWED"}
+  ],
+  "data": []
+}
