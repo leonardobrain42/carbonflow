@@ -33,3 +33,14 @@ CI do #242 confirmado: os cinco jobs da main (inclusive Quarkus/PostgreSQL) pass
 
 ## D17 — Direção e lacunas de plataforma
 Agnosticidade é decisão de produto aprovada, não comportamento integral demonstrado. A [auditoria dirigida de 25/11](CF-JOURNEY-001-AUDITORIA.md) identifica acoplamentos atuais de triagem, guias, requisitos, atos e compositor, e lacunas J04. [Jornada canônica](CF-JOURNEY-001.md); manter OPEN, D16 e gates sem regressão. Não confundir aceitação de candidato com pacote executável. AGN-01 já é verificado em parte: um rascunho sem VM0038 recebe só a lacuna de metodologia na prontidão de cálculo (rc.35), sem campos, gates ou equações de recarga.
+
+## Complemento de 25/11/2026 (PRs #299 a #315)
+O corte acima é anterior a estes PRs; esta seção só acrescenta o que eles entregaram. **Os PRs #243 a #298 não foram revistos nesta sincronização** (D18 e a administração de pacotes estão em [DECISOES_E_DUVIDAS](DECISOES_E_DUVIDAS.md)); um novo corte completo continua pendente. Todas as entregas abaixo são SANDBOX, nada admite fonte, habilita cálculo ou emite crédito.
+| Entrega | Contrato | O que **não** faz |
+|---|---|---|
+| Migração explícita do pino de metodologia (V106), PD pelo pacote, teste de capacidades | [CF-PACKAGES-001](CF-PACKAGES-001-ESTRATEGIA-DE-PACOTES.md), [registro](../docs/CF-PACKAGES-001-METHODOLOGY-REGISTRY.md) | Não há segundo pacote real; AGN-03 depende de decisão de vigência |
+| Licenças de conteúdo: API e tela (V107) | [CF-DATA-001](../docs/CF-DATA-001-CONTENT-LICENSES.md) | Nenhuma licença real registrada; o conteúdo licenciado não é versionado |
+| Ferramentas offline do EVR: estoque Senatran em CSV, extração do PBEV elétrico, cruzamento por nome | [CF-OPEN-005-EVR-STOCK-BR](../docs/CF-OPEN-005-EVR-STOCK-BR.md), [CF-OPEN-006](../docs/CF-OPEN-006-PBEV-RATINGS.md) | O resultado é candidato; PDFs do PBEV não versionados; sem dado em ambiente real |
+| Fila de candidatos de alias (V108), tela e plano de cadastro dos aceitos | [CF-OPEN-005-EVR-STOCK-BR](../docs/CF-OPEN-005-EVR-STOCK-BR.md) | Aceitar não cria modelo nem alias; listas de importadores e revisores sem responsáveis definidos; classe e propulsão ficam com pessoas |
+| Dossiês SIN/MCTI e créditos concorrentes; minuta de consulta ao MCTI | [CF-DATA-003](../docs/CF-DATA-003-SIN-MCTI-DOSSIE.md), [CF-DATA-004](../docs/CF-DATA-004-CREDITOS-CONCORRENTES-MATRIZ.md), [consulta](../docs/CF-DATA-003-CONSULTA-MCTI.md) | Só leitura: nenhuma fonte admitida; **consulta não enviada**; registros (Verra, Gold Standard, MDL) não lidos |
+
