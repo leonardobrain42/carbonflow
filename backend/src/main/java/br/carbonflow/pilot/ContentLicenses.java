@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -38,12 +39,18 @@ class ContentLicenses {
 
     record SubmitInput(String sourceId, String edition, String purpose, String authorizationRef, String proofSha256,
                        String startsAt, String endsAt) {}
+    record OperationGround(String operation, String groundKind, String grounds) {}
+    record DeclarePublicInput(String sourceId, String edition, String purpose, String licenseIdentifier,
+                              String legalTextSha256, String evidenceUri, String evidenceCapturedAt,
+                              String evidenceSha256, String startsAt, String startsAtBasis, String endsAt,
+                              String reason, List<OperationGround> operations) {}
     record DecisionInput(String outcome, String reason, List<String> operations) {}
     record RevokeInput(String reason) {}
     record License(UUID id, String sourceId, String edition, String purpose, String authorizationRef,
                    String proofSha256, OffsetDateTime startsAt, OffsetDateTime endsAt, UUID submittedBy,
                    int decisionVersion, String state, UUID decidedBy, OffsetDateTime decidedAt, String reason,
-                   List<String> operations, String limits) {}
+                   List<String> operations, String limits, String kind, String licenseIdentifier,
+                   String startsAtBasis, String decisionBasis) {}
 
     private static final String LIMITS = "Registro de autorização declarada, em ambiente de testes. O documento não é "
             + "verificado nem guardado aqui; a decisão independente não habilita cálculo, admissão de dados nem atos externos.";
@@ -52,14 +59,17 @@ class ContentLicenses {
     private final ComplianceStaff staff;
     private final Set<UUID> submitters;
     private final Set<UUID> approvers;
+    private final Set<UUID> owners;
 
     ContentLicenses(PilotDatabase database, ComplianceStaff staff,
             @ConfigProperty(name = "carbonflow.platform.content-licenses.submitters") Optional<String> submitters,
-            @ConfigProperty(name = "carbonflow.platform.content-licenses.approvers") Optional<String> approvers) {
+            @ConfigProperty(name = "carbonflow.platform.content-licenses.approvers") Optional<String> approvers,
+            @ConfigProperty(name = "carbonflow.platform.content-licenses.owners") Optional<String> owners) {
         this.database = database;
         this.staff = staff;
         this.submitters = roster(submitters);
         this.approvers = roster(approvers);
+        this.owners = roster(owners);
     }
 
     private static Set<UUID> roster(Optional<String> value) {
@@ -105,6 +115,71 @@ class ContentLicenses {
                     """, id, input.sourceId().strip(), input.edition().strip(), actor.id(), input.purpose(),
                     input.authorizationRef().strip(), input.proofSha256(), starts, ends);
             ComplianceStaff.audit(c, actor.id(), null, "SUBMIT_CONTENT_LICENSE");
+            return load(c, id).get(0);
+        });
+    }
+
+    /**
+     * D19 extended to licences: the product owner records a PUBLIC licence (e.g. CC BY-ND 3.0) with verifiable evidence as an
+     * internal declaration. It is NOT an approval: the decision is DECLARED_INTERNAL, which no consumer accepts, and an
+     * independent approver (not the person who declared) must still approve it. Each claimed operation states whether the
+     * licence text grants it or whether it is a legal interpretation; operations the licence does not cover are refused.
+     */
+    License declarePublic(String token, DeclarePublicInput input) {
+        return database.transaction(c -> {
+            var actor = staff.require(c, token);
+            if (!owners.contains(actor.id())) throw hidden();
+            if (input == null || blank(input.sourceId(), 120) || blank(input.edition(), 60) || input.purpose() == null
+                    || !PURPOSES.contains(input.purpose()) || input.licenseIdentifier() == null
+                    || blank(input.evidenceUri(), 500) || !input.evidenceUri().strip().startsWith("https://")
+                    || blank(input.reason(), 1000) || input.reason().strip().length() < 10
+                    || input.legalTextSha256() == null || !input.legalTextSha256().matches("[a-f0-9]{64}")
+                    || input.evidenceSha256() == null || !input.evidenceSha256().matches("[a-f0-9]{64}")
+                    || input.operations() == null || input.operations().isEmpty()) throw invalid("licenca");
+            var terms = PublicLicenses.KNOWN.get(input.licenseIdentifier());
+            if (terms == null) throw new PilotProblem(422, "LICENCA_PUBLICA_DESCONHECIDA", "licenseIdentifier", RULE,
+                    "Só licenças públicas modeladas pela plataforma podem ser declaradas.");
+            OffsetDateTime captured = time(input.evidenceCapturedAt(), "evidenceCapturedAt");
+            OffsetDateTime starts = time(input.startsAt(), "startsAt");
+            OffsetDateTime ends = input.endsAt() == null || input.endsAt().isBlank() ? null : time(input.endsAt(), "endsAt");
+            String basis = input.startsAtBasis();
+            // The start is never earlier than what the evidence proves: capture date unless availability is proven.
+            if (!Set.of("CAPTURE_DATE", "PROVEN_AVAILABILITY").contains(basis)
+                    || ("CAPTURE_DATE".equals(basis) && !starts.isEqual(captured))
+                    || ("PROVEN_AVAILABILITY".equals(basis) && starts.isAfter(captured))
+                    || (ends != null && !ends.isAfter(starts))) throw invalid("startsAt");
+            var chosen = new TreeMap<String, OperationGround>();
+            for (var item : input.operations()) {
+                if (item == null || item.operation() == null || !OPERATIONS.contains(item.operation())
+                        || item.groundKind() == null || !Set.of("LICENSE_GRANT", "LEGAL_INTERPRETATION").contains(item.groundKind())
+                        || item.grounds() == null || item.grounds().strip().length() < 20 || item.grounds().strip().length() > 2000
+                        || chosen.put(item.operation(), item) != null) throw invalid("operations");
+                if (terms.refused().contains(item.operation()))
+                    throw new PilotProblem(422, "OPERACAO_FORA_DA_LICENCA", "operations", RULE,
+                            "A licença não cobre " + item.operation() + " (" + terms.basis() + ").");
+                if (item.groundKind().equals("LICENSE_GRANT") && !terms.granted().contains(item.operation()))
+                    throw new PilotProblem(422, "FUNDAMENTO_NAO_E_CLAUSULA", "operations", RULE,
+                            item.operation() + " não consta da concessão da licença; declare-a como interpretação jurídica.");
+            }
+            Boolean exists = first(c, "SELECT true FROM app_source_version WHERE source_id=? AND edition=? AND origin<>'PROJECT'",
+                    r -> r.getBoolean(1), input.sourceId().strip(), input.edition().strip());
+            if (exists == null) throw new PilotProblem(422, "FONTE_INEXISTENTE", "sourceId", RULE,
+                    "Registre antes os metadados da fonte e da edição.");
+            UUID id = UUID.randomUUID();
+            update(c, """
+                    INSERT INTO app_content_license(id,source_id,edition,submitted_by,environment,purpose,authorization_ref,
+                        proof_sha256,starts_at,ends_at,kind,license_identifier,legal_text_uri,legal_text_sha256,evidence_uri,
+                        evidence_captured_at,starts_at_basis)
+                    VALUES (?,?,?,?,'SANDBOX',?,?,?,?,?,'PUBLIC_LICENSE',?,?,?,?,?,?)
+                    """, id, input.sourceId().strip(), input.edition().strip(), actor.id(), input.purpose(),
+                    "Licença pública " + terms.identifier() + " · captura " + input.evidenceUri().strip(),
+                    input.evidenceSha256(), starts, ends, terms.identifier(), terms.legalTextUri(),
+                    input.legalTextSha256(), input.evidenceUri().strip(), captured, basis);
+            insertDecision(c, id, 1, "DECLARED_INTERNAL", actor.id(), input.reason().strip(), chosen.keySet());
+            for (var item : chosen.values())
+                update(c, "INSERT INTO app_content_license_declared_ground(license_id,decision_version,operation,ground_kind,grounds) VALUES (?,?,?,?,?)",
+                        id, 1, item.operation(), item.groundKind(), item.grounds().strip());
+            ComplianceStaff.audit(c, actor.id(), null, "DECLARE_PUBLIC_CONTENT_LICENSE");
             return load(c, id).get(0);
         });
     }
@@ -183,7 +258,8 @@ class ContentLicenses {
                        l.submitted_by, d.version, d.outcome, d.decided_by, d.decided_at, d.reason,
                        COALESCE((SELECT string_agg(cap.operation,',' ORDER BY cap.operation)
                                  FROM app_content_license_capability cap
-                                 WHERE cap.license_id=l.id AND cap.decision_version=d.version),'')
+                                 WHERE cap.license_id=l.id AND cap.decision_version=d.version),''),
+                       l.kind, l.license_identifier, l.starts_at_basis
                 FROM app_content_license l
                 LEFT JOIN LATERAL (SELECT version,outcome,decided_by,decided_at,reason FROM app_content_license_decision
                                    WHERE license_id=l.id ORDER BY version DESC LIMIT 1) d ON true
@@ -195,12 +271,14 @@ class ContentLicenses {
                         r.getObject(8, OffsetDateTime.class), r.getObject(9, UUID.class), r.getInt(10),
                         r.getString(11) == null ? "PENDING" : r.getString(11), r.getObject(12, UUID.class),
                         r.getObject(13, OffsetDateTime.class), r.getString(14),
-                        r.getString(15).isEmpty() ? List.<String>of() : List.of(r.getString(15).split(",")), LIMITS),
+                        r.getString(15).isEmpty() ? List.<String>of() : List.of(r.getString(15).split(",")), LIMITS,
+                        r.getString(16), r.getString(17), r.getString(18),
+                        "DECLARED_INTERNAL".equals(r.getString(11)) ? "OWNER_INTERNAL" : r.getString(11) == null ? null : "INDEPENDENT"),
                 only, only);
     }
 
     private void requireAny(ComplianceStaff.Staff actor) {
-        if (!submitters.contains(actor.id()) && !approvers.contains(actor.id())) throw hidden();
+        if (!submitters.contains(actor.id()) && !approvers.contains(actor.id()) && !owners.contains(actor.id())) throw hidden();
     }
 
     private static boolean blank(String value, int max) {

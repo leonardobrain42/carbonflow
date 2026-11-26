@@ -1,0 +1,21 @@
+{
+  "note": "Corpo pronto para POST /v1/platform/source-licenses/public pelo responsável do produto (rol 'owners'). Todos os valores vêm de docs/data/evidence/mcti-license-capture.json. Nenhum número de ofício, protocolo, data de concessão ou prazo foi inventado: não há prazo fixo e o início é a captura.",
+  "sourceId": "MCTI-SIN-DESPACHO",
+  "edition": "2026-janout-7f8e2292",
+  "purpose": "AUTHORIZED_PROCESSING",
+  "licenseIdentifier": "CC-BY-ND-3.0",
+  "legalTextSha256": "f38359a4f5241e61cf1a98c0974cdc0062ddbfd6fd5892f7af961ce5228ad2f5",
+  "evidenceUri": "https://www.gov.br/mcti/pt-br/acompanhe-o-mcti/sirene/dados-e-ferramentas/fatores-de-emissao",
+  "evidenceCapturedAt": "2026-11-25T23:44:00Z",
+  "evidenceSha256": "3fea84750d0ec85b13edbff725c19d04458cffaf7b1288b58cb24881b8f860b4",
+  "startsAt": "2026-11-25T23:44:00Z",
+  "startsAtBasis": "CAPTURE_DATE",
+  "endsAt": null,
+  "reason": "Rodapé do site do MCTI declara todo o conteúdo sob CC BY-ND 3.0; captura e texto jurídico preservados por SHA-256.",
+  "operations": [
+    {"operation": "REFERENCE_REQUIREMENT", "groundKind": "LICENSE_GRANT", "grounds": "Cláusula 3: reproduzir a obra e distribuí-la com atribuição (cláusula 4); citar a fonte não exige direito adicional."},
+    {"operation": "STORE_ORIGINAL", "groundKind": "LICENSE_GRANT", "grounds": "Cláusula 3: direito de Reproduzir a Obra, em todos os meios e formatos, mantidos os avisos e a atribuição (cláusula 4)."},
+    {"operation": "SHOW_EXCERPTS", "groundKind": "LICENSE_GRANT", "grounds": "Cláusula 3: Distribuir e Executar publicamente a Obra, com atribuição ao MCTI (cláusula 4(b)); sem alterar o conteúdo exibido."},
+    {"operation": "EXTRACT_TEXT", "groundKind": "LEGAL_INTERPRETATION", "grounds": "Valores numéricos como dados em si: Lei 9.610/1998, art. 7º, §2º (a proteção de bases não abarca os dados); e modificações tecnicamente necessárias de formato (cláusula 3). Interpretação a confirmar de forma independente."}
+  ]
+}

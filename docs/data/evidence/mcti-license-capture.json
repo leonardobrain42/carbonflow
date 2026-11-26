@@ -1,0 +1,34 @@
+{
+  "schema": "cf.public-license-evidence/1",
+  "capturedOn": "2026-11-25",
+  "note": "Registro da evidência. A captura integral da página (HTML do gov.br) e a planilha ficam fora do Git, preservadas pelo SHA-256; aqui só vão a identificação e o trecho do aviso de licença.",
+  "page": {
+    "uri": "https://www.gov.br/mcti/pt-br/acompanhe-o-mcti/sirene/dados-e-ferramentas/fatores-de-emissao",
+    "sha256OfSavedHtml": "3fea84750d0ec85b13edbff725c19d04458cffaf7b1288b58cb24881b8f860b4",
+    "capturedAt": "2026-11-25T23:44:00Z",
+    "capturedAtNote": "horário aproximado: o arquivo foi salvo às 20:44 no fuso do computador (UTC-3); a página não traz data de publicação do aviso",
+    "licenseNotice": "Todo o conteúdo deste site está publicado sob a licença Creative Commons Atribuição-SemDerivações 3.0 Não Adaptada.",
+    "licenseNoticeLink": "https://creativecommons.org/licenses/by-nd/3.0/deed.pt_BR"
+  },
+  "legalText": {
+    "uri": "https://creativecommons.org/licenses/by-nd/3.0/legalcode",
+    "sha256OfSavedHtml": "f38359a4f5241e61cf1a98c0974cdc0062ddbfd6fd5892f7af961ce5228ad2f5",
+    "clauses": {
+      "1_Adaptation": "obra baseada na Obra (tradução, adaptação, obra derivada, outras alterações); uma Coletânea não é Adaptação",
+      "3_License_Grant": "licença mundial, sem royalties, não exclusiva e perpétua para Reproduzir a Obra, incorporá-la em Coletâneas, Distribuir e Executar publicamente; \"os direitos acima incluem o direito de fazer as modificações tecnicamente necessárias para exercer os direitos em outros meios e formatos\"; direitos não concedidos expressamente ficam reservados",
+      "4_Restrictions": "manter avisos, creditar o autor original, não sublicenciar"
+    }
+  },
+  "workbook": {
+    "uri": "https://www.gov.br/mcti/pt-br/acompanhe-o-mcti/sirene/dados-e-ferramentas/fatores-de-emissao/arquivo/Despacho_2026_janout.xlsx",
+    "sha256": "7f8e2292d12f3c283258ac401b3770042907c39520aaaea1c105589c87f784fe",
+    "sizeBytes": 65683,
+    "edition": "2026-janout-7f8e2292",
+    "note": "o servidor não enviou Last-Modified; a data de publicação da planilha não é conhecida; o MCTI republica arquivos corrigidos com o mesmo nome, por isso o hash faz parte da edição"
+  },
+  "lawCheck": {
+    "uri": "https://www2.camara.leg.br/legin/fed/lei/1998/lei-9610-19-fevereiro-1998-365399-normaatualizada-pl.html",
+    "sha256OfSavedHtml": "8c5ce400de169f6578ebc579eaed3a497fe89205b8f4c4b81c3ae20a45a9eb69",
+    "art7_par2": "A proteção concedida no inciso XIII não abarca os dados ou materiais em si mesmos e se entende sem prejuízo de quaisquer direitos autorais que subsistam a respeito dos dados ou materiais contidos nas obras."
+  }
+}

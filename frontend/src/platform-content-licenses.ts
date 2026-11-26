@@ -17,12 +17,16 @@ interface LicenseItem {
   endsAt: string | null;
   submittedBy: string;
   decisionVersion: number;
-  state: 'PENDING' | 'APPROVED' | 'DENIED' | 'REVOKED';
+  state: 'PENDING' | 'DECLARED_INTERNAL' | 'APPROVED' | 'DENIED' | 'REVOKED';
   decidedBy: string | null;
   decidedAt: string | null;
   reason: string | null;
   operations: string[];
   limits: string;
+  kind: 'PARTICULAR_AUTHORIZATION' | 'PUBLIC_LICENSE';
+  licenseIdentifier: string | null;
+  startsAtBasis: string;
+  decisionBasis: 'OWNER_INTERNAL' | 'INDEPENDENT' | null;
 }
 
 interface Form {sourceId: string; edition: string; purpose: string; authorizationRef: string; proofSha256: string;
@@ -48,7 +52,7 @@ const PURPOSES: Record<string, string> = {
   AUTHORIZED_PROCESSING: 'Processamento autorizado',
 };
 const STATES: Record<string, string> = {
-  PENDING: 'Aguardando decisão', APPROVED: 'Aprovada', DENIED: 'Negada', REVOKED: 'Revogada',
+  PENDING: 'Aguardando decisão', DECLARED_INTERNAL: 'Declarada internamente pelo responsável (sem aprovação independente)', APPROVED: 'Aprovada', DENIED: 'Negada', REVOKED: 'Revogada',
 };
 
 /**
@@ -78,6 +82,14 @@ export class PlatformContentLicensesComponent {
   /** The licence being decided or revoked, and what the person is doing with it. */
   readonly acting = signal<{id: string; mode: 'DECIDE' | 'REVOKE'} | null>(null);
   readonly chosen = signal<string[]>([]);
+  /** Public licence declared by the product owner: each operation states whether a clause grants it or it is an interpretation. */
+  readonly publicForm = signal<Record<string, string>>({sourceId: '', edition: '', licenseIdentifier: 'CC-BY-ND-3.0', legalTextSha256: '',
+    evidenceUri: '', evidenceCapturedAt: '', evidenceSha256: '', startsAt: '', startsAtBasis: 'CAPTURE_DATE', reason: ''});
+  readonly publicOps = signal<Record<string, {on: boolean; kind: string; grounds: string}>>({
+    REFERENCE_REQUIREMENT: {on: false, kind: 'LICENSE_GRANT', grounds: ''}, STORE_ORIGINAL: {on: false, kind: 'LICENSE_GRANT', grounds: ''},
+    SHOW_EXCERPTS: {on: false, kind: 'LICENSE_GRANT', grounds: ''}, EXTRACT_TEXT: {on: false, kind: 'LEGAL_INTERPRETATION', grounds: ''},
+    EXPORT_DERIVATIVES: {on: false, kind: 'LEGAL_INTERPRETATION', grounds: ''}});
+  readonly publicOpKeys = ['REFERENCE_REQUIREMENT', 'STORE_ORIGINAL', 'SHOW_EXCERPTS', 'EXTRACT_TEXT', 'EXPORT_DERIVATIVES'];
   readonly unlocked = computed(() => {
     if (this.denied()) return false;
     const session = this.session();
@@ -89,6 +101,12 @@ export class PlatformContentLicensesComponent {
   stateLabel(item: LicenseItem): string { return STATES[item.state] ?? item.state; }
   purposeLabel(item: LicenseItem): string { return PURPOSES[item.purpose] ?? item.purpose; }
   operationLabel(value: string): string { return OPERATIONS.find(o => o.value === value)?.label ?? value; }
+  publicOpLabel(key: string): string {
+    return ({REFERENCE_REQUIREMENT: 'Citar a fonte como referência', STORE_ORIGINAL: 'Guardar a cópia original',
+      SHOW_EXCERPTS: 'Mostrar trechos com atribuição', EXTRACT_TEXT: 'Extrair valores da planilha',
+      EXPORT_DERIVATIVES: 'Redistribuir derivados'} as Record<string, string>)[key] ?? key;
+  }
+  basisLabel(item: LicenseItem): string { return item.decisionBasis === 'OWNER_INTERNAL' ? 'declaração interna do responsável' : item.decisionBasis === 'INDEPENDENT' ? 'decisão independente' : ''; }
   shortHash(item: LicenseItem): string { return item.proofSha256.slice(0, 12); }
 
   private async loadSession() {
@@ -141,6 +159,45 @@ export class PlatformContentLicensesComponent {
 
   edit(field: keyof Form, event: Event) {
     this.form.update(current => ({...current, [field]: (event.target as HTMLInputElement).value}));
+  }
+
+  editPublic(field: string, event: Event) {
+    const value = (event.target as HTMLInputElement).value;
+    this.publicForm.update(current => ({...current, [field]: value}));
+  }
+
+  editPublicOp(operation: string, field: 'on' | 'kind' | 'grounds', event: Event) {
+    const target = event.target as HTMLInputElement;
+    this.publicOps.update(current => ({...current, [operation]: {...current[operation],
+      [field]: field === 'on' ? target.checked : target.value}}));
+  }
+
+  async declarePublic(event: Event) {
+    event.preventDefault();
+    if (this.saving()) return;
+    const f = this.publicForm();
+    const operations = this.publicOpKeys.filter(key => this.publicOps()[key].on)
+      .map(key => ({operation: key, groundKind: this.publicOps()[key].kind, grounds: this.publicOps()[key].grounds.trim()}));
+    this.saving.set(true);
+    this.error.set('');
+    this.feedback.set('');
+    try {
+      await firstValueFrom(this.http.post<LicenseItem>(this.api + '/public', {
+        sourceId: f['sourceId'].trim(), edition: f['edition'].trim(), purpose: 'AUTHORIZED_PROCESSING',
+        licenseIdentifier: f['licenseIdentifier'], legalTextSha256: f['legalTextSha256'].trim().toLowerCase(),
+        evidenceUri: f['evidenceUri'].trim(), evidenceCapturedAt: f['evidenceCapturedAt'].trim(),
+        evidenceSha256: f['evidenceSha256'].trim().toLowerCase(), startsAt: f['startsAt'].trim(),
+        startsAtBasis: f['startsAtBasis'], endsAt: null, reason: f['reason'].trim(), operations}));
+      this.feedback.set('Licença pública declarada internamente. Ela ainda precisa de aprovação independente para valer como aprovada.');
+      await this.load();
+    } catch (reason) {
+      const code = reason instanceof HttpErrorResponse ? reason.error?.code : null;
+      this.error.set(code === 'OPERACAO_FORA_DA_LICENCA' ? 'A licença não cobre uma das operações marcadas.'
+        : code === 'FUNDAMENTO_NAO_E_CLAUSULA' ? 'Uma operação marcada como cláusula não consta da concessão da licença: declare-a como interpretação jurídica.'
+        : this.message(reason, 'Não foi possível declarar a licença pública.'));
+    } finally {
+      this.saving.set(false);
+    }
   }
 
   async submit(event: Event) {

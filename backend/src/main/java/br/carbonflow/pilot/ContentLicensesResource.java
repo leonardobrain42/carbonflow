@@ -36,6 +36,15 @@ public class ContentLicensesResource {
     }
 
     @POST
+    @Path("/public")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response declarePublic(@CookieParam(AccountAccess.COOKIE) String token, ContentLicenses.DeclarePublicInput input) {
+        var saved = licenses.declarePublic(token, input);
+        return Response.status(201).entity(saved).header("ETag", "\"" + saved.decisionVersion() + "\"")
+                .header("Cache-Control", "private, no-store").build();
+    }
+
+    @POST
     @Path("/{id}/decision")
     @Consumes(MediaType.APPLICATION_JSON)
     public Response decide(@CookieParam(AccountAccess.COOKIE) String token, @PathParam("id") UUID id,
