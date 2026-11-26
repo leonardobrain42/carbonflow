@@ -5,7 +5,7 @@
 ## Estado por etapa (fase 1: infraestrutura e dados nacionais)
 | Etapa | Issue | Estado verificado no repositório | Falta |
 |---|---|---|---|
-| 1. Licenças e operação individual | #92 | D19 e decisão interna do responsável (V109); licenças administráveis (V107) | **Registrar a autorização do MCTI** (fonte, edição, operações, vigência, comprovante); **matriz de permissões dos registros de carbono** |
+| 1. Licenças e operação individual | #92 | D19 e decisão interna do responsável (V109); licenças administráveis (V107); **matriz de permissões dos registros (rc.76, ACR e Gold Standard lidas)**; mapeamento do MCTI ao módulo de licenças | **Registro efetivo da autorização do MCTI** (faltam: ato, SHA-256 do comprovante, vigência, edição, operações cobertas); termos de Verra, UNFCCC, CAR e CAD Trust (leitura bloqueada ou não localizada) |
 | 2. Catálogo de veículos e aliases | #94 | Fila de candidatos, decisão interna, classificação com histórico, tela, pipeline offline (rc.60 a rc.70) | Cadastro real a partir de decisões, quando houver arquivo |
 | 3. EVR nacional | #94 | Estrutura e prévia; amostra Senatran | **Dado nacional e total oficial** (G03); depende de dado real |
 | 4. Ratings PBEV e comparáveis | #95 | Base existente (V49) e extrator offline | Revisão de comparáveis; gasolina C como combustível comparável candidato |

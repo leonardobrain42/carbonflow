@@ -1,0 +1,48 @@
+{
+  "schema": "cf.registry-permissions/1",
+  "generatedOn": "2026-11-25",
+  "note": "Matriz por operação. Acesso público não é licença. Só 'ALLOWED', 'CONDITIONAL' e 'PROHIBITED' têm trecho de termos lido na fonte primária; o resto é 'UNDETERMINED' e bloqueia somente aquela operação. Não é parecer jurídico.",
+  "operations": ["CONSULT", "STORE", "EXTRACT_MANUAL", "EXTRACT_AUTOMATED", "PROCESS", "EXPORT", "REDISTRIBUTE", "COMMERCIAL_USE"],
+  "registries": [
+    {
+      "id": "ACR",
+      "name": "American Carbon Registry (ACR) / ICE GreenTrace",
+      "termsUrl": "https://acrcarbon.org/terms-of-use/",
+      "readState": "PRIMARY_READ",
+      "retrievedOn": "2026-11-25",
+      "termsDate": "não consta no texto lido",
+      "permissions": {
+        "CONSULT": {"status": "ALLOWED", "basis": "licença não exclusiva, intransferível e revogável para acessar e usar os sites e o conteúdo \"unicamente para fins informativos\"", "conditions": ["fins informativos"]},
+        "STORE": {"status": "UNDETERMINED", "basis": "o texto proíbe armazenar, modificar, reproduzir, transmitir ou distribuir conteúdo sem consentimento escrito prévio, e ao mesmo tempo permite reproduzir dados de relatórios públicos: a leitura é ambígua", "conditions": ["pedir consentimento escrito à ACR antes de manter cópia"]},
+        "EXTRACT_MANUAL": {"status": "CONDITIONAL", "basis": "permite usar informação e dados dos relatórios públicos para adaptação, reprodução ou obras derivadas, desde que representados com exatidão, citados e sem uso enganoso, injusto ou discriminatório", "conditions": ["citar a fonte", "representar com exatidão", "sem uso enganoso ou discriminatório"]},
+        "EXTRACT_AUTOMATED": {"status": "PROHIBITED", "basis": "proíbe \"text or data mining or crawling, screen scraping\"", "conditions": []},
+        "PROCESS": {"status": "CONDITIONAL", "basis": "mesma cláusula de adaptação e obra derivada dos relatórios públicos", "conditions": ["citar a fonte", "representar com exatidão"]},
+        "EXPORT": {"status": "UNDETERMINED", "basis": "proíbe transmitir e distribuir conteúdo sem consentimento, mas permite reprodução de dados públicos citados", "conditions": ["consentimento escrito para o que for além de dado de relatório público citado"]},
+        "REDISTRIBUTE": {"status": "PROHIBITED", "basis": "proíbe distribuição, revenda e sublicença do conteúdo sem consentimento escrito", "conditions": []},
+        "COMMERCIAL_USE": {"status": "PROHIBITED", "basis": "proíbe \"other commercial exploitation of the Websites, ACR Content, or parts thereof\"", "conditions": ["consentimento escrito para qualquer exceção"]}
+      }
+    },
+    {
+      "id": "GOLD_STANDARD",
+      "name": "Gold Standard (GSF), inclui registry.goldstandard.org",
+      "termsUrl": "https://www.goldstandard.org/terms-and-conditions",
+      "readState": "PRIMARY_READ",
+      "retrievedOn": "2026-11-25",
+      "termsDate": "não consta no texto lido",
+      "permissions": {
+        "CONSULT": {"status": "UNDETERMINED", "basis": "o texto lido diz que o acesso ao site é temporário e não define uso do conteúdo do registro", "conditions": []},
+        "STORE": {"status": "UNDETERMINED", "basis": "não declarado no trecho lido (propriedade intelectual permanece com a GSF)", "conditions": []},
+        "EXTRACT_MANUAL": {"status": "UNDETERMINED", "basis": "não declarado no trecho lido", "conditions": []},
+        "EXTRACT_AUTOMATED": {"status": "PROHIBITED", "basis": "cláusula 3 proíbe usar o site e os serviços para \"spider, crawl, or scrape\"", "conditions": []},
+        "PROCESS": {"status": "UNDETERMINED", "basis": "não declarado no trecho lido", "conditions": []},
+        "EXPORT": {"status": "UNDETERMINED", "basis": "não declarado no trecho lido", "conditions": []},
+        "REDISTRIBUTE": {"status": "UNDETERMINED", "basis": "o acordo não transfere propriedade intelectual; não há licença de redistribuição no trecho lido", "conditions": []},
+        "COMMERCIAL_USE": {"status": "UNDETERMINED", "basis": "não declarado no trecho lido", "conditions": []}
+      }
+    },
+    {"id": "VERRA", "name": "Verra Registry", "termsUrl": "https://verra.org/documents/verra-registry-terms-of-use/", "readState": "NOT_READ", "retrievedOn": "2026-11-25", "termsDate": "versões de 2021, out/2024 e jul/2026 listadas em busca", "unreadReason": "o servidor devolveu HTTP 403 a clientes automatizados; apenas resultados de busca (secundários) foram vistos: nenhum trecho sobre automação ou reutilização", "permissions": {}},
+    {"id": "UNFCCC", "name": "UNFCCC / CDM", "termsUrl": "https://unfccc.int/terms-of-use", "readState": "NOT_READ", "retrievedOn": "2026-11-25", "termsDate": "desconhecida", "unreadReason": "bloqueio Incapsula a clientes automatizados; a busca (secundária) indica reprodução só com permissão escrita do secretariado, sem tratar dos dados do registro do CDM", "permissions": {}},
+    {"id": "CAR", "name": "Climate Action Reserve", "termsUrl": "https://vcmintegrity.org/wp-content/uploads/2023/09/Final-TOU-7.26.2023_.pdf", "readState": "NOT_READ", "retrievedOn": "2026-11-25", "termsDate": "26/07/2023 (segundo o nome do arquivo, hospedado por terceiro)", "unreadReason": "os endereços de termos no domínio da CAR deram 404 e o PDF de terceiro não foi aberto; o texto oficial vigente não foi localizado", "permissions": {}},
+    {"id": "CAD_TRUST", "name": "Climate Action Data Trust", "termsUrl": "https://climateactiondata.org/terms/", "readState": "NOT_READ", "retrievedOn": "2026-11-25", "termsDate": "08/12/2023 (título da página)", "unreadReason": "a página só exibe um aviso de aceitação; o texto dos termos de usuário e dos registros conectados não foi recuperado", "permissions": {}}
+  ]
+}

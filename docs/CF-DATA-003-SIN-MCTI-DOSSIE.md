@@ -77,6 +77,17 @@ Lida a [página oficial de fatores de emissão](https://www.gov.br/mcti/pt-br/ac
 - Para (não adivinha) se a sequência dia/hora quebra, se o ano difere do informado ou se o marcador da tabela não é único. Valores em dia inexistente, não numéricos ou negativos viram anomalias listadas, nunca importadas. Meses sem valores saem `NOT_PUBLISHED`; incompletos, `PARTIAL`.
 - **Verificação em dado real, sem versionar nada:** a edição 2026 baixada localmente tem a aba `MDL`, 52 linhas de cabeçalho, 304 dias completos (jan a out; 7296 registros), 0 anomalias, nov e dez `NOT_PUBLISHED`. É só leitura estrutural: **não** valida valores, fuso nem convenção; essas respostas dependem da consulta ao MCTI (CF-DATA-003-CONSULTA-MCTI).
 
+## 5.2 Registro da autorização do MCTI no módulo de licenças (roteiro #124, PR 1; rc.76)
+**Declaração do responsável (rodada 2 da D19):** existe autorização para usar dados do MCTI. **Autorização de uso não é admissibilidade metodológica**: `usableForE8` continua falso até os gates.
+O módulo de licenças (V107, `/platform/licenses`) já comporta o registro **sem mudança de código ou de vocabulário**: fonte e edição em `app_source_version` (metadados, sem bytes), submissão por quem está no rol de submissores e **decisão por outra pessoa** do rol de aprovadores (dupla custódia). O mapeamento das operações pretendidas para o vocabulário existente:
+| Pretendido | Operação do módulo | Finalidade |
+|---|---|---|
+| baixar e guardar as planilhas | `STORE_ORIGINAL` | `AUTHORIZED_PROCESSING` |
+| importar a série horária e persistir no PostgreSQL | `EXTRACT_TEXT` (extração do conteúdo tabular) | `AUTHORIZED_PROCESSING` |
+| exibir nas telas administrativas | `SHOW_EXCERPTS` | `AUTHORIZED_PROCESSING` |
+| derivados normalizados para o catálogo elétrico e o E8 | `EXPORT_DERIVATIVES` | `AUTHORIZED_PROCESSING` |
+**Faltam, e só o responsável tem** (não invento nenhum): (1) a identificação do ato de autorização (`authorizationRef`, mín. 3 caracteres); (2) o **SHA-256 do comprovante** (o arquivo em si não é guardado); (3) a **vigência** (início e, se houver, fim); (4) a **edição** da fonte (o nome do conjunto e o ano, por exemplo o da planilha de 2026 que o importador leu); (5) quais das operações acima a autorização cobre. Com isso o registro é feito pela tela de licenças em minutos. **Bloqueio, por tipo:** dados/processamento (ingestão persistente da série, PR 2) fica bloqueado **só** até esse registro; desenvolvimento não está bloqueado.
+
 ## 6. Não coberto
 - Das planilhas do MCTI, só a **estrutura** da de Despacho 2026 foi inspecionada; os demais anos, o fuso e a validade das correções não. A margem de construção de 2026 ainda não foi publicada pela própria planilha.
 - **Licença do ONS:** o portal de dados abertos do ONS ([dados.ons.org.br](https://dados.ons.org.br/about)) declara "Livres de Licença" e, no conjunto `carga-energia`, a licença "Creative Commons Atribuição" (CC-BY), com crédito ao ONS e dados "como estão". **Só esse conjunto foi lido**; não se sabe quais conjuntos do ONS alimentam o fator do MCTI nem se os de geração/despacho têm o mesmo aviso. A licença do MCTI sobre o fator publicado segue desconhecida.
