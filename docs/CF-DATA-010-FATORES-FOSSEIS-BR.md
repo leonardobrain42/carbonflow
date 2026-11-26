@@ -41,3 +41,5 @@ IPCC 2019: o Cap. 3 (combustão móvel) não foi refinado, então a Tabela 3.2.1
 4. Tolerância de ±1 p.p. no teor (art. 3º) e CH₄/N₂O da gasolina C não aplicados; `CO2_CH4_N2O` segue não resolvida (teste cobre).
 5. **Revisão humana `OWNER_INTERNAL`** pendente (ato seu, na tela do catálogo); não há revisão independente.
 6. Os fatores da EPE citam ANP (2018) como origem do CO₂ fóssil; a edição de 2025 do ANP/RenovaCalc não foi lida.
+
+Roteiro passo a passo da revisão interna: [CF-DATA-010-ROTEIRO-REVISAO](CF-DATA-010-ROTEIRO-REVISAO.md) (gerado do seed).
