@@ -43,6 +43,12 @@ class SeedTest(unittest.TestCase):
         self.assertEqual(Decimal(compared[0]["ipccValue"]), Decimal("69300") * Decimal("44.3") / 1000)
         self.assertIn("sem refinamento em 2019", compared[0]["ipccReference"])
 
+    def test_epe_license_is_recorded_with_its_scope_and_evidence(self):
+        lic = SEED["documents"]["EPE"]["license"]
+        self.assertIn("CC BY 4.0", lic["notice"])
+        self.assertIn("não verificadas", lic["scope"])
+        self.assertRegex(lic["evidenceSha256"], r"^[0-9a-f]{64}$")
+
     def test_sources_are_primary_documents_that_were_read(self):
         self.assertEqual({e["readState"] for e in SEED["entries"]}, {"PRIMARY_READ"})
         self.assertTrue(all("AEA" not in e["evidenceSource"] for e in SEED["entries"]))

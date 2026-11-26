@@ -19,7 +19,9 @@ RETRIEVED = "2026-11-26"
 DOCS = {
     "EPE": {"title": "EPE, Nota Técnica EPE/DPG/SDB/2025/03: intensidade de carbono das fontes de energia do transporte rodoviário (tabelas A 2 e 2 reproduzem ANP 2018/2024, EPE 2025a e RenovaCalc)",
             "url": "https://www.epe.gov.br/sites-pt/publicacoes-dados-abertos/publicacoes/PublicacoesArquivos/publicacao-708/topico-770/NT-EPE-DPG-SDB-2025-03_Intensidade_de_Carbono_Transporte_Rodovi%C3%A1rio.pdf",
-            "sha256": "e51133b4dd5b288923f2f1a6f6784718d6646ea7fa89aa7648182ebb2bc9455d", "readState": "PRIMARY_READ"},
+            "sha256": "e51133b4dd5b288923f2f1a6f6784718d6646ea7fa89aa7648182ebb2bc9455d", "readState": "PRIMARY_READ",
+            "license": {"notice": "CC BY 4.0 (Atribuição 4.0 Internacional)", "scope": "aviso do portal da EPE, rodapé da página da própria publicação; condições específicas do PDF não verificadas",
+                        "evidence": "captura de tela de 26/11/2026 fornecida pelo responsável", "evidenceSha256": "2c849e781ec7de3bcd1550aefe232d6189bb05322ce78800c5a8b217e2f683d0"}},
     "ANP": {"title": "ANP, Fatores de conversão, densidades e poderes caloríficos inferiores, valores médios de 2025 (fonte: EPE/Balanço Energético Nacional)",
             "url": "https://www.gov.br/anp/pt-br/centrais-de-conteudo/publicacoes/anuario-estatistico/arquivos-anuario-estatistico-2026/outras-pecas-documentais/fatores-de-conversao-2026.pdf",
             "sha256": "cf7c9a5ba2b10ab703628150f93c8504713ed4b69678da970524c1ce19594854", "readState": "PRIMARY_READ"},
