@@ -1,0 +1,278 @@
+{
+ "schema": "cf.vt0011-tool07-conformance/1",
+ "generatedOn": "2026-11-26",
+ "scope": "Série horária do SIN (MCTI) como candidata a EFel de VM0038 v1.1, caso 2 (aumento de consumo da rede), fronteira CO2_ONLY",
+ "notice": "Esta matriz mapeia requisito, evidência e lacuna. Nenhuma linha afirma conformidade ou admissão; IMPLEMENTED significa que a plataforma tem a estrutura, não que a fonte seja elegível.",
+ "statuses": [
+  "IMPLEMENTED",
+  "PARTIAL",
+  "GAP",
+  "NOT_EVALUATED",
+  "CANNOT_DETERMINE"
+ ],
+ "sources": {
+  "VM0038": {
+   "title": "VM0038 Electric Vehicle Charging Systems v1.1",
+   "sha256": "f1fe37b1da061359ae44a8bfb97247076198da7e58881c05f90c9f563351e8d2",
+   "file": "kit 02_fontes/VM0038-Electric-Vehicle-Charging-Systems-v1.1.pdf"
+  },
+  "VT0011": {
+   "title": "VT0011 Electricity System Emission Factors v1.0 (13 Feb 2025)",
+   "sha256": "ce52e05ccf7018988c0274e6b1539c3abbb7ce6bada8de7bc6d4d1aacd12b657",
+   "file": "kit 02_fontes/oficiais/SRC-010_v1.0.pdf"
+  },
+  "TOOL07": {
+   "title": "CDM TOOL07 v7.0 (31 Aug 2018)",
+   "sha256": "7f3864427916369b25b960ace50b5eed74b57530a14e421dc70ce35bae83bf5b",
+   "file": "kit 02_fontes/oficiais/SRC-011_TOOL07_v7.0.pdf"
+  },
+  "MCTI": {
+   "title": "MCTI Despacho_2026_janout.xlsx (aba MDL)",
+   "sha256": "7f8e2292d12f3c283258ac401b3770042907c39520aaaea1c105589c87f784fe",
+   "file": "download oficial, não versionado"
+  }
+ },
+ "requirements": [
+  {
+   "id": "R01",
+   "requirement": "EFel de VM0038 vem do VT0011, em tCO2e/kWh, atualizado anualmente",
+   "source": {
+    "document": "VM0038",
+    "locator": "Seção 10, parâmetro EFeli,j,y; Eq. (4)"
+   },
+   "platformState": "PARTIAL",
+   "evidence": "V114: conversão tCO2/MWh→tCO2e/kWh na V60, original preservado; OpenGridSeriesBindings.",
+   "gap": "A conversão de unidade existe; a elegibilidade da fonte segundo o VT0011 não foi avaliada (linhas R03–R14).",
+   "blocks": "uso no E8 (usableForE8=false)"
+  },
+  {
+   "id": "R02",
+   "requirement": "Fator horário exige consumo por hora e nenhum período com energia fornecida e não contabilizada",
+   "source": {
+    "document": "VM0038",
+    "locator": "Seção 9.2, após Eq. (4)"
+   },
+   "platformState": "IMPLEMENTED",
+   "evidence": "V60 exige cobertura exata das horas do pacote ED/EC (requireCoverage); o vínculo V114 devolve 409 se a série não tiver instante UTC para alguma hora.",
+   "gap": "Garante a estrutura de cobertura; não prova que as horas da fonte correspondem às horas reais de carga (ver R15).",
+   "blocks": ""
+  },
+  {
+   "id": "R03",
+   "requirement": "Todas as condições de aplicabilidade da TOOL07 devem ser atendidas, exceto a nº 5 (removida)",
+   "source": {
+    "document": "VT0011",
+    "locator": "Seção 4"
+   },
+   "platformState": "GAP",
+   "evidence": "Nenhuma verificação de aplicabilidade por projeto/série.",
+   "gap": "Não há registro de que cada condição da TOOL07 §2.2 foi conferida.",
+   "blocks": "admissão da série",
+   "toResolve": "Conferir ¶3, ¶4 e ¶6 da TOOL07 contra o projeto e registrar cada resultado."
+  },
+  {
+   "id": "R04",
+   "requirement": "Delimitar o sistema elétrico do projeto e os sistemas conectados",
+   "source": {
+    "document": "TOOL07",
+    "locator": "¶15–17, ¶22–24"
+   },
+   "platformState": "GAP",
+   "evidence": "A série é fixada em região SIN (V113), sem documento de delimitação.",
+   "gap": "Falta citar a delimitação (opção 1 a 3 do ¶17) que justifica o SIN como sistema do projeto.",
+   "blocks": "admissão da série",
+   "toResolve": "Escolher e documentar a opção do ¶17."
+  },
+  {
+   "id": "R05",
+   "requirement": "Importações líquidas: CO2 da importação para o OM; para projetos que aumentam o consumo, a opção a2 do VT0011 é 1,3 tCO2/MWh",
+   "source": {
+    "document": "VT0011",
+    "locator": "¶25 (substitui o da TOOL07)"
+   },
+   "platformState": "CANNOT_DETERMINE",
+   "evidence": "Nenhum default 1,3 aplicado; nenhum tratamento de importação registrado.",
+   "gap": "A planilha do MCTI não declara se e como importações entram no fator horário.",
+   "blocks": "admissão da série",
+   "toResolve": "Confirmar com o MCTI/ONS o tratamento das importações no arquivo."
+  },
+  {
+   "id": "R06",
+   "requirement": "Exportações não são subtraídas da geração usada no fator",
+   "source": {
+    "document": "TOOL07",
+    "locator": "¶27"
+   },
+   "platformState": "CANNOT_DETERMINE",
+   "evidence": "Sem evidência.",
+   "gap": "A planilha não declara o tratamento de exportações.",
+   "blocks": "admissão da série",
+   "toResolve": "Confirmar na documentação do MCTI/ONS."
+  },
+  {
+   "id": "R07",
+   "requirement": "Selecionar e justificar o método de OM; Dispatch data não pode ser usado se houver usinas fora da rede incluídas",
+   "source": {
+    "document": "TOOL07",
+    "locator": "¶38–41; VT0011 ¶39"
+   },
+   "platformState": "GAP",
+   "evidence": "V61 guarda omMethod escolhido pelo humano, sem verificar condições.",
+   "gap": "Método não selecionado para a série do MCTI; ¶41 (off-grid) não conferido.",
+   "blocks": "admissão da série",
+   "toResolve": "Registrar a escolha de método e a verificação do ¶41."
+  },
+  {
+   "id": "R08",
+   "requirement": "Dispatch data OM usa o ano em que o projeto desloca eletricidade da rede e é atualizado anualmente",
+   "source": {
+    "document": "TOOL07",
+    "locator": "¶43"
+   },
+   "platformState": "PARTIAL",
+   "evidence": "A série importada tem ano-base (data_year) e o vínculo cobre só as horas do pacote.",
+   "gap": "A série de 2026 cobre janeiro a outubro; a vintage por período do projeto não é comparada com o ano.",
+   "blocks": "período fora da série (já devolve 409)"
+  },
+  {
+   "id": "R09",
+   "requirement": "A vintage escolhida é documentada e não muda no período de creditação",
+   "source": {
+    "document": "TOOL07",
+    "locator": "¶44"
+   },
+   "platformState": "GAP",
+   "evidence": "Sem registro de vintage por projeto.",
+   "gap": "Falta campo/ato que fixe a vintage por período de creditação.",
+   "blocks": "admissão da série",
+   "toResolve": "Registrar a vintage (y, y-1 ou y-2 para Simple OM; ano do deslocamento para Dispatch data) por período de creditação."
+  },
+  {
+   "id": "R10",
+   "requirement": "EF do OM por Dispatch data: soma horária ponderada pela energia deslocada pelo projeto, dividida pela energia total deslocada",
+   "source": {
+    "document": "TOOL07",
+    "locator": "¶63–64, Eq. (12)"
+   },
+   "platformState": "NOT_EVALUATED",
+   "evidence": "V60 entrega o fator horário; a agregação por EGPJ,h pertence ao dono do cálculo E8.",
+   "gap": "Esta fatia não avalia a Eq. (12) no E8.",
+   "blocks": "uso no E8"
+  },
+  {
+   "id": "R11",
+   "requirement": "EFEL,DD,h refere-se às usinas do topo do despacho (≥10% da geração da hora ou a parcela deslocada, por ordem de mérito do centro de despacho)",
+   "source": {
+    "document": "TOOL07",
+    "locator": "¶65–69, Eq. (13)/(14)"
+   },
+   "platformState": "CANNOT_DETERMINE",
+   "evidence": "Série importada com a mesma designação do MCTI (Análise de Despacho).",
+   "gap": "O título da tabela do arquivo é 'Fator de Emissão Médio (tCO2/MWh) - HORÁRIO'. O arquivo não informa se o valor horário é o do topo do despacho (¶69) ou uma média do sistema (¶70, Average OM). É a pergunta central de elegibilidade.",
+   "blocks": "admissão da série",
+   "toResolve": "Obter a nota metodológica do MCTI ou os dados primários do ONS (ordem de mérito e despacho horário) e comparar a definição."
+  },
+  {
+   "id": "R12",
+   "requirement": "Usinas registradas no VCS/outros programas entram na amostra do OM",
+   "source": {
+    "document": "VT0011",
+    "locator": "¶45"
+   },
+   "platformState": "CANNOT_DETERMINE",
+   "evidence": "Sem evidência.",
+   "gap": "Não se sabe se o conjunto do MCTI inclui ou exclui tais usinas.",
+   "blocks": "admissão da série",
+   "toResolve": "Confirmar com o MCTI/ONS."
+  },
+  {
+   "id": "R13",
+   "requirement": "Excluir da amostra eletricidade fornecida por PBWA (acordo de transmissão dedicada), quando houver informação",
+   "source": {
+    "document": "VT0011",
+    "locator": "¶45, nota 1"
+   },
+   "platformState": "CANNOT_DETERMINE",
+   "evidence": "Sem evidência.",
+   "gap": "Não se sabe se há PBWA no SIN no período.",
+   "blocks": "admissão da série",
+   "toResolve": "Confirmar com o MCTI/ONS."
+  },
+  {
+   "id": "R14",
+   "requirement": "Caso 2 (aumento de consumo da rede): wOM=1,0 e wBM=0,0 em todos os períodos de creditação",
+   "source": {
+    "document": "VT0011",
+    "locator": "¶86"
+   },
+   "platformState": "IMPLEMENTED",
+   "evidence": "V61 OpenVt0011Case2Math e caderno do caso 2; BM não é presumido zero, o peso é zero.",
+   "gap": "Confirmar, por decisão registrada, que o ¶86 Caso 2 é o caso do projeto e que o valor de BM não é necessário.",
+   "blocks": "",
+   "toResolve": "Registrar a decisão de caso e se o BM dispensa cálculo."
+  },
+  {
+   "id": "R15",
+   "requirement": "Correspondência temporal entre cada hora da fonte e cada hora de carga (fuso, convenção de hora)",
+   "source": {
+    "document": "VM0038",
+    "locator": "Seção 9.2 (fator horário com consumo horário)"
+   },
+   "platformState": "CANNOT_DETERMINE",
+   "evidence": "V113 guarda fuso e convenção como DECLARED_BY_PEOPLE; hora sem instante UTC não vira candidato.",
+   "gap": "Nenhuma fonte encontrada (página, NT jun/2025, planilha) define o fuso nem a convenção; nem TOOL07 nem VT0011 tratam do assunto.",
+   "blocks": "somente os intervalos sem correspondência fundamentada",
+   "toResolve": "Resposta do MCTI/ONS; ensaios com hipóteses configuráveis (PR seguinte)."
+  },
+  {
+   "id": "R16",
+   "requirement": "Gás: o fator da TOOL07/VT0011 é de CO2; a fronteira do projeto decide se há CH4/N2O",
+   "source": {
+    "document": "VM0038",
+    "locator": "Seção 6, Tabela 1; TOOL07 ¶1"
+   },
+   "platformState": "IMPLEMENTED",
+   "evidence": "V114 só aceita CO2_ONLY, com EF_CO2e = EF_CO2 × GWP(CO2), GWP=1 registrado; fronteira com CH4/N2O é recusada.",
+   "gap": "Não existe fator elétrico de CH4/N2O; projetos com fronteira de 3 gases ficam sem rota.",
+   "blocks": "fronteira com CH4/N2O"
+  },
+  {
+   "id": "R17",
+   "requirement": "Compatibilidade metodológica do VT0011 com projetos fora do MDL (leitura do 'CDM project' como programas VCS e outros)",
+   "source": {
+    "document": "VT0011",
+    "locator": "Seção 5, parágrafo inicial"
+   },
+   "platformState": "IMPLEMENTED",
+   "evidence": "O texto do VT0011 permite a leitura; esta matriz o registra.",
+   "gap": "É compatibilidade metodológica; não cria direito de uso do dado.",
+   "blocks": ""
+  },
+  {
+   "id": "R18",
+   "requirement": "Direito de uso da planilha do MCTI para outro fim que não o MDL",
+   "source": {
+    "document": "MCTI",
+    "locator": "Página do MCTI: fator de despacho 'exclusivamente' para MDL"
+   },
+   "platformState": "CANNOT_DETERMINE",
+   "evidence": "Licença pública CC BY-ND 3.0 do site declarada internamente (D20); operações cobertas: citar, guardar, mostrar trechos, extrair (interpretação).",
+   "gap": "A restrição 'exclusivamente MDL' é do fornecedor e independe do VT0011 (R17). O texto da página e a licença do rodapé podem conflitar.",
+   "blocks": "uso do fator em projeto VCS",
+   "toResolve": "Consulta ao MCTI; alternativa: construir o fator a partir de dados primários do ONS com licença."
+  },
+  {
+   "id": "R19",
+   "requirement": "Dados primários de despacho (ordem de mérito e geração horária por usina) obtidos do centro nacional de despacho",
+   "source": {
+    "document": "TOOL07",
+    "locator": "¶68"
+   },
+   "platformState": "GAP",
+   "evidence": "Nenhum dado primário do ONS importado; direitos do ONS não avaliados.",
+   "gap": "Sem esses dados não há como reconstruir o EFEL,DD,h, nem comparar com a série do MCTI.",
+   "blocks": "rota alternativa",
+   "toResolve": "Avaliar licença e formato dos dados abertos do ONS."
+  }
+ ]
+}

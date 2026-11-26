@@ -199,8 +199,10 @@ jobs:
           python3 -m unittest discover -s scripts -p 'test_prepare_dy_evidence.py' -v
           python3 -m unittest discover -s scripts -p 'test_public_license_declaration.py' -v
           python3 -m unittest discover -s scripts -p 'test_registry_permissions.py' -v
+          python3 -m unittest discover -s scripts -p 'test_vt0011_tool07_conformance.py' -v
           python3 scripts/fuel_catalog.py docs/data/fuel-catalog.json
           python3 scripts/registry_permissions.py docs/data/registry-permissions.json
+          python3 scripts/vt0011_tool07_conformance.py docs/data/vt0011-tool07-conformance.json
       - name: Start isolated sandbox and provision account
         run: python3 scripts/demo_sandbox.py start --quiet
       - name: Add a second account using the real confirmation API
