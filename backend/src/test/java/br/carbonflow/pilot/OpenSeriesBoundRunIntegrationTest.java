@@ -205,6 +205,20 @@ class OpenSeriesBoundRunIntegrationTest {
         assertTrue(expectedBe.subtract(be).abs().compareTo(new BigDecimal("0.000001"))<0,"BE from the catalog: expected "+expectedBe+" got "+be);
         assertEquals("NOT_ADMITTED",OpenE8TestFixture.calcGate(run,"EF_FUEL").path("state").asText());
 
+        // Window guard (etapa 5 data have real validity windows, e.g. E30 until 2026-07-31, E32 after): a catalog factor whose
+        // validity does not cover the whole period window is never applied. Re-pin 2024 to an entry valid only from 2024-03-01;
+        // the Y2-M1 window (2024-02-01) is outside it, so the attempt has no numbers and says why.
+        registerFuelDatum("DIESEL_A","2.6",2024,"2024-03-01","2024-12-31");
+        var narrowPin=fx.postMethod("/v1/platform/open-parameter-bindings",s.staffManager().cookie(),key(),"\"1\"",
+            "{\"projectId\":\""+s.project()+"\",\"parameterKind\":\"EF_FUEL\",\"vintageYear\":2024,"
+            +"\"catalog\":{\"fuelId\":\"DIESEL_A\",\"boundary\":\"CO2_ONLY\",\"scope\":\"TTW\",\"date\":\"2024-06-01\"}}");
+        assertEquals(201,narrowPin.statusCode(),narrowPin.body());
+        JsonNode narrow=post(runs("Y2-M1"),prep.cookie(),"\"2\"","{}",201);
+        assertNotEquals("REVIEWED_INTERNAL",narrow.path("state").asText(),"the attempt never completes: "+narrow);
+        assertEquals("REVIEW_REQUIRED",OpenE8TestFixture.calcGate(narrow,"EF_FUEL_WINDOW").path("state").asText(),narrow.toString());
+        assertEquals("REVIEW_REQUIRED",OpenE8TestFixture.calcGate(narrow,"EF_FUEL").path("state").asText());
+        assertTrue(narrow.at("/memory/beTco2e").isMissingNode()||narrow.at("/memory/beTco2e").isNull(),"no BE from a factor outside its window: "+narrow.at("/memory"));
+
         var bindingGet=fx.call("GET","/v1/projects/"+s.project()+"/technical/open-monitoring/dossiers/Y2-M1/grid-series-bindings/"+boundEfel[0],s.owner().cookie(),null,null);
         assertEquals(200,bindingGet.statusCode(),bindingGet.body());
         assertEquals("DISPATCH_TOP",fx.json(bindingGet).at("/binding/definitionHypothesis").asText());
@@ -213,14 +227,18 @@ class OpenSeriesBoundRunIntegrationTest {
 
 
     private void registerFuelDatum(String value,int vintage,String from,String to) {
+        registerFuelDatum("GASOLINE_C",value,vintage,from,to);
+    }
+
+    private void registerFuelDatum(String fuel,String value,int vintage,String from,String to) {
         UUID entry=UUID.randomUUID();
         database.transaction(c->{
             update(c,"""
                 INSERT INTO app_fuel_entry(id,kind,fuel_id,parameter,gas,emission_scope,value_text,unit,vintage_year,valid_from,valid_to,
                   evidence_source,evidence_locator,read_state,registered_by)
-                VALUES (?,'DATUM','GASOLINE_C','EMISSION_FACTOR','CO2_FOSSIL','TTW',?,'kgCO2/L',?,?::date,?::date,
+                VALUES (?,'DATUM',?,'EMISSION_FACTOR','CO2_FOSSIL','TTW',?,'kgCO2/L',?,?::date,?::date,
                   'Valor SINTÉTICO de teste, não é fator oficial','teste integrado','SECONDARY',?)
-                """,entry,value,vintage,from,to,s.staffManager().id());
+                """,entry,fuel,value,vintage,from,to,s.staffManager().id());
             update(c,"""
                 INSERT INTO app_fuel_entry_review(id,entry_id,basis,outcome,reason,reviewer_id)
                 VALUES (?,?,'OWNER_INTERNAL','REVIEWED_OK','Conferência interna sintética do teste.',?)

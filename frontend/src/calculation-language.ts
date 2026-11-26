@@ -31,6 +31,7 @@ const GATE_NAMES: Record<string, string> = {
   WINDOW_PROJECT_YEAR_BOUNDARY: 'Ano do projeto',
   WINDOW_SOURCE_YEAR_BOUNDARY: 'Ano de referência das fontes',
   FLEET_WINDOW_MISMATCH: 'Frota aplicável à janela',
+  EF_FUEL_WINDOW: 'Vigência do fator fóssil',
 };
 
 const GATE_PREFIXES: [string, string][] = [

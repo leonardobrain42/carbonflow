@@ -1,4 +1,7 @@
-# Changelog da especificação viva
+# Changelog da especificação viva feat/efuel-cobertura-janela-e8
+## 0.3.0-rc.87 — 26/11/2026 (proposta)
+- **Roteiro #124, item 7: integração do EFfuel ao E8, guarda de vigência.** Nível D17: projeto (motor E8 existente; sem motor paralelo). Sem migração. Novo gate `EF_FUEL_WINDOW`: o E8 só usa um pino de fator `CATALOG_REFERENCE` se a vigência da entrada cobre **toda** a janela do período; senão não calcula e explica. Motivo: o catálogo agora tem dado real com vigência por janela (E30→E32 em 01/08/2026, 2,8% de diferença) e o pino resolvia numa única data. O motor não divide nem pondera períodos entre vigências. Texto do gate, próxima ação e rótulo do frontend (`EF_FUEL_WINDOW`) registrados. Teste: ensaio sintético ganha o caso negativo; E8/IR/catálogo (77 testes) verdes em banco limpo.
+- **Limites:** ensaio E8 com os fatores reais (precisa da revisão `OWNER_INTERNAL`, sua); um pino por ano-fonte, sem pino por janela; frontend não compilado neste ambiente (só uma chave de rótulo).
 ## 0.3.0-rc.86 — 26/11/2026 (proposta)
 - Backlog: registrada CF-SPEC-G12, alertas de vigência e de lacunas do catálogo de combustíveis e das séries (E32 acaba em 27/01/2027; revisão interna pendente; nova edição de fonte). **Sem prioridade** e sem issue; só documentação, nenhum código, contrato ou regra alterado.
 ## 0.3.0-rc.85 — 26/11/2026 (proposta)
