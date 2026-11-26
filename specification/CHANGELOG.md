@@ -1,4 +1,7 @@
 # Changelog da especificação viva
+## 0.3.0-rc.68 — 25/11/2026 (proposta)
+- **D19 fatia 1: base da decisão na fila de candidatos de alias**, nível **plataforma**. Migração aditiva V109 (coluna `decision_basis`: `INDEPENDENT` ou `OWNER_INTERNAL`, padrão `INDEPENDENT`). Nova lista `...fleet-alias-candidates.owners`; o responsável decide `OWNER_INTERNAL` mesmo sobre o que importou, sem que isso conte como revisão independente. API, tela e plano de cadastro exibem a base. Independência mantida: `INDEPENDENT` segue exigindo outra pessoa. As licenças (V37) **não** mudam.
+- CI: ensaio V79 até V109 (28 versões, sem tabelas novas; só o CI executa). Verificado localmente: backend 341/341 em banco novo; build Angular e 2 testes de navegador; `unittest` do script de cadastro (8). Não executados: Compose, CI, teste com API real.
 ## 0.3.0-rc.67 — 25/11/2026 (proposta)
 - **CF-SPEC-D19, operação individual e destravamento de desenvolvimento** (decisão do responsável pelo produto), e [CF-DIRETRIZES-D19](CF-DIRETRIZES-D19.md): separa bloqueio de desenvolvimento de bloqueio de utilização, define as bases de decisão (`OWNER_INTERNAL` não substitui `INDEPENDENT` nem admissão), ordena seis fatias e liga cada questão pendente (Q02, Q03, Q05, Q08 a Q12) à evidência que a fecha. Só documentação; controles de segurança, licença, rastreabilidade e independência mantidos; nenhuma fonte admitida.
 ## 0.3.0-rc.66 — 25/11/2026 (proposta)

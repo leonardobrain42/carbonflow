@@ -102,7 +102,7 @@
                 @if (item.state !== 'PENDING') {
                   <p class="cf-platform-meta">
                     @if (chosen(item); as pick) { Linha escolhida: {{ pick.pbevLine }} ({{ pick.brand }} {{ pick.model }} {{ pick.version }}). }
-                    Motivo da decisão: {{ item.decisionReason }}
+                    Base: {{ basisLabel(item) }}. Motivo da decisão: {{ item.decisionReason }}
                   </p>
                 } @else if (deciding() === item.id) {
                   <form (submit)="$event.preventDefault()" class="cf-platform-source-form">
@@ -112,6 +112,14 @@
                         <label><input type="radio" name="line-{{ item.id }}" [checked]="line() === match.pbevLine"
                           (change)="pick(match.pbevLine)"/> Linha {{ match.pbevLine }}: {{ match.brand }} {{ match.model }} {{ match.version ?? '' }}</label>
                       }
+                    </fieldset>
+                    <fieldset>
+                      <legend>Base da decisão</legend>
+                      <label><input type="radio" name="basis-{{ item.id }}" [checked]="basis() === 'INDEPENDENT'"
+                        (change)="setBasis('INDEPENDENT')"/> Revisão independente (outra pessoa que não importou o lote)</label>
+                      <label><input type="radio" name="basis-{{ item.id }}" [checked]="basis() === 'OWNER_INTERNAL'"
+                        (change)="setBasis('OWNER_INTERNAL')"/> Decisão interna do responsável do produto</label>
+                      <p class="cf-platform-meta">A decisão interna do responsável fica registrada como tal: não é revisão independente e não admite nada.</p>
                     </fieldset>
                     <label [attr.for]="'cf-cand-reason-' + item.id">Motivo (mín. 10 caracteres)</label>
                     <input #reason [id]="'cf-cand-reason-' + item.id" type="text" minlength="10" maxlength="1000" required/>
