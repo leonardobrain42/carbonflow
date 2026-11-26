@@ -462,7 +462,7 @@ class OpenIrAssessments {
         var timing=OpenE8Timing.resolve(c,project,fleet.binding());
         if(timing.year().gate()!=null || timing.year().projectYear()==null ||
            timing.year().sourceYear()==null || fleet.year()!=timing.year().sourceYear()) return null;
-        var fuel=OpenE8ProjectRuns.sourcePinReference(c,project,"EF_FUEL",fleet.year());
+        var fuel=OpenE8ProjectRuns.sourcePinReference(c,project,"EF_FUEL",fleet.year(),timing.window());
         if(!"NOT_ADMITTED".equals(fuel.state()) || fuel.id()==null) return null;
         return new Refs(fleet,fuel,timing,OpenCalculationReadiness.triageRevision(c,project));
     }

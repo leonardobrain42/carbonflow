@@ -27,6 +27,7 @@ class OpenSeriesBoundRunIntegrationTest {
     @Inject ObjectMapper mapper;
     @TestHTTPResource URL base;
 
+    private String gasoline;
     private OpenE8TestFixture fx;
     private OpenE8TestFixture.Scenario s;
 
@@ -82,26 +83,32 @@ class OpenSeriesBoundRunIntegrationTest {
     void peFollowsTheSeriesBoundCandidateEndToEndAndNothingIsAdmitted() throws Exception {
         fx=new OpenE8TestFixture(database,mapper,base);
         s=fx.openProject("2023-01-01");
+        // All test classes share one database and the catalog is append-only: a private fuel id keeps this series from overlapping others.
+        gasoline="SG"+UUID.randomUUID().toString().substring(0,8).toUpperCase().replace('-','A');
+        database.transaction(c->{
+            update(c,"INSERT INTO app_fuel(id,name,family,role,phase,pending) VALUES (?,'Combustível sintético de teste','OTHER','PRODUCT','LIQUID',ARRAY['só teste'])",gasoline);
+            return null;
+        });
         fx.preparePeriod(s,"Y1-M1",2023,2);
         UUID seriesId=series(s.owner().id(),"2024-02-01T00:00:00Z","2024-02-01T01:00:00Z");
         fx.preparePeriod(s,"Y2-M1",2024,2,(sc,dossierUrl,code,energy)->bindAndReview(fx,sc,dossierUrl,code,energy,seriesId));
         fx.preparePeriod(s,"Y2-M2",2024,3);
         // BE: the fossil factor comes from the fuel catalog by reference (CO2_ONLY, GWP = 1), not from a file candidate.
         registerFuelDatum("2.2",2022,"2020-01-01","2023-12-31");
-        registerFuelDatum("2.25",2023,"2024-01-01",null);
+        registerFuelDatum("2.25",2023,"2024-01-01","2024-02-29"); // covers Y2-M1 (February), not Y2-M2 (March)
         var threeGas=fx.postMethod("/v1/platform/open-parameter-bindings",s.staffManager().cookie(),key(),"\"0\"",
             "{\"projectId\":\""+s.project()+"\",\"parameterKind\":\"EF_FUEL\",\"vintageYear\":2023,"
-            +"\"catalog\":{\"fuelId\":\"GASOLINE_C\",\"boundary\":\"CO2_CH4_N2O\",\"scope\":\"TTW\",\"date\":\"2023-06-01\"}}");
+            +"\"catalog\":{\"fuelId\":\""+gasoline+"\",\"boundary\":\"CO2_CH4_N2O\",\"scope\":\"TTW\",\"date\":\"2023-06-01\"}}");
         assertEquals(422,threeGas.statusCode(),threeGas.body());
         var typed=fx.postMethod("/v1/platform/open-parameter-bindings",s.staffManager().cookie(),key(),"\"0\"",
             "{\"projectId\":\""+s.project()+"\",\"parameterKind\":\"EF_FUEL\",\"vintageYear\":2023,\"declaredValue\":\"0.009\","
-            +"\"catalog\":{\"fuelId\":\"GASOLINE_C\",\"boundary\":\"CO2_ONLY\",\"scope\":\"TTW\",\"date\":\"2023-06-01\"}}");
+            +"\"catalog\":{\"fuelId\":\""+gasoline+"\",\"boundary\":\"CO2_ONLY\",\"scope\":\"TTW\",\"date\":\"2023-06-01\"}}");
         assertEquals(422,typed.statusCode(),"a typed number never rides with a catalog reference: "+typed.body());
         for(int year:new int[]{2023,2024}) {
             fx.pinIrDy(s.project(),s.org(),s.staffManager().id(),year);
             var pinned=fx.postMethod("/v1/platform/open-parameter-bindings",s.staffManager().cookie(),key(),"\"0\"",
                 "{\"projectId\":\""+s.project()+"\",\"parameterKind\":\"EF_FUEL\",\"vintageYear\":"+year+","
-                +"\"catalog\":{\"fuelId\":\"GASOLINE_C\",\"boundary\":\"CO2_ONLY\",\"scope\":\"TTW\",\"date\":\""+year+"-06-01\"}}");
+                +"\"catalog\":{\"fuelId\":\""+gasoline+"\",\"boundary\":\"CO2_ONLY\",\"scope\":\"TTW\",\"date\":\""+year+"-02-01\"}}");
             assertEquals(201,pinned.statusCode(),pinned.body());
             assertEquals("CATALOG_REFERENCE",fx.json(pinned).at("/valueKind").asText());
             assertEquals("tCO2e/USgal",fx.json(pinned).at("/normalizedUnit").asText());
@@ -206,14 +213,10 @@ class OpenSeriesBoundRunIntegrationTest {
         assertEquals("NOT_ADMITTED",OpenE8TestFixture.calcGate(run,"EF_FUEL").path("state").asText());
 
         // Window guard (etapa 5 data have real validity windows, e.g. E30 until 2026-07-31, E32 after): a catalog factor whose
-        // validity does not cover the whole period window is never applied. Re-pin 2024 to an entry valid only from 2024-03-01;
-        // the Y2-M1 window (2024-02-01) is outside it, so the attempt has no numbers and says why.
-        registerFuelDatum("DIESEL_A","2.6",2024,"2024-03-01","2024-12-31");
-        var narrowPin=fx.postMethod("/v1/platform/open-parameter-bindings",s.staffManager().cookie(),key(),"\"1\"",
-            "{\"projectId\":\""+s.project()+"\",\"parameterKind\":\"EF_FUEL\",\"vintageYear\":2024,"
-            +"\"catalog\":{\"fuelId\":\"DIESEL_A\",\"boundary\":\"CO2_ONLY\",\"scope\":\"TTW\",\"date\":\"2024-06-01\"}}");
-        assertEquals(201,narrowPin.statusCode(),narrowPin.body());
-        JsonNode narrow=post(runs("Y2-M1"),prep.cookie(),"\"2\"","{}",201);
+        // validity does not cover the whole period window is never applied. The only 2024 pin ends on 2024-02-29, so the
+        // Y2-M2 window (March) is covered by no pin of the year: the attempt has no numbers and says why. (Q13/D21 step 1:
+        // with several pins in the year the selector picks the one that covers the window; here none does.)
+        JsonNode narrow=post(runs("Y2-M2"),prep.cookie(),"\"0\"","{}",201);
         assertNotEquals("REVIEWED_INTERNAL",narrow.path("state").asText(),"the attempt never completes: "+narrow);
         assertEquals("REVIEW_REQUIRED",OpenE8TestFixture.calcGate(narrow,"EF_FUEL_WINDOW").path("state").asText(),narrow.toString());
         assertEquals("REVIEW_REQUIRED",OpenE8TestFixture.calcGate(narrow,"EF_FUEL").path("state").asText());
@@ -227,7 +230,7 @@ class OpenSeriesBoundRunIntegrationTest {
 
 
     private void registerFuelDatum(String value,int vintage,String from,String to) {
-        registerFuelDatum("GASOLINE_C",value,vintage,from,to);
+        registerFuelDatum(gasoline,value,vintage,from,to);
     }
 
     private void registerFuelDatum(String fuel,String value,int vintage,String from,String to) {

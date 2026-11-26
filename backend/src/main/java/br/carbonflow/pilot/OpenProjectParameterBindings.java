@@ -330,6 +330,31 @@ class OpenProjectParameterBindings {
     record ExecutionPin(UUID id, UUID author, String valueKind, BigDecimal declared,
                         String rule, String evidence, boolean stale) {}
 
+    /**
+     * Source-year pin chosen for ONE period window (Q13/D21, step 1). For EF_FUEL pins that reference the fuel catalog, the
+     * latest version whose catalog entry validity covers the whole window [firstDay, lastDay] wins, so a year holding two
+     * regulatory vintages (E30 and E32) resolves each period to the pin of its own validity. When no catalog pin covers the
+     * window, or the kind is not EF_FUEL, the latest pin of the year is returned unchanged (the E8 window gate then decides).
+     * It never averages and never splits a period.
+     */
+    static ExecutionPin forSourceYearWindow(Connection connection, String project, String kind, int year,
+                                            java.time.LocalDate firstDay, java.time.LocalDate lastDay) throws SQLException {
+        if ("EF_FUEL".equals(kind) && firstDay != null && lastDay != null) {
+            Stored covering = first(connection, SELECT + """
+                WHERE project_id = ? AND parameter_kind = 'EF_FUEL' AND vintage_year = ?
+                  AND id IN (SELECT p.binding_id FROM app_open_efuel_catalog_pin p
+                             JOIN app_fuel_entry e ON e.id = p.entry_id
+                             WHERE e.valid_from <= ?::date AND (e.valid_to IS NULL OR e.valid_to >= ?::date))
+                ORDER BY version DESC LIMIT 1
+                """, OpenProjectParameterBindings::stored, project, year, firstDay.toString(), lastDay.toString());
+            if (covering != null) {
+                return new ExecutionPin(covering.id(), covering.author(), covering.valueKind(), covering.declared(),
+                    covering.rule(), covering.evidence(), stale(connection, covering));
+            }
+        }
+        return forSourceYear(connection, project, kind, year);
+    }
+
     static ExecutionPin forSourceYear(Connection connection, String project, String kind, int year)
             throws SQLException {
         Stored stored = first(connection, SELECT + """

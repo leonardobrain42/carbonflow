@@ -219,19 +219,19 @@ class OpenRealFuelCatalogRunIntegrationTest {
         assertTrue(expectedBe.subtract(be).abs().compareTo(new BigDecimal("0.000001"))<0,"BE from the catalog: expected "+expectedBe+" got "+be);
         assertEquals("NOT_ADMITTED",OpenE8TestFixture.calcGate(run,"EF_FUEL").path("state").asText());
 
-        // Window guard (etapa 5 data have real validity windows, e.g. E30 until 2026-07-31, E32 after): a catalog factor whose
-        // validity does not cover the whole period window is never applied. Re-pin 2026 to an entry valid only from 2026-10-01;
-        // the Y2-M1 window (2026-09-01) is outside it, so the attempt has no numbers and says why.
+        // Q13/D21 step 1: a LATER pin of the same year whose validity does not cover the window no longer displaces the pin that
+        // does. Pin 2026 again to an entry valid only from 2026-10-01; Y2-M1 (2026-09-01) keeps resolving to the E32 gasolina entry
+        // (the guard EF_FUEL_WINDOW itself is exercised where no pin of the year covers the window: OpenSeriesBoundRunIntegrationTest).
         registerFuelDatum(diesel,"2.6",2026,"2026-10-01","2027-01-27");
-        var narrowPin=fx.postMethod("/v1/platform/open-parameter-bindings",s.staffManager().cookie(),key(),"\"1\"",
+        var laterPin=fx.postMethod("/v1/platform/open-parameter-bindings",s.staffManager().cookie(),key(),"\"1\"",
             "{\"projectId\":\""+s.project()+"\",\"parameterKind\":\"EF_FUEL\",\"vintageYear\":2026,"
             +"\"catalog\":{\"fuelId\":\""+diesel+"\",\"boundary\":\"CO2_ONLY\",\"scope\":\"TTW\",\"date\":\"2026-11-01\"}}");
-        assertEquals(201,narrowPin.statusCode(),narrowPin.body());
-        JsonNode narrow=post(runs("Y2-M1"),prep.cookie(),"\"2\"","{}",201);
-        assertNotEquals("REVIEWED_INTERNAL",narrow.path("state").asText(),"the attempt never completes: "+narrow);
-        assertEquals("REVIEW_REQUIRED",OpenE8TestFixture.calcGate(narrow,"EF_FUEL_WINDOW").path("state").asText(),narrow.toString());
-        assertEquals("REVIEW_REQUIRED",OpenE8TestFixture.calcGate(narrow,"EF_FUEL").path("state").asText());
-        assertTrue(narrow.at("/memory/beTco2e").isMissingNode()||narrow.at("/memory/beTco2e").isNull(),"no BE from a factor outside its window: "+narrow.at("/memory"));
+        assertEquals(201,laterPin.statusCode(),laterPin.body());
+        var againResponse=fx.postMethod(runs("Y2-M1"),prep.cookie(),key(),"\"2\"","{}");
+        assertTrue(againResponse.statusCode()==200||againResponse.statusCode()==201,againResponse.statusCode()+" "+againResponse.body());
+        JsonNode again=fx.json(againResponse);
+        assertFalse(again.path("gates").toString().contains("EF_FUEL_WINDOW"),"the covering pin still applies: "+again);
+        assertTrue(expectedBe.subtract(dec(again.at("/memory/beTco2e"))).abs().compareTo(new BigDecimal("0.000001"))<0,"same BE from the covering pin");
 
         var bindingGet=fx.call("GET","/v1/projects/"+s.project()+"/technical/open-monitoring/dossiers/Y2-M1/grid-series-bindings/"+boundEfel[0],s.owner().cookie(),null,null);
         assertEquals(200,bindingGet.statusCode(),bindingGet.body());
@@ -241,6 +241,44 @@ class OpenRealFuelCatalogRunIntegrationTest {
 
 
     /** Registers, from the versioned seed, the two real gasolina C fossil-CO2 values (E30 and E32) under this test's private fuel id, with a synthetic OWNER review. */
+    /** Q13/D21 step 1: one source year holds two catalog pins (E30 then E32); each period window selects the pin whose validity covers it. */
+    @Test
+    void aYearWithTwoRegulatoryVintagesSelectsThePinOfEachWindow() throws Exception {
+        fx=new OpenE8TestFixture(database,mapper,base);
+        s=fx.openProject("2025-08-01");
+        gasoline="RG"+UUID.randomUUID().toString().substring(0,8).toUpperCase().replace('-','A');
+        database.transaction(c->{
+            update(c,"INSERT INTO app_fuel(id,name,family,role,phase,pending) VALUES (?,'Cópia de teste da gasolina C (valores reais do seed)','OTHER','PRODUCT','LIQUID',ARRAY['só teste'])",gasoline);
+            return null;
+        });
+        registerSeedGasolineC();
+        UUID[] pins=new UUID[2];
+        String[] dates={"2026-03-01","2026-09-01"}; // E30 (to 2026-07-31) first, E32 (from 2026-08-01) second = the latest version
+        for(int i=0;i<2;i++) {
+            var pinned=fx.postMethod("/v1/platform/open-parameter-bindings",s.staffManager().cookie(),key(),"\""+i+"\"",
+                "{\"projectId\":\""+s.project()+"\",\"parameterKind\":\"EF_FUEL\",\"vintageYear\":2026,"
+                +"\"catalog\":{\"fuelId\":\""+gasoline+"\",\"boundary\":\"CO2_ONLY\",\"scope\":\"TTW\",\"date\":\""+dates[i]+"\"}}");
+            assertEquals(201,pinned.statusCode(),pinned.body());
+            pins[i]=UUID.fromString(fx.json(pinned).at("/id").asText());
+        }
+        assertNotEquals(pins[0],pins[1]);
+        database.transaction(c->{
+            String p=s.project();
+            // a window fully inside E30 -> E30 pin, although E32 is the latest version
+            assertEquals(pins[0],OpenProjectParameterBindings.forSourceYearWindow(c,p,"EF_FUEL",2026,
+                java.time.LocalDate.parse("2026-03-01"),java.time.LocalDate.parse("2026-03-31")).id());
+            // a window fully inside E32 -> E32 pin
+            assertEquals(pins[1],OpenProjectParameterBindings.forSourceYearWindow(c,p,"EF_FUEL",2026,
+                java.time.LocalDate.parse("2026-09-01"),java.time.LocalDate.parse("2026-09-30")).id());
+            // a window that crosses the change is covered by neither: falls back to the latest pin and the E8 gate EF_FUEL_WINDOW blocks it
+            assertEquals(pins[1],OpenProjectParameterBindings.forSourceYearWindow(c,p,"EF_FUEL",2026,
+                java.time.LocalDate.parse("2026-07-15"),java.time.LocalDate.parse("2026-08-15")).id());
+            // no window = the previous behavior, latest pin of the year
+            assertEquals(pins[1],OpenProjectParameterBindings.forSourceYear(c,p,"EF_FUEL",2026).id());
+            return null;
+        });
+    }
+
     private void registerSeedGasolineC() throws Exception {
         var seed=mapper.readTree(java.nio.file.Files.readString(java.nio.file.Path.of("../docs/data/fuel-catalog-br-seed.json")));
         int found=0;
