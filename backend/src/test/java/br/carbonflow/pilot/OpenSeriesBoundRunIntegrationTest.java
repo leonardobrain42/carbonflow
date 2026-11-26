@@ -86,8 +86,26 @@ class OpenSeriesBoundRunIntegrationTest {
         UUID seriesId=series(s.owner().id(),"2024-02-01T00:00:00Z","2024-02-01T01:00:00Z");
         fx.preparePeriod(s,"Y2-M1",2024,2,(sc,dossierUrl,code,energy)->bindAndReview(fx,sc,dossierUrl,code,energy,seriesId));
         fx.preparePeriod(s,"Y2-M2",2024,3);
-        fx.pinCompleteSet(s.project(),s.org(),s.staffManager().id(),s.staffReviewer().id(),2023);
-        fx.pinCompleteSet(s.project(),s.org(),s.staffManager().id(),s.staffReviewer().id(),2024);
+        // BE: the fossil factor comes from the fuel catalog by reference (CO2_ONLY, GWP = 1), not from a file candidate.
+        registerFuelDatum("2.2",2022,"2020-01-01","2023-12-31");
+        registerFuelDatum("2.25",2023,"2024-01-01",null);
+        var threeGas=fx.postMethod("/v1/platform/open-parameter-bindings",s.staffManager().cookie(),key(),"\"0\"",
+            "{\"projectId\":\""+s.project()+"\",\"parameterKind\":\"EF_FUEL\",\"vintageYear\":2023,"
+            +"\"catalog\":{\"fuelId\":\"GASOLINE_C\",\"boundary\":\"CO2_CH4_N2O\",\"scope\":\"TTW\",\"date\":\"2023-06-01\"}}");
+        assertEquals(422,threeGas.statusCode(),threeGas.body());
+        var typed=fx.postMethod("/v1/platform/open-parameter-bindings",s.staffManager().cookie(),key(),"\"0\"",
+            "{\"projectId\":\""+s.project()+"\",\"parameterKind\":\"EF_FUEL\",\"vintageYear\":2023,\"declaredValue\":\"0.009\","
+            +"\"catalog\":{\"fuelId\":\"GASOLINE_C\",\"boundary\":\"CO2_ONLY\",\"scope\":\"TTW\",\"date\":\"2023-06-01\"}}");
+        assertEquals(422,typed.statusCode(),"a typed number never rides with a catalog reference: "+typed.body());
+        for(int year:new int[]{2023,2024}) {
+            fx.pinIrDy(s.project(),s.org(),s.staffManager().id(),year);
+            var pinned=fx.postMethod("/v1/platform/open-parameter-bindings",s.staffManager().cookie(),key(),"\"0\"",
+                "{\"projectId\":\""+s.project()+"\",\"parameterKind\":\"EF_FUEL\",\"vintageYear\":"+year+","
+                +"\"catalog\":{\"fuelId\":\"GASOLINE_C\",\"boundary\":\"CO2_ONLY\",\"scope\":\"TTW\",\"date\":\""+year+"-06-01\"}}");
+            assertEquals(201,pinned.statusCode(),pinned.body());
+            assertEquals("CATALOG_REFERENCE",fx.json(pinned).at("/valueKind").asText());
+            assertEquals("tCO2e/USgal",fx.json(pinned).at("/normalizedUnit").asText());
+        }
         // The owner authored the energy binding, so the attempt is run by a different PREP collaborator (segregation).
         var prep=fx.actor();
         fx.grant(s.project(),s.org(),s.owner().id(),prep.id(),"PREP");
@@ -180,10 +198,35 @@ class OpenSeriesBoundRunIntegrationTest {
         BigDecimal expectedPe=new BigDecimal("3000").multiply(new BigDecimal("0.0005439000000000001"));
         assertTrue(expectedPe.subtract(pe).abs().compareTo(new BigDecimal("0.000001"))<0,"PE from the series: expected "+expectedPe+" got "+pe);
         assertEquals("NOT_ADMITTED",OpenE8TestFixture.calcGate(run,"EF_GRID").path("state").asText());
+        // BE = ED x EF_fuel x 100 x IR / (AFEC x MPG), EF_fuel = 2.25 kgCO2/L = 0.008517176514 tCO2e/USgal (synthetic catalog entry of the project year).
+        BigDecimal ef=new BigDecimal("0.00225").multiply(new BigDecimal("3.785411784"));
+        BigDecimal expectedBe=new BigDecimal("2700").multiply(ef).multiply(new BigDecimal("100"))
+            .divide(dec(run.at("/memory/afecKwhPer100Miles")).multiply(dec(run.at("/memory/mpgUs"))),20,java.math.RoundingMode.HALF_EVEN);
+        assertTrue(expectedBe.subtract(be).abs().compareTo(new BigDecimal("0.000001"))<0,"BE from the catalog: expected "+expectedBe+" got "+be);
+        assertEquals("NOT_ADMITTED",OpenE8TestFixture.calcGate(run,"EF_FUEL").path("state").asText());
+
         var bindingGet=fx.call("GET","/v1/projects/"+s.project()+"/technical/open-monitoring/dossiers/Y2-M1/grid-series-bindings/"+boundEfel[0],s.owner().cookie(),null,null);
         assertEquals(200,bindingGet.statusCode(),bindingGet.body());
         assertEquals("DISPATCH_TOP",fx.json(bindingGet).at("/binding/definitionHypothesis").asText());
         assertTrue(fx.json(bindingGet).path("gates").toString().contains("SERIES_DEFINITION_HYPOTHESIS_DISPATCH_TOP_NOT_CONFIRMED"));
+    }
+
+
+    private void registerFuelDatum(String value,int vintage,String from,String to) {
+        UUID entry=UUID.randomUUID();
+        database.transaction(c->{
+            update(c,"""
+                INSERT INTO app_fuel_entry(id,kind,fuel_id,parameter,gas,emission_scope,value_text,unit,vintage_year,valid_from,valid_to,
+                  evidence_source,evidence_locator,read_state,registered_by)
+                VALUES (?,'DATUM','GASOLINE_C','EMISSION_FACTOR','CO2_FOSSIL','TTW',?,'kgCO2/L',?,?::date,?::date,
+                  'Valor SINTÉTICO de teste, não é fator oficial','teste integrado','SECONDARY',?)
+                """,entry,value,vintage,from,to,s.staffManager().id());
+            update(c,"""
+                INSERT INTO app_fuel_entry_review(id,entry_id,basis,outcome,reason,reviewer_id)
+                VALUES (?,?,'OWNER_INTERNAL','REVIEWED_OK','Conferência interna sintética do teste.',?)
+                """,UUID.randomUUID(),entry,s.staffReviewer().id());
+            return null;
+        });
     }
 
     private final String[] boundEfel=new String[1];

@@ -452,7 +452,15 @@ class OpenE8ProjectRuns {
     }
 
     private static BigDecimal fuelValue(Connection c, ExecutionPin fuel) throws SQLException {
-        if (fuel == null || fuel.stale() || !"REFERENCE".equals(fuel.valueKind())) return null;
+        if (fuel == null || fuel.stale()) return null;
+        if ("CATALOG_REFERENCE".equals(fuel.valueKind())) {
+            BigDecimal catalog = first(c, """
+                SELECT p.value_tco2_per_usgal * p.gwp_co2 FROM app_open_efuel_catalog_pin p
+                WHERE p.binding_id=? AND p.boundary='CO2_ONLY' AND p.source_gas='CO2_FOSSIL'
+                """, r -> r.getBigDecimal(1), fuel.id());
+            return usable(catalog, false) ? catalog : null;
+        }
+        if (!"REFERENCE".equals(fuel.valueKind())) return null;
         BigDecimal value = first(c, """
             SELECT p.normalized_value
             FROM app_open_project_parameter_binding b

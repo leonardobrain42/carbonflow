@@ -70,10 +70,11 @@ class OpenE8AnnualConsolidation {
     private static OpenIrIntraYearReuse.Canonical canonical(java.sql.Connection c, String project, java.util.UUID run)
             throws java.sql.SQLException {
         return PilotSql.first(c, """
-            SELECT f.fleet_snapshot_id,f.rating_snapshot_id,b.candidate_id,f.cycle
+            SELECT f.fleet_snapshot_id,f.rating_snapshot_id,COALESCE(b.candidate_id,cp.entry_id),f.cycle
             FROM app_open_e8_run r
             JOIN app_open_e8_fleet_selection f ON f.id=r.fleet_selection_id
             JOIN app_open_project_parameter_binding b ON b.id=r.fuel_pin_id AND b.parameter_kind='EF_FUEL'
+            LEFT JOIN app_open_efuel_catalog_pin cp ON cp.binding_id=b.id
             WHERE r.project_id=? AND r.id=?
             """, rs -> new OpenIrIntraYearReuse.Canonical(rs.getObject(1, java.util.UUID.class),
                 rs.getObject(2, java.util.UUID.class), rs.getObject(3, java.util.UUID.class), rs.getString(4)),

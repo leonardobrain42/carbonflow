@@ -492,6 +492,17 @@ public final class OpenE8TestFixture {
                 VALUES (?, ?, ?,'SANDBOX','EF_FUEL',%1$s,1,?,?, 'tCO2e/USgal','identity',
                         'REFERENCE',1,?,?)
                 """.formatted(year),UUID.randomUUID(),project,org,candidate,sha,AccessSecrets.digest("fuel-pin"),author);
+            insertIrDyPins(c,project,org,author,year);
+            return null;
+        });
+    }
+
+    /** Explicit IR and Dy pins of a source year (the fossil factor is pinned separately). */
+    void pinIrDy(String project,UUID org,UUID author,int year) {
+        database.transaction(c->{insertIrDyPins(c,project,org,author,year);return null;});
+    }
+
+    private static void insertIrDyPins(java.sql.Connection c,String project,UUID org,UUID author,int year) throws java.sql.SQLException {
             for (String kind : new String[]{"IR","DY"}) {
                 update(c,"""
                     INSERT INTO app_open_project_parameter_binding
@@ -502,8 +513,6 @@ public final class OpenE8TestFixture {
                             'VM0038 explicit declaration','DOC-1','DECLARED_EXPLICIT',1,?,?)
                     """.formatted(year),UUID.randomUUID(),project,org,kind,AccessSecrets.digest(kind+"-pin"),author);
             }
-            return null;
-        });
     }
 
     void grant(String project,UUID org,UUID owner,UUID actor,String role) {
