@@ -60,6 +60,8 @@
                   (change)="vehicleClass=$any($event.target).value">
                   <option value="LDV">LDV · veículos leves</option>
                   <option value="HDV">HDV · pesados (fora da primeira fatia)</option>
+                  <option value="OTHER">Outro tipo de veículo (fora da primeira fatia)</option>
+                  <option value="UNKNOWN">Desconhecida (fica pendente)</option>
                   <option value="UNKNOWN">A confirmar</option>
                 </select>
               </div>
@@ -86,6 +88,45 @@
           </form>
         </div>
         @if (boardData.models.length) {
+          <div class="cf-platform-work-editor">
+            <h3>Classificar ou reclassificar um modelo</h3>
+            <p class="cf-platform-meta">Cada classificação vira uma nova versão com motivo e evidência; a anterior continua no histórico.
+              Classe desconhecida deixa o modelo explicitamente pendente. Classificar não admite o modelo no recorte inicial.</p>
+            <form (submit)="classify($event)">
+              <label for="cf-evr-classify-model">Modelo canônico</label>
+              <select id="cf-evr-classify-model" [value]="classifyModel"
+                (change)="classifyModel=$any($event.target).value" required>
+                <option value="">Selecione uma identidade</option>
+                @for (model of boardData.models; track model.id) {
+                  <option [value]="model.id">{{model.manufacturer}} {{model.modelName}} {{model.variant}}</option>
+                }
+              </select>
+              <label for="cf-evr-classify-class">Classe do veículo</label>
+              <select id="cf-evr-classify-class" [value]="classifyClass"
+                (change)="classifyClass=$any($event.target).value">
+                <option value="LDV">LDV · leves</option>
+                <option value="HDV">HDV · pesados</option>
+                <option value="OTHER">Outro tipo de veículo</option>
+                <option value="UNKNOWN">Desconhecida (pendente)</option>
+              </select>
+              @if (classifyClass !== 'UNKNOWN') {
+                <label for="cf-evr-classify-propulsion">Propulsão</label>
+                <select id="cf-evr-classify-propulsion" [value]="classifyPropulsion"
+                  (change)="classifyPropulsion=$any($event.target).value">
+                  <option value="BEV">BEV</option>
+                  <option value="PHEV">PHEV</option>
+                  <option value="OTHER">Outra</option>
+                </select>
+                <label for="cf-evr-classify-evidence">Evidência (fonte e localizador)</label>
+                <input id="cf-evr-classify-evidence" maxlength="1000" [value]="classifyEvidence"
+                  (input)="classifyEvidence=$any($event.target).value" required/>
+              }
+              <label for="cf-evr-classify-reason">Motivo (mín. 10 caracteres)</label>
+              <input id="cf-evr-classify-reason" maxlength="1000" [value]="classifyReason"
+                (input)="classifyReason=$any($event.target).value" required/>
+              <button type="submit" class="cf-workspace-primary" [disabled]="busy()">Registrar classificação</button>
+            </form>
+          </div>
           <div class="cf-platform-work-editor">
             <h3>Vincular outro alias a um modelo já cadastrado</h3>
             <form (submit)="mapAlias($event)">
@@ -114,6 +155,35 @@
         <p class="cf-platform-warning">O acesso atual é de consulta. Cadastro e importação
           exigem papel de gestor interno e MFA.</p>
       }
+
+      <section class="cf-platform-work-editor" aria-labelledby="cf-evr-catalog-title">
+        <h3 id="cf-evr-catalog-title">Catálogo de modelos canônicos</h3>
+        <p class="cf-platform-meta">O recorte inicial é Brasil, LDV, BEV, rede aberta, DCFC, SIN GRID_ONLY. O rótulo abaixo
+          é calculado pelo servidor e não admite nada; modelos pendentes ou de outros tipos ficam fora dos pesos.</p>
+        <label for="cf-evr-scope-filter">Mostrar</label>
+        <select id="cf-evr-scope-filter" [value]="scopeFilter" (change)="scopeFilter=$any($event.target).value">
+          <option value="">Todos os modelos</option>
+          <option value="CANDIDATE_INITIAL_SCOPE">Candidatos ao recorte inicial</option>
+          <option value="OUTSIDE_INITIAL_SCOPE">Fora do recorte inicial</option>
+          <option value="PENDING_CLASSIFICATION">Classificação pendente</option>
+        </select>
+        @if (visibleModels().length === 0) {
+          <p>Nenhum modelo nesta visão.</p>
+        } @else {
+          <table>
+            <caption>Modelos canônicos (classificação vigente)</caption>
+            <thead><tr><th scope="col">Fabricante</th><th scope="col">Modelo</th><th scope="col">Versão</th>
+              <th scope="col">Classe</th><th scope="col">Propulsão</th><th scope="col">Recorte inicial</th></tr></thead>
+            <tbody>
+              @for (model of visibleModels(); track model.id) {
+                <tr><td>{{model.manufacturer}}</td><td>{{model.modelName}}</td><td>{{model.variant}}</td>
+                  <td>{{classLabel(model.vehicleClass)}}</td><td>{{model.propulsion}}</td>
+                  <td>{{scopeLabel(model)}} @if (model.classificationVersion) {(classificação v{{model.classificationVersion}})}</td></tr>
+              }
+            </tbody>
+          </table>
+        }
+      </section>
 
       <section class="cf-platform-work-editor">
         <h3>Conferir fonte tabular já cadastrada</h3>

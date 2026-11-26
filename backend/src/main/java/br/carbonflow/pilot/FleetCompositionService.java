@@ -29,8 +29,22 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 class FleetCompositionService {
     private static final String RULE="CF-OPEN-005";
 
+    /** {@code scope} is a label for the initial cut (LDV, BEV), never an admission; UNKNOWN stays pending. */
     record Model(UUID id,UUID organizationId,String manufacturer,String modelName,
-                 String variant,String vehicleClass,String propulsion,OffsetDateTime recordedAt) {}
+                 String variant,String vehicleClass,String propulsion,OffsetDateTime recordedAt,
+                 int classificationVersion,String scope) {}
+    record ClassificationInput(String vehicleClass,String propulsion,String reason,String evidence) {}
+    static final String SCOPE_CANDIDATE="CANDIDATE_INITIAL_SCOPE",SCOPE_OUTSIDE="OUTSIDE_INITIAL_SCOPE",
+            SCOPE_PENDING="PENDING_CLASSIFICATION";
+    static String scope(String vehicleClass,String propulsion){
+        if("UNKNOWN".equals(vehicleClass) || "UNKNOWN".equals(propulsion)) return SCOPE_PENDING;
+        return "LDV".equals(vehicleClass) && "BEV".equals(propulsion) ? SCOPE_CANDIDATE : SCOPE_OUTSIDE;
+    }
+    private static Model model(java.sql.ResultSet r)throws SQLException{
+        String cls=r.getString(6),prop=r.getString(7);
+        return new Model(r.getObject(1,UUID.class),r.getObject(2,UUID.class),r.getString(3),r.getString(4),
+            r.getString(5),cls,prop,r.getObject(8,OffsetDateTime.class),r.getInt(9),scope(cls,prop));
+    }
     record Registration(UUID organizationId,String manufacturer,String modelName,
                         String variant,String vehicleClass,String propulsion,
                         Integer aliasYear,String sourceRecordKey) {}
@@ -96,12 +110,10 @@ class FleetCompositionService {
             try {
                 List<Model> models=query(c, """
                     SELECT id,organization_id,manufacturer,model_name,variant,vehicle_class,
-                           propulsion,recorded_at
-                    FROM app_fleet_model WHERE organization_id=ANY(?)
+                           propulsion,recorded_at,classification_version
+                    FROM app_fleet_model_effective WHERE organization_id=ANY(?)
                     ORDER BY manufacturer,model_name,variant LIMIT 200
-                    """,r->new Model(r.getObject(1,UUID.class),r.getObject(2,UUID.class),
-                    r.getString(3),r.getString(4),r.getString(5),r.getString(6),
-                    r.getString(7),r.getObject(8,OffsetDateTime.class)),orgArray);
+                    """,FleetCompositionService::model,orgArray);
                 List<Alias> aliases=query(c, """
                     SELECT organization_id,observation_year,record_key,model_id
                     FROM app_fleet_model_alias WHERE organization_id=ANY(?)
@@ -188,7 +200,7 @@ class FleetCompositionService {
                     name=label(requested.modelName(),120,"modelName"),
                     variant=label(requested.variant(),120,"variant");
             if (!("LDV".equals(requested.vehicleClass()) || "HDV".equals(requested.vehicleClass())
-                    || "UNKNOWN".equals(requested.vehicleClass()))
+                    || "OTHER".equals(requested.vehicleClass()) || "UNKNOWN".equals(requested.vehicleClass()))
                 || !("BEV".equals(requested.propulsion()) || "PHEV".equals(requested.propulsion())
                     || "OTHER".equals(requested.propulsion()) || "UNKNOWN".equals(requested.propulsion())))
                 throw invalid("classification","Informe categoria e propulsão sem inferir BEV.");
@@ -213,6 +225,45 @@ class FleetCompositionService {
             remember(c,actor.id(),command,"REGISTER_MODEL",fingerprint,created);
             ComplianceStaff.audit(c,actor.id(),null,"REGISTER_PLATFORM_FLEET_MODEL");
             return findModel(c,created,requested.organizationId());
+        });
+    }
+
+    /**
+     * Append-only classification of a model (D19 slice 2). Known values need evidence; (UNKNOWN, UNKNOWN) records that
+     * the model is explicitly pending. A decision equal to the current one is refused. It changes no past snapshot.
+     */
+    Model classify(String token,String key,UUID modelId,ClassificationInput input){
+        return database.transaction(c->{
+            var actor=staffManagers.requireManager(c,token);
+            UUID org=first(c,"SELECT organization_id FROM app_fleet_model WHERE id=?",r->r.getObject(1,UUID.class),modelId);
+            if(org==null || !actor.organizations().contains(org))throw invisible();
+            if(input==null || !Set.of("LDV","HDV","OTHER","UNKNOWN").contains(input.vehicleClass())
+                    || !Set.of("BEV","PHEV","OTHER","UNKNOWN").contains(input.propulsion()))
+                throw invalid("classification","Informe classe e propulsão; desconhecido fica pendente.");
+            boolean unknown="UNKNOWN".equals(input.vehicleClass()) && "UNKNOWN".equals(input.propulsion());
+            if(("UNKNOWN".equals(input.vehicleClass())) != ("UNKNOWN".equals(input.propulsion())))
+                throw invalid("classification","Classe e propulsão desconhecidas só valem juntas; senão informe as duas.");
+            String reason=input.reason()==null?"":input.reason().strip();
+            String evidence=input.evidence()==null||input.evidence().isBlank()?null:input.evidence().strip();
+            if(reason.length()<10 || reason.length()>1000)throw invalid("reason","O motivo precisa ter entre 10 e 1000 caracteres.");
+            if(!unknown && (evidence==null || evidence.length()<3 || evidence.length()>1000))
+                throw invalid("evidence","Classificação conhecida exige evidência (fonte e localizador).");
+            String command=PilotCommands.key(key);
+            byte[] fingerprint=AccessSecrets.digest("CLASSIFY_MODEL|"+modelId+"|"+input);
+            var replay=receipt(c,actor.id(),command,"CLASSIFY_MODEL",fingerprint);
+            if(replay!=null)return findModel(c,modelId,org);
+            var current=findModel(c,modelId,org);
+            if(current.vehicleClass().equals(input.vehicleClass()) && current.propulsion().equals(input.propulsion()))
+                throw new PilotProblem(409,"CLASSIFICACAO_IGUAL","classification",RULE,"A classificação informada já é a vigente.");
+            int version=current.classificationVersion()+1;
+            update(c,"""
+                INSERT INTO app_fleet_model_classification
+                (model_id,organization_id,version,vehicle_class,propulsion,reason,evidence,decided_by)
+                VALUES (?,?,?,?,?,?,?,?)
+                """,modelId,org,version,input.vehicleClass(),input.propulsion(),reason,evidence,actor.id());
+            remember(c,actor.id(),command,"CLASSIFY_MODEL",fingerprint,modelId);
+            ComplianceStaff.audit(c,actor.id(),null,"CLASSIFY_PLATFORM_FLEET_MODEL");
+            return findModel(c,modelId,org);
         });
     }
 
@@ -580,7 +631,7 @@ class FleetCompositionService {
             FROM app_platform_source_candidate c
             LEFT JOIN app_fleet_model_alias a ON a.organization_id=?
               AND a.observation_year=? AND a.record_key=upper(c.record_key)
-            LEFT JOIN app_fleet_model m ON m.id=a.model_id AND m.organization_id=?
+            LEFT JOIN app_fleet_model_effective m ON m.id=a.model_id AND m.organization_id=?
             WHERE c.object_id=? ORDER BY c.row_index LIMIT 2001
             """,r->new FleetCompositionRules.Row(r.getInt(1),r.getObject(8,UUID.class),
                 r.getString(2),r.getBigDecimal(3),r.getString(4),r.getString(5),
@@ -641,11 +692,9 @@ class FleetCompositionService {
     private static Model findModel(Connection c,UUID id,UUID organization)throws SQLException{
         Model model=first(c,"""
             SELECT id,organization_id,manufacturer,model_name,variant,vehicle_class,
-                   propulsion,recorded_at FROM app_fleet_model
+                   propulsion,recorded_at,classification_version FROM app_fleet_model_effective
             WHERE id=? AND organization_id=?
-            """,r->new Model(r.getObject(1,UUID.class),r.getObject(2,UUID.class),
-            r.getString(3),r.getString(4),r.getString(5),r.getString(6),
-            r.getString(7),r.getObject(8,OffsetDateTime.class)),id,organization);
+            """,FleetCompositionService::model,id,organization);
         if(model==null)throw invisible();
         return model;
     }
