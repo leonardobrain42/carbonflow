@@ -8,6 +8,7 @@ line the reviewer chose. Nothing is sent: the output is a plan to be posted by a
 Input 1 (--candidates): the JSON of GET /v1/platform/fleet/alias-candidates?state=ACCEPTED.
 Input 2 (--decisions): {"organizationId": "<uuid>", "decisions": [{"candidateId": "...", "vehicleClass": "LDV|HDV|UNKNOWN",
   "propulsion": "BEV|PHEV|OTHER|UNKNOWN"}]}
+A decisão de aceitar traz a base (`decisionBasis`: INDEPENDENT ou OWNER_INTERNAL); o plano a repassa sem convertê-la.
 Output: {"registrations": [...POST /models bodies with an Idempotency-Key and the first alias...],
          "additionalAliases": [...aliases of an already planned model, to be posted after it exists...],
          "refused": [{"candidateId", "literalName", "reason"}]}
@@ -66,8 +67,8 @@ def plan(candidates, decisions):
         if identity not in models:
             body = {"organizationId": org, "manufacturer": identity[0], "modelName": identity[1], "variant": identity[2],
                     "vehicleClass": declared[0], "propulsion": declared[1], "aliasYear": year, "sourceRecordKey": key}
-            item = {"candidateId": cand["id"], "idempotencyKey": "REG-" + uuid.uuid5(NAMESPACE, "|".join(identity) + org).hex,
-                    "body": body}
+            item = {"candidateId": cand["id"], "decisionBasis": cand.get("decisionBasis"),
+                    "idempotencyKey": "REG-" + uuid.uuid5(NAMESPACE, "|".join(identity) + org).hex, "body": body}
             models[identity] = (declared, item)
             registrations.append(item)
         else:

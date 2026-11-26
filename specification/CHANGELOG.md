@@ -1,4 +1,7 @@
 # Changelog da especificação viva
+## 0.3.0-rc.68 — 25/11/2026 (proposta)
+- **D19 fatia 1: base da decisão na fila de candidatos de alias**, nível **plataforma**. Migração aditiva V109 (coluna `decision_basis`: `INDEPENDENT` ou `OWNER_INTERNAL`, padrão `INDEPENDENT`). Nova lista `...fleet-alias-candidates.owners`; o responsável decide `OWNER_INTERNAL` mesmo sobre o que importou, sem que isso conte como revisão independente. API, tela e plano de cadastro exibem a base. Independência mantida: `INDEPENDENT` segue exigindo outra pessoa. As licenças (V37) **não** mudam.
+- CI: ensaio V79 até V109 (28 versões, sem tabelas novas; só o CI executa). Verificado localmente: backend 341/341 em banco novo; build Angular e 2 testes de navegador; `unittest` do script de cadastro (8). Não executados: Compose, CI, teste com API real.
 ## 0.3.0-rc.66 — 25/11/2026 (proposta)
 - **Sincronização da especificação viva** com os PRs #299 a #315, só documentação: complemento em `ESTADO_DO_TRABALHO` (o corte anterior segue em 24/11 e **os PRs #243 a #298 não foram revistos**), linhas CF-SPEC-S20 a S23 na matriz, questões Q08 a Q11 em `DECISOES_E_DUVIDAS` e a linha G03 de `PENDENCIAS`. Nenhuma decisão substantiva nova, nenhuma regra alterada.
 ## 0.3.0-rc.65 — 25/11/2026 (proposta)

@@ -54,6 +54,13 @@ class RegistrationPlanTest(unittest.TestCase):
         self.assertEqual(1, len(out["registrations"]))
         self.assertEqual(1, len(out["refused"]))
 
+    def test_the_decision_basis_is_passed_through_never_converted(self):
+        owner = dict(cand("a", "N1", "K1", 62), decisionBasis="OWNER_INTERNAL")
+        out = plan([owner], decisions(("a", "LDV", "BEV")))
+        self.assertEqual("OWNER_INTERNAL", out["registrations"][0]["decisionBasis"])
+        legacy = plan([cand("b", "N2", "K2", 63, version="Z")], decisions(("b", "LDV", "BEV")))
+        self.assertIsNone(legacy["registrations"][0]["decisionBasis"])
+
     def test_invalid_organization_is_an_error(self):
         with self.assertRaises(ValueError):
             plan([], {"organizationId": "x", "decisions": []})

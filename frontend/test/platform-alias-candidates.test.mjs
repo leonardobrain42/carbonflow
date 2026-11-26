@@ -9,7 +9,7 @@ const SHA = 'cd'.repeat(32);
 
 function seeded() {
   const common = {observationPeriod:'2026-09',pbevSourceSha256:SHA,importedBy:'x',decidedBy:null,selectedPbevLine:null,
-    decisionReason:null,limits:'l',state:'PENDING'};
+    decisionReason:null,decisionBasis:null,limits:'l',state:'PENDING'};
   return [
     {...common,id:'11111111-1111-4111-8111-111111111111',literalName:'I/BYD DOLPHIN MINI GS5EV',recordKey:'I_BYD_DOLPHIN_MINI_GS5EV',
       level:'EXACT',reason:'Marca, modelo e versão do PBEV igualam o nome.',
@@ -36,7 +36,7 @@ async function setup(page, {listStatus = 200, decisionStatus = 200, decisionCode
       if (decisionStatus !== 200) return route.fulfill({status:decisionStatus,json:{code:decisionCode,message:'x'}});
       const body = request.postDataJSON();
       state.items = state.items.map(item => item.id !== id ? item : {...item,state:body.outcome,
-        selectedPbevLine:body.selectedPbevLine,decisionReason:body.reason,decidedBy:'y'});
+        selectedPbevLine:body.selectedPbevLine,decisionReason:body.reason,decisionBasis:body.basis,decidedBy:'y'});
       return route.fulfill({json:state.items.find(item => item.id === id)});
     }
     if (listStatus !== 200) return route.fulfill({status:listStatus,json:{message:'x'}});
@@ -76,11 +76,14 @@ test('Fila de candidatos: MFA, evidência, aceitar com linha escolhida, recusar 
 
     // A single-line candidate preselects its only line; accepting sends that line and does not claim an alias.
     await page.getByRole('button',{name:'Revisar candidato I/BYD DOLPHIN MINI GS5EV'}).click();
+    assert.equal(await page.getByLabel('Revisão independente',{exact:false}).isChecked(),true);
+    await page.getByLabel('Decisão interna do responsável',{exact:false}).check();
     await page.getByLabel('Motivo (mín. 10 caracteres)').fill('Nome e versão conferidos no PBEV');
     await page.getByRole('button',{name:'Aceitar candidato'}).click();
     await page.getByRole('status').getByText('Nenhum modelo nem alias foi criado',{exact:false}).waitFor();
     assert.equal(state.decisions[0].body.outcome,'ACCEPTED');
     assert.equal(state.decisions[0].body.selectedPbevLine,62);
+    assert.equal(state.decisions[0].body.basis,'OWNER_INTERNAL');
 
     // MODEL_ONLY has two lines: accepting is blocked until one is chosen; rejecting needs no line.
     await page.getByRole('button',{name:'Revisar candidato I/RENAULT E-KWID TECHNO'}).click();
@@ -91,10 +94,12 @@ test('Fila de candidatos: MFA, evidência, aceitar com linha escolhida, recusar 
     await page.getByRole('status').getByText('Candidato recusado.').waitFor();
     assert.equal(state.decisions[1].body.outcome,'REJECTED');
     assert.equal(state.decisions[1].body.selectedPbevLine,null);
+    assert.equal(state.decisions[1].body.basis,'INDEPENDENT'); // the default basis never claims to be the owner's
 
     // The filter shows decided candidates with the chosen line and the reason.
     await page.getByLabel('Situação').selectOption('ACCEPTED');
     await page.getByText('Linha escolhida: 62',{exact:false}).waitFor();
+    await page.getByText('Base: Decisão interna do responsável (não é revisão independente)',{exact:false}).waitFor();
     await page.getByText('Aceito',{exact:true}).waitFor();
     assert.equal(await page.getByRole('button',{name:/Revisar candidato/}).count(),0);
   } finally {
@@ -120,7 +125,7 @@ test('Fila de candidatos: importar lote, dupla custódia explicada e perfil sem 
     await page.getByRole('button',{name:'Revisar candidato I/BYD DOLPHIN MINI GS5EV'}).click();
     await page.getByLabel('Motivo (mín. 10 caracteres)').fill('Tentativa de quem importou o lote');
     await page.getByRole('button',{name:'Aceitar candidato'}).click();
-    await page.getByRole('alert').getByText('Quem importou o candidato não pode decidir',{exact:false}).waitFor();
+    await page.getByRole('alert').getByText('Quem importou o candidato não pode decidir como revisor independente',{exact:false}).waitFor();
     await page.getByText('Aguardando revisão').first().waitFor();
 
     const other = await browser.newPage({viewport:{width:1280,height:900}});

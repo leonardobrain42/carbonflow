@@ -31,6 +31,10 @@ class FleetAliasCandidatesIntegrationTest {
     private static final UUID REVIEWER = UUID.fromString("b77f1011-84bf-478a-8b86-2b5fd2881d42");
     private static final UUID DUAL = UUID.fromString("b77f1011-84bf-478a-8b86-2b5fd2881d43");
     private static final UUID OTHER_STAFF = UUID.fromString("b77f1011-84bf-478a-8b86-2b5fd2881d44");
+    private static final UUID OWNER = UUID.fromString("b77f1011-84bf-478a-8b86-2b5fd2881d45");
+    // Identities of the owner-basis test are separate: a one-time code cannot be replayed by the same identity.
+    private static final UUID REVIEWER2 = UUID.fromString("b77f1011-84bf-478a-8b86-2b5fd2881d46");
+    private static final UUID IMPORTER2 = UUID.fromString("b77f1011-84bf-478a-8b86-2b5fd2881d47");
     private static final UUID ORG = UUID.fromString("71e71a49-e926-4eaa-aab8-86b04add8a41");
     private static final byte[] OTP = "78901234567890123456".getBytes(StandardCharsets.US_ASCII);
     private static final String API = "/v1/platform/fleet/alias-candidates";
@@ -74,8 +78,7 @@ class FleetAliasCandidatesIntegrationTest {
         String importer = session(IMPORTER), reviewer = session(REVIEWER), dual = session(DUAL), other = session(OTHER_STAFF);
         assertEquals(401, call("GET", API, null, null, null).statusCode());
         assertEquals(403, call("GET", API, importer, null, null).statusCode());
-        for (String who : new String[]{importer, reviewer, dual, other})
-            assertEquals(200, call("POST", "/v1/compliance/session", who, null, currentCode()).statusCode());
+        for (String who : new String[]{importer, reviewer, dual, other}) verify(who);
 
         // Outside both rosters nothing is visible or possible; the reviewer cannot import, the importer cannot decide.
         assertEquals(404, call("GET", API, other, null, null).statusCode());
@@ -167,6 +170,59 @@ class FleetAliasCandidatesIntegrationTest {
         assertEquals(9L, audited.longValue());
     }
 
+    /** D19: the owner decides on the owner-internal basis, even on a candidate they imported; it is never independent. */
+    @Test
+    void ownerInternalDecisionIsExplicitNeverIndependentAndLimitedToTheOwnersRoster() throws Exception {
+        database.transaction(c -> update(c, "INSERT INTO app_organization(id,environment,display_name) VALUES (?,'SANDBOX','Organização de teste') ON CONFLICT(id) DO NOTHING", ORG));
+        String suffix = UUID.randomUUID().toString().substring(0, 8);
+        String owner = session(OWNER), reviewer = session(REVIEWER2), importer = session(IMPORTER2);
+        for (String who : new String[]{owner, reviewer, importer}) verify(who);
+        long models = count("app_fleet_model"), aliases = count("app_fleet_model_alias");
+        String one = item("I/OWNER A " + suffix, "O_A_" + suffix, "EXACT", "[" + match(7, "X") + "]");
+        String two = item("I/OWNER B " + suffix, "O_B_" + suffix, "EXACT", "[" + match(8, "Y") + "]");
+        // The owner imports and sees; the reviewer-only profile cannot claim the owner basis.
+        assertEquals(2, json.readTree(ok(call("POST", API, owner, null, batch("2026-07", SHA, one, two))).body()).path("created").asInt());
+        String idOne = null, idTwo = null;
+        for (var c : json.readTree(ok(call("GET", API + "?state=PENDING", owner, null, null)).body())) {
+            if (c.path("literalName").asText().endsWith("OWNER A " + suffix)) idOne = c.path("id").asText();
+            if (c.path("literalName").asText().endsWith("OWNER B " + suffix)) idTwo = c.path("id").asText();
+        }
+        assertNotNull(idOne);
+        assertNotNull(idTwo);
+        String accept = "{\"outcome\":\"ACCEPTED\",\"selectedPbevLine\":7,\"reason\":\"Conferido pelo responsável do produto.\",\"basis\":\"OWNER_INTERNAL\"}";
+        assertEquals(403, call("POST", API + "/" + idOne + "/decision", reviewer, null, accept).statusCode());
+        assertEquals(404, call("POST", API + "/" + idOne + "/decision", importer, null, accept).statusCode());
+        assertEquals(422, call("POST", API + "/" + idOne + "/decision", owner, null, accept.replace("OWNER_INTERNAL", "SELF")).statusCode());
+        // Without a basis the decision is INDEPENDENT, which the importer-owner cannot satisfy (and is not a reviewer).
+        var noBasis = call("POST", API + "/" + idOne + "/decision", owner, null, accept.replace(",\"basis\":\"OWNER_INTERNAL\"", ""));
+        assertEquals(403, noBasis.statusCode());
+        assertEquals("BASE_NAO_AUTORIZADA", json.readTree(noBasis.body()).path("code").asText());
+        assertEquals("PENDING", find(json.readTree(ok(call("GET", API, owner, null, null)).body()), idOne).path("state").asText());
+
+        var decided = json.readTree(ok(call("POST", API + "/" + idOne + "/decision", owner, null, accept)).body());
+        assertEquals("ACCEPTED", decided.path("state").asText());
+        assertEquals("OWNER_INTERNAL", decided.path("decisionBasis").asText());
+        assertEquals(OWNER.toString(), decided.path("decidedBy").asText());
+        assertEquals(409, call("POST", API + "/" + idOne + "/decision", owner, null, accept).statusCode());
+        // An independent reviewer (not the importer) still decides on the INDEPENDENT basis.
+        var independent = json.readTree(ok(call("POST", API + "/" + idTwo + "/decision", reviewer, null,
+                "{\"outcome\":\"REJECTED\",\"reason\":\"Revisão independente do candidato.\",\"basis\":\"INDEPENDENT\"}")).body());
+        assertEquals("INDEPENDENT", independent.path("decisionBasis").asText());
+        // The listing shows the basis, and the catalog is untouched.
+        var listed = json.readTree(ok(call("GET", API, owner, null, null)).body());
+        assertEquals("OWNER_INTERNAL", find(listed, idOne).path("decisionBasis").asText());
+        assertEquals("INDEPENDENT", find(listed, idTwo).path("decisionBasis").asText());
+        assertEquals(models, count("app_fleet_model"));
+        assertEquals(aliases, count("app_fleet_model_alias"));
+    }
+
+    /** A one-time code cannot be replayed, so a session already verified by an earlier test is reused. */
+    private void verify(String who) throws Exception {
+        var current = call("GET", "/v1/compliance/session", who, null, null);
+        if (current.statusCode() == 200 && json.readTree(current.body()).path("verified").asBoolean()) return;
+        assertEquals(200, call("POST", "/v1/compliance/session", who, null, currentCode()).statusCode());
+    }
+
     private static JsonNode find(JsonNode list, String id) {
         for (var item : list) if (item.path("id").asText().equals(id)) return item;
         throw new AssertionError("candidate not listed: " + id);
@@ -219,10 +275,12 @@ class FleetAliasCandidatesIntegrationTest {
             var result = new HashMap<>(super.start());
             String secret = Base64.getUrlEncoder().withoutPadding().encodeToString(OTP);
             result.put("carbonflow.compliance.staff", IMPORTER + ":" + secret + ":" + ORG + ";" + REVIEWER + ":" + secret + ":" + ORG
-                    + ";" + DUAL + ":" + secret + ":" + ORG + ";" + OTHER_STAFF + ":" + secret + ":" + ORG);
+                    + ";" + DUAL + ":" + secret + ":" + ORG + ";" + OTHER_STAFF + ":" + secret + ":" + ORG + ";" + OWNER + ":" + secret + ":" + ORG
+                    + ";" + REVIEWER2 + ":" + secret + ":" + ORG + ";" + IMPORTER2 + ":" + secret + ":" + ORG);
             result.put("carbonflow.compliance.document-key", Base64.getUrlEncoder().withoutPadding().encodeToString(new byte[32]));
-            result.put("carbonflow.platform.fleet-alias-candidates.importers", IMPORTER + "," + DUAL);
-            result.put("carbonflow.platform.fleet-alias-candidates.reviewers", REVIEWER + "," + DUAL);
+            result.put("carbonflow.platform.fleet-alias-candidates.importers", IMPORTER + "," + DUAL + "," + IMPORTER2);
+            result.put("carbonflow.platform.fleet-alias-candidates.reviewers", REVIEWER + "," + DUAL + "," + REVIEWER2);
+            result.put("carbonflow.platform.fleet-alias-candidates.owners", OWNER.toString());
             return result;
         }
     }

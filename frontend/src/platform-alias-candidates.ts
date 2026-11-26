@@ -21,12 +21,16 @@ interface Candidate {
   decidedBy: string | null;
   selectedPbevLine: number | null;
   decisionReason: string | null;
+  decisionBasis: 'INDEPENDENT' | 'OWNER_INTERNAL' | null;
   limits: string;
 }
 
 const LEVELS: Record<string, string> = {
   EXACT: 'Nome idêntico ao do PBEV', MODEL_ONLY: 'Só o modelo coincide; a versão fica a decidir',
   AMBIGUOUS: 'Mais de uma opção equivalente',
+};
+const BASES: Record<string, string> = {
+  INDEPENDENT: 'Revisão independente', OWNER_INTERNAL: 'Decisão interna do responsável (não é revisão independente)',
 };
 const STATES: Record<string, string> = {PENDING: 'Aguardando revisão', ACCEPTED: 'Aceito', REJECTED: 'Recusado'};
 const FILTERS: {value: string; label: string}[] = [
@@ -60,6 +64,7 @@ export class PlatformAliasCandidatesComponent {
   readonly denied = signal(false);
   readonly deciding = signal<string | null>(null);
   readonly line = signal<number | null>(null);
+  readonly basis = signal<'INDEPENDENT' | 'OWNER_INTERNAL'>('INDEPENDENT');
   readonly unlocked = computed(() => {
     if (this.denied()) return false;
     const session = this.session();
@@ -70,6 +75,7 @@ export class PlatformAliasCandidatesComponent {
 
   levelLabel(item: Candidate): string { return LEVELS[item.level] ?? item.level; }
   stateLabel(item: Candidate): string { return STATES[item.state] ?? item.state; }
+  basisLabel(item: Candidate): string { return item.decisionBasis ? (BASES[item.decisionBasis] ?? item.decisionBasis) : ''; }
   shortHash(item: Candidate): string { return item.pbevSourceSha256.slice(0, 12); }
   chosen(item: Candidate): PbevMatch | undefined {
     return item.matches.find(match => match.pbevLine === item.selectedPbevLine);
@@ -159,6 +165,7 @@ export class PlatformAliasCandidatesComponent {
   open(item: Candidate) {
     this.deciding.set(item.id);
     this.line.set(item.matches.length === 1 ? item.matches[0].pbevLine : null);
+    this.basis.set('INDEPENDENT');
     this.error.set('');
     this.feedback.set('');
   }
@@ -167,6 +174,8 @@ export class PlatformAliasCandidatesComponent {
 
   pick(value: number) { this.line.set(value); }
 
+  setBasis(value: 'INDEPENDENT' | 'OWNER_INTERNAL') { this.basis.set(value); }
+
   async decide(item: Candidate, outcome: 'ACCEPTED' | 'REJECTED', reason: string) {
     if (this.saving()) return;
     this.saving.set(true);
@@ -174,7 +183,7 @@ export class PlatformAliasCandidatesComponent {
     this.feedback.set('');
     try {
       await firstValueFrom(this.http.post<Candidate>(this.api + '/' + item.id + '/decision', {
-        outcome, reason: reason.trim(), selectedPbevLine: outcome === 'ACCEPTED' ? this.line() : null,
+        outcome, reason: reason.trim(), selectedPbevLine: outcome === 'ACCEPTED' ? this.line() : null, basis: this.basis(),
       }));
       this.feedback.set(outcome === 'ACCEPTED'
         ? 'Candidato aceito. Nenhum modelo nem alias foi criado: o cadastro segue pelas rotas do catálogo.'
@@ -184,7 +193,8 @@ export class PlatformAliasCandidatesComponent {
     } catch (reason) {
       const status = reason instanceof HttpErrorResponse ? reason.status : 0;
       const code = reason instanceof HttpErrorResponse ? reason.error?.code : null;
-      this.error.set(status === 403 && code === 'DUPLA_CUSTODIA' ? 'Quem importou o candidato não pode decidir sobre ele. Peça a outra pessoa.'
+      this.error.set(status === 403 && code === 'DUPLA_CUSTODIA' ? 'Quem importou o candidato não pode decidir como revisor independente. Peça a outra pessoa ou, se este é o seu papel, use a decisão interna do responsável.'
+        : status === 403 && code === 'BASE_NAO_AUTORIZADA' ? 'Seu perfil não está autorizado a decidir nesta base. Escolha a outra base ou peça o privilégio.'
         : status === 409 ? 'Este candidato já tem decisão. Atualize a lista.'
         : this.message(reason, 'Não foi possível registrar a decisão.'));
     } finally {
