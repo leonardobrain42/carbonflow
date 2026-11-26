@@ -126,7 +126,14 @@ class OpenRealFuelCatalogRunIntegrationTest {
 
         // IR: year 1 ex ante plan + initial review, year 2 annual observed update with dated evidence.
         JsonNode plan=post("/v1/projects/"+s.project()+"/technical/open-ir-ex-ante-plan",s.owner().cookie(),"\"0\"",EX_ANTE,201);
+        // Q13/D21 step 2a: a transition declaration needs two entries of the same factor pinned in the year; year 1 has one.
+        var rejected=fx.postMethod("/v1/platform/open-ir-assessments/"+s.project(),s.staffManager().cookie(),key(),"\"0\"",
+            "{\"period\":\"Y1-M1\",\"frequency\":\"ANNUAL\",\"basis\":\"PROJECT_SPECIFIC\","
+            +"\"rationale\":\"Atualização anual declarada para teste integrado, sem admissão.\","
+            +"\"fuelTransition\":{\"actReference\":\"Res. CNPE 9/2026 (teste)\",\"evidenceLocator\":\"Seed, entradas E30 e E32\"}}");
+        assertEquals(409,rejected.statusCode(),rejected.body());
         JsonNode y1=recordIr("Y1-M1","\"0\"");
+        assertTrue(y1.path("fuelTransition").isNull()||y1.path("fuelTransition").isMissingNode(),"no declaration unless informed");
         post("/v1/platform/open-ir-assessments/"+s.project()+"/"+y1.path("id").asText()+"/review",s.staffReviewer().cookie(),"\"1\"",
             "{\"assessmentSha256\":\""+y1.path("assessmentSha256").asText()+"\",\"outcome\":\"INITIAL_BASELINE_CHECKED\","
             +"\"annualUpdateBasis\":\"PLAN_ONLY\",\"evidenceLocator\":\"Plano ex ante e referências do ano 1\","
@@ -137,7 +144,18 @@ class OpenRealFuelCatalogRunIntegrationTest {
             +"\"fuel\":\"MATCH: atualização anual do fator fóssil conforme o plano ex ante.\"},"
             +"\"exAntePlanId\":\""+plan.path("id").asText()+"\",\"exAntePlanVersion\":"+plan.path("version").asInt()
             +",\"exAntePlanSha256\":\""+plan.path("planSha256").asText()+"\"}",201);
-        JsonNode y2=recordIr("Y2-M1","\"0\"");
+        // Year 2 (source year 2026) also pins the E30 entry (the window-aware selector still serves Y2-M1 with the E32 one): two entries
+        // of the same factor now sit in the year, so the declaration is accepted and records both entries and the act. No guard moves.
+        var e30Pin=fx.postMethod("/v1/platform/open-parameter-bindings",s.staffManager().cookie(),key(),"\"1\"",
+            "{\"projectId\":\""+s.project()+"\",\"parameterKind\":\"EF_FUEL\",\"vintageYear\":2026,"
+            +"\"catalog\":{\"fuelId\":\""+gasoline+"\",\"boundary\":\"CO2_ONLY\",\"scope\":\"TTW\",\"date\":\"2026-03-01\"}}");
+        assertEquals(201,e30Pin.statusCode(),e30Pin.body());
+        JsonNode y2=post("/v1/platform/open-ir-assessments/"+s.project(),s.staffManager().cookie(),"\"0\"",
+            "{\"period\":\"Y2-M1\",\"frequency\":\"ANNUAL\",\"basis\":\"PROJECT_SPECIFIC\","
+            +"\"rationale\":\"Atualização anual declarada para teste integrado, sem admissão.\","
+            +"\"fuelTransition\":{\"actReference\":\"Res. CNPE 9/2026 (teste)\",\"evidenceLocator\":\"Seed, entradas E30 e E32\"}}",201);
+        assertEquals(2,y2.at("/fuelTransition/entryIds").size(),y2.toString());
+        assertEquals("Res. CNPE 9/2026 (teste)",y2.at("/fuelTransition/actReference").asText());
         post("/v1/platform/open-ir-assessments/"+s.project()+"/"+y2.path("id").asText()+"/review",s.staffReviewer().cookie(),"\"1\"",
             "{\"assessmentSha256\":\""+y2.path("assessmentSha256").asText()+"\",\"outcome\":\"CHECKED_INTERNAL\","
             +"\"annualUpdateBasis\":\"OBSERVED_UPDATE\",\"evidenceLocator\":\"Registros de atualização do ano 2\","
@@ -223,7 +241,7 @@ class OpenRealFuelCatalogRunIntegrationTest {
         // does. Pin 2026 again to an entry valid only from 2026-10-01; Y2-M1 (2026-09-01) keeps resolving to the E32 gasolina entry
         // (the guard EF_FUEL_WINDOW itself is exercised where no pin of the year covers the window: OpenSeriesBoundRunIntegrationTest).
         registerFuelDatum(diesel,"2.6",2026,"2026-10-01","2027-01-27");
-        var laterPin=fx.postMethod("/v1/platform/open-parameter-bindings",s.staffManager().cookie(),key(),"\"1\"",
+        var laterPin=fx.postMethod("/v1/platform/open-parameter-bindings",s.staffManager().cookie(),key(),"\"2\"",
             "{\"projectId\":\""+s.project()+"\",\"parameterKind\":\"EF_FUEL\",\"vintageYear\":2026,"
             +"\"catalog\":{\"fuelId\":\""+diesel+"\",\"boundary\":\"CO2_ONLY\",\"scope\":\"TTW\",\"date\":\"2026-11-01\"}}");
         assertEquals(201,laterPin.statusCode(),laterPin.body());

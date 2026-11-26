@@ -39,3 +39,11 @@ Nível D17: projeto (motor E8 existente). Sem migração e sem mudança de API.
 - **O que este passo NÃO faz:** o IR continua amarrado a **um** pino de fator por ano; um período em outra vigência do mesmo ano ainda esbarra em `REFERENCE_MISMATCH` até o passo 2 (o IR passar a referenciar o conjunto de pinos do ano e registrar o ato que os separa).
 - **Teste:** `aYearWithTwoRegulatoryVintagesSelectsThePinOfEachWindow` (E30 em março, E32 em setembro, janela que cruza a troca cai no mais recente). Os testes `OpenSeriesBoundRunIntegrationTest` e `OpenRealFuelCatalogRunIntegrationTest` passaram a usar combustíveis privados.
 
+## Declaração da transição no IR, passo 2a da Q13 (D21)
+Nível D17: projeto. Migração aditiva **V117** (`app_open_ir_fuel_transition`, imutável). **Nenhuma guarda é relaxada**: o reuso intra-ano do IR e a consolidação anual (`FUEL_REFERENCE_MISMATCH`) seguem exatamente como antes.
+- **Entrada opcional** no comando de IR: `fuelTransition { actReference (8–300), evidenceLocator (3–300) }`. O **conjunto de entradas é calculado pelo servidor** a partir dos pinos de catálogo do ano-fonte; o ato e a evidência são **declarados** pelo responsável, nunca inventados.
+- **Aceita só se** o ano tem duas ou mais entradas distintas do **mesmo** combustível, parâmetro, gás e escopo (mudança regulatória do fator). Caso contrário, 409. Não serve para escolher entre fatores não relacionados.
+- **Hash:** sem declaração, o hash do comando e o do registro são os de antes (replays e histórico intactos); com declaração, usa `OPEN-IR-COMMAND@2`, e a declaração tem hash próprio (`OPEN-IR-FUEL-TRANSITION@1`: avaliação, entradas, ato, evidência).
+- **Na resposta:** `fuelTransition` (ato, evidência, entradas, hash) ou nulo.
+- **Ainda não faz (passo 2b):** usar a declaração para o IR atender períodos de outra vigência do mesmo ano e para a consolidação anual aceitar dois fatores do mesmo ano. Sem o 2b, esses casos continuam bloqueados (`REFERENCE_MISMATCH`, `FUEL_REFERENCE_MISMATCH`).
+
