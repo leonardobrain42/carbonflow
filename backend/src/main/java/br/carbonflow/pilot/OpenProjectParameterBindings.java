@@ -27,7 +27,9 @@ class OpenProjectParameterBindings {
     record PinSummary(String parameterKind, int vintageYear, int version) {}
     record Input(String projectId, String parameterKind, Integer vintageYear,
                  UUID candidateId, String declaredValue, String ruleReference,
-                 String evidenceLocator, Boolean useDefault) {}
+                 String evidenceLocator, Boolean useDefault, CatalogInput catalog) {}
+    /** EF_FUEL by reference to the fuel catalog (V111): one CO2_ONLY fossil-CO2 factor, never a typed number. */
+    record CatalogInput(String fuelId, String boundary, String scope, String date) {}
     record Result(View view, boolean created) {}
     record View(UUID id, String projectId, String parameterKind, int vintageYear,
                 int version, String methodology, String methodologyEdition,
@@ -52,9 +54,11 @@ class OpenProjectParameterBindings {
     private final PilotDatabase database;
     private final PlatformSourceWork managers;
     private final DynamicProjectScope scope;
+    private final FuelCatalog fuelCatalog;
 
     OpenProjectParameterBindings(PilotDatabase database, PlatformSourceWork managers,
-                                 DynamicProjectScope scope) {
+                                 DynamicProjectScope scope, FuelCatalog fuelCatalog) {
+        this.fuelCatalog = fuelCatalog;
         this.database = database;
         this.managers = managers;
         this.scope = scope;
@@ -149,6 +153,11 @@ class OpenProjectParameterBindings {
                 } catch (IllegalArgumentException ex) {
                     throw invalid(ex.getMessage());
                 }
+            } else if (input.catalog() != null) {
+                if (!"EF_FUEL".equals(kind) || input.candidateId() != null || input.declaredValue() != null
+                        || input.ruleReference() != null || input.evidenceLocator() != null) {
+                    throw invalid("O vínculo ao catálogo vale só para EF_FUEL e não aceita candidato nem número digitado.");
+                }
             } else {
                 if (input.declaredValue() != null || input.ruleReference() != null
                         || input.evidenceLocator() != null) {
@@ -159,6 +168,8 @@ class OpenProjectParameterBindings {
             String fingerprintSource = "OPEN-PARAMETER-PIN-V1|" + input.projectId() + "|"
                 + kind + "|" + year + "|" + expected + "|"
                 + (input.candidateId() == null ? "" : input.candidateId()) + "|"
+                + (input.catalog() == null ? "" : input.catalog().fuelId() + "|" + input.catalog().boundary() + "|"
+                    + input.catalog().scope() + "|" + input.catalog().date() + "|")
                 + (scalar == null ? "" : scalar.canonical() + "|"
                     + input.ruleReference().strip() + "|" + input.evidenceLocator().strip());
             byte[] fingerprint = AccessSecrets.digest(fingerprintSource);
@@ -190,7 +201,7 @@ class OpenProjectParameterBindings {
             }
             int triage = OpenCalculationReadiness.triageRevision(connection, input.projectId());
             Candidate candidate = null;
-            if (scalar == null) {
+            if (scalar == null && input.catalog() == null) {
                 candidate = candidate(connection, input.candidateId(), kind);
                 if (candidate == null || !project.organization().equals(candidate.organization())) {
                     throw hidden();
@@ -205,7 +216,31 @@ class OpenProjectParameterBindings {
             String unit = null;
             String formula = null;
             String digest;
-            if (candidate != null) {
+            FuelCatalog.PinSource catalogSource = null;
+            BigDecimal rounded = null;
+            byte[] catalogSha = null;
+            if (input.catalog() != null) {
+                var cat = input.catalog();
+                catalogSource = fuelCatalog.pinSource(connection, cat.boundary(), cat.fuelId(), cat.date(), cat.scope());
+                unit = "tCO2e/USgal";
+                // The E8 contract keeps at most 12 decimals: the rounding is explicit, recorded and never hidden.
+                rounded = new BigDecimal(catalogSource.valueTco2PerUsGal()).setScale(12, java.math.RoundingMode.HALF_EVEN);
+                if (rounded.signum() <= 0) throw invalid("O fator do catálogo arredondado a 12 casas é nulo.");
+                formula = "CATALOG " + catalogSource.entry().id() + ": " + catalogSource.entry().value() + " "
+                    + catalogSource.entry().unit() + " -> " + catalogSource.valueTco2PerUsGal() + " tCO2/USgal, rounded to "
+                    + rounded.toPlainString() + " (12 decimals, HALF_EVEN, E8 contract); "
+                    + "EF_CO2e = EF_CO2 x GWP(CO2), GWP(CO2) = 1 (CO2_ONLY)";
+                catalogSha = AccessSecrets.digest("FUEL-CATALOG-ENTRY|" + catalogSource.entry().id() + "|"
+                    + catalogSource.entry().value() + "|" + catalogSource.entry().unit() + "|"
+                    + catalogSource.entry().evidenceSha256());
+                if (latest != null && "CATALOG_REFERENCE".equals(latest.valueKind())
+                        && HexFormat.of().formatHex(catalogSha).equals(latest.sha())) {
+                    throw conflict("Esta mesma entrada do catálogo já está vinculada a este ano.");
+                }
+                digest = HexFormat.of().formatHex(AccessSecrets.digest(
+                    input.projectId() + "|" + kind + "|" + year + "|" + (expected + 1) + "|CATALOG|"
+                        + HexFormat.of().formatHex(catalogSha) + "|" + rounded.toPlainString() + "|" + formula));
+            } else if (candidate != null) {
                 if (!"CANDIDATE".equals(candidate.status()) || candidate.normalized() == null
                         || !"APPROVED_FOR_SCOPE".equals(candidate.outcome())) {
                     throw conflict("O fator precisa estar revisado internamente e com licença vigente.");
@@ -248,18 +283,29 @@ class OpenProjectParameterBindings {
                 VALUES (?,?,?,'SANDBOX',?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 """, id, input.projectId(), project.organization(), kind, year, expected + 1,
                 candidate == null ? null : candidate.id(),
-                candidate == null ? null : HexFormat.of().parseHex(candidate.sha()),
+                catalogSha != null ? catalogSha : candidate == null ? null : HexFormat.of().parseHex(candidate.sha()),
                 unit, formula,
                 scalar == null ? null : new BigDecimal(scalar.canonical()),
                 scalar == null ? null : input.ruleReference().strip(),
                 scalar == null ? null : input.evidenceLocator().strip(),
-                scalar == null ? "REFERENCE" : scalar.valueKind(),
+                catalogSource != null ? "CATALOG_REFERENCE" : scalar == null ? "REFERENCE" : scalar.valueKind(),
                 triage, HexFormat.of().parseHex(digest), actor.id());
             update(connection, """
                 INSERT INTO app_open_project_parameter_binding_command
                  (actor_id, command_key, project_id, binding_id, fingerprint)
                 VALUES (?,?,?,?,?)
                 """, actor.id(), command, input.projectId(), id, fingerprint);
+            if (catalogSource != null) {
+                update(connection, """
+                    INSERT INTO app_open_efuel_catalog_pin
+                     (binding_id,project_id,entry_id,fuel_id,boundary,emission_scope,on_date,source_gas,original_value,
+                      original_unit,value_tco2_per_usgal,gwp_co2,review,steps)
+                    VALUES (?,?,?,?,'CO2_ONLY',?,?::date,'CO2_FOSSIL',?,?,?,1,?,?::jsonb)
+                    """, id, input.projectId(), catalogSource.entry().id(), catalogSource.entry().fuelId(),
+                    input.catalog().scope(), input.catalog().date(), catalogSource.entry().value(), catalogSource.entry().unit(),
+                    rounded, catalogSource.review(),
+                    steps(catalogSource.steps()));
+            }
             ComplianceStaff.audit(connection, actor.id(), null, "PIN_OPEN_PARAMETER_BINDING");
             Stored stored = first(connection, SELECT + " WHERE project_id = ? AND id = ?",
                 OpenProjectParameterBindings::stored, input.projectId(), id);
@@ -313,9 +359,29 @@ class OpenProjectParameterBindings {
             stored.triageVersion(), stored.digest(), stored.published(), List.copyOf(gates));
     }
 
+    private static String steps(List<FuelCatalog.Step> steps) {
+        var out = new StringBuilder("[");
+        for (var step : steps) {
+            if (out.length() > 1) out.append(',');
+            out.append("{\"from\":\"").append(step.from()).append("\",\"to\":\"").append(step.to())
+                .append("\",\"factor\":\"").append(step.factor()).append("\"}");
+        }
+        return out.append(']').toString();
+    }
+
     private static boolean stale(Connection connection, Stored stored) throws SQLException {
         int triage = OpenCalculationReadiness.triageRevision(connection, stored.project());
         if (triage != stored.triageVersion()) return true;
+        if ("CATALOG_REFERENCE".equals(stored.valueKind())) {
+            // The catalog entry must still be reviewed OK in every basis that reviewed it (a later rejection stales the pin).
+            Boolean fine = first(connection, """
+                SELECT bool_and(outcome = 'REVIEWED_OK') AND count(*) > 0 FROM (
+                  SELECT DISTINCT ON (r.basis) r.outcome
+                  FROM app_open_efuel_catalog_pin p JOIN app_fuel_entry_review r ON r.entry_id = p.entry_id
+                  WHERE p.binding_id = ? ORDER BY r.basis, r.decided_at DESC, r.id) latest
+                """, r -> r.getBoolean(1), stored.id());
+            return !Boolean.TRUE.equals(fine);
+        }
         if (stored.candidate() == null) return false;
         Candidate candidate = candidate(connection, stored.candidate(), stored.kind());
         if (candidate == null || !"CANDIDATE".equals(candidate.status())

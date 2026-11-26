@@ -536,9 +536,10 @@ class OpenIrAssessments {
             int sourceYear) throws SQLException {
         if(fleet==null || fuel==null) return null;
         return first(c,"""
-            SELECT f.fleet_snapshot_id,f.rating_snapshot_id,b.candidate_id,f.cycle
+            SELECT f.fleet_snapshot_id,f.rating_snapshot_id,COALESCE(b.candidate_id,cp.entry_id),f.cycle
             FROM app_open_e8_fleet_selection f
             JOIN app_open_project_parameter_binding b ON b.project_id=f.project_id
+            LEFT JOIN app_open_efuel_catalog_pin cp ON cp.binding_id=b.id
             WHERE f.project_id=? AND f.id=? AND b.id=? AND b.parameter_kind='EF_FUEL'
                 AND f.observation_year=? AND b.vintage_year=?
             """,r->new OpenIrIntraYearReuse.Canonical(r.getObject(1,UUID.class),r.getObject(2,UUID.class),
@@ -563,9 +564,10 @@ class OpenIrAssessments {
             ? "LINKED_CURRENT".equals(initialLinkState(c,row,opinion))
             : (opinion==null || "CHECKED_INTERNAL".equals(opinion.outcome())));
         return first(c,"""
-            SELECT f.fleet_snapshot_id,f.rating_snapshot_id,b.candidate_id,f.cycle
+            SELECT f.fleet_snapshot_id,f.rating_snapshot_id,COALESCE(b.candidate_id,cp.entry_id),f.cycle
             FROM app_open_e8_fleet_selection f
             JOIN app_open_project_parameter_binding b ON b.project_id=f.project_id
+            LEFT JOIN app_open_efuel_catalog_pin cp ON cp.binding_id=b.id
             WHERE f.project_id=? AND f.id=? AND b.id=? AND b.parameter_kind='EF_FUEL'
                 AND f.observation_year=? AND b.vintage_year=?
             """,r->new OpenIrAnnualEvidence.Snapshot(row.id(),row.project(),row.year(),row.sourceYear(),
@@ -658,11 +660,12 @@ class OpenIrAssessments {
 
     private static ReviewReferences reviewReferences(Connection c,Stored row)throws SQLException {
         UUID[] ids=first(c,"""
-            SELECT f.fleet_snapshot_id,f.rating_snapshot_id,b.candidate_id
+            SELECT f.fleet_snapshot_id,f.rating_snapshot_id,COALESCE(b.candidate_id,cp.entry_id)
             FROM app_open_e8_fleet_selection f
             JOIN app_open_project_parameter_binding b ON b.project_id=f.project_id
+            LEFT JOIN app_open_efuel_catalog_pin cp ON cp.binding_id=b.id
             WHERE f.project_id=? AND f.id=? AND b.id=? AND b.parameter_kind='EF_FUEL'
-              AND f.fleet_snapshot_id IS NOT NULL AND f.rating_snapshot_id IS NOT NULL AND b.candidate_id IS NOT NULL
+              AND f.fleet_snapshot_id IS NOT NULL AND f.rating_snapshot_id IS NOT NULL AND COALESCE(b.candidate_id,cp.entry_id) IS NOT NULL
             """,r->new UUID[]{r.getObject(1,UUID.class),r.getObject(2,UUID.class),r.getObject(3,UUID.class)},
             row.project(),row.fleet(),row.fuel());
         if(ids==null)return null;
@@ -674,10 +677,14 @@ class OpenIrAssessments {
             """,OpenIrAssessments::sourceMetadata,ids[0]);
         var afec=ratingSources(c,ids[1],true);
         var mpg=ratingSources(c,ids[1],false);
-        var fuel=query(c,"""
+        List<SourceMetadata> fuel=query(c,"""
             SELECT s.source_id,s.edition,s.title,s.reference_year
             FROM app_open_parameter_candidate p JOIN app_platform_source_object o ON o.id=p.source_object_id
             JOIN app_platform_source_submission s ON s.id=o.submission_id WHERE p.id=?
+            """,OpenIrAssessments::sourceMetadata,ids[2]);
+        if(fuel.isEmpty())fuel=query(c,"""
+            SELECT 'FUEL-CATALOG:'||e.fuel_id,e.id::text,e.evidence_source,e.vintage_year
+            FROM app_fuel_entry e WHERE e.id=?
             """,OpenIrAssessments::sourceMetadata,ids[2]);
         if(evr.isEmpty()||afec.isEmpty()||mpg.isEmpty()||fuel.isEmpty())return null;
         return new ReviewReferences(ids[0],ids[1],ids[2],evr,afec,mpg,fuel);

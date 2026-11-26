@@ -278,51 +278,76 @@ class FuelCatalog {
         return database.transaction(c -> {
             var actor = staff.require(c, token);
             if (!member(actor.id())) throw hidden();
-            var boundary = boundaryId == null ? null : FuelBoundaries.preset(boundaryId);
-            LocalDate on = date(date, "date");
-            if (boundary == null || fuelId == null || !SCOPES.contains(scope) || (gwpSet != null && !GWP.matcher(gwpSet).matches()))
-                throw invalid("boundary");
-            if (first(c, "SELECT 1 FROM app_fuel WHERE id=?", r -> 1, fuelId) == null)
-                throw new PilotProblem(404, "COMBUSTIVEL_INEXISTENTE", "fuelId", RULE, "Combustível não encontrado.");
+            var resolution = resolveIn(c, boundaryId, fuelId, date, scope, gwpSet);
             ComplianceStaff.audit(c, actor.id(), null, "VIEW_FUEL_CATALOG");
-            var all = entries(c, null).stream().filter(e -> e.kind().equals("DATUM") && e.fuelId().equals(fuelId)
-                    && "EMISSION_FACTOR".equals(e.parameter()) && scope.equals(e.emissionScope()) && !e.validFrom().isAfter(on)
-                    && (e.validTo() == null || !e.validTo().isBefore(on))).toList();
-            var requirements = new ArrayList<Requirement>();
-            var blockers = new ArrayList<String>();
-            var gases = boundary.baselineGases();
-            var direct = new java.util.LinkedHashMap<String, Entry>();
-            for (String gas : gases)
-                all.stream().filter(e -> e.gas().equals(gas.equals("CO2") ? "CO2_FOSSIL" : gas)).findFirst().ifPresent(e -> direct.put(gas, e));
-            var aggregate = gwpSet == null || gases.size() == 1 ? java.util.Optional.<Entry>empty()
-                    : all.stream().filter(e -> e.gas().equals("CO2E_AGGREGATE") && gwpSet.equals(e.gwpSet())).findFirst();
-            if (direct.size() == gases.size()) {
-                for (String gas : gases) requirements.add(requirement(c, gas, "FOUND", direct.get(gas), gas.equals("CO2") ? "tCO2/USgal" : null, ""));
-            } else if (direct.isEmpty() && aggregate.isPresent()) {
-                requirements.add(requirement(c, "CO2E_AGGREGATE", "FOUND_AGGREGATE", aggregate.get(), "tCO2e/USgal",
-                        "CO2e agregado com a base " + gwpSet + " cobre todos os gases da fronteira; confira a consistência com o projeto."));
-            } else {
-                boolean unspecified = all.stream().anyMatch(e -> e.gas().equals("CO2_UNSPECIFIED"));
-                boolean onlyAggregate = gases.size() == 1 && all.stream().anyMatch(e -> e.gas().equals("CO2E_AGGREGATE"));
-                for (String gas : gases) {
-                    if (direct.containsKey(gas)) {
-                        requirements.add(requirement(c, gas, "FOUND", direct.get(gas), gas.equals("CO2") ? "tCO2/USgal" : null, ""));
-                        continue;
-                    }
-                    String note = gas.equals("CO2") && unspecified ? "Há CO2 de origem não especificada: não presumo que seja fóssil."
-                            : onlyAggregate ? "Só há CO2e agregado, que inclui CH4 e N2O e destoa de uma fronteira só de CO2."
-                            : !direct.isEmpty() && gwpSet != null ? "Fatores separados e CO2e agregado não se misturam (risco de dupla contagem); registre o gás que falta."
-                            : "Nenhum fator registrado para este gás, escopo e data.";
-                    requirements.add(new Requirement(gas, "MISSING", null, null, null, null, null, null, null, null, note));
-                    blockers.add(gas + ": " + note);
-                }
-            }
-            for (var req : requirements) if (req.conversionBlocker() != null) blockers.add(req.gas() + ": " + req.conversionBlocker());
-            var consistency = FuelBoundaries.inconsistencies(boundary.baselineGases(), boundary.projectGases());
-            blockers.addAll(consistency);
-            return new Resolution(boundary.id(), fuelId, on, scope, List.copyOf(requirements), List.copyOf(consistency),
-                    blockers.isEmpty() ? "RESOLVED_CANDIDATE" : "UNRESOLVED", List.copyOf(blockers), "NOT_ADMITTED", LIMITS);
+            return resolution;
         });
+    }
+
+    /** The resolution rules without the staff gate, for a caller that already authorized its own actor (project pin). */
+    Resolution resolveIn(Connection c, String boundaryId, String fuelId, String date, String scope, String gwpSet)
+            throws SQLException {
+        var boundary = boundaryId == null ? null : FuelBoundaries.preset(boundaryId);
+        LocalDate on = date(date, "date");
+        if (boundary == null || fuelId == null || !SCOPES.contains(scope) || (gwpSet != null && !GWP.matcher(gwpSet).matches()))
+            throw invalid("boundary");
+        if (first(c, "SELECT 1 FROM app_fuel WHERE id=?", r -> 1, fuelId) == null)
+            throw new PilotProblem(404, "COMBUSTIVEL_INEXISTENTE", "fuelId", RULE, "Combustível não encontrado.");
+        var all = entries(c, null).stream().filter(e -> e.kind().equals("DATUM") && e.fuelId().equals(fuelId)
+                && "EMISSION_FACTOR".equals(e.parameter()) && scope.equals(e.emissionScope()) && !e.validFrom().isAfter(on)
+                && (e.validTo() == null || !e.validTo().isBefore(on))).toList();
+        var requirements = new ArrayList<Requirement>();
+        var blockers = new ArrayList<String>();
+        var gases = boundary.baselineGases();
+        var direct = new java.util.LinkedHashMap<String, Entry>();
+        for (String gas : gases)
+            all.stream().filter(e -> e.gas().equals(gas.equals("CO2") ? "CO2_FOSSIL" : gas)).findFirst().ifPresent(e -> direct.put(gas, e));
+        var aggregate = gwpSet == null || gases.size() == 1 ? java.util.Optional.<Entry>empty()
+                : all.stream().filter(e -> e.gas().equals("CO2E_AGGREGATE") && gwpSet.equals(e.gwpSet())).findFirst();
+        if (direct.size() == gases.size()) {
+            for (String gas : gases) requirements.add(requirement(c, gas, "FOUND", direct.get(gas), gas.equals("CO2") ? "tCO2/USgal" : null, ""));
+        } else if (direct.isEmpty() && aggregate.isPresent()) {
+            requirements.add(requirement(c, "CO2E_AGGREGATE", "FOUND_AGGREGATE", aggregate.get(), "tCO2e/USgal",
+                    "CO2e agregado com a base " + gwpSet + " cobre todos os gases da fronteira; confira a consistência com o projeto."));
+        } else {
+            boolean unspecified = all.stream().anyMatch(e -> e.gas().equals("CO2_UNSPECIFIED"));
+            boolean onlyAggregate = gases.size() == 1 && all.stream().anyMatch(e -> e.gas().equals("CO2E_AGGREGATE"));
+            for (String gas : gases) {
+                if (direct.containsKey(gas)) {
+                    requirements.add(requirement(c, gas, "FOUND", direct.get(gas), gas.equals("CO2") ? "tCO2/USgal" : null, ""));
+                    continue;
+                }
+                String note = gas.equals("CO2") && unspecified ? "Há CO2 de origem não especificada: não presumo que seja fóssil."
+                        : onlyAggregate ? "Só há CO2e agregado, que inclui CH4 e N2O e destoa de uma fronteira só de CO2."
+                        : !direct.isEmpty() && gwpSet != null ? "Fatores separados e CO2e agregado não se misturam (risco de dupla contagem); registre o gás que falta."
+                        : "Nenhum fator registrado para este gás, escopo e data.";
+                requirements.add(new Requirement(gas, "MISSING", null, null, null, null, null, null, null, null, note));
+                blockers.add(gas + ": " + note);
+            }
+        }
+        for (var req : requirements) if (req.conversionBlocker() != null) blockers.add(req.gas() + ": " + req.conversionBlocker());
+        var consistency = FuelBoundaries.inconsistencies(boundary.baselineGases(), boundary.projectGases());
+        blockers.addAll(consistency);
+        return new Resolution(boundary.id(), fuelId, on, scope, List.copyOf(requirements), List.copyOf(consistency),
+                blockers.isEmpty() ? "RESOLVED_CANDIDATE" : "UNRESOLVED", List.copyOf(blockers), "NOT_ADMITTED", LIMITS);
+    }
+
+    /** The catalog entry a project pin may reference: CO2_ONLY, one fossil-CO2 factor, converted to tCO2/USgal, reviewed OK. */
+    record PinSource(Entry entry, String valueTco2PerUsGal, List<Step> steps, String review, LocalDate date) {}
+
+    PinSource pinSource(Connection c, String boundaryId, String fuelId, String date, String scope) throws SQLException {
+        if (!"CO2_ONLY".equals(boundaryId)) throw new PilotProblem(422, "FRONTEIRA_SEM_FATOR_FOSSIL_UNICO", "boundary", RULE,
+                "O vínculo do fator fóssil ao E8 só aceita CO2_ONLY; CH4/N2O exigem fatores e GWP próprios, ainda não vinculados.");
+        var resolution = resolveIn(c, boundaryId, fuelId, date, scope, null);
+        if (!"RESOLVED_CANDIDATE".equals(resolution.state()) || resolution.requirements().size() != 1)
+            throw new PilotProblem(422, "FATOR_FOSSIL_NAO_RESOLVIDO", "fuelId", RULE,
+                    "O catálogo não resolve um fator de CO2 fóssil para este combustível, escopo e data: " + String.join("; ", resolution.blockers()));
+        var requirement = resolution.requirements().get(0);
+        if (requirement.methodValue() == null || "NOT_REVIEWED_OK".equals(requirement.review()))
+            throw new PilotProblem(422, "FATOR_FOSSIL_SEM_REVISAO", "fuelId", RULE,
+                    "O fator do catálogo precisa de revisão REVIEWED_OK (interna ou independente) e conversão resolvida para tCO2/USgal.");
+        var entry = entries(c, requirement.entryId()).get(0);
+        return new PinSource(entry, requirement.methodValue(), convertEntry(c, entry, "tCO2/USgal").steps(), requirement.review(), resolution.date());
     }
 
     private Requirement requirement(Connection c, String gas, String state, Entry e, String methodUnit, String note) throws SQLException {
