@@ -219,10 +219,10 @@
     "locator": "Seção 9.2 (fator horário com consumo horário)"
    },
    "platformState": "CANNOT_DETERMINE",
-   "evidence": "V113 guarda fuso e convenção como DECLARED_BY_PEOPLE; hora sem instante UTC não vira candidato.",
+   "evidence": "V113 guarda fuso e convenção como DECLARED_BY_PEOPLE; hora sem instante UTC não vira candidato. scripts/grid_time_hypotheses.py compara hipóteses no mesmo instante UTC sem apontar uma como correta.",
    "gap": "Nenhuma fonte encontrada (página, NT jun/2025, planilha) define o fuso nem a convenção; nem TOOL07 nem VT0011 tratam do assunto.",
    "blocks": "somente os intervalos sem correspondência fundamentada",
-   "toResolve": "Resposta do MCTI/ONS; ensaios com hipóteses configuráveis (PR seguinte)."
+   "toResolve": "Resposta do MCTI/ONS (CF-DATA-003). Enquanto isso, ensaios com `scripts/grid_time_hypotheses.py` medem a sensibilidade de cada hipótese."
   },
   {
    "id": "R16",
