@@ -43,7 +43,7 @@ def main():
         print(f"{len(entries)} entradas (nada enviado).")
         return 0
     config = admin.private_config()
-    browser = admin.login(config)
+    browser = admin.login(demo.credentials(admin.ADMIN_EMAIL, "Administrador CarbonFlow · Sandbox", create=False))
     secret = admin.base64.urlsafe_b64decode(config["secret"] + "=" * (-len(config["secret"]) % 4))
     status, _ = demo.api(browser, "POST", "/v1/compliance/session", {"code": admin.totp(secret, int(time.time()) // 30)})
     if status != 200:
