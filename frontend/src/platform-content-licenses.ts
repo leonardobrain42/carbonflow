@@ -194,7 +194,8 @@ export class PlatformContentLicensesComponent {
       const code = reason instanceof HttpErrorResponse ? reason.error?.code : null;
       this.error.set(code === 'OPERACAO_FORA_DA_LICENCA' ? 'A licença não cobre uma das operações marcadas.'
         : code === 'FUNDAMENTO_NAO_E_CLAUSULA' ? 'Uma operação marcada como cláusula não consta da concessão da licença: declare-a como interpretação jurídica.'
-        : this.message(reason, 'Não foi possível declarar a licença pública.'));
+        : code === 'FONTE_INEXISTENTE' ? 'A fonte e a versão informadas não estão registradas neste banco. Confira o código da fonte e a versão publicada (MCTI-SIN-DESPACHO, 2026-janout-7f8e2292); a fonte vem da migração V112.'
+        : this.fieldProblem(reason) ?? this.message(reason, 'Não foi possível declarar a licença pública.'));
     } finally {
       this.saving.set(false);
     }
@@ -271,6 +272,20 @@ export class PlatformContentLicensesComponent {
     } finally {
       this.saving.set(false);
     }
+  }
+
+  /** The server names the offending field(s) of a 422; show them instead of the generic hint. */
+  private fieldProblem(reason: unknown): string | null {
+    if (!(reason instanceof HttpErrorResponse) || reason.status !== 422) return null;
+    const names: Record<string, string> = {
+      licenca: 'campos obrigatórios (fonte, versão, justificativa, https da página, SHA-256 de 64 caracteres)',
+      evidenceCapturedAt: 'data e hora da captura (ISO-8601 com Z, por exemplo 2026-11-25T23:44:00Z)',
+      startsAt: 'vigência a partir de (com a base "Data da captura" deve ser idêntica à captura)',
+      endsAt: 'fim da vigência', operations: 'operações (marque ao menos uma, com fundamento de 20 a 2000 caracteres)',
+      licenseIdentifier: 'identificador da licença',
+    };
+    const paths: string[] = (reason.error?.issues ?? []).map((i: {path?: string}) => i.path).filter(Boolean);
+    return paths.length ? 'Campo com problema: ' + paths.map(p => names[p] ?? p).join('; ') + '.' : null;
   }
 
   private message(reason: unknown, fallback: string): string {
