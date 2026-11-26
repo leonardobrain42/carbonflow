@@ -73,6 +73,12 @@ public class WorkspaceSpaRouteResource {
     }
 
     @GET
+    @Path("/platform/fuel-catalog")
+    public Response platformFuelCatalog() {
+        return html();
+    }
+
+    @GET
     @Path("/platform/licenses")
     public Response platformLicenses() {
         return html();
