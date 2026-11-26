@@ -131,8 +131,9 @@ export class PlatformGridSeriesComponent {
       this.error.set(code === 'LICENCA_AUSENTE_PARA_OPERACAO' ? 'Não há licença efetiva para extrair os dados desta fonte e edição. Só esta operação está bloqueada; declare ou aprove a licença na tela de licenças.'
         : code === 'ARQUIVO_NAO_CORRESPONDE_A_EDICAO' ? 'O SHA-256 do arquivo importado não é o da edição registrada.'
         : code === 'SERIE_JA_IMPORTADA' ? 'Esta série, com os mesmos valores e parâmetros de tempo, já foi importada.'
+        : code === 'FONTE_INEXISTENTE' ? 'A fonte e a edição informadas não estão registradas neste banco. Confira o código e a edição digitados (MCTI-SIN-DESPACHO e 2026-janout-7f8e2292, sem espaços); a fonte vem da migração V112, então o app local precisa estar atualizado.'
         : reason instanceof SyntaxError ? 'O arquivo não é um JSON válido.'
-        : this.message(reason, 'Não foi possível importar a série.'));
+        : this.detail(reason) ?? this.message(reason, 'Não foi possível importar a série.'));
     } finally {
       this.saving.set(false);
     }
@@ -168,6 +169,14 @@ export class PlatformGridSeriesComponent {
     } finally {
       this.saving.set(false);
     }
+  }
+
+  /** Shows what the server said (code and offending field) instead of a generic hint. */
+  private detail(reason: unknown): string | null {
+    if (!(reason instanceof HttpErrorResponse) || reason.status !== 422) return null;
+    const paths: string[] = (reason.error?.issues ?? []).map((i: {path?: string}) => i.path).filter(Boolean);
+    const code = reason.error?.code;
+    return code ? 'Recusado pelo servidor (' + code + (paths.length ? ', campo: ' + paths.join(', ') : '') + ').' : null;
   }
 
   private message(reason: unknown, fallback: string): string {
