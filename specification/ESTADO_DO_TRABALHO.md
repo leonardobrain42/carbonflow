@@ -44,3 +44,6 @@ O corte acima é anterior a estes PRs; esta seção só acrescenta o que eles en
 | Fila de candidatos de alias (V108), tela e plano de cadastro dos aceitos | [CF-OPEN-005-EVR-STOCK-BR](../docs/CF-OPEN-005-EVR-STOCK-BR.md) | Aceitar não cria modelo nem alias; listas de importadores e revisores sem responsáveis definidos; classe e propulsão ficam com pessoas |
 | Dossiês SIN/MCTI e créditos concorrentes; minuta de consulta ao MCTI | [CF-DATA-003](../docs/CF-DATA-003-SIN-MCTI-DOSSIE.md), [CF-DATA-004](../docs/CF-DATA-004-CREDITOS-CONCORRENTES-MATRIZ.md), [consulta](../docs/CF-DATA-003-CONSULTA-MCTI.md) | Só leitura: nenhuma fonte admitida; **consulta não enviada**; registros (Verra, Gold Standard, MDL) não lidos |
 
+
+## Adendo de diagnóstico UX (26/11/2026, corte cc25f64b85900fdba6be115bb0f8bf764f0e6d4b)
+EVR/ratings: catálogo, aliases/classificação, snapshots e publicação V64 existem; V64 exige energia e período e a etapa EVR lê MR. Falta seleção ex ante independente, fonte nacional e ratings/pares reais admissíveis. O responsável informa revisão interna de combustível concluída localmente, independente pendente; não verificado no banco. Plano P0 [frota e baseline ex ante](../docs/CF-UX-TECH-001-FROTA-BASELINE-EX-ANTE.md) preserva V64 e gates. Status DOCUMENTADO/PLANEJADO, sem implementação ou homologação neste adendo.

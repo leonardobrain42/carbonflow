@@ -52,3 +52,6 @@ A funcionalidade **não fecha #94/#95/#96/#97/#128**. Ainda faltam prova de cobe
 - JUnit para V64: recusa NEW_SALES, ano divergente, cobertura parcial, aliases/modelos divergentes, ausência de par aceito, denominador inconsistente, licença/fonte revogada, rating `STALE_REFERENCE`; massa inteiramente fictícia.
 - Integração Quarkus/PostgreSQL: project GET vazio antes da publicação, isolamento OP/externo, inviabilidade de usuário de projeto publicar via endpoint administrativo e preservação dos requisitos V63.
 - CI Angular, Quarkus/PostgreSQL/Flyway, navegador e sandbox; o PR não deve ser aprovado enquanto não estiver verde.
+
+## Adendo de planejamento — finalidade PD ex ante (26/11/2026)
+V64 continua sendo handoff monitorado; não tornar energia/período opcionais neste contrato. Para preparar PD sem MR, a #40 deve implementar seleção versionada por contexto e finalidade, consumindo V48/V49 e preservando as autorizações. Ver [especificação de UX e arquitetura](CF-UX-TECH-001-FROTA-BASELINE-EX-ANTE.md) e testes planejados BL-T01–17. Novo handoff não foi implementado neste documento.

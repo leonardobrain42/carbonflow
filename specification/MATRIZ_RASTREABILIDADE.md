@@ -36,3 +36,14 @@ Estas linhas são posteriores ao corte `507bf268…` do cabeçalho; os vínculos
 | CF-SPEC-S22 | Fila de candidatos de alias e plano de cadastro | [#94](https://github.com/leonardobrain42/carbonflow/issues/94), [#95](https://github.com/leonardobrain42/carbonflow/issues/95) | [CF-OPEN-005-EVR-STOCK-BR](../docs/CF-OPEN-005-EVR-STOCK-BR.md) | [FleetAliasCandidatesIntegrationTest.java](../backend/src/test/java/br/carbonflow/pilot/FleetAliasCandidatesIntegrationTest.java); [platform-alias-candidates.test.mjs](../frontend/test/platform-alias-candidates.test.mjs); [test_build_fleet_model_registrations.py](../scripts/test_build_fleet_model_registrations.py) | Aceitar não cria modelo nem alias; responsáveis das listas e classe/propulsão pendentes |
 | CF-SPEC-S23 | Dossiês SIN/MCTI e créditos concorrentes | [#96](https://github.com/leonardobrain42/carbonflow/issues/96) | [CF-DATA-003](../docs/CF-DATA-003-SIN-MCTI-DOSSIE.md); [CF-DATA-004](../docs/CF-DATA-004-CREDITOS-CONCORRENTES-MATRIZ.md); [consulta](../docs/CF-DATA-003-CONSULTA-MCTI.md) | Sem teste executável (documentação); fontes lidas listadas em cada dossiê | Nenhuma fonte admitida; Q03/Q05 e licenças pendentes |
 
+
+## Adendo de rastreabilidade — seleção de frota ex ante (26/11/2026)
+| Requisito/fatia | Owner | Contrato | Aceite planejado (não executado) |
+|---|---|---|---|
+| BL-EX-01: contexto e referência imutável PD sem MR | #40/#97 | [Especificação](../docs/CF-UX-TECH-001-FROTA-BASELINE-EX-ANTE.md) | BL-T01,05–08,10,16 |
+| BL-EX-02: seleção contextual, vazio e lacunas | #124/#40 | mesmo contrato, figuras 02/03 | BL-T01–07,13–14,17 |
+| BL-DATA-01: estoque, ratings e cobertura | #94/#95/#92 | V48/V49 e docs owners | BL-T02–04,12 |
+| BL-EX-03: projeção por ato e PD | #124/#13/#19/#122 | mesmo contrato | BL-T08,10–11,15 |
+| BL-EX-04: inspeção autorizada | #124/#128 | figura 04 | BL-T06,12–14 |
+| BL-EX-05: handoff operacional | #97/#98 | V64 preservada | BL-T09,16 |
+| BL-QA | #101/#45 | matriz BL-T01–17 | execução futura, sem homologação presumida |

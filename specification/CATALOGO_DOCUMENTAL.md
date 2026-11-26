@@ -111,3 +111,6 @@ Inventário de 94 arquivos em docs/ (86 no corte `507bf268d6955cd0c317d2ff404a90
 - [ux/CF-UX-ACOMP-INTEGRACAO-JORNADA.md](../docs/ux/CF-UX-ACOMP-INTEGRACAO-JORNADA.md)
 - [ux/CF-UX-ACOMP-RASTREABILIDADE-ISSUES.md](../docs/ux/CF-UX-ACOMP-RASTREABILIDADE-ISSUES.md)
 - [ux/CF-UX-ACOMP-REQUISITOS.md](../docs/ux/CF-UX-ACOMP-REQUISITOS.md)
+
+## Adendo de catálogo — 26/11/2026
+- [CF-UX-TECH-001-FROTA-BASELINE-EX-ANTE.md](../docs/CF-UX-TECH-001-FROTA-BASELINE-EX-ANTE.md) — especificação P0 do fluxo ex ante, interface, contrato e aceite; figuras SVG em [docs/ux/figures/baseline-ex-ante](../docs/ux/figures/baseline-ex-ante). Adendo ao inventário histórico, sem recontagem global.

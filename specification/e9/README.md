@@ -14,3 +14,6 @@ Distinguir papel previsto, pessoa, poder e grant; estado ausente vs zero; inform
 
 ## D17 — Jornada de referência
 A [jornada canônica J01–J07](../CF-JOURNEY-001.md) passa a orientar navegação, schemas, tarefas, documentos e critérios de aceite. As telas e grupos atuais são projeções do recorte OPEN; não substituem as sete macroetapas nem se tornam obrigatórios em outros métodos. Preserve D16, deep links, owners e dependências paralelas. #19/#124/#27/#7 fazem transição incremental; #41 aprofunda J04/J05.
+
+## Linha de base ex ante (P0, 26/11/2026)
+- [Especificação detalhada e mockups](../../docs/CF-UX-TECH-001-FROTA-BASELINE-EX-ANTE.md): etapa EVR/comparáveis contextual, seleção ex ante sem MR, cobertura e estados, autorização e handoff monitorado; complementa UX-08D/#124 e #40. Não implementado por este adendo.

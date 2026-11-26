@@ -1,4 +1,6 @@
 # Changelog da especificação viva
+## Adendo documental — UX de frota/PD ex ante (26/11/2026, planejado)
+- Especificação [CF-UX-TECH-001-FROTA-BASELINE-EX-ANTE](../docs/CF-UX-TECH-001-FROTA-BASELINE-EX-ANTE.md), quatro mockups/diagramas SVG e critérios BL-T01–17. Prioridade P0 #124/#40, V64 monitorada preservada, sem migração, API, dado, revisão ou guarda alterados. Não numera release para evitar conflito com desenvolvimento paralelo.
 ## 0.3.0-rc.92 — 26/11/2026 (proposta)
 - **Roteiro #124, Q13 (D21), passo 2a: declaração da transição do fator fóssil no IR.** Nível D17: projeto. Migração aditiva **V117** (`app_open_ir_fuel_transition`, imutável). Campo opcional `fuelTransition` (ato normativo e local da evidência, declarados) no comando de IR; o servidor calcula o conjunto de entradas dos pinos do ano e só aceita com duas ou mais entradas do mesmo combustível, parâmetro, gás e escopo (senão 409). Hash do comando sem declaração inalterado; com declaração, `OPEN-IR-COMMAND@2`.
 - **Limites:** **nenhuma guarda relaxada**; o reuso intra-ano e a consolidação anual seguem iguais (passo 2b). Nada admitido. A suíte `OpenIrTwoPeriodIntegrationTest` falha ao ser reexecutada em banco já usado (chave de `app_content_license_decision`), preexistente e não relacionada; passa em banco novo.
