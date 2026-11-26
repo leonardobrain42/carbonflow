@@ -196,6 +196,7 @@ jobs:
           python3 -m unittest discover -s scripts -p 'test_reconcile_fleet_catalog.py' -v
           python3 -m unittest discover -s scripts -p 'test_import_mcti_hourly.py' -v
           python3 -m unittest discover -s scripts -p 'test_fuel_catalog.py' -v
+          python3 -m unittest discover -s scripts -p 'test_prepare_dy_evidence.py' -v
           python3 scripts/fuel_catalog.py docs/data/fuel-catalog.json
       - name: Start isolated sandbox and provision account
         run: python3 scripts/demo_sandbox.py start --quiet

@@ -25,7 +25,7 @@ Regras: a base é gravada na decisão e exibida; `OWNER_INTERNAL` **nunca** sati
 | 3 | **Entregue (rc.70, ferramenta offline):** pipeline de classificação e conciliação Senatran/RENAVAM, PBEV e fabricantes, com evidência por modelo, variante e alias | Nenhum | Dado real: licença e arquivo oficial (Senatran/PBEV), denominador nacional (G03) |
 | 4 | **Entregue (rc.71, ferramenta offline):** importador das planilhas horárias do MCTI (original preservado, localizadores, normalização parametrizada, testes sintéticos) | Nenhum | **Fuso e convenção das horas** (parâmetro obrigatório sem padrão), **licença/uso** (CC BY-ND; "exclusivamente MDL"), CO₂ × CO₂e, elegibilidade VT0011/TOOL07 |
 | 5 | **Entregue em parte (rc.72: contrato, validador, seed e fontes; sem persistência nem tela):** catálogo extensível de combustíveis brasileiros (gases, unidades, composição, vigência, vintage, evidência, revisão) | Pesquisa de fontes oficiais confrontadas com a metodologia | Cada fator exige fonte e fundamento; sem valor inventado |
-| 6 | Dy: pesquisas de créditos concorrentes, cobertura anual e acumulada, importação de evidências, conciliação das emissões | Nenhum (D14 vigente) | Universo de programas e termos dos registros; confirmação anual × acumulada |
+| 6 | **Entregue (rc.73, ferramenta offline):** Dy: pesquisas de créditos concorrentes, cobertura anual e acumulada, importação de evidências, conciliação das emissões | Nenhum (D14 vigente) | Universo de programas e termos dos registros; confirmação anual × acumulada |
 
 ## Evidência necessária por questão pendente
 | Questão | Evidência que a fecha | Onde registrar | Fatia |
