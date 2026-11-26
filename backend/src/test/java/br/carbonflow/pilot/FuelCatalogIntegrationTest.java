@@ -220,10 +220,11 @@ class FuelCatalogIntegrationTest {
                 if (body.get(name).isNull()) body.remove(name);
             var created = json.readTree(ok(call("POST", API + "/entries", manager, json.writeValueAsString(body))).body());
             assertEquals("NOT_ADMITTED", created.path("admission").asText());
-            if (item.has("ipccValue")) { // 2981.1 vs 3069.99 gCO2/kg: -2.8951...%, same unit, never a validation
+            if (item.has("ipccValue")) { // same unit, never a validation: gasolina A 2981.1 vs 3069.99 (-2.90%), diesel A 3098.8 vs 3186.3 (-2.75%)
                 assertEquals("COMPARED_SAME_UNIT", created.path("qaqc").path("state").asText());
-                assertTrue(new java.math.BigDecimal(created.path("qaqc").path("relativeDeviation").asText()).doubleValue() < -0.028
-                        && new java.math.BigDecimal(created.path("qaqc").path("relativeDeviation").asText()).doubleValue() > -0.030, created.toString());
+                double deviation = new java.math.BigDecimal(created.path("qaqc").path("relativeDeviation").asText()).doubleValue();
+                double expected = item.path("fuelId").asText().equals("GASOLINE_A") ? -0.028954 : -0.027460;
+                assertEquals(expected, deviation, 0.00001, created.toString());
             }
             ids.add(created.path("id").asText());
         }
@@ -237,11 +238,16 @@ class FuelCatalogIntegrationTest {
         var expected = new java.math.BigDecimal("1504.143816").multiply(new java.math.BigDecimal("3.785411784")).divide(new java.math.BigDecimal("1000000"));
         assertEquals(0, expected.compareTo(new java.math.BigDecimal(after.path("requirements").get(0).path("methodValue").asText())), after.toString());
         assertEquals("tCO2/USgal", after.path("requirements").get(0).path("methodUnit").asText());
+        // Diesel B15 (CNPE 8/2025) has no end date: it resolves in 2026 and in 2030, before 2025-08-01 it does not exist.
+        var b15 = json.readTree(ok(call("GET", API + "/boundary-resolution?fuelId=DIESEL_B&scope=TTW&boundary=CO2_ONLY&date=2026-01-15", manager, null)).body());
+        assertEquals("RESOLVED_CANDIDATE", b15.path("state").asText(), b15.toString());
+        assertClose("2212.5432", b15);
+        assertEquals("RESOLVED_CANDIDATE", json.readTree(ok(call("GET", API + "/boundary-resolution?fuelId=DIESEL_B&scope=TTW&boundary=CO2_ONLY&date=2030-01-15", manager, null)).body()).path("state").asText());
+        assertEquals("UNRESOLVED", json.readTree(ok(call("GET", API + "/boundary-resolution?fuelId=DIESEL_B&scope=TTW&boundary=CO2_ONLY&date=2025-07-01", manager, null)).body()).path("state").asText());
         // The E30 window (CNPE 9/2025) resolves its own factor, 1548.38334 gCO2/L, and does not borrow the E32 one.
         var e30 = json.readTree(ok(call("GET", API + "/boundary-resolution?fuelId=GASOLINE_C&scope=TTW&boundary=CO2_ONLY&date=2026-01-15", manager, null)).body());
         assertEquals("RESOLVED_CANDIDATE", e30.path("state").asText(), e30.toString());
-        assertEquals(0, new java.math.BigDecimal("1548.38334").multiply(new java.math.BigDecimal("3.785411784")).divide(new java.math.BigDecimal("1000000"))
-                .compareTo(new java.math.BigDecimal(e30.path("requirements").get(0).path("methodValue").asText())), e30.toString());
+        assertClose("1548.38334", e30);
         // Before E30 (CNPE 9/2025) there is no blend factor either: nothing is presumed.
         var early = json.readTree(ok(call("GET", API + "/boundary-resolution?fuelId=GASOLINE_C&scope=TTW&boundary=CO2_ONLY&date=2025-07-01", manager, null)).body());
         assertEquals("UNRESOLVED", early.path("state").asText());
@@ -255,6 +261,13 @@ class FuelCatalogIntegrationTest {
     }
 
     /** A one-time code cannot be replayed, so a session already verified by an earlier test is reused. */
+    /** The catalog returns the converted value with rounding noise far below any meaningful digit; compare with a 1e-20 tolerance. */
+    private static void assertClose(String perLitreGrams, com.fasterxml.jackson.databind.JsonNode answer) {
+        var expected = new java.math.BigDecimal(perLitreGrams).multiply(new java.math.BigDecimal("3.785411784")).divide(new java.math.BigDecimal("1000000"));
+        var actual = new java.math.BigDecimal(answer.path("requirements").get(0).path("methodValue").asText());
+        assertTrue(expected.subtract(actual).abs().compareTo(new java.math.BigDecimal("1e-20")) < 0, answer.toString());
+    }
+
     private void verify(String who) throws Exception {
         var current = call("GET", "/v1/compliance/session", who, null, null);
         if (current.statusCode() == 200 && json.readTree(current.body()).path("verified").asBoolean()) return;

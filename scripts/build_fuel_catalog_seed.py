@@ -28,6 +28,9 @@ DOCS = {
     "CNPE25": {"title": "Resolução CNPE nº 9, de 25/06/2025 (DOU 02/07/2025, Seção 1, p. 11): E30 na gasolina comum desde 01/08/2025",
                "url": "https://www.gov.br/mme/pt-br/assuntos/conselhos-e-comites/cnpe/resolucoes-do-cnpe/2025/ResoluoCNPE9publicada.pdf",
                "sha256": "acf21a0cc599458e202af8383d11f880a0ef230f6c1be73f59f3262d9e77d654", "readState": "PRIMARY_READ"},
+    "CNPE8": {"title": "Resolução CNPE nº 8, de 25/06/2025 (DOU 02/07/2025, Seção 1, nº 122, p. 10; epígrafe retificada no DOU de 03/07/2025, p. 3): B15 no diesel comercial",
+              "origin": "arquivo DEC_PR_2025_12543.pdf (7 págs.; ato na pág. 7) fornecido pelo responsável em 26/11/2026; URL de origem não informada",
+              "sha256": "afc2f82f451e9c1d98255c48264a2c02e0cf1cb3c336386a3e13657259e6564f", "readState": "PRIMARY_READ"},
     "CNPE": {"title": "Resolução CNPE nº 9, de 14/07/2026 (DOU 30/07/2026, Seção 1 Extra B, p. 12)",
              "url": "https://www.gov.br/mme/pt-br/assuntos/conselhos-e-comites/cnpe/resolucoes-do-cnpe/2026/resolucao-9-dou.pdf",
              "sha256": "56c8440c3e95f9e6aa0766c55c5fc7acd41e724491d32c5a2906ae8e2be741fd", "readState": "PRIMARY_READ"},
@@ -42,7 +45,14 @@ DENSITY_GASOLINE_A = "0.742"  # t/m3 = kg/L, ANP
 DENSITY_ETHANOL_AN = "0.791"  # t/m3, ANP
 IPCC_GASOLINE = Decimal("69300")   # kg CO2/TJ, IPCC 2006 Vol.2 Tab. 3.2.1 (Motor Gasoline; inferior 67500, superior 73000)
 IPCC_NCV = Decimal("44.3")         # TJ/Gg = MJ/kg, IPCC 2006 Vol.2 Tab. 1.2/1.4 (Motor Gasoline)
-IPCC_G_PER_KG = IPCC_GASOLINE * IPCC_NCV / 1000   # kg/TJ x MJ/kg / 1000 = g CO2 per kg of fuel
+IPCC_DIESEL = Decimal("74100")     # kg CO2/TJ, IPCC 2006 Vol.2 Tab. 3.2.1 (Gas/Diesel Oil; inferior 72600, superior 74800)
+IPCC_DIESEL_NCV = Decimal("43.0")  # TJ/Gg = MJ/kg, IPCC 2006 Vol.2 Tab. 1.2, PDF p. 18 (Gas/Diesel Oil)
+EF_DIESEL_A, EF_DIESEL_A_CH4, EF_DIESEL_A_N2O = "3098.8", "0.165", "0.165"   # g/kg, EPE Tab. A 2
+EF_BIODIESEL_BIO = "2762.5"   # g CO2 biogênico/kg de biodiesel B100, EPE Tab. A 2
+DENSITY_DIESEL_A, LHV_DIESEL_A, DENSITY_BIODIESEL, LHV_BIODIESEL = "0.84", "42.29", "0.88", "37.68"   # EPE Tab. 2 (PDF p. 19)
+BIODIESEL_SHARE = Decimal("0.15")   # Res. CNPE 8/2025, art. 1º
+IPCC_G_PER_KG = IPCC_GASOLINE * IPCC_NCV / 1000
+IPCC_DIESEL_G_PER_KG = IPCC_DIESEL * IPCC_DIESEL_NCV / 1000   # kg/TJ x MJ/kg / 1000 = g CO2 per kg of fuel
 ETHANOL_SHARE = Decimal("0.32")  # Resolução CNPE 9/2026, art. 1º
 VALID_FROM = "2026-08-01"        # art. 4º
 VALID_TO = "2027-01-27"          # 180 dias a partir de 01/08/2026, inclusive; prorrogável uma vez (não lida)
@@ -53,7 +63,7 @@ def entry(fuel, parameter, gas, scope, value, unit, vintage, valid_from, valid_t
     out = {"kind": kind, "fuelId": fuel, "parameter": parameter, "gas": gas, "emissionScope": scope, "value": value, "unit": unit,
            "vintageYear": vintage, "validFrom": valid_from, "validTo": valid_to, "validityRule": rule,
            "evidenceSource": d["title"], "evidenceLocator": locator, "readState": d["readState"],
-           "evidenceSha256": d["sha256"], "retrievedOn": RETRIEVED, "evidenceUrl": d["url"]}
+           "evidenceSha256": d["sha256"], "retrievedOn": RETRIEVED, "evidenceUrl": d.get("url")}
     return {k: v for k, v in out.items() if v is not None or k == "validTo"}
 
 
@@ -111,6 +121,32 @@ def build():
     value_30 = (Decimal(1) - Decimal("0.30")) * Decimal(DENSITY_GASOLINE_A) * Decimal(EF_GASOLINE_A)
     e.append(entry("GASOLINE_C", "EMISSION_FACTOR", "CO2_FOSSIL", "TTW", format(value_30, "f"), "gCO2/L", 2025, "2025-08-01", "2026-07-31", e30_rule, "EPE",
                    f"DERIVADO: 0.70 (1-0,30, CNPE 9/2025 art. 1) x {DENSITY_GASOLINE_A} kg/L (ANP) x {EF_GASOLINE_A} gCO2 fóssil/kg (EPE Tab. A 2) = {value_30} gCO2/L; etanol: CO2 fóssil 0; mistura ideal por volume"))
+    # Diesel B15 (Res. CNPE 8/2025): composition without end date; fossil CO2 per litre derived from three published inputs.
+    rule_b = "Desde 01/08/2025 (Res. CNPE 8/2025, art. 3º), sem data final no ato; nova versão se o CNPE alterar o teor"
+    t2 = "Tabela 2 (p. 19 do PDF), linha "
+    a2 = "Apêndice, Tabela A 2 (p. 38 do PDF), linha "
+    dA = entry("DIESEL_A", "EMISSION_FACTOR", "CO2_FOSSIL", "TTW", EF_DIESEL_A, "gCO2/kg", 2025, "2025-01-01", None, rule_epe, "EPE", a2 + "Diesel A (B0), coluna CO2 Fóssil, g/kg.")
+    dA.update({"ipccReference": "IPCC 2006 Vol.2 Cap.3 Tab.3.2.1 (pág. 3.16): 74100 kgCO2/TJ (faixa 72600-74800) x PCI 43,0 TJ/Gg (Tab.1.2); cap. 3 sem refinamento em 2019",
+               "ipccValue": format(IPCC_DIESEL_G_PER_KG, "f"), "ipccUnit": "gCO2/kg"})
+    e.append(dA)
+    e.append(entry("DIESEL_A", "EMISSION_FACTOR", "CH4", "TTW", EF_DIESEL_A_CH4, "gCH4/kg", 2025, "2025-01-01", None, rule_epe, "EPE", a2 + "Diesel A (B0), coluna CH4 Fóssil, g/kg."))
+    e.append(entry("DIESEL_A", "EMISSION_FACTOR", "N2O", "TTW", EF_DIESEL_A_N2O, "gN2O/kg", 2025, "2025-01-01", None, rule_epe, "EPE", a2 + "Diesel A (B0), coluna N2O, g/kg."))
+    e.append(entry("DIESEL_A", "LHV", None, None, LHV_DIESEL_A, "MJ/kg", 2025, "2025-01-01", None, "Média de 2025 (EPE/BEN)", "EPE", t2 + "Diesel A, coluna PCI (MJ/kg); 10.100 kcal/kg."))
+    e.append(entry("DIESEL_A", "DENSITY", None, None, DENSITY_DIESEL_A, "kg/L", 2025, "2025-01-01", None, "Média de 2025 (EPE/BEN)", "EPE", t2 + "Diesel A, coluna Massa Específica (kg/litro)."))
+    e.append(entry("BIODIESEL_B100", "EMISSION_FACTOR", "CO2_FOSSIL", "TTW", "0", "gCO2/kg", 2025, "2025-01-01", None, rule_epe, "EPE", a2 + "Biodiesel (B100), coluna CO2 Fóssil = 0,0 g/kg."))
+    e.append(entry("BIODIESEL_B100", "EMISSION_FACTOR", "CO2_BIOGENIC", "TTW", EF_BIODIESEL_BIO, "gCO2/kg", 2025, "2025-01-01", None, rule_epe, "EPE", a2 + "Biodiesel (B100), coluna CO2 biogênico, g/kg. Registrado, mas fora da fronteira CO2_ONLY."))
+    e.append(entry("BIODIESEL_B100", "DENSITY", None, None, DENSITY_BIODIESEL, "kg/L", 2025, "2025-01-01", None, "Média de 2025 (EPE/BEN)", "EPE", t2 + "Biodiesel, coluna Massa Específica (kg/litro)."))
+    e.append(entry("BIODIESEL_B100", "LHV", None, None, LHV_BIODIESEL, "MJ/kg", 2025, "2025-01-01", None, "Média de 2025 (EPE/BEN)", "EPE", t2 + "Biodiesel, coluna PCI (MJ/kg); 9.000 kcal/kg."))
+    bd = {"kind": "COMPOSITION", "fuelId": "DIESEL_B", "componentId": "BIODIESEL_B100", "compositionBasis": "VOLUME_FRACTION", "nominal": "0.15", "remainder": False,
+          "validFrom": "2025-08-01", "validTo": None, "validityRule": rule_b, "evidenceSource": DOCS["CNPE8"]["title"],
+          "evidenceLocator": "Art. 1º: 15% de biodiesel, em volume, no óleo diesel comercial; art. 2º revoga o art. 1º da Res. 6/2025 (B14); art. 3º vigência em 01/08/2025",
+          "readState": "PRIMARY_READ", "evidenceSha256": DOCS["CNPE8"]["sha256"], "retrievedOn": RETRIEVED}
+    e.append(bd)
+    e.append(dict(bd, componentId="DIESEL_A", nominal=None, remainder=True, evidenceLocator="Resto da mistura (85%): diesel A, por diferença do art. 1º"))
+    e[-1] = {k: v for k, v in e[-1].items() if v is not None or k == "validTo"}
+    value_b = (Decimal(1) - BIODIESEL_SHARE) * Decimal(DENSITY_DIESEL_A) * Decimal(EF_DIESEL_A)
+    e.append(entry("DIESEL_B", "EMISSION_FACTOR", "CO2_FOSSIL", "TTW", format(value_b, "f"), "gCO2/L", 2025, "2025-08-01", None, rule_b, "EPE",
+                   f"DERIVADO: 0.85 (1-0,15, CNPE 8/2025 art. 1) x {DENSITY_DIESEL_A} kg/L (EPE Tab. 2) x {EF_DIESEL_A} gCO2 fóssil/kg (EPE Tab. A 2) = {value_b} gCO2/L; biodiesel: CO2 fóssil 0; mistura ideal por volume"))
     return {"schema": "cf.fuel-catalog-seed/1", "generatedBy": "scripts/build_fuel_catalog_seed.py", "retrievedOn": RETRIEVED,
             "notice": "Nada aqui está revisado nem admitido; o valor de GASOLINE_C é derivado (ver locator). Revisão e admissão são atos humanos à parte.",
             "documents": DOCS, "entries": e}
