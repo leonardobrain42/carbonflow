@@ -115,7 +115,7 @@ class OpenE8ProjectRuns {
                     Objects.equals(binding,r.getObject(4,UUID.class))&&year==r.getInt(5)&&
                     "PREPARATORY_NOT_ADMITTED".equals(state)?"NOT_ADMITTED":"REVIEW_REQUIRED"),project,period,fleet));
         }
-        InputReference fuel=sourcePinReference(c,project,"EF_FUEL",year);
+        InputReference fuel=sourcePinReference(c,project,"EF_FUEL",year,window);
         inputs.add(fuel);
         inputs.add(OpenIrAssessments.forRun(c,project,period,fleet,fuel.id(),context).reference());
         inputs.add(OpenDyAssessments.forRun(c,project,context.year().projectYear()).reference());
@@ -125,9 +125,14 @@ class OpenE8ProjectRuns {
 
     // Source-year pin is the exact same selector as load() and moved().
     static InputReference sourcePinReference(Connection c,String project,String kind,Integer year) throws SQLException {
+        return sourcePinReference(c,project,kind,year,null);
+    }
+
+    /** Same selector as the run; the window picks, among the year's catalog pins, the one whose validity covers it (Q13/D21). */
+    static InputReference sourcePinReference(Connection c,String project,String kind,Integer year,OpenE8Timing.Window window) throws SQLException {
         String basis="SOURCE_YEAR_PIN";
         if (year==null) return new InputReference(kind,basis,null,null,null,"TIMING_UNRESOLVED");
-        var selected=pin(c,project,kind,year);
+        var selected=pin(c,project,kind,year,window);
         if (selected==null) return new InputReference(kind,basis,null,null,null,"MISSING_FOR_SOURCE_YEAR");
         boolean usable=!selected.stale() && switch(kind) {
             case "EF_FUEL" -> fuelValue(c,selected)!=null;
@@ -313,7 +318,7 @@ class OpenE8ProjectRuns {
             gates.add(OpenE8RunDecision.gate("EVR", "NOT_ADMITTED"));
             gates.add(OpenE8RunDecision.gate("AFEC_MPG", "NOT_ADMITTED"));
         }
-        ExecutionPin fuel = pin(c, project, "EF_FUEL", sourceYear);
+        ExecutionPin fuel = pin(c, project, "EF_FUEL", sourceYear, timing.window());
         OpenE8IrContext ir = OpenIrAssessments.forRun(c,project,period,fleet,fuel==null?null:fuel.id(),timing);
         OpenE8DyContext dy = OpenDyAssessments.forRun(c, project, timing.year().projectYear());
         BigDecimal fuelValue = fuelValue(c, fuel);
@@ -402,7 +407,7 @@ class OpenE8ProjectRuns {
         var ir=OpenIrAssessments.forRun(c,row.project(),row.period(),fleetNow,row.fuelPin(),timing);
         return !row.irContext().contextSha256().equals(ir.contextSha256())
             || "STALE".equals(ir.state())
-            || pinMoved(c, row.project(), "EF_FUEL", sourceYear, row.fuelPin())
+            || pinMoved(c, row.project(), "EF_FUEL", sourceYear, row.fuelPin(), timing.window())
             || dyMoved(c, row, timing);
     }
 
@@ -413,9 +418,9 @@ class OpenE8ProjectRuns {
         return !row.dyContext().contextSha256().equals(now.contextSha256()) || "STALE".equals(now.state());
     }
 
-    private static boolean pinMoved(Connection c, String project, String kind, Integer sourceYear, UUID stored)
-            throws SQLException {
-        ExecutionPin current = pin(c, project, kind, sourceYear);
+    private static boolean pinMoved(Connection c, String project, String kind, Integer sourceYear, UUID stored,
+                                    OpenE8Timing.Window window) throws SQLException {
+        ExecutionPin current = pin(c, project, kind, sourceYear, window);
         UUID latest = current == null ? null : current.id();
         if (!Objects.equals(stored, latest)) return true;
         return current != null && current.stale();
@@ -451,8 +456,16 @@ class OpenE8ProjectRuns {
 
     private static ExecutionPin pin(Connection c, String project, String kind, Integer sourceYear)
             throws SQLException {
-        return sourceYear == null ? null
-            : OpenProjectParameterBindings.forSourceYear(c, project, kind, sourceYear);
+        return pin(c, project, kind, sourceYear, null);
+    }
+
+    private static ExecutionPin pin(Connection c, String project, String kind, Integer sourceYear,
+                                    OpenE8Timing.Window window) throws SQLException {
+        if (sourceYear == null) return null;
+        if (window == null || window.from() == null || window.until() == null)
+            return OpenProjectParameterBindings.forSourceYear(c, project, kind, sourceYear);
+        return OpenProjectParameterBindings.forSourceYearWindow(c, project, kind, sourceYear,
+            window.from().toLocalDate(), window.until().minusNanos(1).toLocalDate());
     }
 
     /**
