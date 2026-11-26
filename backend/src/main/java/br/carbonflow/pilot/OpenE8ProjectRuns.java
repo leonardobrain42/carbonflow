@@ -317,6 +317,10 @@ class OpenE8ProjectRuns {
         OpenE8IrContext ir = OpenIrAssessments.forRun(c,project,period,fleet,fuel==null?null:fuel.id(),timing);
         OpenE8DyContext dy = OpenDyAssessments.forRun(c, project, timing.year().projectYear());
         BigDecimal fuelValue = fuelValue(c, fuel);
+        if (fuelValue != null && !fuelCoversWindow(c, fuel, timing.window())) {
+            gates.add(OpenE8RunDecision.gate("EF_FUEL_WINDOW", "REVIEW_REQUIRED"));
+            fuelValue = null; // one catalog factor is never applied to hours outside its validity
+        }
         BigDecimal irValue = ir.rehearsalValue();
         OpenGridCalculationMath.Discount discount = dy.discount();
         gates.add(OpenE8RunDecision.gate("EF_FUEL", pinState(fuel, fuelValue != null, sourceYear)));
@@ -449,6 +453,27 @@ class OpenE8ProjectRuns {
             throws SQLException {
         return sourceYear == null ? null
             : OpenProjectParameterBindings.forSourceYear(c, project, kind, sourceYear);
+    }
+
+    /**
+     * A catalog-referenced factor is valid only inside its entry window. The period window must lie entirely inside it:
+     * the engine neither splits the period between two vintages (E30/E32) nor averages them. Non-catalog pins and runs
+     * without a window are decided by the other gates.
+     */
+    private static boolean fuelCoversWindow(Connection c, ExecutionPin fuel, OpenE8Timing.Window window) throws SQLException {
+        if (fuel == null || !"CATALOG_REFERENCE".equals(fuel.valueKind()) || window == null
+                || window.from() == null || window.until() == null) return true;
+        java.time.LocalDate first = window.from().toLocalDate();
+        java.time.LocalDate last = window.until().minusNanos(1).toLocalDate();
+        Boolean covered = first(c, """
+            SELECT e.valid_from, e.valid_to FROM app_open_efuel_catalog_pin p
+            JOIN app_fuel_entry e ON e.id = p.entry_id WHERE p.binding_id=?
+            """, r -> {
+                java.time.LocalDate from = r.getObject(1, java.time.LocalDate.class);
+                java.time.LocalDate to = r.getObject(2, java.time.LocalDate.class);
+                return !first.isBefore(from) && (to == null || !last.isAfter(to));
+            }, fuel.id());
+        return Boolean.TRUE.equals(covered);
     }
 
     private static BigDecimal fuelValue(Connection c, ExecutionPin fuel) throws SQLException {

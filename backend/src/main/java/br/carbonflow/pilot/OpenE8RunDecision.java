@@ -152,6 +152,7 @@ final class OpenE8RunDecision {
                     "O fator fóssil vinculado não tem valor utilizável neste ensaio.";
                 default -> "Não há fator fóssil do projeto com valor armazenado.";
             };
+            case "EF_FUEL_WINDOW" -> "A vigência da entrada do catálogo não cobre toda a janela do período. O motor não aplica o fator de uma vigência a horas de outra nem calcula média entre vigências.";
             case "RUN_IR_LEGACY" -> "Tentativa anterior ao vínculo estruturado de IR; memória histórica preservada.";
             case "IR_STRUCTURED" -> switch (state) {
                 case "TIMING_UNRESOLVED" -> "O calendário da janela ainda não permite selecionar IR.";
@@ -207,6 +208,7 @@ final class OpenE8RunDecision {
                 "Preparar janelas separadas na mudança de ano";
             case "IR_STRUCTURED" -> "Conferir avaliação estruturada e prova anual na linha de base";
             case "FLEET_WINDOW_MISMATCH" -> "Vincular a frota do ano das fontes ao pacote horário vigente";
+            case "EF_FUEL_WINDOW" -> "Preparar janelas separadas na mudança de vigência do combustível, cada uma com o fator da sua vigência";
             case "HOURLY_COVERAGE_INVALID" -> "Conferir as horas e os totais do pacote de energia";
             case "HOURLY_EFEL_NOT_UNIFORM" -> "Manter um único fator elétrico horário ou esperar o cálculo por hora";
             default -> "Completar o vínculo e a admissão antes de executar";

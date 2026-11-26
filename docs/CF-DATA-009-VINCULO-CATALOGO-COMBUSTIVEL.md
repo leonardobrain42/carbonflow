@@ -1,6 +1,6 @@
 # CF-DATA-009 — Vínculo do fator fóssil do projeto ao catálogo de combustíveis (vertical BE)
 
-> **Estado:** estrutura e ensaio com **dado sintético**. Não existe ainda fator fóssil brasileiro real no catálogo (etapa 5 do roteiro: EPE, Inventário MCTI, ANP). Nada é admitido: `usableForE8=false`, pino `PINNED_NOT_ADMITTED`. Nível D17: projeto (reutiliza o pino `EF_FUEL` e o executor E8; sem motor paralelo).
+> **Estado:** estrutura e ensaio com **dado sintético** no E8; o catálogo já tem fatores brasileiros reais (`CF-DATA-010`), ainda sem revisão e sem ensaio E8 com eles. Nada é admitido: `usableForE8=false`, pino `PINNED_NOT_ADMITTED`. Nível D17: projeto (reutiliza o pino `EF_FUEL` e o executor E8; sem motor paralelo).
 
 ## O que existe
 - `POST /v1/platform/open-parameter-bindings` aceita, para `EF_FUEL`, `catalog: {fuelId, boundary, scope, date}` no lugar de `candidateId`. Número digitado junto é recusado.
@@ -12,7 +12,14 @@
 ## Decisões e limites
 - O contrato do E8 guarda no máximo 12 casas decimais; o valor convertido é **arredondado de forma explícita** (HALF_EVEN, 12 casas), e isso consta da fórmula do pino. O valor original permanece na entrada do catálogo.
 - O IR exige fator fóssil distinto em cada ano (atualização anual real): no catálogo, uma entrada com vigência e vintage próprias por ano.
-- Biogênico e misturas (etanol na gasolina C, biodiesel no diesel B): **não** tratados; o pino exige CO2 fóssil explícito e não presume que CO2 sem origem seja fóssil.
+- Biogênico e misturas: o pino exige uma entrada de CO2 **fóssil** explícita e não presume que CO2 sem origem seja fóssil. Gasolina C e diesel B têm, no catálogo (`CF-DATA-010`), uma entrada de CO2 fóssil **derivada por mistura** com a conta no localizador, por vigência (E30, E32, B15); o CO2 biogênico fica fora de `CO2_ONLY`.
+
+## Guarda de vigência no E8 (`EF_FUEL_WINDOW`)
+O pino resolve o fator numa única `date`, mas o período de monitoramento tem uma janela. Com dado real a vigência muda no meio do ano (E30 até 31/07/2026, E32 desde 01/08/2026, diferença de 2,8% no CO2 fóssil por litro). Antes, o fator da janela da `date` seria aplicado ao período inteiro sem aviso. Agora o E8 exige que a vigência da entrada do catálogo **cubra toda a janela do período** (`valid_from` ≤ início e fim ≤ `valid_to`, ou sem fim). Se não cobre: gate `EF_FUEL_WINDOW` = `REVIEW_REQUIRED`, `EF_FUEL` sem valor utilizável, nenhum número e próxima ação "preparar janelas separadas na mudança de vigência". Só vale para pinos `CATALOG_REFERENCE`; os demais seguem as regras antigas.
+- **Limite deliberado:** o motor **não divide** o período entre duas vigências nem faz média ponderada. Um período que atravessa 01/08/2026 precisa ser preparado em janelas separadas, cada uma com o fator da sua vigência. A divisão automática, se desejada, é decisão metodológica à parte.
+- O pino por ano-fonte continua um por (projeto, tipo, ano): duas vigências no mesmo ano exigem janelas/períodos distintos e ainda não têm pino próprio por janela. **Limite conhecido.**
 
 ## Ensaio (sintético)
+O ensaio cobre também o caso negativo da guarda: re-pino de 2024 para uma entrada válida só a partir de 2024-03-01, com a janela do período em 2024-02-01: sem números e com o gate `EF_FUEL_WINDOW`.
+
 `OpenSeriesBoundRunIntegrationTest`: BE = ED × EF × 100 × IR / (AFEC × MPG) = 2700 kWh × (2,25 kgCO2/L → 0,008517176514 tCO2e/USgal) × 100 × 1 / (20 × 30) = **3,8327294313 tCO2e**; PE = 1,6317 tCO2e (série); tentativa `REVIEWED_INTERNAL`, nada admitido.
