@@ -209,6 +209,36 @@ class FuelCatalogIntegrationTest {
         assertEquals(404, call("GET", res + "CO2_ONLY&date=2024-06-01", outsider, null).statusCode());
         assertEquals(404, call("GET", API + "/boundaries", outsider, null).statusCode());
 
+        // Etapa 5: the Brazilian seed (docs/data/fuel-catalog-br-seed.json) is accepted by the API as published, nothing is
+        // reviewed or admitted by registering it, and once reviewed the derived gasolina C factor resolves under CO2_ONLY.
+        var seed = json.readTree(java.nio.file.Files.readString(java.nio.file.Path.of("../docs/data/fuel-catalog-br-seed.json")));
+        var ids = new java.util.ArrayList<String>();
+        for (var item : seed.path("entries")) {
+            var body = (com.fasterxml.jackson.databind.node.ObjectNode) item.deepCopy();
+            body.remove("evidenceUrl");
+            for (var name : new java.util.ArrayList<String>() {{ body.fieldNames().forEachRemaining(this::add); }})
+                if (body.get(name).isNull()) body.remove(name);
+            var created = json.readTree(ok(call("POST", API + "/entries", manager, json.writeValueAsString(body))).body());
+            assertEquals("NOT_ADMITTED", created.path("admission").asText());
+            ids.add(created.path("id").asText());
+        }
+        var before = json.readTree(ok(call("GET", API + "/boundary-resolution?fuelId=GASOLINE_C&scope=TTW&boundary=CO2_ONLY&date=2026-09-01", manager, null)).body());
+        assertEquals("NOT_REVIEWED_OK", before.path("requirements").get(0).path("review").asText());
+        for (String id : ids) ok(call("POST", API + "/entries/" + id + "/reviews", owner, review("OWNER_INTERNAL", "REVIEWED_OK")));
+        var after = json.readTree(ok(call("GET", API + "/boundary-resolution?fuelId=GASOLINE_C&scope=TTW&boundary=CO2_ONLY&date=2026-09-01", manager, null)).body());
+        assertEquals("RESOLVED_CANDIDATE", after.path("state").asText(), after.toString());
+        assertEquals("INTERNAL_OK", after.path("requirements").get(0).path("review").asText());
+        // 1504.143816 gCO2/L x 3.785411784 L/USgal / 1e6 g/t, exact.
+        var expected = new java.math.BigDecimal("1504.143816").multiply(new java.math.BigDecimal("3.785411784")).divide(new java.math.BigDecimal("1000000"));
+        assertEquals(0, expected.compareTo(new java.math.BigDecimal(after.path("requirements").get(0).path("methodValue").asText())), after.toString());
+        assertEquals("tCO2/USgal", after.path("requirements").get(0).path("methodUnit").asText());
+        // Before the CNPE act enters into force the blend factor does not exist: nothing is presumed.
+        var early = json.readTree(ok(call("GET", API + "/boundary-resolution?fuelId=GASOLINE_C&scope=TTW&boundary=CO2_ONLY&date=2026-07-01", manager, null)).body());
+        assertEquals("UNRESOLVED", early.path("state").asText());
+        // The 3-gas boundary stays unresolved: no CH4/N2O datum for gasolina C and no aggregate.
+        var threeGas = json.readTree(ok(call("GET", API + "/boundary-resolution?fuelId=GASOLINE_C&scope=TTW&boundary=CO2_CH4_N2O&date=2026-09-01", manager, null)).body());
+        assertEquals("UNRESOLVED", threeGas.path("state").asText());
+
         // Append-only.
         assertThrows(RuntimeException.class, () -> database.transaction(c -> update(c, "UPDATE app_fuel_entry SET value_text='9' WHERE id=?::uuid", efId)));
         assertThrows(RuntimeException.class, () -> database.transaction(c -> update(c, "DELETE FROM app_fuel_entry_review WHERE entry_id=?::uuid", own)));

@@ -201,6 +201,7 @@ jobs:
           python3 -m unittest discover -s scripts -p 'test_registry_permissions.py' -v
           python3 -m unittest discover -s scripts -p 'test_vt0011_tool07_conformance.py' -v
           python3 -m unittest discover -s scripts -p 'test_grid_time_hypotheses.py' -v
+          python3 -m unittest discover -s scripts -p 'test_fuel_catalog_seed.py' -v
           python3 scripts/fuel_catalog.py docs/data/fuel-catalog.json
           python3 scripts/registry_permissions.py docs/data/registry-permissions.json
           python3 scripts/vt0011_tool07_conformance.py docs/data/vt0011-tool07-conformance.json

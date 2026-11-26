@@ -46,7 +46,7 @@ class FuelCatalog {
     private static final Pattern GWP = Pattern.compile("AR[4-9]_[0-9]{2,3}");
     private static final Pattern SHA = Pattern.compile("[a-f0-9]{64}");
     private static final Pattern EF_UNIT = Pattern.compile("(t|kg|g)(CO2e|CO2|CH4|N2O)?/(MJ|GJ|TJ|L|USgal|kg|m3)");
-    private static final Set<String> DENSITY_UNITS = Set.of("kg/L", "kg/m3");
+    private static final Set<String> DENSITY_UNITS = Set.of("kg/L", "kg/m3", "t/m3"); // t/m3 == kg/L, as the ANP/EPE table publishes it
     private static final Set<String> LHV_UNITS = Set.of("MJ/kg", "MJ/L", "MJ/m3");
     private static final BigDecimal USGAL = new BigDecimal("3.785411784");
     private static final MathContext MC = new MathContext(30);
@@ -381,7 +381,7 @@ class FuelCatalog {
             BigDecimal v = new BigDecimal(e.value());
             if (v.signum() == 0) continue;
             switch (e.unit()) {
-                case "kg/L" -> add(list, "L", "kg", v, e.id(), "densidade");
+                case "kg/L", "t/m3" -> add(list, "L", "kg", v, e.id(), "densidade");
                 case "kg/m3" -> add(list, "m3", "kg", v, e.id(), "densidade");
                 case "MJ/kg" -> add(list, "kg", "MJ", v, e.id(), "PCI");
                 case "MJ/L" -> add(list, "L", "MJ", v, e.id(), "PCI");
