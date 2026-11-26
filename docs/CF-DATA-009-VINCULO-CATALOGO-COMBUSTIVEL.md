@@ -23,3 +23,12 @@ O pino resolve o fator numa única `date`, mas o período de monitoramento tem u
 O ensaio cobre também o caso negativo da guarda: re-pino de 2024 para uma entrada válida só a partir de 2024-03-01, com a janela do período em 2024-02-01: sem números e com o gate `EF_FUEL_WINDOW`.
 
 `OpenSeriesBoundRunIntegrationTest`: BE = ED × EF × 100 × IR / (AFEC × MPG) = 2700 kWh × (2,25 kgCO2/L → 0,008517176514 tCO2e/USgal) × 100 × 1 / (20 × 30) = **3,8327294313 tCO2e**; PE = 1,6317 tCO2e (série); tentativa `REVIEWED_INTERNAL`, nada admitido.
+
+## Ensaio com os fatores reais do catálogo (rc.89)
+`OpenRealFuelCatalogRunIntegrationTest` repete o ensaio E8 (PE pela série, BE pelo catálogo, IR, Dy) com os dois **valores reais** de gasolina C do seed (`docs/data/fuel-catalog-br-seed.json`, lidos do arquivo, não copiados). Todas as classes de teste compartilham um banco na CI e o catálogo é append-only; por isso o ensaio registra esses valores sob um **combustível próprio de teste** (id privado), sem tocar em `GASOLINE_C`, e o `FuelCatalogIntegrationTest` faz o mesmo com cópias privadas dos combustíveis do seed. Assim nenhum teste depende da ordem de execução. O projeto começa em **01/08/2025**, então o ano 1 do projeto é a janela do **E30** (até 31/07/2026) e o ano 2 é a do **E32** (desde 01/08/2026): cada ano tem uma entrada real distinta, como o IR exige, e a vigência cobre a janela de cada período.
+- Ano 1: pino `1548.383340 gCO₂/L`; ano 2: pino `1504.143816 gCO₂/L` (a fórmula do pino cita o valor original de cada um).
+- BE do ano 2 com o fator E32 convertido (≈ 0,005694 tCO₂e/USgal), conferido contra a fórmula `ED × EF × 100 × IR / (AFEC × MPG)` com tolerância de 1e-6, que distingue o E32 do E30 (≈ 2,9%).
+- A guarda `EF_FUEL_WINDOW` continua: re-pino de 2026 para uma entrada válida só a partir de 2026-10-01 deixa a janela de 2026-09-01 sem números.
+- **O que é sintético:** frota, energia, série, Dy e **as revisões** (inseridas pelo teste, marcadas como sintéticas); nada disso é a revisão `OWNER_INTERNAL` do responsável. Nada é admitido.
+- **O que não cobre:** os demais fatores do seed (diesel B, CH4/N2O), ano de transição (Q13) e dados reais de frota e energia.
+
