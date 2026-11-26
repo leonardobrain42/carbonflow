@@ -40,6 +40,16 @@ public class FleetCompositionResource {
     }
 
     @POST
+    @Path("/models/{modelId}/classification")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response classify(@CookieParam(AccountAccess.COOKIE) String token,
+                             @PathParam("modelId") UUID model,
+                             @HeaderParam("Idempotency-Key") String commandKey,
+                             FleetCompositionService.ClassificationInput input){
+        return ok(service.classify(token,commandKey,model,input));
+    }
+
+    @POST
     @Path("/models/{modelId}/aliases")
     @Consumes(MediaType.APPLICATION_JSON)
     public Response alias(@CookieParam(AccountAccess.COOKIE) String token,

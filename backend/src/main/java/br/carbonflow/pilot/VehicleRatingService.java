@@ -99,7 +99,7 @@ class VehicleRatingService {
             try{
                 var models=query(c,"""
                     SELECT id,organization_id,concat(manufacturer,' ',model_name,' ',variant),
-                           vehicle_class,propulsion FROM app_fleet_model
+                           vehicle_class,propulsion FROM app_fleet_model_effective
                     WHERE organization_id=ANY(?) ORDER BY manufacturer,model_name LIMIT 200
                     """,r->new Model(r.getObject(1,UUID.class),r.getObject(2,UUID.class),
                         r.getString(3),r.getString(4),r.getString(5)),scope);
@@ -194,7 +194,7 @@ class VehicleRatingService {
                 LEFT JOIN app_fleet_model_alias a
                   ON a.organization_id=? AND a.observation_year=c.period_year
                  AND a.record_key=upper(btrim(c.record_key))
-                LEFT JOIN app_fleet_model m
+                LEFT JOIN app_fleet_model_effective m
                   ON m.id=a.model_id AND m.organization_id=a.organization_id
                 WHERE c.object_id=?
                 ORDER BY c.row_index LIMIT 2000
@@ -609,7 +609,7 @@ class VehicleRatingService {
     private Model oneModel(Connection c,UUID id,UUID org)throws SQLException{
         var model=first(c,"""
             SELECT id,organization_id,concat(manufacturer,' ',model_name,' ',variant),
-                   vehicle_class,propulsion FROM app_fleet_model
+                   vehicle_class,propulsion FROM app_fleet_model_effective
             WHERE id=? AND organization_id=?
             """,r->new Model(r.getObject(1,UUID.class),r.getObject(2,UUID.class),
                 r.getString(3),r.getString(4),r.getString(5)),id,org);
