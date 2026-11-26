@@ -36,3 +36,5 @@ E0–E8 são rótulos históricos de organização, não fases novamente executa
 
 ## Linha de base ex ante — prioridade #124/#40
 - [Frota EVR, comparáveis, fatores e seleção ex ante](../docs/CF-UX-TECH-001-FROTA-BASELINE-EX-ANTE.md): contrato de produto, arquitetura, quatro figuras SVG e critérios BL-T01–17. Proposta de implementação P0; não declara dados admitidos.
+
+- [Premissas, adicionalidade, direitos, revisão e PD](../docs/CF-UX-TECH-001-PREMISSAS-ADICIONALIDADE-PD.md): complemento P0, oito figuras e critérios PT-T01–18.

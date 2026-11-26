@@ -202,3 +202,6 @@ Testes unitários de regras existentes, Quarkus/PostgreSQL em banco limpo, Angul
 No sandbox, admin com competência e MFA pode abrir Fontes → Frota EVR / Eficiências e comparáveis para preparar fontes, modelos, aliases, ratings e pares. Consultar guias #94/#95 e direitos antes de importar. Dados de teste não devem ser persistidos no ambiente de trabalho real. O usuário pode trabalhar em paralelo nas partes independentes. Até BL-EX-01/02, vínculo V64 continua exigindo período e energia; não fabricar MR para desbloquear a tela.
 
 **Decisões de desenho propostas pelo autor deste documento:** separar finalidade PD/MR, manter V64 intacta, usar serviço owner #40 e autorização atual, apresentar seletor contextual e detalhes condicionados a direitos, preservar layout dark/verde. A implementação deve confirmar nomes de API/tabelas, mapeamento de estados e disponibilidade de dados. Nenhuma nova interpretação metodológica, mudança de direitos ou admissão foi aprovada neste PR. O estado do banco local e a revisão independente não foram verificados.
+
+## Complemento de preparação técnica
+Ver [Premissas, adicionalidade, direitos, revisão e PD](CF-UX-TECH-001-PREMISSAS-ADICIONALIDADE-PD.md) para V68/V94, telas de revisão, V100, eventos/direitos e composição documental. PT-06 é BL-EX-03/UX-08D.3, não outra entrega duplicada.

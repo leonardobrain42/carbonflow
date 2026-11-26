@@ -34,3 +34,6 @@ A UX-03B #141 (arquivos de estações) é PR independente e não é dependência
 
 ## Adendo de planejamento — seleção ex ante (26/11/2026)
 A consulta por MR acima documenta o comportamento implementado, não o fluxo final para PD. O novo [contrato de frota ex ante](CF-UX-TECH-001-FROTA-BASELINE-EX-ANTE.md) especifica evolução do owner #40 e UI #124: seleção de referência sem MR/V63, diagnóstico por ato, detalhe autorizado, sem alteração do vínculo operacional V64. Até implementação, permanece a limitação descrita. Não declarar admissão.
+
+## Adendo de especificação de telas (26/11/2026)
+[Premissas, adicionalidade, direitos, revisão e composição do PD](CF-UX-TECH-001-PREMISSAS-ADICIONALIDADE-PD.md) detalha V68/V94, V72–74, V100, estados e integração #43/#122, com mockups e critérios PT. A implementação descrita acima continua válida como histórico; nenhuma funcionalidade nova foi implementada neste adendo.

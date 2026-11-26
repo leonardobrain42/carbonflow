@@ -1,4 +1,6 @@
 # Changelog da especificação viva
+## Adendo documental — premissas, adicionalidade e PD (26/11/2026, planejado)
+- Contrato [PT](../docs/CF-UX-TECH-001-PREMISSAS-ADICIONALIDADE-PD.md) com oito SVG, PT-T01–18, V68/V94, V72–74, V100 e composição #43/#122; sem código, migração, dado ou gate alterado. Anexo adicional de 1×1 ilegível; inspeção baseada no código.
 ## Adendo documental — UX de frota/PD ex ante (26/11/2026, planejado)
 - Especificação [CF-UX-TECH-001-FROTA-BASELINE-EX-ANTE](../docs/CF-UX-TECH-001-FROTA-BASELINE-EX-ANTE.md), quatro mockups/diagramas SVG e critérios BL-T01–17. Prioridade P0 #124/#40, V64 monitorada preservada, sem migração, API, dado, revisão ou guarda alterados. Não numera release para evitar conflito com desenvolvimento paralelo.
 ## 0.3.0-rc.92 — 26/11/2026 (proposta)

@@ -17,3 +17,5 @@ A [jornada canônica J01–J07](../CF-JOURNEY-001.md) passa a orientar navegaç�
 
 ## Linha de base ex ante (P0, 26/11/2026)
 - [Especificação detalhada e mockups](../../docs/CF-UX-TECH-001-FROTA-BASELINE-EX-ANTE.md): etapa EVR/comparáveis contextual, seleção ex ante sem MR, cobertura e estados, autorização e handoff monitorado; complementa UX-08D/#124 e #40. Não implementado por este adendo.
+
+- [Premissas, adicionalidade, direitos, revisão e composição documental](../../docs/CF-UX-TECH-001-PREMISSAS-ADICIONALIDADE-PD.md): complemento à seleção de frota ex ante; PT-01–08, PT-QA e 18 aceites planejados.

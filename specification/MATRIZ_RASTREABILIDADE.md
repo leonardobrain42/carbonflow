@@ -47,3 +47,14 @@ Estas linhas são posteriores ao corte `507bf268…` do cabeçalho; os vínculos
 | BL-EX-04: inspeção autorizada | #124/#128 | figura 04 | BL-T06,12–14 |
 | BL-EX-05: handoff operacional | #97/#98 | V64 preservada | BL-T09,16 |
 | BL-QA | #101/#45 | matriz BL-T01–17 | execução futura, sem homologação presumida |
+
+## Adendo — PT premissas e adicionalidade
+| Fatia | Owners | Aceite planejado |
+|---|---|---|
+| PT-01 | #40/#96/#124 | PT-T01–05 |
+| PT-02/03/04 | #38/#99/#93/#24/#33/#124 | PT-T07–11 |
+| PT-05 | #99/#35/#13/#124 | PT-T12–14 |
+| PT-06 | #124/#13/#19/#97 | PT-T06,14 (BL-EX-03) |
+| PT-07 | #43/#122/#128 | PT-T15–16 |
+| PT-QA | #101/#45 | PT-T01–18, incluindo 17–18 |
+Contrato e figuras: [CF-UX-TECH-001-PREMISSAS-ADICIONALIDADE-PD](../docs/CF-UX-TECH-001-PREMISSAS-ADICIONALIDADE-PD.md). Não executados.

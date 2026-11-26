@@ -47,3 +47,6 @@ O corte acima é anterior a estes PRs; esta seção só acrescenta o que eles en
 
 ## Adendo de diagnóstico UX (26/11/2026, corte cc25f64b85900fdba6be115bb0f8bf764f0e6d4b)
 EVR/ratings: catálogo, aliases/classificação, snapshots e publicação V64 existem; V64 exige energia e período e a etapa EVR lê MR. Falta seleção ex ante independente, fonte nacional e ratings/pares reais admissíveis. O responsável informa revisão interna de combustível concluída localmente, independente pendente; não verificado no banco. Plano P0 [frota e baseline ex ante](../docs/CF-UX-TECH-001-FROTA-BASELINE-EX-ANTE.md) preserva V64 e gates. Status DOCUMENTADO/PLANEJADO, sem implementação ou homologação neste adendo.
+
+## Adendo de diagnóstico — premissas e adicionalidade (26/11/2026)
+V68 e V94 já existem, mas plano IR textual e guia de cenário não conciliam refs. V72–74 têm partes/contratos/eventos e PDF, sem prova automática. V100 tem parecer independente por critério, sem UI de gravação no workbench e contexto limitado à declaração/guia. PdTrace é proveniência, não composição. [Especificação PT](../docs/CF-UX-TECH-001-PREMISSAS-ADICIONALIDADE-PD.md) planejada; sem teste, admissão ou mudança de implementação.

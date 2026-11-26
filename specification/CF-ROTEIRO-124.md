@@ -30,3 +30,6 @@ Fases 2 a 4 (etapas 8 a 18, #93, #38/#99, #98, #92/#96, #97, #124, #33/#35, #41,
 
 ## Adendo P0 — integração contextual de frota e fatores (26/11/2026)
 O responsável solicitou correção da jornada após constatar ausência de vínculo de frota sem MR e EF_FUEL não vinculado apesar de revisão interna informada. A sequência UX-08D.1 (catálogo combustível → pino) continua primeira fatia UX. Em paralelo às decisões D21/Q13 e dados #94/#95, executar BL-EX-01 (#40/#97: seleção ex ante sem V63/MR), BL-EX-02 (#124: tela contextual), BL-EX-03 (projeção por ato e PD), depois BL-EX-04/05 (inspeção e handoff), com BL-QA/#101. A base nacional e direitos continuam pendentes; testes com fixture não são admissão. Detalhamento, dependências, figuras e critérios BL-T01–17: [CF-UX-TECH-001-FROTA-BASELINE-EX-ANTE](../docs/CF-UX-TECH-001-FROTA-BASELINE-EX-ANTE.md). Não substituir sequência técnica das guardas nem fechar issues.
+
+## Adendo P0 — premissas, adicionalidade, revisão e PD
+[Contrato PT](../docs/CF-UX-TECH-001-PREMISSAS-ADICIONALIDADE-PD.md). UX-08D.1 e BL-EX-01/02 continuam primeiro caminho crítico. PT-01 (V68/V94 assistidos), PT-02/03/04 (rota, timeline, direitos) em paralelo quando independentes; PT-05 (V100 UI e contexto), PT-06 = BL-EX-03/UX-08D.3, PT-07 (blocos PD #43/#122), PT-QA por fatia; VT0008/IA P1. Sem criar backlog duplicado ou relaxar gates.
