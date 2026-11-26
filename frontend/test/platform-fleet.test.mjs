@@ -207,3 +207,81 @@ test('decisão de cobertura do estoque BEV não admite a série',async()=>{
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
   }finally{await browser.close();}
 });
+
+test('Catálogo de modelos: pendente explícito, filtro por recorte, classificação com evidência sem admitir',async()=>{
+  const browser=await chromium.launch({executablePath:chrome});
+  try {
+    const page=await browser.newPage({viewport:{width:1280,height:900}});
+    let verified=false;
+    const posts=[];
+    const models=[
+      {id:'30300000-0000-4000-8000-000000000021',organizationId:org,manufacturer:'Marca X',modelName:'Alfa',variant:'Base',
+       vehicleClass:'UNKNOWN',propulsion:'UNKNOWN',recordedAt:'2026-11-19T20:10:00Z',classificationVersion:0,scope:'PENDING_CLASSIFICATION'},
+      {id:'30300000-0000-4000-8000-000000000022',organizationId:org,manufacturer:'Marca X',modelName:'Beta',variant:'Base',
+       vehicleClass:'LDV',propulsion:'BEV',recordedAt:'2026-11-19T20:10:00Z',classificationVersion:1,scope:'CANDIDATE_INITIAL_SCOPE'},
+      {id:'30300000-0000-4000-8000-000000000023',organizationId:org,manufacturer:'Marca Y',modelName:'Moto',variant:'Base',
+       vehicleClass:'OTHER',propulsion:'BEV',recordedAt:'2026-11-19T20:10:00Z',classificationVersion:0,scope:'OUTSIDE_INITIAL_SCOPE'},
+    ];
+    await page.route('**/v1/compliance/session',route=>{
+      if(route.request().method()==='POST')verified=true;
+      return route.fulfill({json:{verified,expiresAt:verified?new Date(Date.now()+60000).toISOString():null}});
+    });
+    await page.route('**/v1/platform/source-readiness/contexts',route=>route.fulfill({json:[{
+      methodology:'VM0038',edition:'1.1',scenario:'OPEN_LDV_DCFC_SIN_BR',title:'Brasil · rede aberta',country:'BR',
+      networkMode:'OPEN',vehicleCategory:'LDV_BEV',chargerType:'DCFC',energySystem:'SIN',catalogState:'ACTIVE'}]}));
+    await page.route('**/v1/platform/source-readiness/VM0038?*',route=>route.fulfill({json:{
+      methodology:'VM0038',edition:'1.1',scenario:'OPEN_LDV_DCFC_SIN_BR',asOf:'2026-11-19T20:10:00Z',
+      normativeRuleStatus:'ONLY_SYNTHETIC_RULE_PACKS',dynamicCalculationStatus:'NOT_ENABLED_FOR_DYNAMIC_PROJECTS',
+      normativeAiDisabled:true,missingSourceCount:0,missingReferenceRightsCount:1,reviewPendingCount:0,
+      projectEvidenceCount:0,total:1,nextOffset:null,needs:[]}}));
+    await page.route('**/v1/platform/fleet/**',async route=>{
+      const request=route.request(),url=new URL(request.url());
+      if(url.pathname.endsWith('/board'))return route.fulfill({json:{canManage:true,organizations:[org],
+        models:models.map(m=>({...m})),aliases:[],sources:[],snapshots:[],missingNeed:'OPEN-EVR',guidance:'x'}});
+      if(url.pathname.endsWith('/classification')){
+        assert.ok(request.headers()['idempotency-key']);
+        const id=url.pathname.split('/').at(-2);
+        const body=request.postDataJSON();
+        posts.push({id,body});
+        const m=models.find(x=>x.id===id);
+        Object.assign(m,{vehicleClass:body.vehicleClass,propulsion:body.propulsion,classificationVersion:(m.classificationVersion??0)+1,
+          scope:body.vehicleClass==='UNKNOWN'?'PENDING_CLASSIFICATION':(body.vehicleClass==='LDV'&&body.propulsion==='BEV'?'CANDIDATE_INITIAL_SCOPE':'OUTSIDE_INITIAL_SCOPE')});
+        return route.fulfill({json:m});
+      }
+      throw Error('unexpected route '+url.pathname);
+    });
+    await page.goto(base+'/workspace/platform/sources');
+    await page.getByLabel('Código de seis dígitos do autenticador').fill('123456');
+    await page.getByRole('button',{name:'Desbloquear inventário'}).click();
+    await page.getByRole('button',{name:'Frota EVR'}).click();
+    await page.getByRole('heading',{name:'Catálogo de modelos canônicos'}).waitFor();
+    const catalog=page.getByRole('region',{name:'Catálogo de modelos canônicos'});
+    await catalog.getByRole('cell',{name:/Classificação pendente/}).first().waitFor();
+    assert.equal(await catalog.getByRole('row').count(),4); // header + 3 models
+    await catalog.getByLabel('Mostrar').selectOption('PENDING_CLASSIFICATION');
+    assert.equal(await catalog.getByRole('row').count(),2);
+    await catalog.getByRole('cell',{name:'Alfa',exact:true}).waitFor();
+    await catalog.getByLabel('Mostrar').selectOption('');
+
+    // Known classification demands evidence and says it does not admit the model.
+    await page.getByLabel('Modelo canônico').first().selectOption('30300000-0000-4000-8000-000000000021');
+    await page.getByLabel('Evidência (fonte e localizador)').fill('PBEV 2026, linha 62');
+    await page.getByLabel('Motivo (mín. 10 caracteres)').fill('Conferido na ficha do fabricante.');
+    await page.getByRole('button',{name:'Registrar classificação'}).click();
+    await page.getByText('Isso não admite o modelo no recorte inicial.',{exact:false}).waitFor();
+    assert.deepEqual(posts[0].body,{vehicleClass:'LDV',propulsion:'BEV',reason:'Conferido na ficha do fabricante.',evidence:'PBEV 2026, linha 62'});
+    await catalog.getByRole('cell',{name:/Candidato ao recorte inicial \(LDV BEV\), não admitido.*classificação v1/}).first().waitFor();
+
+    // Back to pending needs only a reason and sends UNKNOWN for both fields and no evidence.
+    await page.getByLabel('Modelo canônico').first().selectOption('30300000-0000-4000-8000-000000000021');
+    await page.getByLabel('Classe do veículo').selectOption('UNKNOWN');
+    assert.equal(await page.getByLabel('Evidência (fonte e localizador)').count(),0);
+    await page.getByLabel('Motivo (mín. 10 caracteres)').fill('Evidência anterior contestada.');
+    await page.getByRole('button',{name:'Registrar classificação'}).click();
+    await page.getByText('Modelo marcado como pendente de classificação.').waitFor();
+    assert.deepEqual(posts[1].body,{vehicleClass:'UNKNOWN',propulsion:'UNKNOWN',reason:'Evidência anterior contestada.',evidence:null});
+  } finally {
+    await browser.close();
+  }
+});
+
