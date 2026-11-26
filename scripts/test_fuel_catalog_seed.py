@@ -36,12 +36,22 @@ class SeedTest(unittest.TestCase):
 
     def test_derived_entries_are_labelled_and_the_ipcc_comparison_uses_the_same_unit(self):
         derived = [e for e in SEED["entries"] if e["evidenceLocator"].startswith("DERIVADO")]
-        self.assertEqual(len(derived), 2)  # gasolina C E32 and E30
-        compared = [e for e in SEED["entries"] if "ipccValue" in e]
-        self.assertEqual(len(compared), 1)
-        self.assertEqual((compared[0]["fuelId"], compared[0]["unit"], compared[0]["ipccUnit"]), ("GASOLINE_A", "gCO2/kg", "gCO2/kg"))
-        self.assertEqual(Decimal(compared[0]["ipccValue"]), Decimal("69300") * Decimal("44.3") / 1000)
-        self.assertIn("sem refinamento em 2019", compared[0]["ipccReference"])
+        self.assertEqual(len(derived), 3)  # gasolina C E32 and E30, diesel B15
+        compared = {e["fuelId"]: e for e in SEED["entries"] if "ipccValue" in e}
+        self.assertEqual(set(compared), {"GASOLINE_A", "DIESEL_A"})
+        for e in compared.values():
+            self.assertEqual((e["unit"], e["ipccUnit"]), ("gCO2/kg", "gCO2/kg"))
+            self.assertIn("sem refinamento em 2019", e["ipccReference"])
+        self.assertEqual(Decimal(compared["GASOLINE_A"]["ipccValue"]), Decimal("69300") * Decimal("44.3") / 1000)
+        self.assertEqual(Decimal(compared["DIESEL_A"]["ipccValue"]), Decimal("74100") * Decimal("43.0") / 1000)
+
+    def test_diesel_b15_is_derived_from_the_published_blend(self):
+        value = next(e for e in SEED["entries"] if e["fuelId"] == "DIESEL_B" and e.get("parameter") == "EMISSION_FACTOR")
+        self.assertEqual(Decimal(value["value"]), Decimal("0.85") * Decimal("0.84") * Decimal("3098.8"))
+        comps = [e for e in SEED["entries"] if e["fuelId"] == "DIESEL_B" and e["kind"] == "COMPOSITION"]
+        self.assertEqual({(c["validFrom"], c["validTo"]) for c in comps}, {("2025-08-01", None)})
+        self.assertEqual(sum(Decimal(c["nominal"]) for c in comps if c.get("nominal")), Decimal("0.15"))
+        self.assertNotIn("evidenceUrl", comps[0])
 
     def test_epe_license_is_recorded_with_its_scope_and_evidence(self):
         lic = SEED["documents"]["EPE"]["license"]
@@ -55,6 +65,7 @@ class SeedTest(unittest.TestCase):
 
     def test_e30_and_e32_windows_do_not_overlap_and_each_sums_to_one(self):
         comps = [e for e in SEED["entries"] if e["kind"] == "COMPOSITION"]
+        comps = [c for c in comps if c["fuelId"] == "GASOLINE_C"]
         windows = {(c["validFrom"], c["validTo"]) for c in comps}
         self.assertEqual(windows, {("2025-08-01", "2026-07-31"), ("2026-08-01", "2027-01-27")})
         for w, share in ((("2025-08-01", "2026-07-31"), "0.30"), (("2026-08-01", "2027-01-27"), "0.32")):
