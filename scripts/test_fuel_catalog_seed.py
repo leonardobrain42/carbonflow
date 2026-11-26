@@ -17,6 +17,15 @@ class SeedTest(unittest.TestCase):
     def test_published_file_matches_the_generator(self):
         self.assertEqual(subprocess.run([sys.executable, str(ROOT / "scripts/build_fuel_catalog_seed.py"), "--check"]).returncode, 0)
 
+    def test_review_checklist_is_generated_from_the_seed_and_lists_every_entry(self):
+        self.assertEqual(subprocess.run([sys.executable, str(ROOT / "scripts/build_fuel_review_checklist.py"), "--check"]).returncode, 0)
+        text = (ROOT / "docs/CF-DATA-010-ROTEIRO-REVISAO.md").read_text(encoding="utf-8")
+        self.assertEqual(sum(1 for line in text.splitlines() if re.match(r"\| R\d\d \|", line)), len(SEED["entries"]))
+        self.assertIn("Não registra nem simula revisão", text)
+        base_last = max(i for i, line in enumerate(text.splitlines()) if "| R" in line and "DERIVADO" not in line and re.match(r"\| R\d\d", line))
+        derived_first = min(i for i, line in enumerate(text.splitlines()) if re.match(r"\| R\d\d", line) and "DERIVADO" in line)
+        self.assertLess(base_last, derived_first)  # base data are reviewed before the values derived from them
+
     def test_gasoline_c_is_derived_with_exact_arithmetic(self):
         value, fraction = b.derived_gasoline_c()
         self.assertEqual(fraction, Decimal("0.68"))
