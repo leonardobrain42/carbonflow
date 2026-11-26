@@ -53,6 +53,20 @@ public class FuelCatalogResource {
     }
 
     @GET
+    @Path("/boundary-resolution")
+    public Response resolve(@CookieParam(AccountAccess.COOKIE) String token, @QueryParam("boundary") String boundary,
+                            @QueryParam("fuelId") String fuelId, @QueryParam("date") String date,
+                            @QueryParam("scope") String scope, @QueryParam("gwpSet") String gwpSet) {
+        return ok(catalog.resolve(token, boundary, fuelId, date, scope, gwpSet));
+    }
+
+    @GET
+    @Path("/boundaries")
+    public Response boundaries(@CookieParam(AccountAccess.COOKIE) String token) {
+        return ok(catalog.boundaries(token));
+    }
+
+    @GET
     @Path("/entries/{id}/conversion")
     public Response convert(@CookieParam(AccountAccess.COOKIE) String token, @PathParam("id") UUID id,
                             @QueryParam("targetUnit") String targetUnit) {

@@ -168,6 +168,47 @@ class FuelCatalogIntegrationTest {
         assertEquals("REVIEWED_OK", both.path("internalReview").path("outcome").asText());
         assertEquals("REJECTED", both.path("independentReview").path("outcome").asText());
 
+        // Candidate boundaries (VM0038 v1.1, Table 1): CO2_ONLY resolves only a fossil-CO2 factor, never an aggregate.
+        var presets = json.readTree(ok(call("GET", API + "/boundaries", manager, null)).body());
+        assertEquals(2, presets.size());
+        assertEquals("CO2_ONLY", presets.get(0).path("id").asText());
+        assertEquals("CO2", presets.get(0).path("baselineGases").get(0).asText());
+        assertEquals(1, presets.get(0).path("projectGases").size());
+        assertTrue(presets.get(0).path("source").asText().contains("Tabela 1"));
+        String res = API + "/boundary-resolution?fuelId=" + product + "&scope=TTW&boundary=";
+        var found = json.readTree(ok(call("GET", res + "CO2_ONLY&date=2024-06-01", manager, null)).body());
+        assertEquals("RESOLVED_CANDIDATE", found.path("state").asText());
+        assertEquals("NOT_ADMITTED", found.path("admission").asText());
+        var requirement = found.path("requirements").get(0);
+        assertEquals("FOUND", requirement.path("state").asText());
+        assertEquals("NOT_REVIEWED_OK", requirement.path("review").asText());
+        assertEquals("kgCO2/L", requirement.path("unit").asText());
+        assertEquals("tCO2/USgal", requirement.path("methodUnit").asText());
+        assertEquals("0.011356235352", requirement.path("methodValue").asText());
+        var missing = json.readTree(ok(call("GET", res + "CO2_ONLY&date=2023-06-01", manager, null)).body());
+        assertEquals("UNRESOLVED", missing.path("state").asText());
+        assertEquals("MISSING", missing.path("requirements").get(0).path("state").asText());
+        // From 2025 only the aggregate (CO2e, AR5_100) exists: it does not satisfy a CO2-only boundary.
+        var aggregateOnly = json.readTree(ok(call("GET", res + "CO2_ONLY&date=2025-06-01", manager, null)).body());
+        assertEquals("UNRESOLVED", aggregateOnly.path("state").asText());
+        assertTrue(aggregateOnly.path("requirements").get(0).path("note").asText().contains("CO2e agregado"));
+        // The three-gas boundary: CO2 and CH4 exist but N2O does not; the aggregate is not mixed with separate factors.
+        var mixed = json.readTree(ok(call("GET", res + "CO2_CH4_N2O&gwpSet=AR5_100&date=2024-06-01", manager, null)).body());
+        assertEquals("UNRESOLVED", mixed.path("state").asText());
+        assertEquals("MISSING", mixed.path("requirements").get(2).path("state").asText());
+        assertTrue(mixed.path("requirements").get(2).path("note").asText().contains("dupla contagem"));
+        // Without separate factors the aggregate with the declared GWP set covers the three gases.
+        ok(call("POST", API + "/entries", manager, datum(comp, "EMISSION_FACTOR", "CO2E_AGGREGATE", "TTW", "AR5_100", "2.9", "kgCO2e/L", "2024-01-01", null, null)));
+        var onlyAggregate = json.readTree(ok(call("GET", API + "/boundary-resolution?fuelId=" + comp + "&scope=TTW&boundary=CO2_CH4_N2O&gwpSet=AR5_100&date=2025-06-01", manager, null)).body());
+        assertEquals("FOUND_AGGREGATE", onlyAggregate.path("requirements").get(0).path("state").asText());
+        assertEquals(1, onlyAggregate.path("requirements").size());
+        assertEquals("tCO2e/USgal", onlyAggregate.path("requirements").get(0).path("methodUnit").asText());
+        assertEquals("0.010977694", onlyAggregate.path("requirements").get(0).path("methodValue").asText().substring(0, 11));
+        assertEquals(422, call("GET", res + "OUTRA&date=2024-06-01", manager, null).statusCode());
+        assertEquals(422, call("GET", res + "CO2_ONLY&date=ontem", manager, null).statusCode());
+        assertEquals(404, call("GET", res + "CO2_ONLY&date=2024-06-01", outsider, null).statusCode());
+        assertEquals(404, call("GET", API + "/boundaries", outsider, null).statusCode());
+
         // Append-only.
         assertThrows(RuntimeException.class, () -> database.transaction(c -> update(c, "UPDATE app_fuel_entry SET value_text='9' WHERE id=?::uuid", efId)));
         assertThrows(RuntimeException.class, () -> database.transaction(c -> update(c, "DELETE FROM app_fuel_entry_review WHERE entry_id=?::uuid", own)));

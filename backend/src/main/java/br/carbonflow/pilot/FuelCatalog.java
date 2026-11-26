@@ -73,6 +73,10 @@ class FuelCatalog {
     record Catalog(boolean canRegister, boolean canReviewInternal, boolean canReviewIndependent, List<Fuel> fuels,
                    List<Entry> entries, String admission, String limits) {}
     record Step(String from, String to, String factor, UUID entryId, String note) {}
+    record Requirement(String gas, String state, UUID entryId, String value, String unit, String gwpSet, String review,
+                       String methodUnit, String methodValue, String conversionBlocker, String note) {}
+    record Resolution(String boundary, String fuelId, LocalDate date, String scope, List<Requirement> requirements,
+                      List<String> consistency, String state, List<String> blockers, String admission, String limits) {}
     record Conversion(UUID entryId, String originalValue, String originalUnit, String targetUnit, String value,
                       List<Step> steps, String admission, String limits) {}
 
@@ -115,6 +119,14 @@ class FuelCatalog {
             return new Catalog(managers.contains(actor.id()) || owners.contains(actor.id()),
                     owners.contains(actor.id()), reviewers.contains(actor.id()), fuels(c), entries(c, null),
                     "NOT_ADMITTED", LIMITS);
+        });
+    }
+
+    List<FuelBoundaries.Boundary> boundaries(String token) {
+        return database.transaction(c -> {
+            var actor = staff.require(c, token);
+            if (!member(actor.id())) throw hidden();
+            return FuelBoundaries.PRESETS;
         });
     }
 
@@ -215,7 +227,14 @@ class FuelCatalog {
             if (!member(actor.id())) throw hidden();
             var found = entries(c, id);
             if (found.isEmpty()) throw new PilotProblem(404, "REGISTRO_INEXISTENTE", "id", RULE, "Registro não encontrado.");
-            var entry = found.get(0);
+            ComplianceStaff.audit(c, actor.id(), null, "CONVERT_FUEL_ENTRY");
+            return convertEntry(c, found.get(0), targetUnit);
+        });
+    }
+
+    private Conversion convertEntry(Connection c, Entry entry, String targetUnit) throws SQLException {
+        UUID id = entry.id();
+        {
             var target = targetUnit == null ? null : EF_UNIT.matcher(targetUnit);
             var source = entry.unit() == null ? null : EF_UNIT.matcher(entry.unit());
             if (!"EMISSION_FACTOR".equals(entry.parameter()) || target == null || !target.matches() || !source.matches())
@@ -245,10 +264,79 @@ class FuelCatalog {
                 }
                 value = value.divide(ratio, MC);
             }
-            ComplianceStaff.audit(c, actor.id(), null, "CONVERT_FUEL_ENTRY");
             return new Conversion(id, entry.value(), entry.unit(), targetUnit, value.round(MC).stripTrailingZeros().toPlainString(),
                     List.copyOf(steps), "NOT_ADMITTED", LIMITS);
+        }
+    }
+
+    /**
+     * Resolves which catalog entries would supply EFi,f,y for a candidate boundary, fuel, scope and date. Read-only and
+     * non-binding: the result is a candidate with the review state of each entry, never an admitted factor, and the
+     * origin of the CO2 is never presumed (CO2_UNSPECIFIED does not satisfy a fossil requirement).
+     */
+    Resolution resolve(String token, String boundaryId, String fuelId, String date, String scope, String gwpSet) {
+        return database.transaction(c -> {
+            var actor = staff.require(c, token);
+            if (!member(actor.id())) throw hidden();
+            var boundary = boundaryId == null ? null : FuelBoundaries.preset(boundaryId);
+            LocalDate on = date(date, "date");
+            if (boundary == null || fuelId == null || !SCOPES.contains(scope) || (gwpSet != null && !GWP.matcher(gwpSet).matches()))
+                throw invalid("boundary");
+            if (first(c, "SELECT 1 FROM app_fuel WHERE id=?", r -> 1, fuelId) == null)
+                throw new PilotProblem(404, "COMBUSTIVEL_INEXISTENTE", "fuelId", RULE, "Combustível não encontrado.");
+            ComplianceStaff.audit(c, actor.id(), null, "VIEW_FUEL_CATALOG");
+            var all = entries(c, null).stream().filter(e -> e.kind().equals("DATUM") && e.fuelId().equals(fuelId)
+                    && "EMISSION_FACTOR".equals(e.parameter()) && scope.equals(e.emissionScope()) && !e.validFrom().isAfter(on)
+                    && (e.validTo() == null || !e.validTo().isBefore(on))).toList();
+            var requirements = new ArrayList<Requirement>();
+            var blockers = new ArrayList<String>();
+            var gases = boundary.baselineGases();
+            var direct = new java.util.LinkedHashMap<String, Entry>();
+            for (String gas : gases)
+                all.stream().filter(e -> e.gas().equals(gas.equals("CO2") ? "CO2_FOSSIL" : gas)).findFirst().ifPresent(e -> direct.put(gas, e));
+            var aggregate = gwpSet == null || gases.size() == 1 ? java.util.Optional.<Entry>empty()
+                    : all.stream().filter(e -> e.gas().equals("CO2E_AGGREGATE") && gwpSet.equals(e.gwpSet())).findFirst();
+            if (direct.size() == gases.size()) {
+                for (String gas : gases) requirements.add(requirement(c, gas, "FOUND", direct.get(gas), gas.equals("CO2") ? "tCO2/USgal" : null, ""));
+            } else if (direct.isEmpty() && aggregate.isPresent()) {
+                requirements.add(requirement(c, "CO2E_AGGREGATE", "FOUND_AGGREGATE", aggregate.get(), "tCO2e/USgal",
+                        "CO2e agregado com a base " + gwpSet + " cobre todos os gases da fronteira; confira a consistência com o projeto."));
+            } else {
+                boolean unspecified = all.stream().anyMatch(e -> e.gas().equals("CO2_UNSPECIFIED"));
+                boolean onlyAggregate = gases.size() == 1 && all.stream().anyMatch(e -> e.gas().equals("CO2E_AGGREGATE"));
+                for (String gas : gases) {
+                    if (direct.containsKey(gas)) {
+                        requirements.add(requirement(c, gas, "FOUND", direct.get(gas), gas.equals("CO2") ? "tCO2/USgal" : null, ""));
+                        continue;
+                    }
+                    String note = gas.equals("CO2") && unspecified ? "Há CO2 de origem não especificada: não presumo que seja fóssil."
+                            : onlyAggregate ? "Só há CO2e agregado, que inclui CH4 e N2O e destoa de uma fronteira só de CO2."
+                            : !direct.isEmpty() && gwpSet != null ? "Fatores separados e CO2e agregado não se misturam (risco de dupla contagem); registre o gás que falta."
+                            : "Nenhum fator registrado para este gás, escopo e data.";
+                    requirements.add(new Requirement(gas, "MISSING", null, null, null, null, null, null, null, null, note));
+                    blockers.add(gas + ": " + note);
+                }
+            }
+            for (var req : requirements) if (req.conversionBlocker() != null) blockers.add(req.gas() + ": " + req.conversionBlocker());
+            var consistency = FuelBoundaries.inconsistencies(boundary.baselineGases(), boundary.projectGases());
+            blockers.addAll(consistency);
+            return new Resolution(boundary.id(), fuelId, on, scope, List.copyOf(requirements), List.copyOf(consistency),
+                    blockers.isEmpty() ? "RESOLVED_CANDIDATE" : "UNRESOLVED", List.copyOf(blockers), "NOT_ADMITTED", LIMITS);
         });
+    }
+
+    private Requirement requirement(Connection c, String gas, String state, Entry e, String methodUnit, String note) throws SQLException {
+        String review = e.independentReview() != null && e.independentReview().outcome().equals("REVIEWED_OK") ? "INDEPENDENT_OK"
+                : e.internalReview() != null && e.internalReview().outcome().equals("REVIEWED_OK") ? "INTERNAL_OK" : "NOT_REVIEWED_OK";
+        String converted = null, blocker = null;
+        if (methodUnit != null) {
+            try {
+                converted = convertEntry(c, e, methodUnit).value();
+            } catch (PilotProblem problem) {
+                blocker = "conversão para " + methodUnit + " não resolvida (" + problem.code + ")";
+            }
+        }
+        return new Requirement(gas, state, e.id(), e.value(), e.unit(), e.gwpSet(), review, methodUnit, converted, blocker, note);
     }
 
     private record Edge(String from, String to, BigDecimal ratio, UUID entryId, String note) {}

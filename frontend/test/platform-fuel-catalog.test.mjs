@@ -27,7 +27,7 @@ test('Catálogo de combustíveis: tudo NOT_ADMITTED, registro com evidência, re
   try {
     const page = await browser.newPage({viewport: {width: 1280, height: 900}});
     let verified = false;
-    const calls = {register: [], review: [], convert: []};
+    const calls = {register: [], review: [], convert: [], resolve: []};
     const catalog = seeded();
     await page.route('**/v1/compliance/session', route => {
       if (route.request().method() === 'POST') verified = true;
@@ -46,6 +46,18 @@ test('Catálogo de combustíveis: tudo NOT_ADMITTED, registro com evidência, re
         calls.review.push(request.postDataJSON());
         catalog.entries[0].internalReview = {outcome: 'REVIEWED_OK', basis: 'OWNER_INTERNAL', reason: 'x', decidedAt: '2026-11-25T10:00:00Z'};
         return route.fulfill({json: catalog.entries[0]});
+      }
+      if (url.pathname.endsWith('/boundaries')) {
+        return route.fulfill({json: [
+          {id: 'CO2_ONLY', name: 'Somente CO2 na linha de base e no projeto', baselineGases: ['CO2'], projectGases: ['CO2'], note: 'n', source: 'VM0038 Tabela 1', status: 'CANDIDATE'},
+          {id: 'CO2_CH4_N2O', name: 'CO2, CH4 e N2O na linha de base e no projeto', baselineGases: ['CO2', 'CH4', 'N2O'], projectGases: ['CO2', 'CH4', 'N2O'], note: 'n', source: 'VM0038 Tabela 1', status: 'CANDIDATE'}]});
+      }
+      if (url.pathname.endsWith('/boundary-resolution')) {
+        calls.resolve.push(Object.fromEntries(url.searchParams));
+        return route.fulfill({json: {boundary: 'CO2_ONLY', fuelId: 'GASOLINE_C', date: '2024-06-01', scope: 'TTW', state: 'UNRESOLVED', admission: 'NOT_ADMITTED',
+          consistency: [], blockers: ['CO2: Só há CO2e agregado, que inclui CH4 e N2O e destoa de uma fronteira só de CO2.'],
+          requirements: [{gas: 'CO2', state: 'MISSING', value: null, unit: null, review: null, methodUnit: null, methodValue: null, conversionBlocker: null,
+            note: 'Só há CO2e agregado, que inclui CH4 e N2O e destoa de uma fronteira só de CO2.'}]}});
       }
       if (url.pathname.endsWith('/conversion')) {
         calls.convert.push(url.searchParams.get('targetUnit'));
@@ -89,6 +101,17 @@ test('Catálogo de combustíveis: tudo NOT_ADMITTED, registro com evidência, re
     await page.getByRole('button', {name: 'Registrar revisão'}).click();
     await page.getByText('A admissão continua NOT_ADMITTED.', {exact: false}).waitFor();
     assert.deepEqual(calls.review[0], {basis: 'OWNER_INTERNAL', outcome: 'REVIEWED_OK', reason: 'Conferido contra a fonte.'});
+
+    // Boundary candidate: CO2_ONLY by default, nothing admitted, and the aggregate does not stand in for CO2.
+    await page.getByLabel('Combustível da linha de base').selectOption('GASOLINE_C');
+    await page.getByLabel('Data de referência (AAAA-MM-DD)').fill('2024-06-01');
+    assert.equal(await page.getByLabel('Base de GWP aceita para o agregado (por exemplo, AR5_100)').count(), 0);
+    await page.getByRole('button', {name: 'Resolver fator candidato'}).click();
+    await page.getByText('Fator candidato não resolvido').waitFor();
+    await page.getByText('destoa de uma fronteira só de CO2', {exact: false}).first().waitFor();
+    assert.deepEqual(calls.resolve[0], {boundary: 'CO2_ONLY', fuelId: 'GASOLINE_C', date: '2024-06-01', scope: 'TTW'});
+    await page.getByLabel('Fronteira', {exact: true}).selectOption('CO2_CH4_N2O');
+    await page.getByLabel('Base de GWP aceita para o agregado (por exemplo, AR5_100)').waitFor();
 
     // Traceable conversion: original preserved, steps listed.
     await page.getByLabel('Fator de emissão', {exact: true}).selectOption(FUEL);

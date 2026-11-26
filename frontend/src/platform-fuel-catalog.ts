@@ -19,6 +19,12 @@ interface Catalog {
   canRegister: boolean; canReviewInternal: boolean; canReviewIndependent: boolean;
   fuels: Fuel[]; entries: Entry[]; admission: string; limits: string;
 }
+interface Boundary {id: string; name: string; baselineGases: string[]; projectGases: string[]; note: string; source: string; status: string}
+interface Requirement {gas: string; state: string; value: string | null; unit: string | null; review: string | null;
+  methodUnit: string | null; methodValue: string | null; conversionBlocker: string | null; note: string | null}
+interface Resolution {boundary: string; fuelId: string; date: string; scope: string; requirements: Requirement[];
+  consistency: string[]; state: 'RESOLVED_CANDIDATE' | 'UNRESOLVED'; blockers: string[]; admission: string}
+const REVIEW: Record<string, string> = {INDEPENDENT_OK: 'conferido por revisão independente', INTERNAL_OK: 'conferido só por revisão interna', NOT_REVIEWED_OK: 'sem conferência'};
 interface Conversion {value: string; originalValue: string; originalUnit: string; targetUnit: string;
   steps: {from: string; to: string; factor: string; note: string}[]}
 
@@ -57,6 +63,8 @@ export class PlatformFuelCatalogComponent {
   readonly fuelFilter = signal(FILTER_ALL);
   readonly reviewing = signal<string | null>(null);
   readonly conversion = signal<Conversion | null>(null);
+  readonly boundaries = signal<Boundary[]>([]);
+  readonly resolution = signal<Resolution | null>(null);
   readonly unlocked = computed(() => {
     if (this.denied()) return false;
     const session = this.session();
@@ -75,6 +83,7 @@ export class PlatformFuelCatalogComponent {
   componentId = ''; nominal = ''; remainder = false;
   reviewBasis: 'OWNER_INTERNAL' | 'INDEPENDENT' = 'OWNER_INTERNAL'; reviewOutcome = 'REVIEWED_OK'; reviewReason = '';
   convertEntry = ''; convertTarget = '';
+  boundaryId = 'CO2_ONLY'; boundaryFuel = ''; boundaryDate = ''; boundaryScope = 'TTW'; boundaryGwp = 'AR5_100';
 
   constructor() { void this.loadSession(); }
 
@@ -84,6 +93,7 @@ export class PlatformFuelCatalogComponent {
   reviewText(review: Review | null): string {
     return review ? (OUTCOME[review.outcome] ?? review.outcome) + ' (' + review.decidedAt.slice(0, 10) + ')' : 'não revisado';
   }
+  reviewLabel(value: string | null): string { return value ? (REVIEW[value] ?? value) : ''; }
   basisLabel(value: string): string { return BASIS[value] ?? value; }
   fuelName(id: string | null): string { return id ? (this.catalog()?.fuels.find(f => f.id === id)?.name ?? id) : ''; }
   describe(entry: Entry): string {
@@ -135,6 +145,7 @@ export class PlatformFuelCatalogComponent {
     this.denied.set(false);
     try {
       this.catalog.set(await firstValueFrom(this.http.get<Catalog>(this.api)));
+      this.boundaries.set(await firstValueFrom(this.http.get<Boundary[]>(this.api + '/boundaries')));
     } catch (reason) {
       this.catalog.set(null);
       if (reason instanceof HttpErrorResponse && reason.status === 404) this.denied.set(true);
@@ -182,6 +193,23 @@ export class PlatformFuelCatalogComponent {
       {basis: this.reviewBasis, outcome: this.reviewOutcome, reason: this.reviewReason.trim()}),
       'Revisão ' + this.basisLabel(this.reviewBasis) + ' registrada. A admissão continua NOT_ADMITTED.');
     this.reviewing.set(null);
+  }
+
+  async resolve(event: Event) {
+    event.preventDefault();
+    if (this.saving() || !this.boundaryFuel) return;
+    this.saving.set(true);
+    this.error.set('');
+    this.resolution.set(null);
+    const query = new URLSearchParams({boundary: this.boundaryId, fuelId: this.boundaryFuel, date: this.boundaryDate.trim(), scope: this.boundaryScope});
+    if (this.boundaryId !== 'CO2_ONLY' && this.boundaryGwp.trim()) query.set('gwpSet', this.boundaryGwp.trim());
+    try {
+      this.resolution.set(await firstValueFrom(this.http.get<Resolution>(this.api + '/boundary-resolution?' + query.toString())));
+    } catch (reason) {
+      this.error.set(this.message(reason, 'Não foi possível resolver a fronteira.'));
+    } finally {
+      this.saving.set(false);
+    }
   }
 
   async convert(event: Event) {
