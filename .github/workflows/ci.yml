@@ -412,7 +412,7 @@ jobs:
           set -euo pipefail
           # Only CI's isolated demo: model the legacy schema with the exact
           # Calendar SQL already applied by V81, retaining its actual checksum.
-          # Revert V82/V83/V84/V85/V86/V87/V88/V89/V90/V91/V92/V93/V94/V95/V96/V97/V98/V99/V100/V101/V102/V103/V104/V105/V106/V107/V108/V109/V110 as well: the original V79 must be the last migration.
+          # Revert V82/V83/V84/V85/V86/V87/V88/V89/V90/V91/V92/V93/V94/V95/V96/V97/V98/V99/V100/V101/V102/V103/V104/V105/V106/V107/V108/V109/V110/V111 as well: the original V79 must be the last migration.
           # The real demo compatibility guard must continue to reject newer history.
           python3 -c 'import sys; sys.path.insert(0,"scripts"); import demo_sandbox as d; d.compose("stop","app")'
           dc=(docker compose -p "$CARBONFLOW_DEMO_PROJECT" -f compose.yaml -f compose.demo.yaml)
@@ -456,13 +456,16 @@ jobs:
             DROP TABLE app_open_additionality_command;
             DROP TABLE app_open_additionality_opinion;
             DROP TABLE app_open_e8_run_timing;
+            DROP TABLE app_fuel_entry_review;
+            DROP TABLE app_fuel_entry;
+            DROP TABLE app_fuel;
             DROP VIEW app_fleet_model_effective;
             DROP TABLE app_fleet_model_classification;
             DROP TABLE app_fleet_alias_candidate_decision;
             DROP TABLE app_fleet_alias_candidate;
             DROP TABLE app_project_methodology_pin;
             DROP TABLE app_methodology_registry;
-            DELETE FROM flyway_schema_history WHERE version IN ('79','80','82','83','84','85','86','87','88','89','90','91','92','93','94','95','96','97','98','99','100','101','102','103','104','105','106','107','108','109','110');
+            DELETE FROM flyway_schema_history WHERE version IN ('79','80','82','83','84','85','86','87','88','89','90','91','92','93','94','95','96','97','98','99','100','101','102','103','104','105','106','107','108','109','110','111');
             UPDATE flyway_schema_history SET version='79',
               script='db/migration/V79__open_e8_run_calendar.sql'
               WHERE version='81' AND checksum=-898586753 AND success;
@@ -526,6 +529,8 @@ jobs:
               AND to_regclass('public.app_fleet_alias_candidate') IS NOT NULL
               AND to_regclass('public.app_fleet_model_classification') IS NOT NULL
               AND to_regclass('public.app_fleet_model_effective') IS NOT NULL
+              AND to_regclass('public.app_fuel_entry') IS NOT NULL
+              AND to_regclass('public.app_fuel') IS NOT NULL
               AND to_regclass('public.app_fleet_alias_candidate_decision') IS NOT NULL
               AND to_regclass('public.app_open_dy_source_license') IS NOT NULL
               AND to_regclass('public.app_open_dy_search_coverage') IS NOT NULL
@@ -534,7 +539,7 @@ jobs:
               AND to_regclass('public.app_open_ir_assessment') IS NOT NULL
               AND to_regclass('public.app_open_ir_review') IS NOT NULL
               AND to_regclass('public.app_open_ir_annual_evidence') IS NOT NULL
-              AND (SELECT count(*) FROM flyway_schema_history WHERE version IN ('82','83','84','85','86','87','88','89','90','91','92','93','94','95','96','97','98','99','100','101','102','103','104','105','106','107','108','109','110') AND success)=29
+              AND (SELECT count(*) FROM flyway_schema_history WHERE version IN ('82','83','84','85','86','87','88','89','90','91','92','93','94','95','96','97','98','99','100','101','102','103','104','105','106','107','108','109','110','111') AND success)=30
               AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='app_open_dy_assessment' AND column_name='cumulative_erc')
               AND to_regclass('public.app_open_additionality_opinion') IS NOT NULL
               AND to_regclass('public.app_open_ir_annual_temporal_evidence') IS NOT NULL

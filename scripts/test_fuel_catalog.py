@@ -17,7 +17,7 @@ def base():
 
 
 def point(**kw):
-    d = {"fuelId": "A", "parameter": "EMISSION_FACTOR_TTW", "gas": "CO2", "value": "1.5", "unit": "kg/L", "vintageYear": 2024,
+    d = {"fuelId": "A", "parameter": "EMISSION_FACTOR", "emissionScope": "TTW", "gas": "CO2_FOSSIL", "value": "1.5", "unit": "kg/L", "vintageYear": 2024,
          "validFrom": "2024-01-01", "validTo": "2024-12-31", "evidence": dict(EV),
          "review": {"basis": "NONE"}, "admission": "NOT_ADMITTED"}
     d.update(kw)
@@ -50,17 +50,17 @@ class FuelCatalogTest(unittest.TestCase):
         self.assertIn("NOT_ADMITTED", self.errors(cat))
 
     def test_gas_unit_and_gwp_are_explicit(self):
-        for change, needle in (({"gas": None}, "gás obrigatório"), ({"gas": "CO2E"}, "gwpSet explícito"),
-                               ({"gas": "CO2", "gwpSet": "AR5"}, "só vale para CO2E"),
+        for change, needle in (({"gas": None}, "gás obrigatório"), ({"gas": "CO2E_AGGREGATE"}, "gwpSet explícito"),
+                               ({"gas": "CO2_FOSSIL", "gwpSet": "AR5_100"}, "só vale para CO2E"), ({"emissionScope": None}, "escopo"),
                                ({"unit": "MJ/kg"}, "não pertence à dimensão"), ({"value": "-1"}, "não negativo"),
                                ({"value": 1.5}, "não negativo"), ({"vintageYear": 1800}, "vintage")):
             cat = base(); cat["data"].append(point(**change))
             self.assertIn(needle, self.errors(cat), change)
-        ok = base(); ok["data"].append(point(gas="CO2E", gwpSet="AR5", unit="tCO2e/USgal"))
+        ok = base(); ok["data"].append(point(gas="CO2E_AGGREGATE", gwpSet="AR5_100", unit="tCO2e/USgal"))
         self.assertEqual([], validate(ok))
-        prop = base(); prop["data"].append(point(parameter="LHV", gas=None, unit="MJ/kg"))
+        prop = base(); prop["data"].append(point(parameter="LHV", gas=None, emissionScope=None, unit="MJ/kg"))
         self.assertEqual([], validate(prop))
-        prop["data"][0]["gas"] = "CO2"
+        prop["data"][0]["gas"] = "CO2_FOSSIL"
         self.assertIn("gás só vale", self.errors(prop))
 
     def test_evidence_is_mandatory_and_unread_primary_carries_no_value(self):

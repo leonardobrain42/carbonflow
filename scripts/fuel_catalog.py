@@ -6,11 +6,13 @@ compositions and data points (properties and emission factors). It never supplie
 needs a source with a locator and a read state, and NOTHING here admits a factor (`admission` must be NOT_ADMITTED;
 admission is a separate normative act with independent review).
 
+Vocabulary aligned with the API (FuelCatalog.java, V111): gas in CO2_FOSSIL|CO2_BIOGENIC|CO2_UNSPECIFIED|CH4|N2O|CO2E_AGGREGATE,
+scope TTW|WTW|UNSPECIFIED, gwpSet like AR5_100. The API is the owner of the persisted catalog; this is an offline pre-check.
 Contract (JSON):
   fuels[]        {id, name, family, role: PRODUCT|BLEND, phase: LIQUID|GAS, pending[]: what evidence is still missing}
   compositions[] {blendId, componentId, basis: VOLUME_FRACTION|MASS_FRACTION|ENERGY_FRACTION, nominal | remainder:true,
                   validFrom, validTo|null, validityRule?, evidence, state}
-  data[]         {fuelId, parameter, gas?, basis?, gwpSet?, value, unit, vintageYear, validFrom, validTo|null,
+  data[]         {fuelId, parameter EMISSION_FACTOR|DENSITY|LHV, gas?, emissionScope?, gwpSet?, value, unit, vintageYear, validFrom, validTo|null,
                   evidence, review:{basis: NONE|OWNER_INTERNAL|INDEPENDENT, registeredBy?, reviewedBy?}, admission}
   evidence       {source, locator, readState: PRIMARY_READ|SECONDARY|PRIMARY_NOT_READ, sha256?, retrievedOn?}
 Rules: gas is required for emission parameters; CO2E needs an explicit gwpSet (never implicit); the unit must belong to
@@ -21,6 +23,7 @@ registrant and OWNER_INTERNAL never stands for INDEPENDENT.
 """
 import argparse
 import json
+import re
 import sys
 from datetime import date
 from decimal import Decimal, InvalidOperation
@@ -30,14 +33,13 @@ FAMILIES = {"GASOLINE", "ETHANOL", "DIESEL", "BIODIESEL", "NATURAL_GAS"}
 BASES = {"VOLUME_FRACTION", "MASS_FRACTION", "ENERGY_FRACTION"}
 READ = {"PRIMARY_READ", "SECONDARY", "PRIMARY_NOT_READ"}
 REVIEW = {"NONE", "OWNER_INTERNAL", "INDEPENDENT"}
-GASES = {"CO2", "CH4", "N2O", "CO2E"}
-GWP_SETS = {"AR4", "AR5", "AR6"}
-EMISSION = {"EMISSION_FACTOR_TTW", "EMISSION_FACTOR_WTW"}
+GASES = {"CO2_FOSSIL", "CO2_BIOGENIC", "CO2_UNSPECIFIED", "CH4", "N2O", "CO2E_AGGREGATE"}
+SCOPES = {"TTW", "WTW", "UNSPECIFIED"}
+GWP = re.compile(r"^AR[4-9]_[0-9]{2,3}$")
+EMISSION = {"EMISSION_FACTOR"}
 UNITS = {  # parameter -> accepted units; a unit never converts between dimensions
-    "EMISSION_FACTOR_TTW": {"tCO2e/MJ", "gCO2e/MJ", "kgCO2e/L", "tCO2e/L", "tCO2e/USgal", "kgCO2e/kg", "kgCO2e/m3",
-                            "kg/TJ", "kg/L", "t/TJ", "g/MJ"},
-    "EMISSION_FACTOR_WTW": {"tCO2e/MJ", "gCO2e/MJ", "kgCO2e/L", "tCO2e/L", "tCO2e/USgal", "kgCO2e/kg", "kgCO2e/m3",
-                            "kg/TJ", "kg/L", "t/TJ", "g/MJ"},
+    "EMISSION_FACTOR": {"tCO2e/MJ", "gCO2e/MJ", "kgCO2e/L", "tCO2e/L", "tCO2e/USgal", "kgCO2e/kg", "kgCO2e/m3",
+                        "kgCO2/L", "gCO2/MJ", "kgCO2/kg", "kg/TJ", "kg/L", "t/TJ", "g/MJ"},
     "DENSITY": {"kg/L", "kg/m3"},
     "LHV": {"MJ/kg", "MJ/L", "MJ/m3", "kcal/kg", "kcal/m3"},
 }
@@ -132,9 +134,11 @@ def validate(catalog):
         if param in EMISSION:
             if d.get("gas") not in GASES:
                 errors.append(f"{where}: gás obrigatório para fator de emissão")
-            if d.get("gas") == "CO2E" and d.get("gwpSet") not in GWP_SETS:
+            if d.get("emissionScope") not in SCOPES:
+                errors.append(f"{where}: escopo (TTW, WTW ou UNSPECIFIED) obrigatório para fator de emissão")
+            if d.get("gas") == "CO2E_AGGREGATE" and not GWP.match(str(d.get("gwpSet") or "")):
                 errors.append(f"{where}: CO2E exige gwpSet explícito")
-            if d.get("gas") != "CO2E" and d.get("gwpSet"):
+            if d.get("gas") != "CO2E_AGGREGATE" and d.get("gwpSet"):
                 errors.append(f"{where}: gwpSet só vale para CO2E")
         elif d.get("gas"):
             errors.append(f"{where}: gás só vale para fator de emissão")
@@ -153,7 +157,7 @@ def validate(catalog):
         elif basis != "NONE" and not review.get("reviewedBy"):
             errors.append(f"{where}: revisão sem revisor")
         if w[0] and value is not None:
-            series.setdefault((d.get("fuelId"), param, d.get("gas"), d.get("gwpSet")), []).append((w, value, where))
+            series.setdefault((d.get("fuelId"), param, d.get("gas"), d.get("emissionScope"), d.get("gwpSet")), []).append((w, value, where))
     for key, items in series.items():
         for a in range(len(items)):
             for b in range(a + 1, len(items)):
