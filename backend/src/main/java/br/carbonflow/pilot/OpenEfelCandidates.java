@@ -81,70 +81,79 @@ class OpenEfelCandidates {
     }
 
     View submit(String cookie,String project,String period,String match,String key,Input input) {
-        return scope.write(cookie,project,"SUBMIT_OPEN_EFEL_CANDIDATE",(c,ctx)->{
-            if(!ctx.owner() && !"PREP".equals(ctx.role()))throw unavailable();
-            String code=OpenMonitoringDossiers.code(period);
-            if(ProjectJourney.profile(ProjectGuides.candidate(c,project))!=ProjectJourney.VM0038)
-                throw unavailable();
-            int expected=PilotCommands.expected(match);
-            String command=PilotCommands.key(key);
-            if(input==null || input.energyCandidateId()==null)throw bad("energyCandidateId",
-                "Selecione um pacote de energia real revisado e vigente.");
-            Energy energy=energy(c,project,input.energyCandidateId());
-            if(energy==null || !code.equals(energy.period()))throw unavailable();
-            if(!"NOT_ADMITTED".equals(OpenE8EnergyCandidates.state(c,project,code)) ||
-               !energy.id().equals(latestEnergy(c,project,code)) ||
-               !"NOT_ADMITTED".equals(energy.state()))
-                throw conflict("O pacote ED/EC deixou de ser o vigente para este período.");
-            Normal normalized=normalize(input,energy,project);
-            requireCoverage(c,project,energy,normalized.hours());
-            byte[] fingerprint=AccessSecrets.digest("EFEL-HOUR|"+project+"|"+code+"|"+
-                expected+"|"+normalized.contentSha());
-            Command previous=command(c,ctx.actor().id(),command);
-            if(previous!=null) {
-                if(!project.equals(previous.project()) || !"SUBMIT".equals(previous.action()) ||
-                   !MessageDigest.isEqual(previous.fingerprint(),fingerprint))
-                    throw conflict("Chave de idempotência já utilizada para outra série.");
-                return view(c,project,require(c,project,previous.candidate()));
-            }
-            Record old=latest(c,project,energy.id());
-            PilotCommands.requireVersion(expected,old==null?0:old.version());
-            if(expected>=100000000)throw bad("version","Limite de revisões da fonte.");
-            if(old!=null && old.contentSha().equals(normalized.contentSha()))
-                throw conflict("A série idêntica já existe; não duplique revisões.");
-            UUID id=UUID.randomUUID();
-            OffsetDateTime from=normalized.hours().getFirst().hour();
-            OffsetDateTime until=normalized.hours().getLast().hour().plusHours(1);
-            update(c,"""
-                INSERT INTO app_open_efel_hourly_candidate
-                 (id,project_id,organization_id,environment,period_code,
-                  energy_candidate_id,version,original_unit,source_title,
-                  source_publisher,source_uri,source_edition,claimed_procedure,
-                  source_publication_date,source_vintage,source_sha256_claimed,
-                  source_rights_reference,evidence_note,period_from,period_until,
-                  hour_count,content_sha256,submitted_by)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-                """,id,project,ctx.organization(),ctx.environment(),code,energy.id(),
-                expected+1,normalized.unit(),normalized.title(),normalized.publisher(),
-                normalized.uri(),normalized.edition(),normalized.procedure(),
-                normalized.published(),normalized.vintage(),
-                HexFormat.of().parseHex(normalized.sourceSha()),
-                normalized.rights(),normalized.note(),from,until,
-                normalized.hours().size(),HexFormat.of().parseHex(normalized.contentSha()),
-                ctx.actor().id());
-            for(Hour hour:normalized.hours())update(c,"""
-                INSERT INTO app_open_efel_hourly_candidate_value
-                  (project_id,candidate_id,hour_start,original_value,normalized_value)
-                VALUES (?,?,?,?,?)
-                """,project,id,hour.hour(),new BigDecimal(hour.originalValue()),
-                new BigDecimal(hour.normalizedValue()));
-            update(c,"""
-                INSERT INTO app_open_efel_hourly_command
-                  (actor_id,command_key,project_id,candidate_id,action,fingerprint)
-                VALUES (?,?,?,?,?,?)
-                """,ctx.actor().id(),command,project,id,"SUBMIT",fingerprint);
-            return view(c,project,require(c,project,id));
-        });
+        return scope.write(cookie,project,"SUBMIT_OPEN_EFEL_CANDIDATE",
+            (c,ctx)->submitIn(c,ctx,project,period,match,key,input));
+    }
+
+    /** The submit rules, reusable by an adapter that already holds the connection and project context (no second engine). */
+    View submitIn(Connection c,DynamicProjectScope.Context ctx,String project,String period,String match,
+                  String key,Input input) throws SQLException {
+        if(!ctx.owner() && !"PREP".equals(ctx.role()))throw unavailable();
+        String code=OpenMonitoringDossiers.code(period);
+        if(ProjectJourney.profile(ProjectGuides.candidate(c,project))!=ProjectJourney.VM0038)
+            throw unavailable();
+        int expected=PilotCommands.expected(match);
+        String command=PilotCommands.key(key);
+        if(input==null || input.energyCandidateId()==null)throw bad("energyCandidateId",
+            "Selecione um pacote de energia real revisado e vigente.");
+        Energy energy=energy(c,project,input.energyCandidateId());
+        if(energy==null || !code.equals(energy.period()))throw unavailable();
+        if(!"NOT_ADMITTED".equals(OpenE8EnergyCandidates.state(c,project,code)) ||
+           !energy.id().equals(latestEnergy(c,project,code)) ||
+           !"NOT_ADMITTED".equals(energy.state()))
+            throw conflict("O pacote ED/EC deixou de ser o vigente para este período.");
+        Normal normalized=normalize(input,energy,project);
+        requireCoverage(c,project,energy,normalized.hours());
+        byte[] fingerprint=AccessSecrets.digest("EFEL-HOUR|"+project+"|"+code+"|"+
+            expected+"|"+normalized.contentSha());
+        Command previous=command(c,ctx.actor().id(),command);
+        if(previous!=null) {
+            if(!project.equals(previous.project()) || !"SUBMIT".equals(previous.action()) ||
+               !MessageDigest.isEqual(previous.fingerprint(),fingerprint))
+                throw conflict("Chave de idempotência já utilizada para outra série.");
+            return view(c,project,require(c,project,previous.candidate()));
+        }
+        Record old=latest(c,project,energy.id());
+        PilotCommands.requireVersion(expected,old==null?0:old.version());
+        if(expected>=100000000)throw bad("version","Limite de revisões da fonte.");
+        if(old!=null && old.contentSha().equals(normalized.contentSha()))
+            throw conflict("A série idêntica já existe; não duplique revisões.");
+        UUID id=UUID.randomUUID();
+        OffsetDateTime from=normalized.hours().getFirst().hour();
+        OffsetDateTime until=normalized.hours().getLast().hour().plusHours(1);
+        update(c,"""
+            INSERT INTO app_open_efel_hourly_candidate
+             (id,project_id,organization_id,environment,period_code,
+              energy_candidate_id,version,original_unit,source_title,
+              source_publisher,source_uri,source_edition,claimed_procedure,
+              source_publication_date,source_vintage,source_sha256_claimed,
+              source_rights_reference,evidence_note,period_from,period_until,
+              hour_count,content_sha256,submitted_by)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            """,id,project,ctx.organization(),ctx.environment(),code,energy.id(),
+            expected+1,normalized.unit(),normalized.title(),normalized.publisher(),
+            normalized.uri(),normalized.edition(),normalized.procedure(),
+            normalized.published(),normalized.vintage(),
+            HexFormat.of().parseHex(normalized.sourceSha()),
+            normalized.rights(),normalized.note(),from,until,
+            normalized.hours().size(),HexFormat.of().parseHex(normalized.contentSha()),
+            ctx.actor().id());
+        for(Hour hour:normalized.hours())update(c,"""
+            INSERT INTO app_open_efel_hourly_candidate_value
+              (project_id,candidate_id,hour_start,original_value,normalized_value)
+            VALUES (?,?,?,?,?)
+            """,project,id,hour.hour(),new BigDecimal(hour.originalValue()),
+            new BigDecimal(hour.normalizedValue()));
+        update(c,"""
+            INSERT INTO app_open_efel_hourly_command
+              (actor_id,command_key,project_id,candidate_id,action,fingerprint)
+            VALUES (?,?,?,?,?,?)
+            """,ctx.actor().id(),command,project,id,"SUBMIT",fingerprint);
+        return view(c,project,require(c,project,id));
+    }
+
+    static List<OffsetDateTime> energyHoursOf(Connection c,String project,UUID energy) throws SQLException {
+        return energyHours(c,project,energy);
     }
 
     View review(String cookie,String project,String period,UUID id,String match,String key,
@@ -242,7 +251,7 @@ class OpenEfelCandidates {
             if(hour.getEpochSecond()%3600!=0 || !seen.add(hour))
                 throw bad("hours","Horários devem ser UTC integrais e sem duplicatas.");
             OpenEmissionParameterMath.Preview converted;
-            try {converted=OpenEmissionParameterMath.convert("EF_GRID","CO2e",unit,item.value());}
+            try {converted=OpenEmissionParameterMath.convert("EF_GRID","CO2e",unit,item.value(),18);}
             catch(IllegalArgumentException error){throw bad("hours",error.getMessage());}
             normalized.add(new Hour(hour.atOffset(ZoneOffset.UTC),
                 item.value().toPlainString(),converted.normalizedValue().toPlainString()));

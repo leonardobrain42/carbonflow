@@ -30,6 +30,11 @@ final class OpenEmissionParameterMath {
     private OpenEmissionParameterMath() {}
 
     static Preview convert(String kind, String gas, String originalUnit, BigDecimal originalValue) {
+        return convert(kind, gas, originalUnit, originalValue, 12);
+    }
+
+    /** {@code maxScale} widens only the accepted decimals of the ORIGINAL value (kept literal), e.g. the 16 decimals the MCTI publishes. */
+    static Preview convert(String kind, String gas, String originalUnit, BigDecimal originalValue, int maxScale) {
         if (kind == null || !Set.of("EF_GRID", "EF_FUEL", "IR", "DY").contains(kind)) {
             throw invalid("Tipo de parâmetro desconhecido.");
         }
@@ -44,8 +49,8 @@ final class OpenEmissionParameterMath {
         if (originalUnit == null || originalUnit.isBlank() || originalValue == null) {
             throw invalid("Valor ausente não equivale a zero; informe valor e unidade.");
         }
-        if (originalValue.signum() < 0 || originalValue.precision() > 30 ||
-                originalValue.scale() > 12 || originalValue.precision() - originalValue.scale() > 12) {
+        if (originalValue.signum() < 0 || originalValue.precision() > Math.max(30, 12 + maxScale) ||
+                originalValue.scale() > maxScale || originalValue.precision() - originalValue.scale() > 12) {
             throw invalid("Valor fora dos limites decimais do contrato.");
         }
 
