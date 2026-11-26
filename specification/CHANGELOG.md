@@ -1,4 +1,6 @@
 # Changelog da especificação viva
+## 0.3.0-rc.67 — 25/11/2026 (proposta)
+- **CF-SPEC-D19, operação individual e destravamento de desenvolvimento** (decisão do responsável pelo produto), e [CF-DIRETRIZES-D19](CF-DIRETRIZES-D19.md): separa bloqueio de desenvolvimento de bloqueio de utilização, define as bases de decisão (`OWNER_INTERNAL` não substitui `INDEPENDENT` nem admissão), ordena seis fatias e liga cada questão pendente (Q02, Q03, Q05, Q08 a Q12) à evidência que a fecha. Só documentação; controles de segurança, licença, rastreabilidade e independência mantidos; nenhuma fonte admitida.
 ## 0.3.0-rc.65 — 25/11/2026 (proposta)
 - **CF-DATA-003, minuta de consulta ao MCTI**, só documentação. Nove perguntas (licença CC BY-ND e a frase "exclusivamente MDL", fuso e convenção da tabela horária, versões corrigidas, periodicidade, CO₂e), mapeadas às lacunas do dossiê. **Rascunho não enviado**: quem envia e por qual canal é decisão do responsável do produto; o canal oficial não foi confirmado e nenhum contato foi inventado. Uma resposta não admite a fonte.
 ## 0.3.0-rc.64 — 25/11/2026 (proposta)
