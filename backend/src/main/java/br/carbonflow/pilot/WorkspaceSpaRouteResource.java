@@ -79,6 +79,12 @@ public class WorkspaceSpaRouteResource {
     }
 
     @GET
+    @Path("/platform/grid-series")
+    public Response platformGridSeries() {
+        return html();
+    }
+
+    @GET
     @Path("/platform/licenses")
     public Response platformLicenses() {
         return html();

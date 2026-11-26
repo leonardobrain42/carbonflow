@@ -1,0 +1,144 @@
+<a class="cf-skip-link" href="#cf-grid-main">Pular para o conteúdo</a>
+<div class="cf-workspace-shell">
+  <aside class="cf-workspace-sidebar" aria-label="Navegação administrativa">
+    <a routerLink="/workspace" class="cf-workspace-brand">Carbon<span>Flow</span></a>
+    <p class="cf-workspace-kicker">ADMIN CARBONFLOW</p>
+    <nav class="cf-workspace-nav" aria-label="Console interno">
+      <a routerLink="/workspace">Meus projetos</a>
+      <a routerLink="/workspace/compliance">Conformidade</a>
+      <a routerLink="/workspace/platform/sources">Fontes e prontidão</a>
+      <a routerLink="/workspace/platform/methodologies">Metodologias</a>
+      <a routerLink="/workspace/platform/licenses">Licenças</a>
+      <a routerLink="/workspace/platform/alias-candidates">Candidatos de alias</a>
+      <a routerLink="/workspace/platform/fuel-catalog">Catálogo de combustíveis</a>
+      <a routerLink="/workspace/platform/grid-series" aria-current="page">Séries da rede</a>
+    </nav>
+    <p class="cf-platform-sidebar-note">A série é candidata. Nada aqui é admitido, elegível para VT0011/TOOL07 ou usável no E8.</p>
+  </aside>
+
+  <div class="cf-workspace-stage">
+    <header class="cf-workspace-topbar">
+      <span>Admin CarbonFlow</span>
+      <a routerLink="/workspace" class="cf-workspace-link">Voltar à conta</a>
+    </header>
+    <main id="cf-grid-main" class="cf-workspace-content cf-platform-content">
+      <header class="cf-workspace-heading">
+        <span class="cf-workspace-chip">PAINEL INTERNO · SÉRIE HORÁRIA DO SIN</span>
+        <h1>Fator de emissão horário do SIN (MCTI)</h1>
+        <p>Importa a saída do importador da planilha de Análise de Despacho, guarda os valores originais e mostra o fuso e a convenção da hora declarados por pessoas. A importação exige licença efetiva para extrair os dados da fonte e edição.</p>
+      </header>
+
+      @if (error()) {
+        <p class="cf-workspace-alert" role="alert">{{ error() }}</p>
+      }
+      @if (feedback()) {
+        <p class="cf-platform-success" role="status">{{ feedback() }}</p>
+      }
+      @if (loading()) {
+        <p role="status">Conferindo acesso e consultando as séries…</p>
+      }
+
+      @if (!loading() && !session()) {
+        <section class="cf-workspace-card">
+          <h2>Acesso interno indisponível</h2>
+          <p>Entre na conta e utilize uma identidade com o privilégio das séries da rede.</p>
+          <a routerLink="/workspace" class="cf-workspace-link">Ir para minha conta</a>
+        </section>
+      } @else if (!loading() && session() && !unlocked() && !denied()) {
+        <section class="cf-workspace-card">
+          <h2>Verificação da equipe interna</h2>
+          <p>As séries exigem autenticação multifator e um privilégio próprio.</p>
+          <form (submit)="verify($event, code)">
+            <label for="cf-grid-mfa">Código de seis dígitos do autenticador</label>
+            <input #code id="cf-grid-mfa" inputmode="numeric" type="text" pattern="[0-9]{6}"
+              autocomplete="one-time-code" maxlength="6" required [disabled]="loading()"/>
+            <button type="submit" class="cf-workspace-primary" [disabled]="loading()">Desbloquear séries</button>
+          </form>
+        </section>
+      }
+
+      @if (unlocked() && listing(); as data) {
+        <p class="cf-platform-meta" role="note">{{ data.limits }}</p>
+
+        @if (data.canImport) {
+          <section class="cf-workspace-card" aria-labelledby="cf-grid-import-title">
+            <h2 id="cf-grid-import-title">Importar série</h2>
+            <form (submit)="importFile($event, src.value, ed.value, file)" class="cf-platform-source-form">
+              <label for="cf-grid-source">Código da fonte (já registrada)</label>
+              <input #src id="cf-grid-source" type="text" required maxlength="120"/>
+              <label for="cf-grid-edition">Edição da fonte</label>
+              <input #ed id="cf-grid-edition" type="text" required maxlength="60"/>
+              <label for="cf-grid-file">Arquivo JSON do importador</label>
+              <input #file id="cf-grid-file" type="file" accept="application/json,.json" required/>
+              <p class="cf-platform-meta">O fuso e a convenção da hora vêm dos parâmetros informados ao importador; a planilha não os declara e nenhum documento oficial encontrado os define.</p>
+              <button type="submit" class="cf-workspace-primary" [disabled]="saving()">Importar série candidata</button>
+            </form>
+          </section>
+        }
+
+        <section aria-labelledby="cf-grid-list-title">
+          <div class="cf-platform-heading-line">
+            <h2 id="cf-grid-list-title">Séries importadas</h2>
+            <button type="button" class="cf-workspace-outline" (click)="load()">Atualizar</button>
+          </div>
+          @if (data.editions.length === 0) {
+            <p>Nenhuma série importada.</p>
+          }
+          <ul class="cf-tech-gates">
+            @for (item of data.editions; track item.id) {
+              <li>
+                <h3>{{ item.sourceId }} · {{ item.edition }} · ano-base {{ item.dataYear }}</h3>
+                <p><strong>Candidata, não admitida</strong> · gás {{ item.gas }} (não CO₂e) · {{ item.rowCount }} horas · unidade original {{ item.originalUnit }}</p>
+                <p class="cf-platform-meta">Fuso {{ item.timezone }} · convenção {{ item.hourConvention }} · <strong>declarados por pessoas</strong> · {{ item.timeIssueCount }} hora(s) sem instante UTC</p>
+                <p class="cf-platform-meta">Base da licença: {{ licenseLabel(item) }}</p>
+                <p class="cf-platform-meta">Vínculo com projeto (V60): {{ item.v60Binding.state === 'NOT_BOUND' ? 'não vinculada' : item.v60Binding.state }}. {{ item.v60Binding.blocker }}</p>
+                <p class="cf-platform-meta">Elegibilidade VT0011/TOOL07: {{ item.eligibilityVt0011Tool07 === 'NOT_EVALUATED' ? 'não avaliada' : item.eligibilityVt0011Tool07 }} · usável no E8: não</p>
+                <p>Revisão interna: {{ reviewText(item.internalReview) }} · Revisão independente: {{ reviewText(item.independentReview) }}</p>
+                <ul>
+                  @for (m of months(item); track m.month) {
+                    <li>Mês {{ m.month }}: {{ m.state }} ({{ m.cells }})
+                      <button type="button" class="cf-workspace-outline" (click)="showMonth(item, m.month)"
+                        [attr.aria-label]="'Ver valores do mês ' + m.month + ' de ' + item.edition">Ver valores</button></li>
+                  }
+                </ul>
+                @if (values(); as shown) {
+                  @if (shown.id === item.id) {
+                    <p role="status">Mês {{ shown.month }}: {{ shown.items.length }} horas.</p>
+                    <table class="cf-platform-table">
+                      <caption>Valores originais ({{ item.originalUnit }}), do mês {{ shown.month }}</caption>
+                      <thead><tr><th scope="col">Dia</th><th scope="col">Hora</th><th scope="col">Célula</th><th scope="col">Valor original</th><th scope="col">Início (UTC)</th></tr></thead>
+                      <tbody>
+                        @for (v of shown.items.slice(0, 48); track v.cell + v.day + '-' + v.hourLabel) {
+                          <tr><td>{{ v.day }}</td><td>{{ v.hourLabel }}</td><td>{{ v.cell }}</td><td>{{ v.valueOriginal }}</td>
+                            <td>{{ v.intervalStartUtc ?? ('sem instante: ' + v.timeIssue) }}</td></tr>
+                        }
+                      </tbody>
+                    </table>
+                    @if (shown.items.length > 48) { <p class="cf-platform-meta">Mostrando as 48 primeiras horas; os demais valores estão na API.</p> }
+                  }
+                }
+                @if (data.canReviewInternal || data.canReviewIndependent) {
+                  <form (submit)="review($event, item)" class="cf-platform-source-form">
+                    <label [attr.for]="'cf-grid-basis-' + item.id">Base da revisão</label>
+                    <select [id]="'cf-grid-basis-' + item.id" (change)="reviewBasis = $any($event.target).value">
+                      @if (data.canReviewInternal) { <option value="OWNER_INTERNAL">Interna do responsável</option> }
+                      @if (data.canReviewIndependent) { <option value="INDEPENDENT">Independente</option> }
+                    </select>
+                    <label [attr.for]="'cf-grid-outcome-' + item.id">Resultado</label>
+                    <select [id]="'cf-grid-outcome-' + item.id" (change)="reviewOutcome = $any($event.target).value">
+                      <option value="CHECKED">Conferida</option><option value="RETURNED">Devolvida</option>
+                    </select>
+                    <label [attr.for]="'cf-grid-reason-' + item.id">Motivo (mín. 10 caracteres)</label>
+                    <input [id]="'cf-grid-reason-' + item.id" type="text" minlength="10" maxlength="1000" required
+                      [value]="reviewReason" (input)="reviewReason = $any($event.target).value"/>
+                    <button type="submit" class="cf-workspace-primary" [disabled]="saving()">Registrar revisão</button>
+                  </form>
+                }
+              </li>
+            }
+          </ul>
+        </section>
+      }
+    </main>
+  </div>
+</div>
