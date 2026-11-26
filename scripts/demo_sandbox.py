@@ -74,6 +74,14 @@ def compose(*args: str, capture: bool = False) -> str:
             "CARBONFLOW_PLATFORM_SOURCE_INGESTION_REVIEWERS": identity,
             "CARBONFLOW_PLATFORM_SOURCE_TECHNICAL_REVIEWERS": identity,
             "CARBONFLOW_PLATFORM_VEHICLE_RATINGS_REVIEWERS": identity,
+            # Only the product-owner roles (D19/D20): this local account can declare a public licence, register and
+            # import, and review on the OWNER_INTERNAL basis. It is deliberately NOT an independent reviewer or a
+            # licence approver, so it never simulates dual custody.
+            "CARBONFLOW_PLATFORM_CONTENT_LICENSES_OWNERS": identity,
+            "CARBONFLOW_PLATFORM_FUEL_CATALOG_MANAGERS": identity,
+            "CARBONFLOW_PLATFORM_FUEL_CATALOG_OWNERS": identity,
+            "CARBONFLOW_PLATFORM_GRID_SERIES_MANAGERS": identity,
+            "CARBONFLOW_PLATFORM_GRID_SERIES_OWNERS": identity,
         })
     result = subprocess.run(
         command, cwd=ROOT, check=True,

@@ -61,6 +61,11 @@ class AdminSandboxTest(unittest.TestCase):
             self.assertEqual(captured["CARBONFLOW_PLATFORM_SOURCE_WORK_MANAGERS"],data["identity"])
             self.assertEqual(captured["CARBONFLOW_PLATFORM_SOURCE_INGESTION_REVIEWERS"],data["identity"])
             self.assertEqual(captured["CARBONFLOW_PLATFORM_SOURCE_TECHNICAL_REVIEWERS"],data["identity"])
+            for owner_role in ("CONTENT_LICENSES_OWNERS","FUEL_CATALOG_MANAGERS","FUEL_CATALOG_OWNERS","GRID_SERIES_MANAGERS","GRID_SERIES_OWNERS"):
+                self.assertEqual(captured["CARBONFLOW_PLATFORM_"+owner_role],data["identity"])
+            # Never an independent role: dual custody is not simulated.
+            for independent in ("CONTENT_LICENSES_APPROVERS","CONTENT_LICENSES_SUBMITTERS","FUEL_CATALOG_REVIEWERS","GRID_SERIES_REVIEWERS"):
+                self.assertNotIn("CARBONFLOW_PLATFORM_"+independent,captured)
             self.assertEqual(captured["CARBONFLOW_COMPLIANCE_STAFF"],
                              data["identity"]+":"+data["secret"]+":"+data["organization"])
 
