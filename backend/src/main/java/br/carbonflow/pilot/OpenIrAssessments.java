@@ -27,7 +27,12 @@ import jakarta.enterprise.context.ApplicationScoped;
  */
 @ApplicationScoped
 class OpenIrAssessments {
-    record Input(String period, String frequency, String basis, String rationale) {}
+    /** Optional declaration (Q13/D21 step 2a): the normative act that separates two catalog vintages of the fuel factor inside the year. */
+    record FuelTransitionInput(String actReference, String evidenceLocator) {}
+    record FuelTransition(String actReference, String evidenceLocator, List<UUID> entryIds, String setSha256) {}
+    record Input(String period, String frequency, String basis, String rationale, FuelTransitionInput fuelTransition) {
+        Input(String period, String frequency, String basis, String rationale) { this(period,frequency,basis,rationale,null); }
+    }
     record ReviewInput(String assessmentSha256, String outcome, String annualUpdateBasis,
                        String evidenceLocator, String reason, UUID priorAssessmentId, InitialPlan initialPlan,
                        UUID exAntePlanId, Integer exAntePlanVersion, String exAntePlanSha256,
@@ -54,7 +59,7 @@ class OpenIrAssessments {
                 String basis, String rationale, String state, String assessmentSha256,
                 String candidate, boolean stale, boolean usableForE8, OffsetDateTime recordedAt, Review review, AnnualEvidence annualEvidence,
                 String initialLinkState, OpenIrExAntePlans.ReviewTarget exAnteOption, ReviewReferences reviewReferences,
-                OpenIrAnnualTemporalEvidence.Window temporalWindow) {}
+                OpenIrAnnualTemporalEvidence.Window temporalWindow, FuelTransition fuelTransition) {}
     record Result(View view, boolean created) {}
     record ProjectOption(String projectId,String title) {}
     record Options(boolean canRecord,boolean canReview,List<ProjectOption> projects) {}
@@ -112,7 +117,17 @@ class OpenIrAssessments {
                 basis=OpenIrAssessment.Basis.valueOf(Objects.toString(input.basis(),""));
                 rationale=OpenDyAssessmentRules.text(input.rationale(),15,2500);
             } catch(IllegalArgumentException e) { throw invalid("Frequência, abordagem ou justificativa inválida."); }
-            String commandSha=digest("OPEN-IR-COMMAND@1",project,period,expected,frequency,basis,rationale);
+            String actReference=null,actEvidence=null;
+            if(input.fuelTransition()!=null) {
+                try {
+                    actReference=OpenDyAssessmentRules.text(input.fuelTransition().actReference(),8,300);
+                    actEvidence=OpenDyAssessmentRules.text(input.fuelTransition().evidenceLocator(),3,300);
+                } catch(IllegalArgumentException e) { throw invalid("Informe o ato normativo (8 a 300 caracteres) e o local da evidência (3 a 300)."); }
+            }
+            // Hashes and replays of every command without a declaration stay exactly as before.
+            String commandSha=actReference==null
+                ?digest("OPEN-IR-COMMAND@1",project,period,expected,frequency,basis,rationale)
+                :digest("OPEN-IR-COMMAND@2",project,period,expected,frequency,basis,rationale,actReference,actEvidence);
             Stored replay=first(c,SELECT+" WHERE author_id=? AND command_key=?",
                 OpenIrAssessments::stored,actor.id(),command);
             if(replay!=null) {
@@ -151,8 +166,44 @@ class OpenIrAssessments {
                 bytes(refs.fuel().sha256()),frequency.name(),basis.name(),rationale,decision.policy(),
                 bytes(decision.assessmentSha256()),bytes(sha),decision.status().name(),decision.candidate(),
                 actor.id(),command,bytes(commandSha));
+            if(actReference!=null) recordFuelTransition(c,project,source,id,actReference,actEvidence);
             return new Result(view(c,first(c,SELECT+" WHERE id=?",OpenIrAssessments::stored,id),true),true);
         });
+    }
+
+    /**
+     * Q13/D21 step 2a. The server derives the catalog entries pinned for the source year; the declaration is accepted only when
+     * they are two or more distinct entries of the SAME fuel, parameter, gas and scope (a regulatory change of the factor), never
+     * for a choice between unrelated factors. It records the entries and the declared act; it relaxes no guard.
+     */
+    private static void recordFuelTransition(Connection c,String project,int source,UUID assessment,String act,String evidence)
+            throws SQLException {
+        var entries=query(c,"""
+            SELECT DISTINCT e.id,e.fuel_id,e.parameter,e.gas,e.emission_scope
+            FROM app_open_efuel_catalog_pin cp
+            JOIN app_open_project_parameter_binding b ON b.id=cp.binding_id
+            JOIN app_fuel_entry e ON e.id=cp.entry_id
+            WHERE b.project_id=? AND b.parameter_kind='EF_FUEL' AND b.vintage_year=?
+            ORDER BY e.id
+            """,r->new Object[]{r.getObject(1,UUID.class),r.getString(2),r.getString(3),r.getString(4),r.getString(5)},project,source);
+        var series=new java.util.HashSet<List<Object>>();
+        for(var e:entries) series.add(List.of(e[1],e[2],e[3],Objects.toString(e[4],"")));
+        if(entries.size()<2 || series.size()!=1)
+            throw conflict("A declaração exige duas ou mais entradas do mesmo fator fóssil (mesmo combustível, parâmetro, gás e escopo) fixadas no ano.");
+        var ids=entries.stream().map(e->(UUID)e[0]).toList();
+        String setSha=digest("OPEN-IR-FUEL-TRANSITION@1",assessment,ids,act,evidence);
+        update(c,"""
+            INSERT INTO app_open_ir_fuel_transition(assessment_id,act_reference,evidence_locator,entry_ids,set_sha256)
+            VALUES (?,?,?,?,?)
+            """,assessment,act,evidence,c.createArrayOf("uuid",ids.toArray(UUID[]::new)),bytes(setSha));
+    }
+
+    private static FuelTransition fuelTransition(Connection c,UUID assessment) throws SQLException {
+        return first(c,"""
+            SELECT act_reference,evidence_locator,entry_ids,encode(set_sha256,'hex')
+            FROM app_open_ir_fuel_transition WHERE assessment_id=?
+            """,r->new FuelTransition(r.getString(1),r.getString(2),
+                java.util.Arrays.asList((UUID[])r.getArray(3).getArray()),r.getString(4)),assessment);
     }
 
     Options options(String token) {
@@ -655,7 +706,8 @@ class OpenIrAssessments {
             false,row.at(),review,annual,linkState,
             staff&&row.year()==1&&review==null&&!stale?OpenIrExAntePlans.currentReviewTarget(c,row.project()):null,
             staff&&!stale&&review==null?reviewReferences(c,row):null,
-            staff&&row.year()>1&&review==null&&!stale&&reviewReferences(c,row)!=null?temporalWindow(c,row,first(c,"SELECT statement_timestamp()",r->r.getObject(1,OffsetDateTime.class))):null);
+            staff&&row.year()>1&&review==null&&!stale&&reviewReferences(c,row)!=null?temporalWindow(c,row,first(c,"SELECT statement_timestamp()",r->r.getObject(1,OffsetDateTime.class))):null,
+            fuelTransition(c,row.id()));
     }
 
     private static ReviewReferences reviewReferences(Connection c,Stored row)throws SQLException {
