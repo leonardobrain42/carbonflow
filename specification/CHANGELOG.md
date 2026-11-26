@@ -1,4 +1,6 @@
 # Changelog da especificação viva
+## 0.3.0-rc.66 — 25/11/2026 (proposta)
+- **Sincronização da especificação viva** com os PRs #299 a #315, só documentação: complemento em `ESTADO_DO_TRABALHO` (o corte anterior segue em 24/11 e **os PRs #243 a #298 não foram revistos**), linhas CF-SPEC-S20 a S23 na matriz, questões Q08 a Q11 em `DECISOES_E_DUVIDAS` e a linha G03 de `PENDENCIAS`. Nenhuma decisão substantiva nova, nenhuma regra alterada.
 ## 0.3.0-rc.65 — 25/11/2026 (proposta)
 - **CF-DATA-003, minuta de consulta ao MCTI**, só documentação. Nove perguntas (licença CC BY-ND e a frase "exclusivamente MDL", fuso e convenção da tabela horária, versões corrigidas, periodicidade, CO₂e), mapeadas às lacunas do dossiê. **Rascunho não enviado**: quem envia e por qual canal é decisão do responsável do produto; o canal oficial não foi confirmado e nenhum contato foi inventado. Uma resposta não admite a fonte.
 ## 0.3.0-rc.64 — 25/11/2026 (proposta)
