@@ -1,0 +1,228 @@
+<a class="cf-skip-link" href="#cf-fuel-main">Pular para o conteúdo</a>
+<div class="cf-workspace-shell">
+  <aside class="cf-workspace-sidebar" aria-label="Navegação administrativa">
+    <a routerLink="/workspace" class="cf-workspace-brand">Carbon<span>Flow</span></a>
+    <p class="cf-workspace-kicker">ADMIN CARBONFLOW</p>
+    <nav class="cf-workspace-nav" aria-label="Console interno">
+      <a routerLink="/workspace">Meus projetos</a>
+      <a routerLink="/workspace/compliance">Conformidade</a>
+      <a routerLink="/workspace/platform/sources">Fontes e prontidão</a>
+      <a routerLink="/workspace/platform/methodologies">Metodologias</a>
+      <a routerLink="/workspace/platform/licenses">Licenças</a>
+      <a routerLink="/workspace/platform/alias-candidates">Candidatos de alias</a>
+      <a routerLink="/workspace/platform/fuel-catalog" aria-current="page">Catálogo de combustíveis</a>
+    </nav>
+    <p class="cf-platform-sidebar-note">O catálogo registra fontes e valores com evidência. Nada aqui é admitido: a admissão é um ato normativo separado.</p>
+  </aside>
+
+  <div class="cf-workspace-stage">
+    <header class="cf-workspace-topbar">
+      <span>Admin CarbonFlow</span>
+      <a routerLink="/workspace" class="cf-workspace-link">Voltar à conta</a>
+    </header>
+    <main id="cf-fuel-main" class="cf-workspace-content cf-platform-content">
+      <header class="cf-workspace-heading">
+        <span class="cf-workspace-chip">PAINEL INTERNO · COMBUSTÍVEIS</span>
+        <h1>Catálogo de combustíveis brasileiros</h1>
+        <p>Combustíveis, composições de misturas e dados (propriedades e fatores) com gás, escopo, base de GWP, unidade original, vigência, vintage e evidência. A revisão interna do responsável não equivale à revisão independente.</p>
+      </header>
+
+      @if (error()) {
+        <p class="cf-workspace-alert" role="alert">{{ error() }}</p>
+      }
+      @if (feedback()) {
+        <p class="cf-platform-success" role="status">{{ feedback() }}</p>
+      }
+      @if (loading()) {
+        <p role="status">Conferindo acesso e consultando o catálogo…</p>
+      }
+
+      @if (!loading() && !session()) {
+        <section class="cf-workspace-card">
+          <h2>Acesso interno indisponível</h2>
+          <p>Entre na conta e utilize uma identidade com o privilégio do catálogo de combustíveis.</p>
+          <a routerLink="/workspace" class="cf-workspace-link">Ir para minha conta</a>
+        </section>
+      } @else if (!loading() && session() && !unlocked() && !denied()) {
+        <section class="cf-workspace-card">
+          <h2>Verificação da equipe interna</h2>
+          <p>O catálogo exige autenticação multifator e um privilégio próprio.</p>
+          <form (submit)="verify($event, code)">
+            <label for="cf-fuel-mfa">Código de seis dígitos do autenticador</label>
+            <input #code id="cf-fuel-mfa" inputmode="numeric" type="text" pattern="[0-9]{6}"
+              autocomplete="one-time-code" maxlength="6" required [disabled]="loading()"/>
+            <button type="submit" class="cf-workspace-primary" [disabled]="loading()">Desbloquear catálogo</button>
+          </form>
+        </section>
+      }
+
+      @if (unlocked() && catalog(); as data) {
+        <p class="cf-platform-meta" role="note">{{ data.limits }}</p>
+
+        <section class="cf-workspace-card" aria-labelledby="cf-fuel-list-title">
+          <h2 id="cf-fuel-list-title">Combustíveis e lacunas de evidência</h2>
+          <table>
+            <caption>Identidades do catálogo</caption>
+            <thead><tr><th scope="col">Combustível</th><th scope="col">Família</th><th scope="col">Tipo</th><th scope="col">O que ainda falta</th></tr></thead>
+            <tbody>
+              @for (fuel of data.fuels; track fuel.id) {
+                <tr><td>{{ fuel.name }} <code>{{ fuel.id }}</code></td><td>{{ fuel.family }}</td>
+                  <td>{{ fuel.role === 'BLEND' ? 'Mistura' : 'Produto' }}</td>
+                  <td>@if (fuel.pending.length) { <ul>@for (item of fuel.pending; track item) { <li>{{ item }}</li> }</ul> } @else { sem lacuna declarada }</td></tr>
+              }
+            </tbody>
+          </table>
+        </section>
+
+        <section class="cf-workspace-card" aria-labelledby="cf-fuel-entries-title">
+          <h2 id="cf-fuel-entries-title">Registros do catálogo</h2>
+          <label for="cf-fuel-filter">Combustível</label>
+          <select id="cf-fuel-filter" [value]="fuelFilter()" (change)="setFilter($event)">
+            <option value="">Todos</option>
+            @for (fuel of data.fuels; track fuel.id) { <option [value]="fuel.id">{{ fuel.name }}</option> }
+          </select>
+          @if (entries().length === 0) {
+            <p>Nenhum registro nesta visão. Cada valor exige fonte, localizador e estado de leitura.</p>
+          } @else {
+            <table>
+              <caption>Dados e composições (todos NOT_ADMITTED)</caption>
+              <thead><tr><th scope="col">Combustível</th><th scope="col">Registro</th><th scope="col">Vigência</th><th scope="col">Evidência</th>
+                <th scope="col">Revisão interna</th><th scope="col">Revisão independente</th><th scope="col">Confronto IPCC</th><th scope="col">Ação</th></tr></thead>
+              <tbody>
+                @for (entry of entries(); track entry.id) {
+                  <tr>
+                    <td>{{ fuelName(entry.fuelId) }}</td>
+                    <td>{{ describe(entry) }}</td>
+                    <td>{{ entry.validFrom }} a {{ entry.validTo ?? 'em aberto' }}</td>
+                    <td>{{ entry.evidenceSource }} · {{ entry.evidenceLocator }} ({{ entry.readState === 'PRIMARY_READ' ? 'primária lida' : 'secundária' }})</td>
+                    <td>{{ reviewText(entry.internalReview) }}</td>
+                    <td>{{ reviewText(entry.independentReview) }}</td>
+                    <td>@if (entry.qaqc) { {{ entry.qaqc.state === 'COMPARED_SAME_UNIT' ? 'desvio ' + entry.qaqc.relativeDeviation : entry.qaqc.note }} } @else { n/a }</td>
+                    <td>@if (data.canReviewInternal || data.canReviewIndependent) { <button type="button" (click)="openReview(entry)">Revisar</button> }</td>
+                  </tr>
+                  @if (reviewing() === entry.id) {
+                    <tr><td colspan="8">
+                      <form (submit)="submitReview($event, entry)">
+                        <label for="cf-fuel-basis">Base da revisão</label>
+                        <select id="cf-fuel-basis" [value]="reviewBasis" (change)="reviewBasis=$any($event.target).value">
+                          @if (data.canReviewInternal) { <option value="OWNER_INTERNAL">Interna do responsável (não é independente)</option> }
+                          @if (data.canReviewIndependent) { <option value="INDEPENDENT">Independente (quem registrou não pode)</option> }
+                        </select>
+                        <label for="cf-fuel-outcome">Resultado</label>
+                        <select id="cf-fuel-outcome" [value]="reviewOutcome" (change)="reviewOutcome=$any($event.target).value">
+                          <option value="REVIEWED_OK">Conferido</option><option value="REJECTED">Recusado</option><option value="NEEDS_INFORMATION">Pede informação</option>
+                        </select>
+                        <label for="cf-fuel-reason">Motivo (mín. 10 caracteres)</label>
+                        <input id="cf-fuel-reason" maxlength="1000" [value]="reviewReason" (input)="reviewReason=$any($event.target).value" required/>
+                        <button type="submit" class="cf-workspace-primary" [disabled]="saving()">Registrar revisão</button>
+                      </form>
+                    </td></tr>
+                  }
+                }
+              </tbody>
+            </table>
+          }
+        </section>
+
+        @if (data.canRegister) {
+          <section class="cf-workspace-card" aria-labelledby="cf-fuel-register-title">
+            <h2 id="cf-fuel-register-title">Registrar dado ou composição</h2>
+            <form (submit)="register($event)" class="cf-platform-source-form">
+              <label for="cf-fuel-kind">Tipo de registro</label>
+              <select id="cf-fuel-kind" [value]="kind" (change)="kind=$any($event.target).value">
+                <option value="DATUM">Dado (fator de emissão, massa específica ou PCI)</option>
+                <option value="COMPOSITION">Composição de mistura</option>
+              </select>
+              <label for="cf-fuel-fuel">Combustível</label>
+              <select id="cf-fuel-fuel" [value]="fuelId" (change)="fuelId=$any($event.target).value" required>
+                <option value="">Selecione</option>
+                @for (fuel of data.fuels; track fuel.id) { <option [value]="fuel.id">{{ fuel.name }}</option> }
+              </select>
+              @if (kind === 'DATUM') {
+                <label for="cf-fuel-param">Parâmetro</label>
+                <select id="cf-fuel-param" [value]="parameter" (change)="parameter=$any($event.target).value">
+                  <option value="EMISSION_FACTOR">Fator de emissão</option><option value="DENSITY">Massa específica</option><option value="LHV">PCI</option>
+                </select>
+                @if (parameter === 'EMISSION_FACTOR') {
+                  <label for="cf-fuel-gas">Gás</label>
+                  <select id="cf-fuel-gas" [value]="gas" (change)="gas=$any($event.target).value">
+                    <option value="CO2_FOSSIL">CO₂ fóssil</option><option value="CO2_BIOGENIC">CO₂ biogênico</option>
+                    <option value="CO2_UNSPECIFIED">CO₂ (origem não especificada)</option><option value="CH4">CH₄</option>
+                    <option value="N2O">N₂O</option><option value="CO2E_AGGREGATE">CO₂e agregado</option>
+                  </select>
+                  <label for="cf-fuel-scope">Escopo</label>
+                  <select id="cf-fuel-scope" [value]="scope" (change)="scope=$any($event.target).value">
+                    <option value="TTW">Tanque à roda (TTW)</option><option value="WTW">Poço à roda (WTW)</option><option value="UNSPECIFIED">Não especificado</option>
+                  </select>
+                  @if (gas === 'CO2E_AGGREGATE') {
+                    <label for="cf-fuel-gwp">Base de GWP (por exemplo, AR5_100)</label>
+                    <input id="cf-fuel-gwp" [value]="gwpSet" (input)="gwpSet=$any($event.target).value" required/>
+                  }
+                }
+                <label for="cf-fuel-value">Valor, como publicado</label>
+                <input id="cf-fuel-value" inputmode="decimal" [value]="value" (input)="value=$any($event.target).value" required/>
+                <label for="cf-fuel-unit">Unidade original (por exemplo, kgCO2/L)</label>
+                <input id="cf-fuel-unit" [value]="unit" (input)="unit=$any($event.target).value" required/>
+                <label for="cf-fuel-vintage">Ano de vintage</label>
+                <input id="cf-fuel-vintage" inputmode="numeric" [value]="vintage" (input)="vintage=$any($event.target).value" required/>
+                @if (parameter === 'EMISSION_FACTOR') {
+                  <label for="cf-fuel-ipcc-ref">Referência IPCC 2019 para o confronto (opcional)</label>
+                  <input id="cf-fuel-ipcc-ref" [value]="ipccReference" (input)="ipccReference=$any($event.target).value"/>
+                  <label for="cf-fuel-ipcc-value">Valor IPCC (opcional)</label>
+                  <input id="cf-fuel-ipcc-value" inputmode="decimal" [value]="ipccValue" (input)="ipccValue=$any($event.target).value"/>
+                  <label for="cf-fuel-ipcc-unit">Unidade IPCC (opcional)</label>
+                  <input id="cf-fuel-ipcc-unit" [value]="ipccUnit" (input)="ipccUnit=$any($event.target).value"/>
+                }
+              } @else {
+                <label for="cf-fuel-component">Componente</label>
+                <select id="cf-fuel-component" [value]="componentId" (change)="componentId=$any($event.target).value" required>
+                  <option value="">Selecione</option>
+                  @for (fuel of data.fuels; track fuel.id) { <option [value]="fuel.id">{{ fuel.name }}</option> }
+                </select>
+                <label><input type="checkbox" [checked]="remainder" (change)="remainder=$any($event.target).checked"/> Este componente é o complemento da mistura</label>
+                @if (!remainder) {
+                  <label for="cf-fuel-nominal">Fração em volume (0 a 1, por exemplo 0.32)</label>
+                  <input id="cf-fuel-nominal" inputmode="decimal" [value]="nominal" (input)="nominal=$any($event.target).value" required/>
+                }
+              }
+              <label for="cf-fuel-from">Vigência: início (AAAA-MM-DD)</label>
+              <input id="cf-fuel-from" [value]="validFrom" (input)="validFrom=$any($event.target).value" required/>
+              <label for="cf-fuel-to">Vigência: fim (opcional)</label>
+              <input id="cf-fuel-to" [value]="validTo" (input)="validTo=$any($event.target).value"/>
+              <label for="cf-fuel-source">Fonte</label>
+              <input id="cf-fuel-source" maxlength="300" [value]="source" (input)="source=$any($event.target).value" required/>
+              <label for="cf-fuel-locator">Localizador na fonte (tabela, página, artigo)</label>
+              <input id="cf-fuel-locator" maxlength="300" [value]="locator" (input)="locator=$any($event.target).value" required/>
+              <label for="cf-fuel-read">Estado de leitura</label>
+              <select id="cf-fuel-read" [value]="readState" (change)="readState=$any($event.target).value">
+                <option value="PRIMARY_READ">Fonte primária lida</option><option value="SECONDARY">Fonte secundária</option>
+              </select>
+              <button type="submit" class="cf-workspace-primary" [disabled]="saving()">Registrar</button>
+            </form>
+          </section>
+        }
+
+        <section class="cf-workspace-card" aria-labelledby="cf-fuel-convert-title">
+          <h2 id="cf-fuel-convert-title">Conversão rastreável de um fator</h2>
+          <p class="cf-platform-meta">A conversão entre massa, volume e energia usa só massa específica e PCI deste combustível, já conferidos e com vigência que cubra o fator. O gás nunca muda.</p>
+          <form (submit)="convert($event)">
+            <label for="cf-fuel-convert-entry">Fator de emissão</label>
+            <select id="cf-fuel-convert-entry" [value]="convertEntry" (change)="convertEntry=$any($event.target).value" required>
+              <option value="">Selecione</option>
+              @for (entry of data.entries; track entry.id) {
+                @if (entry.parameter === 'EMISSION_FACTOR') { <option [value]="entry.id">{{ fuelName(entry.fuelId) }} · {{ describe(entry) }}</option> }
+              }
+            </select>
+            <label for="cf-fuel-convert-target">Unidade de destino (por exemplo, gCO2/MJ)</label>
+            <input id="cf-fuel-convert-target" [value]="convertTarget" (input)="convertTarget=$any($event.target).value" required/>
+            <button type="submit" class="cf-workspace-primary" [disabled]="saving()">Converter</button>
+          </form>
+          @if (conversion(); as result) {
+            <p role="status">{{ result.originalValue }} {{ result.originalUnit }} = <strong>{{ result.value }} {{ result.targetUnit }}</strong> (derivado; o valor original é o do registro, e nada foi admitido).</p>
+            <ol>@for (step of result.steps; track $index) { <li>{{ step.from }} → {{ step.to }}: fator {{ step.factor }} ({{ step.note }})</li> }</ol>
+          }
+        </section>
+      }
+    </main>
+  </div>
+</div>
