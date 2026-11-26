@@ -33,3 +33,6 @@ O responsável solicitou correção da jornada após constatar ausência de vín
 
 ## Adendo P0 — premissas, adicionalidade, revisão e PD
 [Contrato PT](../docs/CF-UX-TECH-001-PREMISSAS-ADICIONALIDADE-PD.md). UX-08D.1 e BL-EX-01/02 continuam primeiro caminho crítico. PT-01 (V68/V94 assistidos), PT-02/03/04 (rota, timeline, direitos) em paralelo quando independentes; PT-05 (V100 UI e contexto), PT-06 = BL-EX-03/UX-08D.3, PT-07 (blocos PD #43/#122), PT-QA por fatia; VT0008/IA P1. Sem criar backlog duplicado ou relaxar gates.
+
+## Adendo P0 — consolidação de guias, J04/J05 e inventário (26/11/2026)
+[Contrato PT-09–16](../docs/CF-UX-TECH-001-GUIAS-FRONTEIRA-J04-J05.md). PT-09 elimina edição paralela, PT-10 integra fronteira, PT-11 plano ex ante, PT-12 J04, PT-13 inventário e provas, PT-14/15/16 são escopo inicial de prontidão, quantificação e saídas (aprofundar em auditoria posterior). PT-14 integra PT-06/UX-08D.3, PT-16 estende PT-07. Preservar UX-08D.1/BL-EX e owners. Sem conclusão de auditoria das demais telas de Monitorar, Quantificar, Redigir e Revisar.

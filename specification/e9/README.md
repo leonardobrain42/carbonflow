@@ -19,3 +19,5 @@ A [jornada canônica J01–J07](../CF-JOURNEY-001.md) passa a orientar navegaç�
 - [Especificação detalhada e mockups](../../docs/CF-UX-TECH-001-FROTA-BASELINE-EX-ANTE.md): etapa EVR/comparáveis contextual, seleção ex ante sem MR, cobertura e estados, autorização e handoff monitorado; complementa UX-08D/#124 e #40. Não implementado por este adendo.
 
 - [Premissas, adicionalidade, direitos, revisão e composição documental](../../docs/CF-UX-TECH-001-PREMISSAS-ADICIONALIDADE-PD.md): complemento à seleção de frota ex ante; PT-01–08, PT-QA e 18 aceites planejados.
+
+- [Consolidação de guias, fronteira, sustentabilidade e planejamento](../../docs/CF-UX-TECH-001-GUIAS-FRONTEIRA-J04-J05.md): complemento P0 da #124; nove figuras e PT-T19–33; sem auditoria integral das telas operacionais/documentais.

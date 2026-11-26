@@ -58,3 +58,17 @@ Estas linhas são posteriores ao corte `507bf268…` do cabeçalho; os vínculos
 | PT-07 | #43/#122/#128 | PT-T15–16 |
 | PT-QA | #101/#45 | PT-T01–18, incluindo 17–18 |
 Contrato e figuras: [CF-UX-TECH-001-PREMISSAS-ADICIONALIDADE-PD](../docs/CF-UX-TECH-001-PREMISSAS-ADICIONALIDADE-PD.md). Não executados.
+
+## Adendo PT-09–16
+| Fatia | Owners | Aceites planejados |
+|---|---|---|
+| PT-09 | #124/#13/#19/#90 | PT-T19–20,33 |
+| PT-10 | #93/#98/#33/#124 | PT-T21–22,28 |
+| PT-11 | #41/#98/#24/#33/#97 | PT-T23–24 |
+| PT-12 | #41/#33/#13/#35 | PT-T25–27 |
+| PT-13 | #98/#33/#124 | PT-T28–29 |
+| PT-14 | #98/#97/#13/#19/#124 | PT-T30 |
+| PT-15 | #97/#96/#124/#128 | PT-T31 |
+| PT-16 | #43/#122/#128 | PT-T32 |
+| PT-QA | #101/#45 | PT-T19–33 |
+[Contrato e figuras](../docs/CF-UX-TECH-001-GUIAS-FRONTEIRA-J04-J05.md); planejados, não executados; PT-14–16 escopo parcial sujeito a auditoria posterior.

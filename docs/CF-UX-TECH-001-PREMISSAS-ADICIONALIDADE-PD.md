@@ -196,3 +196,6 @@ P0-A UX-08D.1 e BL-EX-01/02 do PR #351 mantêm prioridade e dependências. O nov
 ## 13. Limites e decisões de desenho
 
 O PR documenta e prioriza, não altera a implementação, banco, parecer, metodologia, direitos ou guardas. Figuras são mockups vetoriais originais inspirados nas telas capturadas, não execução real, e não comprovam usabilidade/acessibilidade; dados de exemplo são fictícios/declarações não verificadas. Nomes de campos novos, estados e DTOs são lógicos; implementação deve reconciliar contratos e decisões existentes antes de migrar. Fonte e procedimento sugeridos não são obrigações normativas nem aprovados. A última imagem não pôde ser interpretada por ter 1×1 pixel; a descrição adicional de Premissas foi obtida diretamente do schema V68 e do template Angular. Não presumir condição que não aparece na fonte. Nenhum teste de produto executado nesta entrega documental.
+
+## Complemento transversal
+[PT-09–16: Guias, fronteira, sustentabilidade e plano operacional](CF-UX-TECH-001-GUIAS-FRONTEIRA-J04-J05.md) estende o roteiro; PT-14 integra PT-06, PT-16 estende PT-07. Auditoria completa de Monitorar/Quantificar/Redigir/Revisar reservada para próximas capturas.

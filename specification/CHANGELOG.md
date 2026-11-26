@@ -1,4 +1,6 @@
 # Changelog da especificação viva
+## Adendo documental — guias, fronteira e J04/J05 (26/11/2026, planejado)
+- [PT-09–16](../docs/CF-UX-TECH-001-GUIAS-FRONTEIRA-J04-J05.md), nove SVG e PT-T19–33. Auditoria limitada às capturas de guias e inventário, demais telas de monitoramento, quantificação e documentação pendentes. Sem alteração de código ou gates.
 ## Adendo documental — premissas, adicionalidade e PD (26/11/2026, planejado)
 - Contrato [PT](../docs/CF-UX-TECH-001-PREMISSAS-ADICIONALIDADE-PD.md) com oito SVG, PT-T01–18, V68/V94, V72–74, V100 e composição #43/#122; sem código, migração, dado ou gate alterado. Anexo adicional de 1×1 ilegível; inspeção baseada no código.
 ## Adendo documental — UX de frota/PD ex ante (26/11/2026, planejado)

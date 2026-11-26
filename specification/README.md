@@ -38,3 +38,5 @@ E0–E8 são rótulos históricos de organização, não fases novamente executa
 - [Frota EVR, comparáveis, fatores e seleção ex ante](../docs/CF-UX-TECH-001-FROTA-BASELINE-EX-ANTE.md): contrato de produto, arquitetura, quatro figuras SVG e critérios BL-T01–17. Proposta de implementação P0; não declara dados admitidos.
 
 - [Premissas, adicionalidade, direitos, revisão e PD](../docs/CF-UX-TECH-001-PREMISSAS-ADICIONALIDADE-PD.md): complemento P0, oito figuras e critérios PT-T01–18.
+
+- [Guias, fronteira, J04 e J05](../docs/CF-UX-TECH-001-GUIAS-FRONTEIRA-J04-J05.md): PT-09–16, nove figuras, PT-T19–33. Auditoria parcial do inventário e guia de quantificação; demais telas reservadas.
