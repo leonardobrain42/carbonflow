@@ -202,6 +202,48 @@
           </section>
         }
 
+        <section class="cf-workspace-card" aria-labelledby="cf-fuel-boundary-title">
+          <h2 id="cf-fuel-boundary-title">Fronteira candidata e fator da linha de base</h2>
+          <p class="cf-platform-meta">A VM0038 v1.1 (seção 6, Tabela 1) inclui o CO₂ sempre, deixa CH₄ e N₂O opcionais e exige que o gás incluído na linha de base entre também nas emissões do projeto. A fronteira é candidata e nada é admitido.</p>
+          <form (submit)="resolve($event)">
+            <label for="cf-boundary-id">Fronteira</label>
+            <select id="cf-boundary-id" [value]="boundaryId" (change)="boundaryId=$any($event.target).value">
+              @for (item of boundaries(); track item.id) { <option [value]="item.id">{{ item.name }}</option> }
+            </select>
+            <label for="cf-boundary-fuel">Combustível da linha de base</label>
+            <select id="cf-boundary-fuel" [value]="boundaryFuel" (change)="boundaryFuel=$any($event.target).value" required>
+              <option value="">Selecione</option>
+              @for (fuel of data.fuels; track fuel.id) { <option [value]="fuel.id">{{ fuel.name }}</option> }
+            </select>
+            <label for="cf-boundary-scope">Escopo</label>
+            <select id="cf-boundary-scope" [value]="boundaryScope" (change)="boundaryScope=$any($event.target).value">
+              <option value="TTW">Tanque à roda (TTW)</option><option value="WTW">Poço à roda (WTW)</option><option value="UNSPECIFIED">Não especificado</option>
+            </select>
+            <label for="cf-boundary-date">Data de referência (AAAA-MM-DD)</label>
+            <input id="cf-boundary-date" [value]="boundaryDate" (input)="boundaryDate=$any($event.target).value" required/>
+            @if (boundaryId !== 'CO2_ONLY') {
+              <label for="cf-boundary-gwp">Base de GWP aceita para o agregado (por exemplo, AR5_100)</label>
+              <input id="cf-boundary-gwp" [value]="boundaryGwp" (input)="boundaryGwp=$any($event.target).value"/>
+            }
+            <button type="submit" class="cf-workspace-primary" [disabled]="saving()">Resolver fator candidato</button>
+          </form>
+          @if (resolution(); as result) {
+            <p role="status"><strong>{{ result.state === 'RESOLVED_CANDIDATE' ? 'Fator candidato encontrado (não admitido)' : 'Fator candidato não resolvido' }}</strong></p>
+            <ul>
+              @for (req of result.requirements; track req.gas) {
+                <li>{{ req.gas }}: {{ req.state === 'MISSING' ? 'ausente' : req.value + ' ' + req.unit }}
+                  @if (req.review) { · {{ reviewLabel(req.review) }} }
+                  @if (req.methodValue) { · na unidade do método: {{ req.methodValue }} {{ req.methodUnit }} }
+                  @if (req.note) { · {{ req.note }} }</li>
+              }
+            </ul>
+            @if (result.blockers.length) {
+              <p>Pendências:</p>
+              <ul>@for (item of result.blockers; track item) { <li>{{ item }}</li> }</ul>
+            }
+          }
+        </section>
+
         <section class="cf-workspace-card" aria-labelledby="cf-fuel-convert-title">
           <h2 id="cf-fuel-convert-title">Conversão rastreável de um fator</h2>
           <p class="cf-platform-meta">A conversão entre massa, volume e energia usa só massa específica e PCI deste combustível, já conferidos e com vigência que cubra o fator. O gás nunca muda.</p>
