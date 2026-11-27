@@ -134,3 +134,6 @@ A API não aceita inserção arbitrária de quantidades em objeto de projeto, n�
 - [ ] QA com fonte não licenciada, modelo desconhecido, vendas como estoque, duplicatas, troca de edição, denominador zero, quantidade fracionária, revogação e cross-org.
 
 **Validade regulatória:** snapshot PREPARATORY nunca é certificação, validação VVB, aprovação Verra, registro ou direito de emissão de VCU.
+
+## Continuação planejada de automação
+[BL-DATA-01 A–H](CF-OPEN-005-006-PIPELINE-FROTA-NACIONAL.md) integra ferramentas offline, fila de aliases, aplicação em lote e reconciliação de cobertura. Não altera capacidades históricas acima nem promove estoque registrado a circulação.

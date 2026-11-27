@@ -103,3 +103,6 @@ A UI está em **Admin CarbonFlow → Fontes e prontidão → Eficiências e comp
 - Prova de acesso/licença efetivamente utilizável para o projeto, não apenas para a organização interna.
 
 O software **não pode declarar Verra/VVB aprovado nem calcular créditos reais** com estas versões candidatas.
+
+## Continuação planejada de automação
+[BL-DATA-01 F/G](CF-OPEN-005-006-PIPELINE-FROTA-NACIONAL.md) prevê extração/ingestão assistida elétrica e fóssil, matching e revisão independente, sem aprovação automática. Contratos e guardas existentes preservados.

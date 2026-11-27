@@ -42,3 +42,6 @@ O responsável solicitou correção da jornada após constatar ausência de vín
 
 ## Adendo P0 — PT-24 autoria técnica fundamentada (26/11/2026)
 [Contrato completo](../docs/CF-UX-TECH-001-REDIGIR-PD-AUTORIA-FUNDAMENTADA.md). Reserva documental PT-24 concluída por este adendo. PT-24A–H P0 manual (shell/outline, resolvedor, biblioteca, inserção/ref, figuras, ClaimSupport, consistência, versões); PT-24I/J P1 da autoria (IA fundamentada, tradução e perguntas simuladas), sem reduzir prioridade da #100 e sem gate IA no #122. Reusar PD-A–F/#43, #36/#37, #128, #35/#46, #100; PT-25/26 consomem mesmos snapshots. PT-T52–79 planejados. Preservar UX-08D.1/BL-EX e demais prioridades. Sem implementação ou teste.
+
+## Ampliação BL-DATA-01 — preparação em massa (26/11/2026)
+[Pipeline nacional EVR/PBEV](../docs/CF-OPEN-005-006-PIPELINE-FROTA-NACIONAL.md): P0 A–H, BD-T01–14. Priorizar A–D em paralelo a UX-08D.1/BL-EX; reaproveitar scripts offline e fila V108–110, aplicação autorizada de decisões humanas por lote. Sem cadastro unitário obrigatório, sem admissão automática ou MR fictício. Planejado.

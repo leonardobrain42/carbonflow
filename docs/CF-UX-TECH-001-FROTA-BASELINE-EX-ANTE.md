@@ -205,3 +205,6 @@ No sandbox, admin com competência e MFA pode abrir Fontes → Frota EVR / Efici
 
 ## Complemento de preparação técnica
 Ver [Premissas, adicionalidade, direitos, revisão e PD](CF-UX-TECH-001-PREMISSAS-ADICIONALIDADE-PD.md) para V68/V94, telas de revisão, V100, eventos/direitos e composição documental. PT-06 é BL-EX-03/UX-08D.3, não outra entrega duplicada.
+
+## Ampliação da frente de dados
+[BL-DATA-01 — pipeline em massa](CF-OPEN-005-006-PIPELINE-FROTA-NACIONAL.md) detalha A–H, importação, reconciliação, fila existente, aplicação de decisões humanas, snapshots e atualização anual. Não exigir cadastro unitário de modelos nem ampliar admissão. Planejado.

@@ -59,3 +59,6 @@ Oito capturas legíveis; QA de 1×1 analisado pelo código. V53–V59 e contrato
 
 ## Adendo UX — editor PD fundamentado (26/11/2026)
 PdSections salva narrativa e guideVersion, possui consultas contextuais de run exato, pinos, energia, frota e memória; consulta não fixa ClaimSupport. [PT-24A–J](../docs/CF-UX-TECH-001-REDIGIR-PD-AUTORIA-FUNDAMENTADA.md) especificada, com biblioteca por seção, blocos derivados, alegações, consistência, versões e IA opcional. Reserva documental concluída; entrega funcional e marco #122 permanecem abertos. Sem homologação.
+
+## Adendo BL-DATA-01 — automação operacional
+[Contrato](../docs/CF-OPEN-005-006-PIPELINE-FROTA-NACIONAL.md): scripts extraem e geram planos offline; fila de aliases já importa lote, mas integração de aplicação em massa, universo completo, ratings e cobertura/admissibilidade seguem pendentes. P0 A–H, BD-T01–14. Não foi importado dado nem executado teste.
