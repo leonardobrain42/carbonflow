@@ -1,4 +1,6 @@
 # Changelog da especificação viva
+## 0.3.0-rc.98 — 27/11/2026 (proposta)
+- **Licenças públicas: aprovação limitada ao declarado e mensagens de erro específicas.** Nível D17: plataforma (licenças de conteúdo, D19). Correção: o aprovador de uma licença pública podia marcar operações não declaradas (IA, RAG, derivados). Agora só aprova o subconjunto declarado (422 `OPERACAO_NAO_DECLARADA`) e a tela lista e pré-marca apenas as operações declaradas. Os 422 de licenças trazem mensagem específica por regra (decisão, operações, motivo, datas, campos da declaração) em vez de uma lista genérica. Sem migração. Uma licença já aprovada com operações a mais deve ser **revogada** e declarada de novo (decisões são imutáveis).
 ## 0.3.0-rc.97 — 27/11/2026 (proposta)
 - **Demo local: segundo admin aprovador e papéis na fila de candidatos.** Nível D17: plataforma (ferramenta de sandbox). `admin_sandbox.py setup-approver|code-approver` cria `admin2@carbonflow.test`, só com papéis independentes (aprovador de licenças e revisor independente); o responsável ganha importador/owner na fila de alias. Dupla custódia preservada: nenhuma conta ocupa os dois lados. Sem mudança de produto, API ou regra. Ver [CF-ADMIN-LOCAL-SANDBOX](../docs/CF-ADMIN-LOCAL-SANDBOX.md).
 ## 0.3.0-rc.96 — 27/11/2026 (proposta)

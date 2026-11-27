@@ -212,6 +212,19 @@ class ContentLicensesIntegrationTest {
         String pdecision = API + "/" + pl.path("id").asText() + "/decision";
         String papprove = "{\"outcome\":\"APPROVED\",\"reason\":\"Termos conferidos de forma independente.\",\"operations\":[\"STORE_ORIGINAL\"]}";
         assertEquals(404, call("POST", pdecision, owner, "\"1\"", papprove).statusCode());
+        // The approver can narrow a public licence to what was declared, never widen it (AI, derivatives, anything else).
+        var wider = call("POST", pdecision, approver, "\"1\"",
+                papprove.replace("[\"STORE_ORIGINAL\"]", "[\"STORE_ORIGINAL\",\"MODEL_INFERENCE\",\"EXPORT_DERIVATIVES\"]"));
+        assertEquals(422, wider.statusCode());
+        var widerBody = json.readTree(wider.body());
+        assertEquals("OPERACAO_NAO_DECLARADA", widerBody.path("code").asText());
+        assertTrue(widerBody.path("message").asText().contains("EXTRACT_TEXT, STORE_ORIGINAL"), widerBody.toString());
+        assertTrue(widerBody.path("message").asText().contains("EXPORT_DERIVATIVES, MODEL_INFERENCE"), widerBody.toString());
+        // Specific messages instead of one generic list.
+        assertTrue(json.readTree(call("POST", pdecision, approver, "\"1\"", papprove.replace("Termos conferidos de forma independente.", "curto")).body())
+                .path("message").asText().contains("motivo com pelo menos 10 caracteres"));
+        assertTrue(json.readTree(call("POST", pdecision, approver, "\"1\"", papprove.replace("[\"STORE_ORIGINAL\"]", "[]")).body())
+                .path("message").asText().contains("marque ao menos uma operação"));
         var independent = call("POST", pdecision, approver, "\"1\"", papprove);
         assertEquals(200, independent.statusCode(), independent.body());
         assertEquals("INDEPENDENT", json.readTree(independent.body()).path("decisionBasis").asText());
