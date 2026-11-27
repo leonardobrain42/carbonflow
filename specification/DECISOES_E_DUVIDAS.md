@@ -87,6 +87,9 @@ Este registro resume decisões **documentadas no repositório/backlog**, não re
 
 **Efeito nas dúvidas:** Q13 e Q11 deixam de aguardar decisão (decididas, implementação pendente); Q05 mantém D14 com pendência de confirmação externa.
 
+## CF-SPEC-D24 — Aplicação de candidatos aceitos ao catálogo (27/11/2026)
+Decisão técnica reversível (BL-DATA-01D): aceitar um candidato não classifica o veículo. A aplicação cria/reaproveita o modelo como pendente (`UNKNOWN/UNKNOWN`) e mapeia o alias exato; a classificação (LDV/BEV etc.) só entra por item, com evidência e motivo informados por quem opera, e nunca sobrescreve uma classificação vigente diferente. Versão ausente no PBEV é rotulada `SEM VERSÃO NO PBEV`. Motivo: não inferir propulsão por nome (autorização do responsável, D23). Reversão: mudar a regra exige nova decisão; registros de aplicação são imutáveis.
+
 ## CF-SPEC-D23 — Direitos das fontes de frota e regras da fila de candidatos (27/11/2026)
 **Decisão do responsável do produto** (mensagem de 27/11/2026), registrada sem ampliação.
 1. **RENAVAM 2026-09:** autoriza registrar os direitos de processamento fundamentados na declaração oficial de domínio público do recurso (`other-pd`), preservando proveniência e escopo (agregados de veículos registrados; sem dados pessoais).

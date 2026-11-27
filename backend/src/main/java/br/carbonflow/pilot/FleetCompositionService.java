@@ -748,7 +748,7 @@ class FleetCompositionService {
         }
     }
 
-    private static String normalizeKey(String s) {
+    static String normalizeKey(String s) {
         if(s==null)throw invalid("sourceRecordKey","Alias ausente.");
         String normalized=s.strip().toUpperCase(Locale.ROOT);
         if(!normalized.matches("[A-Z0-9][A-Z0-9._-]{0,99}"))

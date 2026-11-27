@@ -141,6 +141,18 @@ Nível D17: **plataforma** (gate e fila) sobre **programa/jurisdição** (fontes
 
 **Cobertura:** BD-T04 (sem aprovação automática; NONE continua fora da fila), BD-T05 (decisão por item, base, segregação e licença) e BD-T06 parcial (dry-run não escreve; aplicação em lote atômica e idempotente por candidato decidido). **Não coberto:** criação/reuso/alias/classificação por comandos canônicos a partir das decisões aceitas (aceitar não cria modelo nem alias) e retomada de lotes grandes; ficam para a continuação da D. Dados reais **não** foram importados: as declarações aguardam a postagem do responsável e a aprovação independente.
 
+## 7C. Estado de implementação — BL-DATA-01D, aplicação ao catálogo (rc.100)
+
+Nível D17: **plataforma** (catálogo canônico) sobre **jurisdição** (nomes SENATRAN/PBEV). V121 aditiva: `app_fleet_alias_application` (um registro imutável por candidato) e a ação de auditoria `APPLY_FLEET_ALIAS_CANDIDATES`. Reuso: catálogo V48/V110 (modelo, alias e classificação com histórico); nenhum motor paralelo.
+
+- **Rotas** (gestor de fontes da plataforma com MFA e organização): `POST /v1/platform/fleet/alias-candidates/applications/dry-run` e `…/applications`. Corpo: `organizationId` e até 100 `items` (`candidateId` e, opcional, `classification`).
+- **O que aplica:** só candidatos com decisão humana **ACEITA**. Reaproveita ou cria o modelo da linha do PBEV escolhida (marca, modelo, versão; sem versão no PBEV vira `SEM VERSÃO NO PBEV`, nunca um valor inventado) e mapeia a chave exata da Senatran do ano de observação a ele.
+- **Classificação só por comando:** o modelo nasce `UNKNOWN/UNKNOWN`, isto é, **pendente**. Só há classificação se o item trouxer classe, propulsão, evidência e motivo (a mesma regra da rota do catálogo). Nome nunca classifica; classificação divergente de uma já vigente não é sobrescrita.
+- **Dry-run com diff exato** (executa e desfaz): `CREATE_MODEL`/`REUSE_MODEL`, `CREATE_ALIAS`/`ALIAS_EXISTS`, `CLASSIFY_…` ou `MODEL_STAYS_PENDING_CLASSIFICATION`.
+- **Idempotência e retomada:** repetir um arquivo devolve `JA_APLICADO` para o que já foi aplicado e aplica só o novo. Conflitos (`ALIAS_CONFLITANTE`, `CLASSIFICACAO_DIVERGENTE`, `CANDIDATO_NAO_ACEITO`, …) são listados item a item, nada é sobrescrito e o lote é **tudo ou nada**.
+- **Ferramenta offline:** `prepare_alias_review.py applications` gera os corpos (a planilha ganhou quatro colunas `classification_*`, em branco por padrão).
+- `usableForE8=false`: não admite dados, não avalia veículo e não habilita E8. **Não coberto:** tela (só API e script) e importação real, que segue condicionada à aprovação independente das duas licenças.
+
 ## 8. Primeira entrega recomendada ao Codex
 
 BL-DATA-01A–D em fatias verticais: manifesto + universo (A/B), reconciliação e fila existente (C), dry-run + aplicação autorizada de decisões (D). Teste com fixture multi-modelo e amostra já registrada quando direitos permitirem; depois estoque, ratings, cobertura e publicação (E–H). Não impor seleção ex ante implementada como pré-condição do catálogo; BL-EX consome contratos estáveis em paralelo. Não usar base sintética para alimentar projeto real. Abrir PRs de código pequenos, com critérios BD-T associados, preservar owner e issues existentes.
