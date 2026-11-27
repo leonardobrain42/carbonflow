@@ -1,4 +1,6 @@
 # Changelog da especificação viva
+## 0.3.0-rc.102 — 27/11/2026 (proposta)
+- **BL-DATA-01E: preparação e reconciliação do estoque (ferramenta offline).** Nível D17: plataforma (ferramenta) sobre dados de jurisdição. `scripts/prepare_stock_ingestion.py` cruza o estoque candidato (01B) com o catálogo e gera um arquivo por modelo LDV BEV (nomes literais do mesmo modelo somados) mais um relatório de reconciliação em que cada linha e cada veículo estão contados (incluídos, fora do recorte, pendentes de classificação, sem alias). Sem denominador nacional (`coverage=UNKNOWN`), sem peso, sem E8; recorte vazio é lacuna. Sem migração nem mudança de backend; a segmentação além de 2.000 modelos fica pendente (BD-T07 parcial).
 ## 0.3.0-rc.101 — 27/11/2026 (proposta)
 - **Fila de candidatos de alias: mensagens de erro específicas.** Nível D17: plataforma. Os 422 da importação e das decisões deixam de ser uma lista genérica e dizem qual campo falhou (período, SHA-256 do PBEV ou da Senatran, itens, nome repetido, chave, nível, motivo, linhas do PBEV, linha escolhida, desfecho, base), com o número do item no lote; a tela mostra a mensagem do servidor. Lotes gerados antes da exigência do SHA-256 da Senatran são orientados a gerar de novo. Sem migração, sem mudança de regra.
 ## 0.3.0-rc.100 — 27/11/2026 (proposta)
