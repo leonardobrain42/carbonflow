@@ -24,6 +24,17 @@ Se `.carbonflow-demo/admin-roster.json` existir, o provisionamento recusa mudar 
 
 O servidor **não é iniciado pelo ChatGPT**; o comando deve ser executado no terminal com Docker instalado. As credenciais não foram geradas na máquina remota nem podem ser entregues no chat com segurança.
 
+## Segundo admin: o lado independente da dupla custódia
+`admin@carbonflow.test` é o **responsável**: declara licença pública, cadastra, importa lotes e decide na base `OWNER_INTERNAL`. Ele **não aprova** o que declarou (403 `DUPLA_CUSTODIA`; sem papel de aprovador). Para aprovar existe uma segunda conta, **só no sandbox local**:
+```sh
+python3 scripts/admin_sandbox.py setup-approver     # cria admin2@carbonflow.test (exige o admin do responsável antes)
+python3 scripts/demo_sandbox.py show --email admin2@carbonflow.test
+python3 scripts/admin_sandbox.py code-approver      # código MFA próprio da conta aprovadora
+```
+Papéis de `admin2@carbonflow.test`: aprovar licenças (`content-licenses.approvers`), revisar de forma independente candidatos de alias, catálogo de combustíveis, séries de rede e cobertura de frota, e ler fontes/ratings. **Não** é owner, importador nem submissor: nunca aprova o que ele mesmo declarou, e o responsável nunca ocupa o papel independente. O roster fica em `.carbonflow-demo/admin2-roster.json` (0600, fora do Git). Use sessões separadas (outro navegador ou janela anônima), uma por conta.
+O responsável também passou a ter, no demo, os papéis de **importador e owner da fila de candidatos de alias** (antes não tinha nenhum, e a tela de candidatos ficava inacessível).
+Isto é uma conta de sandbox para testar o fluxo; **não substitui a aprovação independente real** de uma segunda pessoa.
+
 ## Papéis do responsável pelo produto (D19/D20)
 A conta `admin@carbonflow.test` recebe, **só no sandbox local**, os papéis de **responsável**: declarar licença pública (`content-licenses.owners`), cadastrar e revisar de forma **interna** o catálogo de combustíveis (`fuel-catalog.managers|owners`) e importar e revisar de forma **interna** as séries da rede (`grid-series.managers|owners`). **Não** recebe papel de aprovador de licenças, submissor, revisor independente do catálogo nem das séries: a dupla custódia não é simulada, e a declaração interna nunca vale como aprovação independente.
 
