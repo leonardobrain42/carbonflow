@@ -192,6 +192,7 @@ jobs:
           python3 -m unittest discover -s scripts -p 'test_build_evr_stock_csv.py' -v
           python3 -m unittest discover -s scripts -p 'test_extract_pbev_electric.py' -v
           python3 -m unittest discover -s scripts -p 'test_match_senatran_pbev.py' -v
+          python3 -m unittest discover -s scripts -p 'test_build_fleet_universe.py' -v
           python3 -m unittest discover -s scripts -p 'test_build_fleet_model_registrations.py' -v
           python3 -m unittest discover -s scripts -p 'test_reconcile_fleet_catalog.py' -v
           python3 -m unittest discover -s scripts -p 'test_import_mcti_hourly.py' -v
