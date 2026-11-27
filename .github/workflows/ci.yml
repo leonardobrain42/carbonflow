@@ -196,6 +196,7 @@ jobs:
           python3 -m unittest discover -s scripts -p 'test_build_fleet_model_registrations.py' -v
           python3 -m unittest discover -s scripts -p 'test_reconcile_fleet_catalog.py' -v
           python3 -m unittest discover -s scripts -p 'test_prepare_alias_review.py' -v
+          python3 -m unittest discover -s scripts -p 'test_prepare_stock_ingestion.py' -v
           python3 -m unittest discover -s scripts -p 'test_fleet_sources_rights.py' -v
           python3 -m unittest discover -s scripts -p 'test_import_mcti_hourly.py' -v
           python3 -m unittest discover -s scripts -p 'test_fuel_catalog.py' -v

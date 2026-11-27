@@ -59,6 +59,30 @@ def read_roster(path: Path) -> dict | None:
     return payload
 
 
+def source_files_key() -> str:
+    """Local-only AES-256 key for the sandbox's source-file storage (0600, never printed, never committed).
+
+    Without it the platform answers 503 ARMAZENAMENTO_INDISPONIVEL and no source file can be stored in the demo.
+    It protects nothing real: the sandbox holds synthetic and public-aggregate material only.
+    """
+    import base64
+    import secrets
+    path = SECRET_DIR / "source-files.key"
+    private_dir(SECRET_DIR)
+    if path.exists():
+        if path.is_symlink() or path.stat().st_mode & 0o077:
+            raise ValueError("Chave local de arquivos de fonte não é privada (0600).")
+        value = path.read_text(encoding="utf-8").strip()
+        if len(base64.urlsafe_b64decode(value + "=" * (-len(value) % 4))) != 32:
+            raise ValueError("Chave local de arquivos de fonte inválida.")
+        return value
+    value = base64.urlsafe_b64encode(secrets.token_bytes(32)).decode().rstrip("=")
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+        stream.write(value + "\n")
+    return value
+
+
 def compose(*args: str, capture: bool = False) -> str:
     command = [
         "docker", "compose", "-p", PROJECT,
@@ -78,6 +102,7 @@ def compose(*args: str, capture: bool = False) -> str:
         env.update({
             "CARBONFLOW_COMPLIANCE_STAFF": ";".join(f"{r['identity']}:{r['secret']}:{r['organization']}"
                                                     for r in (owner, approver) if r),
+            "CARBONFLOW_PLATFORM_SOURCE_FILES_ENCRYPTION_KEY": source_files_key(),
             "CARBONFLOW_PLATFORM_SOURCE_READINESS_VIEWERS": readers,
             "CARBONFLOW_PLATFORM_SOURCE_WORK_MANAGERS": identity,
             "CARBONFLOW_PLATFORM_SOURCE_INGESTION_REVIEWERS": readers,
