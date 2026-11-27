@@ -153,6 +153,17 @@ Nível D17: **plataforma** (catálogo canônico) sobre **jurisdição** (nomes S
 - **Ferramenta offline:** `prepare_alias_review.py applications` gera os corpos (a planilha ganhou quatro colunas `classification_*`, em branco por padrão).
 - `usableForE8=false`: não admite dados, não avalia veículo e não habilita E8. **Não coberto:** tela (só API e script) e importação real, que segue condicionada à aprovação independente das duas licenças.
 
+## 7D. Estado de implementação — BL-DATA-01E, preparação e reconciliação do estoque (rc.102)
+
+Nível D17: **plataforma** (ferramenta offline) sobre dados de **jurisdição** (RENAVAM). Sem migração e sem mudança de backend: o arquivo preparado segue o caminho existente (#92 fonte e comprovante, quarentena, parecer `APPROVED_FOR_SCOPE`, prévia, snapshot e decisão de cobertura independente).
+
+- **Ferramenta** `scripts/prepare_stock_ingestion.py`: lê `stock-candidates-001.csv` (BL-DATA-01B) e a exportação do catálogo (`GET /v1/platform/fleet/board`) e grava `stock-ingestion-001.csv` e `stock-reconciliation.json`, fora do Git.
+- **Recorte = catálogo atual:** só entram chaves cujo alias aponta para modelo **LDV BEV**. Ficam fora, com os veículos listados: `NO_ALIAS` (sem alias), `PENDING_CLASSIFICATION` (modelo ainda `UNKNOWN`) e `OUTSIDE_SCOPE` (outra classe ou propulsão).
+- **Um modelo, uma linha:** o backend recusa duas linhas do mesmo modelo no mesmo ano (`FleetCompositionRules`). Os vários nomes literais de um modelo são **somados** (cálculo derivado do agregado RENAVAM, liberado na [matriz](CF-OPEN-005-MATRIZ-DIREITOS-FROTA.md)), e a composição por nome fica no relatório.
+- **Reconciliação fechada:** linhas e veículos de todos os baldes precisam somar a entrada, senão a ferramenta recusa. Traz SHA-256 de entrada e de saída, lacunas e `nationalDenominatorClaimed=false`, `coverage=UNKNOWN`, `complete=false`, `usableForE8=false`. Recorte vazio é lacuna, nunca zero.
+- **Limites:** até 2.000 modelos por snapshot (igual ao parser). **Segmentar além disso** (manifesto pai, chunks) **não foi implementado**: exige evolução aditiva do backend, que hoje cria o snapshot de uma única fonte (BD-T07 parcial). Veículo registrado não prova circulação nem LDV; isso é do parecer independente.
+- **Amostra real (setembro de 2026, demo):** 327 chaves e 496.391 veículos registrados; com 4 modelos no catálogo, 4 chaves e 32.849 veículos entram e 323 chaves (463.542) ficam sem alias. A cobertura cresce com as decisões aplicadas.
+
 ## 8. Primeira entrega recomendada ao Codex
 
 BL-DATA-01A–D em fatias verticais: manifesto + universo (A/B), reconciliação e fila existente (C), dry-run + aplicação autorizada de decisões (D). Teste com fixture multi-modelo e amostra já registrada quando direitos permitirem; depois estoque, ratings, cobertura e publicação (E–H). Não impor seleção ex ante implementada como pré-condição do catálogo; BL-EX consome contratos estáveis em paralelo. Não usar base sintética para alimentar projeto real. Abrir PRs de código pequenos, com critérios BD-T associados, preservar owner e issues existentes.
