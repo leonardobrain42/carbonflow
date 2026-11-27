@@ -317,7 +317,7 @@ class OpenE8FleetSelections {
             throw conflict("Frota EVR, cobertura de ratings, comparabilidade, licenças ou ano incoerentes.");
     }
 
-    private static Coverage coverage(Connection c,Fleet f)throws SQLException{
+    static Coverage coverage(Connection c,Fleet f)throws SQLException{
         Object[] counts=first(c,"""
             SELECT count(*),
                 count(l.model_id),
@@ -351,7 +351,7 @@ class OpenE8FleetSelections {
     /** Revalidate every referenced original license at use-time.
      * A snapshot status is NOT an authorization; expiration without a
      * formal revocation still blocks project publication and freshness. */
-    private static boolean rightsCurrent(Connection c,Fleet f,UUID organization)
+    static boolean rightsCurrent(Connection c,Fleet f,UUID organization)
         throws SQLException {
         Object[] result=first(c,"""
             WITH chosen AS (
@@ -425,7 +425,7 @@ class OpenE8FleetSelections {
                     r.getString(7));
             },project,period,id);
     }
-    private static Fleet fleet(Connection c,UUID rating,UUID org)throws SQLException{
+    static Fleet fleet(Connection c,UUID rating,UUID org)throws SQLException{
         return first(c,"""
             SELECT f.id,r.id,r.year,f.observation_year,r.cycle,
                    encode(f.source_sha256,'hex'),

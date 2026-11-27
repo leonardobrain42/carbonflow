@@ -40,7 +40,7 @@ Estas linhas são posteriores ao corte `507bf268…` do cabeçalho; os vínculos
 ## Adendo de rastreabilidade — seleção de frota ex ante (26/11/2026)
 | Requisito/fatia | Owner | Contrato | Aceite planejado (não executado) |
 |---|---|---|---|
-| BL-EX-01: contexto e referência imutável PD sem MR | #40/#97 | [Especificação](../docs/CF-UX-TECH-001-FROTA-BASELINE-EX-ANTE.md) | BL-T01,05–08,10,16 |
+| BL-EX-01: contexto e referência imutável PD sem MR | #40/#97 | [Especificação](../docs/CF-UX-TECH-001-FROTA-BASELINE-EX-ANTE.md); implementado (backend de staff, V118): [CF-OPEN-008-BASELINE-FLEET-EX-ANTE](../docs/CF-OPEN-008-BASELINE-FLEET-EX-ANTE.md), [`OpenBaselineFleetSelectionIntegrationTest`](../backend/src/test/java/br/carbonflow/pilot/OpenBaselineFleetSelectionIntegrationTest.java) | BL-T01,05–08,10,16 (cobertos: 01, 06, 07; demais pendentes) |
 | BL-EX-02: seleção contextual, vazio e lacunas | #124/#40 | mesmo contrato, figuras 02/03 | BL-T01–07,13–14,17 |
 | BL-DATA-01: estoque, ratings e cobertura | #94/#95/#92 | V48/V49 e docs owners | BL-T02–04,12 |
 | BL-EX-03: projeção por ato e PD | #124/#13/#19/#122 | mesmo contrato | BL-T08,10–11,15 |
