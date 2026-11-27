@@ -6,7 +6,7 @@ Data: 27/11/2026 · Nível D17: **programa/jurisdição** (fontes da frota brasi
 
 ## Como o registro funciona (reuso do D19)
 1. O responsável abre a tela **Licenças** (`/workspace/platform/licenses`), cola o conteúdo de `docs/data/*-license-declaration.json` em "Carregar declaração preparada (JSON)", revisa os campos e clica em "Declarar licença pública" (a tela chama `POST /v1/platform/source-licenses/public`; carregar não envia nada). Resultado: `DECLARED_INTERNAL`, que **nenhum consumidor aceita**.
-2. **Outra pessoa** aprova (`APPROVED`, dupla custódia). Só então o gate de importação da fila de candidatos (`EXTRACT_TEXT` nas duas fontes) libera.
+2. **Outra pessoa** aprova (`APPROVED`, dupla custódia). Numa licença pública, o aprovador só pode **restringir** ao que foi declarado, nunca ampliar (422 `OPERACAO_NAO_DECLARADA`); a tela lista e pré-marca apenas as operações declaradas. Só então o gate de importação da fila de candidatos (`EXTRACT_TEXT` nas duas fontes) libera.
 3. As fontes constam do catálogo de metadados pela migração V119 (sem bytes nem valores); a edição inclui o prefixo do SHA-256.
 
 ## RENAVAM — setembro de 2026 (`SENATRAN-RENAVAM-FROTA`, edição `2026-09-005963d4`)

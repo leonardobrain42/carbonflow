@@ -178,6 +178,19 @@ test('D19 estendida: licença pública declarada pelo responsável não aparece 
     assert.equal(await page.getByText('Aprovada', {exact:true}).count(), 0);
     // Independent approval remains available (the server refuses the same person).
     await page.getByRole('button',{name:'Decidir licença de MCTI-SIN-DESPACHO 2026-janout-7f8e2292'}).waitFor();
+    // The approval form of a PUBLIC licence offers only what was declared, preselected; AI/RAG/etc. are not even listed.
+    await page.getByRole('button',{name:'Decidir licença de MCTI-SIN-DESPACHO 2026-janout-7f8e2292'}).click();
+    await page.getByText('Só as operações declaradas pelo responsável podem ser aprovadas',{exact:false}).waitFor();
+    assert.equal(await page.getByRole('checkbox',{name:'Armazenar o documento original'}).isChecked(),true);
+    assert.equal(await page.getByRole('checkbox',{name:'Extrair texto e dados'}).count(),0); // only STORE_ORIGINAL was declared in this case
+    assert.equal(await page.getByRole('checkbox',{name:'Criar embeddings'}).count(),0);
+    assert.equal(await page.getByRole('checkbox',{name:'Usar em inferência por IA'}).count(),0);
+    // The server's specific message is shown instead of the generic list.
+    await page.route('**/v1/platform/source-licenses/*/decision', route => route.fulfill({status:422,
+      json:{code:'LICENCA_INVALIDA',message:'A decisão precisa de um desfecho (aprovar ou negar) e de um motivo com pelo menos 10 caracteres.'}}));
+    await page.getByLabel('Motivo (mín. 10 caracteres)').fill('motivo suficiente aqui');
+    await page.getByRole('button',{name:'Aprovar operações marcadas'}).click();
+    await page.getByRole('alert').getByText('A decisão precisa de um desfecho',{exact:false}).waitFor();
   } finally {
     await browser.close();
   }

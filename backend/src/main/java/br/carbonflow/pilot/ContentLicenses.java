@@ -99,7 +99,7 @@ class ContentLicenses {
                     || input.purpose() == null || !PURPOSES.contains(input.purpose())
                     || blank(input.authorizationRef(), 500) || input.authorizationRef().strip().length() < 3
                     || input.proofSha256() == null || !input.proofSha256().matches("[a-f0-9]{64}"))
-                throw invalid("licenca");
+                throw invalid("licenca", "Confira a fonte e a edição, a finalidade, a referência da autorização (mín. 3 caracteres) e o SHA-256 do comprovante (64 caracteres hexadecimais minúsculos).");
             OffsetDateTime starts = time(input.startsAt(), "startsAt");
             OffsetDateTime ends = input.endsAt() == null || input.endsAt().isBlank() ? null : time(input.endsAt(), "endsAt");
             if (ends != null && !ends.isAfter(starts)) throw invalid("endsAt");
@@ -135,7 +135,8 @@ class ContentLicenses {
                     || blank(input.reason(), 1000) || input.reason().strip().length() < 10
                     || input.legalTextSha256() == null || !input.legalTextSha256().matches("[a-f0-9]{64}")
                     || input.evidenceSha256() == null || !input.evidenceSha256().matches("[a-f0-9]{64}")
-                    || input.operations() == null || input.operations().isEmpty()) throw invalid("licenca");
+                    || input.operations() == null || input.operations().isEmpty())
+                throw invalid("licenca", "Confira os campos da declaração: fonte, versão, finalidade, endereço https da página, justificativa (mín. 10 caracteres), SHA-256 da captura e do texto jurídico (64 caracteres hexadecimais) e ao menos uma operação.");
             var terms = PublicLicenses.KNOWN.get(input.licenseIdentifier());
             if (terms == null) throw new PilotProblem(422, "LICENCA_PUBLICA_DESCONHECIDA", "licenseIdentifier", RULE,
                     "Só licenças públicas modeladas pela plataforma podem ser declaradas.");
@@ -147,13 +148,15 @@ class ContentLicenses {
             if (!Set.of("CAPTURE_DATE", "PROVEN_AVAILABILITY").contains(basis)
                     || ("CAPTURE_DATE".equals(basis) && !starts.isEqual(captured))
                     || ("PROVEN_AVAILABILITY".equals(basis) && starts.isAfter(captured))
-                    || (ends != null && !ends.isAfter(starts))) throw invalid("startsAt");
+                    || (ends != null && !ends.isAfter(starts)))
+                throw invalid("startsAt", "A vigência não pode começar antes da evidência: com o critério \"Data da captura\" ela deve ser idêntica à data da captura; com \"Disponibilização anterior comprovada\", igual ou anterior a ela; e o fim, se houver, depois do início.");
             var chosen = new TreeMap<String, OperationGround>();
             for (var item : input.operations()) {
                 if (item == null || item.operation() == null || !OPERATIONS.contains(item.operation())
                         || item.groundKind() == null || !Set.of("LICENSE_GRANT", "LEGAL_INTERPRETATION").contains(item.groundKind())
                         || item.grounds() == null || item.grounds().strip().length() < 20 || item.grounds().strip().length() > 2000
-                        || chosen.put(item.operation(), item) != null) throw invalid("operations");
+                        || chosen.put(item.operation(), item) != null)
+                    throw invalid("operations", "Cada operação declarada precisa ser conhecida, aparecer uma só vez e ter natureza do fundamento (cláusula ou interpretação) e fundamento de 20 a 2000 caracteres.");
                 if (terms.refused().contains(item.operation()))
                     throw new PilotProblem(422, "OPERACAO_FORA_DA_LICENCA", "operations", RULE,
                             "A licença não cobre " + item.operation() + " (" + terms.basis() + ").");
@@ -190,15 +193,33 @@ class ContentLicenses {
             var actor = staff.require(c, token);
             if (!approvers.contains(actor.id())) throw hidden();
             if (input == null || input.outcome() == null || !Set.of("APPROVED", "DENIED").contains(input.outcome())
-                    || blank(input.reason(), 1000) || input.reason().strip().length() < 10) throw invalid("decisao");
+                    || blank(input.reason(), 1000) || input.reason().strip().length() < 10)
+                throw invalid("decisao", "A decisão precisa de um desfecho (aprovar ou negar) e de um motivo com pelo menos 10 caracteres.");
             var operations = operations(input);
-            if (input.outcome().equals("APPROVED") && operations.isEmpty()) throw invalid("operations");
-            if (input.outcome().equals("DENIED") && !operations.isEmpty()) throw invalid("operations");
+            if (input.outcome().equals("APPROVED") && operations.isEmpty())
+                throw invalid("operations", "Para aprovar, marque ao menos uma operação.");
+            if (input.outcome().equals("DENIED") && !operations.isEmpty())
+                throw invalid("operations", "Ao negar, não marque operações.");
             var current = lock(c, id);
             PilotCommands.requireVersion(expected, current.version());
             if (current.state().equals("DENIED") || current.state().equals("REVOKED") || current.state().equals("APPROVED"))
                 throw new PilotProblem(409, "LICENCA_ENCERRADA", "id", RULE,
                         "A licença já tem decisão; para mudar, revogue (se aprovada) ou submeta uma nova.");
+            if (input.outcome().equals("APPROVED")) {
+                // A public licence is approved only for what the owner declared (with grounds): the approver can narrow it
+                // but never widen it, so blocked operations (e.g. AI, or derivatives under a no-derivatives licence) stay out.
+                Boolean isPublic = first(c, "SELECT true FROM app_content_license WHERE id=? AND kind='PUBLIC_LICENSE'",
+                        r -> r.getBoolean(1), id);
+                if (Boolean.TRUE.equals(isPublic)) {
+                    var declared = new TreeSet<>(query(c, "SELECT operation FROM app_content_license_declared_ground "
+                            + "WHERE license_id=? AND decision_version=1", r -> r.getString(1), id));
+                    var beyond = new TreeSet<>(operations);
+                    beyond.removeAll(declared);
+                    if (!beyond.isEmpty()) throw new PilotProblem(422, "OPERACAO_NAO_DECLARADA", "operations", RULE,
+                            "Esta licença pública foi declarada só para " + String.join(", ", declared) + ". Não é possível aprovar: "
+                                    + String.join(", ", beyond) + ". Desmarque o que não foi declarado.");
+                }
+            }
             if (input.outcome().equals("APPROVED") && actor.id().equals(current.submittedBy()))
                 throw new PilotProblem(403, "DUPLA_CUSTODIA", "decidedBy", RULE,
                         "Quem submeteu a autorização não pode aprová-la.");
@@ -213,7 +234,8 @@ class ContentLicenses {
         return database.transaction(c -> {
             var actor = staff.require(c, token);
             if (!approvers.contains(actor.id())) throw hidden();
-            if (input == null || blank(input.reason(), 1000) || input.reason().strip().length() < 10) throw invalid("motivo");
+            if (input == null || blank(input.reason(), 1000) || input.reason().strip().length() < 10)
+                throw invalid("motivo", "A revogação precisa de um motivo com pelo menos 10 caracteres.");
             var current = lock(c, id);
             PilotCommands.requireVersion(expected, current.version());
             if (!current.state().equals("APPROVED")) throw new PilotProblem(409, "LICENCA_NAO_APROVADA", "id", RULE,
@@ -227,7 +249,8 @@ class ContentLicenses {
     private static Set<String> operations(DecisionInput input) {
         var result = new TreeSet<String>();
         if (input.operations() != null) for (String operation : input.operations()) {
-            if (operation == null || !OPERATIONS.contains(operation)) throw invalid("operations");
+            if (operation == null || !OPERATIONS.contains(operation))
+                throw invalid("operations", "Operação desconhecida: " + operation + ".");
             result.add(operation);
         }
         return result;
@@ -287,16 +310,20 @@ class ContentLicenses {
 
     private static OffsetDateTime time(String value, String field) {
         try {
-            if (value == null) throw invalid(field);
+            if (value == null) throw invalid(field, "Informe " + field + " em ISO-8601 com fuso, por exemplo 2026-11-25T20:44:00Z.");
             return OffsetDateTime.parse(value);
         } catch (DateTimeParseException ex) {
-            throw invalid(field);
+            throw invalid(field, "Data inválida em " + field + ": use ISO-8601 com fuso, por exemplo 2026-11-25T20:44:00Z.");
         }
     }
 
     private static PilotProblem hidden() {
         return new PilotProblem(404, "RECURSO_NAO_VISIVEL", "licenses", RULE,
                 "Licenças de fontes não disponíveis para este perfil.");
+    }
+
+    private static PilotProblem invalid(String field, String message) {
+        return PilotProblem.invalid("LICENCA_INVALIDA", field, RULE, message);
     }
 
     private static PilotProblem invalid(String field) {

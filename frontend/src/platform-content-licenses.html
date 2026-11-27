@@ -172,7 +172,10 @@
                     @if (acting()?.mode === 'DECIDE') {
                       <fieldset>
                         <legend>Operações que o documento autoriza</legend>
-                        @for (operation of operations; track operation.value) {
+                        @if (item.kind === 'PUBLIC_LICENSE') {
+                          <p class="cf-platform-meta">Só as operações declaradas pelo responsável podem ser aprovadas; desmarque as que não concorda.</p>
+                        }
+                        @for (operation of decidable(item); track operation.value) {
                           <label><input type="checkbox" [checked]="chosen().includes(operation.value)"
                             (change)="toggle(operation.value, $event)"/> {{ operation.label }}</label>
                         }

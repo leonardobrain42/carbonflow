@@ -233,8 +233,9 @@ export class PlatformContentLicensesComponent {
       const code = reason instanceof HttpErrorResponse ? reason.error?.code : null;
       this.error.set(code === 'OPERACAO_FORA_DA_LICENCA' ? 'A licença não cobre uma das operações marcadas.'
         : code === 'FUNDAMENTO_NAO_E_CLAUSULA' ? 'Uma operação marcada como cláusula não consta da concessão da licença: declare-a como interpretação jurídica.'
+        : code === 'OPERACAO_NAO_DECLARADA' ? String(reason instanceof HttpErrorResponse ? reason.error?.message : '')
         : code === 'FONTE_INEXISTENTE' ? 'A fonte e a versão informadas não estão registradas neste banco. Confira o código da fonte e a versão publicada (MCTI-SIN-DESPACHO, 2026-janout-7f8e2292); a fonte vem da migração V112.'
-        : this.fieldProblem(reason) ?? this.message(reason, 'Não foi possível declarar a licença pública.'));
+        : this.serverMessage(reason) ?? this.fieldProblem(reason) ?? this.message(reason, 'Não foi possível declarar a licença pública.'));
     } finally {
       this.saving.set(false);
     }
@@ -266,9 +267,14 @@ export class PlatformContentLicensesComponent {
   /** A date picked in the form is the start of that day in UTC; the server stores an instant. */
   private iso(day: string): string { return day + 'T00:00:00Z'; }
 
+  /** A public licence is approved only for what the owner declared; the approver can narrow it, never widen it. */
+  decidable(item: LicenseItem) {
+    return item.kind === 'PUBLIC_LICENSE' ? this.operations.filter(o => item.operations.includes(o.value)) : this.operations;
+  }
+
   act(item: LicenseItem, mode: 'DECIDE' | 'REVOKE') {
     this.acting.set({id: item.id, mode});
-    this.chosen.set([]);
+    this.chosen.set(mode === 'DECIDE' && item.kind === 'PUBLIC_LICENSE' ? [...item.operations] : []);
     this.error.set('');
     this.feedback.set('');
   }
@@ -314,6 +320,13 @@ export class PlatformContentLicensesComponent {
   }
 
   /** The server names the offending field(s) of a 422; show them instead of the generic hint. */
+  /** The server states which rule failed; show that text instead of the generic list when it is specific enough. */
+  private serverMessage(reason: unknown): string | null {
+    if (!(reason instanceof HttpErrorResponse) || reason.status !== 422) return null;
+    const text = reason.error?.message;
+    return typeof text === 'string' && text.length >= 20 ? text : null;
+  }
+
   private fieldProblem(reason: unknown): string | null {
     if (!(reason instanceof HttpErrorResponse) || reason.status !== 422) return null;
     const names: Record<string, string> = {
@@ -331,6 +344,8 @@ export class PlatformContentLicensesComponent {
     const status = reason instanceof HttpErrorResponse ? reason.status : 0;
     if (status === 404) return 'A gestão de licenças é exclusiva da equipe interna autorizada. Solicite o privilégio específico.';
     if (status === 403) return 'Confirme o acesso com o autenticador.';
+    const specific = this.serverMessage(reason);
+    if (specific) return specific;
     if (status === 422) return 'Confira fonte e edição já registradas, finalidade, referência, hash SHA-256 de 64 caracteres, datas, motivo (mín. 10 caracteres) e operações.';
     if (status === 428) return 'Informe a versão atual da licença.';
     return fallback;
