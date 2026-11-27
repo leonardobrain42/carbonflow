@@ -36,7 +36,33 @@
         <button class="cf-workspace-outline" type="button" (click)="selectStep('frota')">Consultar frota e comparáveis</button>
       }
       @case ('frota'){
-        <h4>Vínculos reais de frota e ratings por período</h4>
+        <section class="cf-journey-context" aria-labelledby="cf-ex-ante-title">
+          <h4 id="cf-ex-ante-title">Frota de referência ex ante (PD)</h4>
+          <p>Serve à fundamentação da linha de base no PD. Não depende de monitoramento, de MR nem de energia medida,
+            e não nomeia os veículos que usam a rede aberta.</p>
+          @if (exAnte();as ex){
+            <p role="status"><strong>{{labelState(ex.state)}}.</strong>
+              @if (ex.creditStart){Início de creditação: {{ex.creditStart}}.}</p>
+            @if (ex.current;as cur){
+              <dl class="cf-tech-capabilities">
+                <div><dt>Referência declarada</dt><dd>Versão {{cur.version}} · data {{cur.referenceDate}} · ano de observação {{cur.observationYear}}</dd></div>
+                <div><dt>Ciclo</dt><dd>{{cur.cycle}}</dd></div>
+                <div><dt>Identificador da referência</dt><dd><code>{{cur.selectionSha256}}</code></dd></div>
+                <div><dt>Versões registradas</dt><dd>{{ex.history.length}}</dd></div>
+              </dl>
+            }
+            @for (gap of ex.gaps;track gap.code){
+              <p class="cf-workspace-note">{{gap.code==='NO_EX_ANTE_REFERENCE_CONFIRMED'?'Ainda não há frota de referência vinculada a este projeto.':term(gap.code)}}
+                Responsável: {{gap.owner}}. Próxima ação: {{gap.nextAction}}</p>
+            }
+            @for (note of ex.notes;track note){<p>{{note}}</p>}
+          } @else if (statusOf('exAnte')==='restricted'){
+            <p role="status">Esta conta não tem acesso à frota de referência ex ante.</p>
+          } @else if (statusOf('exAnte')==='loading'){
+            <p role="status">Consultando a frota de referência…</p>
+          }
+        </section>
+        <h4>Vínculos reais de frota e ratings por período monitorado</h4>
         <p>Somente metadados de snapshots publicados para este projeto são mostrados.
           O catálogo EVR/Inmetro/PBEV é administrado por equipe autorizada, com licenças e pareceres próprios.</p>
         @if (!canViewMonitoring||!canViewFleet){
@@ -68,7 +94,7 @@
             </section>
           }
         } @else {
-          <p>Nenhum período MR consultável. Prepare o monitoramento para vincular uma frota à etapa de cálculo.</p>
+          <p>Nenhum período de monitoramento consultável. A referência ex ante acima não depende dele; o monitoramento só é necessário para o cálculo monitorado.</p>
         }
         @if (fleetGates().length){
           @for (gate of fleetGates();track gate.code){

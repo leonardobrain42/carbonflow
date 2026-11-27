@@ -253,6 +253,12 @@ export function monitoringGateTitle(code: string): string {
 }
 
 const TERMS: Record<string, string> = {
+  CREDIT_START_UNRESOLVED: 'O início de creditação do projeto ainda não está resolvido.',
+  CREDIT_START_CHANGED_OR_UNRESOLVED: 'O início de creditação mudou ou deixou de estar resolvido desde a seleção.',
+  FLEET_RATING_SOURCE_CHANGED: 'A fonte de frota ou de ratings mudou desde a seleção.',
+  FLEET_RATING_SOURCE_SUSPENDED_OR_STALE: 'A fonte de frota ou de ratings foi suspensa ou ficou desatualizada.',
+  FLEET_RATING_LICENSE_EXPIRED_OR_REVOKED: 'A licença de uso da fonte venceu ou foi revogada.',
+  SELECTION_VERSION_SUPERSEDED: 'Há uma versão mais recente da referência.',
   OPEN_CANDIDATE: 'Rede aberta candidata',
   PENDING_CONFIGURATION: 'Configuração pendente',
   EVIDENCE_PENDING: 'Prova ainda pendente',
