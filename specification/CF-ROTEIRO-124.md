@@ -45,4 +45,5 @@ O responsável solicitou correção da jornada após constatar ausência de vín
 
 ## Ampliação BL-DATA-01 — preparação em massa (26/11/2026)
 **Estado (rc.96):** BL-DATA-01C+D feito em backend, tela e ferramenta offline ([§7B](../docs/CF-OPEN-005-006-PIPELINE-FROTA-NACIONAL.md)), com [matriz de direitos](../docs/CF-OPEN-005-MATRIZ-DIREITOS-FROTA.md) e gate de importação; pendentes: postagem e aprovação independente das declarações, criação de modelo/alias a partir das decisões aceitas e retomada de lotes grandes.
+**Estado (rc.95):** BL-DATA-01A+B feito como ferramenta offline (`scripts/build_fleet_universe.py`, [§7A](../docs/CF-OPEN-005-006-PIPELINE-FROTA-NACIONAL.md)): universo 2026-09 reconciliado com o manifesto e candidatos PBEV automáticos; próximo: C (fila V108–110) e D (dry-run + decisões em lote).
 [Pipeline nacional EVR/PBEV](../docs/CF-OPEN-005-006-PIPELINE-FROTA-NACIONAL.md): P0 A–H, BD-T01–14. Priorizar A–D em paralelo a UX-08D.1/BL-EX; reaproveitar scripts offline e fila V108–110, aplicação autorizada de decisões humanas por lote. Sem cadastro unitário obrigatório, sem admissão automática ou MR fictício. Planejado.

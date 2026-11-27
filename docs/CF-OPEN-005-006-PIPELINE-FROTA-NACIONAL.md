@@ -116,6 +116,18 @@ Cada etapa apresenta fonte/versão, escopo e contadores autorizados, próximo pa
 
 Complementam BL-T01–17; não substituem #94/#95/#92 nem D19. Não foi executado teste nesta especificação. Entrega funcional depende de autorização de fontes, evidência de população, avaliações independentes e resolução dos contratos; manter flags PREPARATORY/usableForE8=false enquanto owners não admitirem. Não alterar código, dados, licenças ou revisão neste PR.
 
+## 7A. Estado de implementação — BL-DATA-01A+B (rc.95)
+
+Nível D17: **projeto/jurisdição (ferramenta offline de preparação)**; nenhuma tabela, API, migração ou regra de cálculo. `scripts/build_fleet_universe.py` lê o ZIP **inteiro** em streaming (uma passada, sem lista manual de modelos), confere SHA-256/tamanho/totais contra `source-manifest.json` e grava, **fora do Git**, `universe.jsonl.gz` (um registro por literal, com contagens por ano de fabricação, nº de linhas e de rótulos de UF), `candidates.json`, lotes `alias-candidates-import-NNN.json` (≤ 500 itens, contrato de `FleetAliasCandidates`), CSVs `stock-candidates-NNN.csv` (≤ 2000 linhas, parser tabular) e `universe-manifest.json`.
+
+**Execução real (2026-09, medida):** ZIP 136.926.215 bytes e SHA-256 conferem com o manifesto; TXT 1.219.605.816 bytes; **22.849.046 linhas e 136.424.856 veículos registrados reconciliam exatamente**; 40.571 literais distintos; 53 s e 96 MB de memória de pico. Classes: 116 `PBEV_EXACT_CANDIDATE` (321.764 registrados), 210 `PBEV_MODEL_ONLY_CANDIDATE` (174.613), 1 `PBEV_AMBIGUOUS_CANDIDATE` (14), 40.244 `UNKNOWN_NO_PBEV_MATCH` (135.928.465). Rótulos desconhecidos preservados: UF "Sem Informação" 3.086.937; ano de fabricação "Sem Informação" 3.657.524, "Não Identificado" 62. Três colisões de `record_key` (6 literais) ficam **fora** do CSV e listadas, nunca mescladas.
+
+**Limites que valem para qualquer leitura dos números:**
+- Quantidades são **registrados**, não circulação nem BEV elegível; a soma dos candidatos **não é denominador EVR**.
+- A fonte não tem propulsão. Candidato = correspondência de nome com o PBEV elétrico. **O `MODEL_ONLY` traz homônimos a combustão** (Mégane 81.927, Kangoo 30.424, Cooper 20.341 registrados: versões antigas a combustão que compartilham o nome do elétrico); só revisão decide. `UNKNOWN` não significa "não elétrico".
+- Nenhum alias, classe, peso ou cobertura foi aprovado; `usableForE8=false`. Os CSVs são parciais (candidatos), não snapshot completo (BD-T07).
+- Dados brutos e derivados do RENAVAM/PBEV **não** são versionados; direitos de processamento (#92) seguem a decidir pelo responsável. Somente contagens agregadas estão neste documento.
+- Cobertura: BD-T01 (manifesto/hash/totais/erros), BD-T02 (limites e ZIP bomb em teste; tempo/memória medidos acima), BD-T03 (universo sem lista, desconhecidos preservados, sem join por município) e BD-T04 parcial (EXACT/MODEL_ONLY/AMBIGUOUS/NONE; matcher indexado testado equivalente ao `match_senatran_pbev`). Fila C/D (V108–110) não é tocada.
 ## 7B. Estado de implementação — BL-DATA-01C+D (rc.96)
 
 Nível D17: **plataforma** (gate e fila) sobre **programa/jurisdição** (fontes). V119 aditiva: metadados das duas fontes e a coluna `senatran_source_sha256` em cada candidato. Direitos: [matriz](CF-OPEN-005-MATRIZ-DIREITOS-FROTA.md). Reuso: fila V108–110 e licenças V107/V112; nenhum motor paralelo.
