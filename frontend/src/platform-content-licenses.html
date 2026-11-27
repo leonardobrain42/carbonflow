@@ -93,7 +93,19 @@
         <section class="cf-workspace-card cf-platform-source-form-card" aria-labelledby="cf-public-title">
           <h2 id="cf-public-title">Declarar licença pública (responsável pelo produto)</h2>
           <p class="cf-platform-meta">Para fontes publicadas sob licença pública (por exemplo, CC BY-ND 3.0). A declaração interna <strong>não é aprovação independente</strong>: fica registrada com o fundamento de cada operação e só vale como aprovada depois da decisão de outra pessoa. Sem prazo fixo: a vigência começa na data da captura da evidência, salvo disponibilização anterior comprovada.</p>
+          <div class="cf-platform-source-form">
+            <label for="cf-pub-json">Carregar declaração preparada (JSON)</label>
+            <textarea #declaration id="cf-pub-json" rows="4" placeholder="Cole o conteúdo de docs/data/renavam-license-declaration.json ou pbev-license-declaration.json"></textarea>
+            <button type="button" class="cf-workspace-outline" (click)="loadDeclaration(declaration)">Carregar no formulário</button>
+            <p class="cf-platform-meta">Só preenche os campos abaixo; nada é enviado até você revisar e declarar.</p>
+          </div>
           <form (submit)="declarePublic($event)" class="cf-platform-source-form">
+            <label for="cf-pub-licence">Licença pública</label>
+            <select id="cf-pub-licence" (change)="editPublic('licenseIdentifier', $event)">
+              @for (option of publicLicenses; track option.value) {
+                <option [value]="option.value" [selected]="publicForm()['licenseIdentifier'] === option.value">{{ option.label }}</option>
+              }
+            </select>
             <label for="cf-pub-source">Código da fonte licenciada</label>
             <input id="cf-pub-source" type="text" required maxlength="120" [value]="publicForm()['sourceId']" (input)="editPublic('sourceId', $event)"/>
             <label for="cf-pub-edition">Versão publicada da fonte</label>
@@ -108,8 +120,8 @@
             <input id="cf-pub-legal" type="text" required maxlength="64" pattern="[0-9a-fA-F]{64}" [value]="publicForm()['legalTextSha256']" (input)="editPublic('legalTextSha256', $event)"/>
             <label for="cf-pub-basis">Critério de partida da vigência</label>
             <select id="cf-pub-basis" (change)="editPublic('startsAtBasis', $event)">
-              <option value="CAPTURE_DATE">Data da captura</option>
-              <option value="PROVEN_AVAILABILITY">Disponibilização anterior comprovada</option>
+              <option value="CAPTURE_DATE" [selected]="publicForm()['startsAtBasis'] === 'CAPTURE_DATE'">Data da captura</option>
+              <option value="PROVEN_AVAILABILITY" [selected]="publicForm()['startsAtBasis'] === 'PROVEN_AVAILABILITY'">Disponibilização anterior comprovada</option>
             </select>
             <label for="cf-pub-starts">Vigência a partir de (ISO-8601)</label>
             <input id="cf-pub-starts" type="text" required [value]="publicForm()['startsAt']" (input)="editPublic('startsAt', $event)"/>

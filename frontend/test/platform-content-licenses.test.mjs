@@ -182,3 +182,55 @@ test('D19 estendida: licença pública declarada pelo responsável não aparece 
     await browser.close();
   }
 });
+
+test('Licença pública: carregar declaração preparada preenche o formulário, não envia e recusa o que a plataforma não modela', async () => {
+  const browser = await chromium.launch({executablePath});
+  try {
+    const page = await browser.newPage({viewport:{width:1280,height:900}});
+    const state = await setup(page);
+    const posts = [];
+    await page.route('**/v1/platform/source-licenses/public', async route => {
+      posts.push(route.request().postDataJSON());
+      return route.fulfill({status:422,json:{code:'FONTE_INEXISTENTE',message:'x'}});
+    });
+    await unlock(page);
+    const declaration = {sourceId:'SENATRAN-RENAVAM-FROTA',edition:'2026-09-005963d4',purpose:'AUTHORIZED_PROCESSING',
+      licenseIdentifier:'PUBLIC-DOMAIN-DECLARED',legalTextSha256:'df'.repeat(32),evidenceUri:'https://dados.transportes.gov.br/dataset/x',
+      evidenceCapturedAt:'2026-11-27T01:11:00Z',evidenceSha256:'df'.repeat(32),startsAt:'2026-11-27T01:11:00Z',
+      startsAtBasis:'CAPTURE_DATE',endsAt:null,reason:'Declaração oficial do portal (other-pd).',
+      operations:[{operation:'STORE_ORIGINAL',groundKind:'LICENSE_GRANT',grounds:'Domínio público declarado pelo portal.'},
+                  {operation:'EXTRACT_TEXT',groundKind:'LICENSE_GRANT',grounds:'Extração dos fatos agregados com proveniência.'}]};
+    // Malformed, unknown licence and unknown operation are refused; nothing changes in the form.
+    await page.getByLabel('Carregar declaração preparada (JSON)').fill('não é json');
+    await page.getByRole('button',{name:'Carregar no formulário'}).click();
+    await page.getByRole('alert').getByText('não é um JSON válido',{exact:false}).waitFor();
+    await page.getByLabel('Carregar declaração preparada (JSON)').fill(JSON.stringify({...declaration,licenseIdentifier:'CC-BY-4.0'}));
+    await page.getByRole('button',{name:'Carregar no formulário'}).click();
+    await page.getByRole('alert').getByText('fora do que a plataforma modela',{exact:false}).waitFor();
+    await page.getByLabel('Carregar declaração preparada (JSON)').fill(JSON.stringify({...declaration,
+      operations:[{operation:'MODEL_INFERENCE',groundKind:'LICENSE_GRANT',grounds:'Operação que não foi solicitada aqui.'}]}));
+    await page.getByRole('button',{name:'Carregar no formulário'}).click();
+    await page.getByRole('alert').getByText('fora do que a plataforma modela',{exact:false}).waitFor();
+    assert.equal(await page.getByLabel('Código da fonte licenciada').inputValue(),'');
+
+    // A valid declaration fills every field, selects the licence and marks only its operations; nothing is posted.
+    await page.getByLabel('Carregar declaração preparada (JSON)').fill(JSON.stringify(declaration));
+    await page.getByRole('button',{name:'Carregar no formulário'}).click();
+    await page.getByRole('status').getByText('Nada foi enviado',{exact:false}).waitFor();
+    assert.equal(await page.getByLabel('Código da fonte licenciada').inputValue(),'SENATRAN-RENAVAM-FROTA');
+    assert.equal(await page.getByLabel('Licença pública',{exact:true}).inputValue(),'PUBLIC-DOMAIN-DECLARED');
+    assert.equal(await page.getByRole('checkbox',{name:'Guardar a cópia original'}).isChecked(),true);
+    assert.equal(await page.getByRole('checkbox',{name:'Extrair dados da fonte'}).isChecked(),true);
+    assert.equal(await page.getByRole('checkbox',{name:'Redistribuir derivados'}).isChecked(),false);
+    assert.equal(posts.length,0);
+
+    // Submitting sends exactly the loaded licence and operations.
+    await page.getByRole('button',{name:'Declarar licença pública'}).click();
+    await page.getByRole('alert').getByText('não estão registradas neste banco',{exact:false}).waitFor();
+    assert.equal(posts.length,1);
+    assert.equal(posts[0].licenseIdentifier,'PUBLIC-DOMAIN-DECLARED');
+    assert.deepEqual(posts[0].operations.map(o => o.operation).sort(),['EXTRACT_TEXT','STORE_ORIGINAL']);
+  } finally {
+    await browser.close();
+  }
+});

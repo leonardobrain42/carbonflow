@@ -5,7 +5,7 @@ Data: 27/11/2026 · Nível D17: **programa/jurisdição** (fontes da frota brasi
 **O que este documento é:** o registro fundamentado, por operação, do que cada fonte permite. **O que não é:** parecer jurídico, aprovação independente, admissão de dados, cobertura nacional ou habilitação do E8. A autorização do responsável (27/11/2026) cobre o registro dos direitos incontroversos e a elaboração desta matriz; o que não está suficientemente fundamentado **permanece bloqueado**.
 
 ## Como o registro funciona (reuso do D19)
-1. O responsável posta a declaração (`docs/data/*-license-declaration.json`) em `POST /v1/platform/source-licenses/public`. Resultado: `DECLARED_INTERNAL`, que **nenhum consumidor aceita**.
+1. O responsável abre a tela **Licenças** (`/workspace/platform/licenses`), cola o conteúdo de `docs/data/*-license-declaration.json` em "Carregar declaração preparada (JSON)", revisa os campos e clica em "Declarar licença pública" (a tela chama `POST /v1/platform/source-licenses/public`; carregar não envia nada). Resultado: `DECLARED_INTERNAL`, que **nenhum consumidor aceita**.
 2. **Outra pessoa** aprova (`APPROVED`, dupla custódia). Só então o gate de importação da fila de candidatos (`EXTRACT_TEXT` nas duas fontes) libera.
 3. As fontes constam do catálogo de metadados pela migração V119 (sem bytes nem valores); a edição inclui o prefixo do SHA-256.
 
