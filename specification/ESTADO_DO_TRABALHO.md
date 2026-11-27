@@ -44,3 +44,18 @@ O corte acima é anterior a estes PRs; esta seção só acrescenta o que eles en
 | Fila de candidatos de alias (V108), tela e plano de cadastro dos aceitos | [CF-OPEN-005-EVR-STOCK-BR](../docs/CF-OPEN-005-EVR-STOCK-BR.md) | Aceitar não cria modelo nem alias; listas de importadores e revisores sem responsáveis definidos; classe e propulsão ficam com pessoas |
 | Dossiês SIN/MCTI e créditos concorrentes; minuta de consulta ao MCTI | [CF-DATA-003](../docs/CF-DATA-003-SIN-MCTI-DOSSIE.md), [CF-DATA-004](../docs/CF-DATA-004-CREDITOS-CONCORRENTES-MATRIZ.md), [consulta](../docs/CF-DATA-003-CONSULTA-MCTI.md) | Só leitura: nenhuma fonte admitida; **consulta não enviada**; registros (Verra, Gold Standard, MDL) não lidos |
 
+
+## Adendo de diagnóstico UX (26/11/2026, corte cc25f64b85900fdba6be115bb0f8bf764f0e6d4b)
+EVR/ratings: catálogo, aliases/classificação, snapshots e publicação V64 existem; V64 exige energia e período e a etapa EVR lê MR. Falta seleção ex ante independente, fonte nacional e ratings/pares reais admissíveis. O responsável informa revisão interna de combustível concluída localmente, independente pendente; não verificado no banco. Plano P0 [frota e baseline ex ante](../docs/CF-UX-TECH-001-FROTA-BASELINE-EX-ANTE.md) preserva V64 e gates. Status DOCUMENTADO/PLANEJADO, sem implementação ou homologação neste adendo.
+
+## Adendo de diagnóstico — premissas e adicionalidade (26/11/2026)
+V68 e V94 já existem, mas plano IR textual e guia de cenário não conciliam refs. V72–74 têm partes/contratos/eventos e PDF, sem prova automática. V100 tem parecer independente por critério, sem UI de gravação no workbench e contexto limitado à declaração/guia. PdTrace é proveniência, não composição. [Especificação PT](../docs/CF-UX-TECH-001-PREMISSAS-ADICIONALIDADE-PD.md) planejada; sem teste, admissão ou mudança de implementação.
+
+## Adendo UX — guias e inventário (26/11/2026)
+V68 contém seis guias; baseline/additionality também são renderizados nos workbenches. Capturas mostram 1 carregador/0 medidores; não confirmam estado do banco. open-monitoring.html usa siteCode textual, timestamps textuais e indicadores ED/EC fixos. V69 já permite prova SITE/CHARGER. [Especificação PT-09–16](../docs/CF-UX-TECH-001-GUIAS-FRONTEIRA-J04-J05.md) planejada, J04/J05 e consolidação dos guias; auditoria integral de monitoramento, quantificação e documentos pendente.
+
+## Adendo UX — operação, quantificação e documentos (26/11/2026)
+Oito capturas legíveis; QA de 1×1 analisado pelo código. V53–V59 e contratos de admissão, E8 runs internos e consulta anual existentes; UI usa fallback M1 e diagnóstico repetitivo. PdSections/PdReviews e prévia JSON existentes, sem PD completo. [PT-17–26](../docs/CF-UX-TECH-001-MONITORAMENTO-QUANTIFICACAO-REVISAO.md) planejados, com central documental/revisão/exportação; autoria aprofundada PT-24 reservada. Não se afirma execução, homologação ou admissão normativa.
+
+## Adendo UX — editor PD fundamentado (26/11/2026)
+PdSections salva narrativa e guideVersion, possui consultas contextuais de run exato, pinos, energia, frota e memória; consulta não fixa ClaimSupport. [PT-24A–J](../docs/CF-UX-TECH-001-REDIGIR-PD-AUTORIA-FUNDAMENTADA.md) especificada, com biblioteca por seção, blocos derivados, alegações, consistência, versões e IA opcional. Reserva documental concluída; entrega funcional e marco #122 permanecem abertos. Sem homologação.

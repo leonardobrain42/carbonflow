@@ -1,4 +1,14 @@
 # Changelog da especificação viva
+## Adendo documental — Redigir PD e autoria fundamentada (26/11/2026, planejado)
+- [PT-24A–J](../docs/CF-UX-TECH-001-REDIGIR-PD-AUTORIA-FUNDAMENTADA.md), 11 SVG, PT-T52–79; reserva anterior atendida em especificação; autoria manual P0, IA P1 opcional nesta fatia. Sem código, testes ou alteração de gate.
+## Adendo documental — monitoramento, quantificação e revisão (26/11/2026, planejado)
+- [PT-17–26](../docs/CF-UX-TECH-001-MONITORAMENTO-QUANTIFICACAO-REVISAO.md), 11 SVG e PT-T34–51. PT-24 autoria aprofundada reservada; QA visual ilegível, contratos analisados, nenhum teste funcional ou guarda alterada.
+## Adendo documental — guias, fronteira e J04/J05 (26/11/2026, planejado)
+- [PT-09–16](../docs/CF-UX-TECH-001-GUIAS-FRONTEIRA-J04-J05.md), nove SVG e PT-T19–33. Auditoria limitada às capturas de guias e inventário, demais telas de monitoramento, quantificação e documentação pendentes. Sem alteração de código ou gates.
+## Adendo documental — premissas, adicionalidade e PD (26/11/2026, planejado)
+- Contrato [PT](../docs/CF-UX-TECH-001-PREMISSAS-ADICIONALIDADE-PD.md) com oito SVG, PT-T01–18, V68/V94, V72–74, V100 e composição #43/#122; sem código, migração, dado ou gate alterado. Anexo adicional de 1×1 ilegível; inspeção baseada no código.
+## Adendo documental — UX de frota/PD ex ante (26/11/2026, planejado)
+- Especificação [CF-UX-TECH-001-FROTA-BASELINE-EX-ANTE](../docs/CF-UX-TECH-001-FROTA-BASELINE-EX-ANTE.md), quatro mockups/diagramas SVG e critérios BL-T01–17. Prioridade P0 #124/#40, V64 monitorada preservada, sem migração, API, dado, revisão ou guarda alterados. Não numera release para evitar conflito com desenvolvimento paralelo.
 ## 0.3.0-rc.92 — 26/11/2026 (proposta)
 - **Roteiro #124, Q13 (D21), passo 2a: declaração da transição do fator fóssil no IR.** Nível D17: projeto. Migração aditiva **V117** (`app_open_ir_fuel_transition`, imutável). Campo opcional `fuelTransition` (ato normativo e local da evidência, declarados) no comando de IR; o servidor calcula o conjunto de entradas dos pinos do ano e só aceita com duas ou mais entradas do mesmo combustível, parâmetro, gás e escopo (senão 409). Hash do comando sem declaração inalterado; com declaração, `OPEN-IR-COMMAND@2`.
 - **Limites:** **nenhuma guarda relaxada**; o reuso intra-ano e a consolidação anual seguem iguais (passo 2b). Nada admitido. A suíte `OpenIrTwoPeriodIntegrationTest` falha ao ser reexecutada em banco já usado (chave de `app_content_license_decision`), preexistente e não relacionada; passa em banco novo.

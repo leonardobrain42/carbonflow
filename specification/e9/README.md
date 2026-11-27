@@ -14,3 +14,14 @@ Distinguir papel previsto, pessoa, poder e grant; estado ausente vs zero; inform
 
 ## D17 — Jornada de referência
 A [jornada canônica J01–J07](../CF-JOURNEY-001.md) passa a orientar navegação, schemas, tarefas, documentos e critérios de aceite. As telas e grupos atuais são projeções do recorte OPEN; não substituem as sete macroetapas nem se tornam obrigatórios em outros métodos. Preserve D16, deep links, owners e dependências paralelas. #19/#124/#27/#7 fazem transição incremental; #41 aprofunda J04/J05.
+
+## Linha de base ex ante (P0, 26/11/2026)
+- [Especificação detalhada e mockups](../../docs/CF-UX-TECH-001-FROTA-BASELINE-EX-ANTE.md): etapa EVR/comparáveis contextual, seleção ex ante sem MR, cobertura e estados, autorização e handoff monitorado; complementa UX-08D/#124 e #40. Não implementado por este adendo.
+
+- [Premissas, adicionalidade, direitos, revisão e composição documental](../../docs/CF-UX-TECH-001-PREMISSAS-ADICIONALIDADE-PD.md): complemento à seleção de frota ex ante; PT-01–08, PT-QA e 18 aceites planejados.
+
+- [Consolidação de guias, fronteira, sustentabilidade e planejamento](../../docs/CF-UX-TECH-001-GUIAS-FRONTEIRA-J04-J05.md): complemento P0 da #124; nove figuras e PT-T19–33; sem auditoria integral das telas operacionais/documentais.
+
+- [Monitoramento, quantificação e revisão](../../docs/CF-UX-TECH-001-MONITORAMENTO-QUANTIFICACAO-REVISAO.md): detalha PT-13–16, PT-17–26; PT-24 editor e insumos reservados. QA visual ilegível, análise do código; sem implementação.
+
+- [PT-24 — autoria fundamentada do PD](../../docs/CF-UX-TECH-001-REDIGIR-PD-AUTORIA-FUNDAMENTADA.md): editor híbrido, biblioteca contextual, blocos/claims, consistência, diffs, IA opcional, 11 figuras e 28 aceites planejados.
