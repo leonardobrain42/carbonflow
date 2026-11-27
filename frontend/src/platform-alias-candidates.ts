@@ -248,6 +248,8 @@ export class PlatformAliasCandidatesComponent {
     const status = reason instanceof HttpErrorResponse ? reason.status : 0;
     if (status === 404) return 'A fila de candidatos é exclusiva da equipe interna autorizada. Solicite o privilégio específico.';
     if (status === 403) return 'Confirme o acesso com o autenticador.';
+    const specific = reason instanceof HttpErrorResponse ? reason.error?.message : null;
+    if (status === 422 && typeof specific === 'string' && specific.length >= 20) return specific; // the server names the failing field
     if (status === 422) return 'Confira o lote (período AAAA-MM, SHA-256 do PBEV, nomes, chaves, níveis e linhas) ou, na decisão, a linha escolhida e o motivo (mín. 10 caracteres).';
     return fallback;
   }

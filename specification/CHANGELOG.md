@@ -1,4 +1,6 @@
 # Changelog da especificação viva
+## 0.3.0-rc.101 — 27/11/2026 (proposta)
+- **Fila de candidatos de alias: mensagens de erro específicas.** Nível D17: plataforma. Os 422 da importação e das decisões deixam de ser uma lista genérica e dizem qual campo falhou (período, SHA-256 do PBEV ou da Senatran, itens, nome repetido, chave, nível, motivo, linhas do PBEV, linha escolhida, desfecho, base), com o número do item no lote; a tela mostra a mensagem do servidor. Lotes gerados antes da exigência do SHA-256 da Senatran são orientados a gerar de novo. Sem migração, sem mudança de regra.
 ## 0.3.0-rc.100 — 27/11/2026 (proposta)
 - **BL-DATA-01D: aplicação em lote dos candidatos aceitos ao catálogo.** Nível D17: plataforma (catálogo) sobre jurisdição. V121 aditiva. `POST /v1/platform/fleet/alias-candidates/applications[/dry-run]`: modelo (reuso ou criação, pendente) e alias exato; classificação só com classe, propulsão, evidência e motivo do item; diff exato no dry-run, idempotência e retomada por candidato, conflitos listados sem sobrescrever, lote tudo-ou-nada, `usableForE8=false`. `prepare_alias_review.py applications`. Decisão D24. Sem tela; importação real segue condicionada às licenças.
 ## 0.3.0-rc.99 — 27/11/2026 (proposta)

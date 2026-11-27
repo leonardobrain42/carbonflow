@@ -295,6 +295,14 @@ class FleetAliasCandidatesIntegrationTest {
         assertEquals(before, count("app_fleet_alias_candidate"));
         assertEquals(404, call("POST", API + "/dry-run", other, null, body).statusCode());
         assertEquals(422, call("POST", API + "/dry-run", importer, null, body.replace(sen, "curto")).statusCode());
+        // The 422 names the failing field instead of one generic list.
+        var noSen = call("POST", API + "/dry-run", importer, null, body.replace(sen, "curto"));
+        assertEquals("senatranSourceSha256", json.readTree(noSen.body()).path("issues").get(0).path("path").asText(), noSen.body());
+        assertTrue(json.readTree(noSen.body()).path("message").asText().contains("SHA-256 da Senatran"), noSen.body());
+        var noPeriod = json.readTree(call("POST", API + "/dry-run", importer, null, body.replaceFirst("\"observationPeriod\":\"[^\"]*\"", "\"observationPeriod\":\"2026-13\"")).body());
+        assertTrue(noPeriod.path("message").asText().contains("AAAA-MM"), noPeriod.toString());
+        var badLevel = json.readTree(call("POST", API + "/dry-run", importer, null, body.replaceFirst("\"level\":\"[A-Z_]*\"", "\"level\":\"QUASE\"")).body());
+        assertTrue(badLevel.path("message").asText().contains("Item 1") && badLevel.path("message").asText().contains("EXACT, MODEL_ONLY ou AMBIGUOUS"), badLevel.toString());
         assertEquals(422, call("POST", API, importer, null, body.replace(",\"senatranSourceSha256\":\"" + sen + "\"", "")).statusCode());
 
         // One source approved is not enough; nor a self-approval, a revoked licence or an expired one.

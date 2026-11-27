@@ -119,7 +119,8 @@ class FleetAliasCandidates {
     }
 
     List<Candidate> list(String token, String state) {
-        if (state != null && !Set.of("PENDING", "ACCEPTED", "REJECTED").contains(state)) throw invalid("state");
+        if (state != null && !Set.of("PENDING", "ACCEPTED", "REJECTED").contains(state))
+            throw invalid("state", "O filtro de estado deve ser PENDING, ACCEPTED ou REJECTED.");
         return database.transaction(c -> {
             var actor = staff.require(c, token);
             if (!importers.contains(actor.id()) && !reviewers.contains(actor.id()) && !owners.contains(actor.id())) throw hidden();
@@ -129,16 +130,24 @@ class FleetAliasCandidates {
     }
 
     private void validateBatch(ImportInput input) {
-        if (input == null || input.observationPeriod() == null
-                || !input.observationPeriod().matches("[0-9]{4}-(0[1-9]|1[0-2])")
-                || input.pbevSourceSha256() == null || !input.pbevSourceSha256().matches("[a-f0-9]{64}")
-                || input.senatranSourceSha256() == null || !input.senatranSourceSha256().matches("[a-f0-9]{64}")
-                || input.items() == null || input.items().isEmpty() || input.items().size() > MAX_ITEMS)
-            throw invalid("lote");
+        if (input == null) throw invalid("lote", "O corpo do lote está vazio. Envie observationPeriod, pbevSourceSha256, senatranSourceSha256 e items.");
+        if (input.observationPeriod() == null || !input.observationPeriod().matches("[0-9]{4}-(0[1-9]|1[0-2])"))
+            throw invalid("observationPeriod", "O período (observationPeriod) precisa estar no formato AAAA-MM, por exemplo 2026-09.");
+        if (input.pbevSourceSha256() == null || !input.pbevSourceSha256().matches("[a-f0-9]{64}"))
+            throw invalid("pbevSourceSha256", "Falta o SHA-256 do PBEV (pbevSourceSha256): 64 caracteres hexadecimais minúsculos.");
+        if (input.senatranSourceSha256() == null || !input.senatranSourceSha256().matches("[a-f0-9]{64}"))
+            throw invalid("senatranSourceSha256", "Falta o SHA-256 da Senatran (senatranSourceSha256): 64 caracteres hexadecimais minúsculos. "
+                    + "Lotes gerados antes dessa exigência devem ser gerados de novo com prepare_alias_review.py prepare.");
+        if (input.items() == null || input.items().isEmpty() || input.items().size() > MAX_ITEMS)
+            throw invalid("items", "O lote precisa ter de 1 a " + MAX_ITEMS + " itens; este tem " + (input.items() == null ? 0 : input.items().size())
+                    + ". Divida em lotes menores.");
         var seen = new HashSet<String>();
+        int number = 0;
         for (var item : input.items()) {
-            validate(item);
-            if (!seen.add(item.literalName().strip())) throw invalid("literalName");
+            number++;
+            validate(item, number);
+            if (!seen.add(item.literalName().strip())) throw invalid("literalName",
+                    "O nome \"" + item.literalName().strip() + "\" aparece mais de uma vez no lote (item " + number + ").");
         }
     }
 
@@ -215,7 +224,7 @@ class FleetAliasCandidates {
                             item.recordKey(), item.level(), input.pbevSourceSha256(), mapper.writeValueAsString(item.matches()),
                             item.reason().strip(), actor.id(), input.senatranSourceSha256());
                 } catch (JsonProcessingException ex) {
-                    throw invalid("matches");
+                    throw invalid("matches", "Não foi possível gravar as linhas do PBEV de " + item.literalName().strip() + ".");
                 }
                 created += rows;
             }
@@ -237,10 +246,12 @@ class FleetAliasCandidates {
     /** Never writes. Throws the same problems a real decision would. Matching of names alone never decides anything. */
     private Candidate checkDecision(java.sql.Connection c, UUID actor, UUID id, DecisionInput input) throws SQLException {
         String basis = input == null || input.basis() == null ? "INDEPENDENT" : input.basis();
-        if (!BASES.contains(basis)) throw invalid("basis");
-        if (input == null || input.outcome() == null || !Set.of("ACCEPTED", "REJECTED").contains(input.outcome())
-                || input.reason() == null || input.reason().isBlank() || input.reason().strip().length() < 10
-                || input.reason().strip().length() > 1000) throw invalid("decisao");
+        if (!BASES.contains(basis)) throw invalid("basis", "A base da decisão deve ser INDEPENDENT ou OWNER_INTERNAL.");
+        if (input == null || input.outcome() == null || !Set.of("ACCEPTED", "REJECTED").contains(input.outcome()))
+            throw invalid("outcome", "O desfecho deve ser ACCEPTED (aceitar) ou REJECTED (rejeitar).");
+        if (input.reason() == null || input.reason().isBlank() || input.reason().strip().length() < 10
+                || input.reason().strip().length() > 1000)
+            throw invalid("reason", "O motivo da decisão precisa ter de 10 a 1000 caracteres.");
         UUID importer = first(c, "SELECT imported_by FROM app_fleet_alias_candidate WHERE id=? FOR UPDATE",
                 r -> r.getObject(1, UUID.class), id);
         if (importer == null) throw new PilotProblem(404, "CANDIDATO_INEXISTENTE", "id", RULE, "Candidato não encontrado.");
@@ -254,14 +265,16 @@ class FleetAliasCandidates {
                 "Quem importou o candidato não pode decidir como revisor independente. Use a decisão interna do responsável, se for o seu papel.");
         if (input.outcome().equals("ACCEPTED")) {
             if (input.selectedPbevLine() == null || current.matches().stream()
-                    .noneMatch(m -> input.selectedPbevLine().equals(m.pbevLine()))) throw invalid("selectedPbevLine");
+                    .noneMatch(m -> input.selectedPbevLine().equals(m.pbevLine())))
+                throw invalid("selectedPbevLine", "Para aceitar, escolha uma das linhas do PBEV oferecidas por este candidato.");
             if (!current.level().equals("EXACT")) {
                 var acknowledged = input.acknowledgedRisks() == null ? Set.<String>of() : new HashSet<>(input.acknowledgedRisks());
                 var pending = current.risks().stream().map(Risk::code).filter(code -> !acknowledged.contains(code)).toList();
                 if (!pending.isEmpty()) throw new PilotProblem(422, "RISCOS_NAO_RECONHECIDOS", "acknowledgedRisks", RULE,
                         "Aceitar um candidato " + current.level() + " exige reconhecer cada risco: " + String.join(", ", pending) + ".");
             }
-        } else if (input.selectedPbevLine() != null) throw invalid("selectedPbevLine");
+        } else if (input.selectedPbevLine() != null)
+            throw invalid("selectedPbevLine", "Ao rejeitar, não informe linha do PBEV.");
         return current;
     }
 
@@ -282,11 +295,12 @@ class FleetAliasCandidates {
             var actor = staff.require(c, token);
             if (!reviewers.contains(actor.id()) && !owners.contains(actor.id())) throw hidden();
             if (input == null || input.items() == null || input.items().isEmpty() || input.items().size() > MAX_BULK)
-                throw invalid("lote");
+                throw invalid("items", "O lote de decisões precisa ter de 1 a " + MAX_BULK + " itens; este tem "
+                        + (input == null || input.items() == null ? 0 : input.items().size()) + ".");
             var results = new java.util.ArrayList<ItemResult>();
             var ids = new HashSet<UUID>();
             for (var item : input.items()) {
-                if (item == null || item.candidateId() == null) throw invalid("candidateId");
+                if (item == null || item.candidateId() == null) throw invalid("candidateId", "Todo item de decisão precisa do candidateId.");
                 if (!ids.add(item.candidateId())) {
                     results.add(new ItemResult(item.candidateId(), false, "CANDIDATO_REPETIDO", "Candidato repetido no lote."));
                     continue;
@@ -314,19 +328,28 @@ class FleetAliasCandidates {
         });
     }
 
-    private static void validate(Item item) {
-        if (item == null || item.literalName() == null || item.literalName().isBlank()
-                || item.literalName().strip().length() > 200
-                || item.recordKey() == null || !item.recordKey().matches("[A-Za-z0-9][A-Za-z0-9._-]{0,99}")
-                || item.level() == null || !LEVELS.contains(item.level())
-                || item.reason() == null || item.reason().isBlank() || item.reason().strip().length() > 500
-                || item.matches() == null || item.matches().isEmpty() || item.matches().size() > 50)
-            throw invalid("item");
+    private static void validate(Item item, int number) {
+        String where = "Item " + number + (item == null || item.literalName() == null ? "" : " (" + item.literalName().strip() + ")") + ": ";
+        if (item == null) throw invalid("item", where + "item vazio.");
+        if (item.literalName() == null || item.literalName().isBlank() || item.literalName().strip().length() > 200)
+            throw invalid("literalName", where + "o nome literal (literalName) é obrigatório e tem no máximo 200 caracteres.");
+        if (item.recordKey() == null || !item.recordKey().matches("[A-Za-z0-9][A-Za-z0-9._-]{0,99}"))
+            throw invalid("recordKey", where + "a chave (recordKey) usa letras, números, ponto, hífen ou sublinhado, sem espaço, até 100 caracteres.");
+        if (item.level() == null || !LEVELS.contains(item.level()))
+            throw invalid("level", where + "o nível (level) deve ser EXACT, MODEL_ONLY ou AMBIGUOUS.");
+        if (item.reason() == null || item.reason().isBlank() || item.reason().strip().length() > 500)
+            throw invalid("reason", where + "o motivo do casamento (reason) é obrigatório e tem no máximo 500 caracteres.");
+        if (item.matches() == null || item.matches().isEmpty() || item.matches().size() > 50)
+            throw invalid("matches", where + "informe de 1 a 50 linhas do PBEV (matches).");
         var lines = new HashSet<Integer>();
-        for (var match : item.matches())
-            if (match == null || match.brand() == null || match.brand().isBlank() || match.model() == null
-                    || match.model().isBlank() || match.pbevLine() == null || match.pbevLine() < 1
-                    || !lines.add(match.pbevLine())) throw invalid("matches");
+        for (var match : item.matches()) {
+            if (match == null || match.brand() == null || match.brand().isBlank() || match.model() == null || match.model().isBlank())
+                throw invalid("matches", where + "toda linha do PBEV precisa de marca (brand) e modelo (model).");
+            if (match.pbevLine() == null || match.pbevLine() < 1)
+                throw invalid("matches", where + "toda linha do PBEV precisa do número da linha (pbevLine), a partir de 1.");
+            if (!lines.add(match.pbevLine()))
+                throw invalid("matches", where + "a linha " + match.pbevLine() + " do PBEV aparece repetida.");
+        }
     }
 
     private List<Candidate> load(java.sql.Connection c, UUID only, String state) throws SQLException {
@@ -358,8 +381,7 @@ class FleetAliasCandidates {
                 "Candidatos de alias não disponíveis para este perfil.");
     }
 
-    private static PilotProblem invalid(String field) {
-        return PilotProblem.invalid("CANDIDATO_INVALIDO", field, RULE,
-                "Confira período (AAAA-MM), SHA-256 do PBEV, nomes, chave, nível, linhas do PBEV, motivo (mín. 10 caracteres na decisão), a linha escolhida e a base (INDEPENDENT ou OWNER_INTERNAL).");
+    private static PilotProblem invalid(String field, String message) {
+        return PilotProblem.invalid("CANDIDATO_INVALIDO", field, RULE, message);
     }
 }
