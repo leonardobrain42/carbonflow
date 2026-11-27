@@ -118,3 +118,5 @@ Inventário de 94 arquivos em docs/ (86 no corte `507bf268d6955cd0c317d2ff404a90
 - [CF-UX-TECH-001-PREMISSAS-ADICIONALIDADE-PD](../docs/CF-UX-TECH-001-PREMISSAS-ADICIONALIDADE-PD.md) — complemento P0, figuras em [preparacao-tecnica](../docs/ux/figures/preparacao-tecnica), oito SVG, matriz de aceite.
 
 - [CF-UX-TECH-001-GUIAS-FRONTEIRA-J04-J05](../docs/CF-UX-TECH-001-GUIAS-FRONTEIRA-J04-J05.md) — PT-09–16, nove [figuras SVG](../docs/ux/figures/guias-fronteira-j04-j05); escopo inicial de monitoramento/quantificação/documentos, não auditoria integral.
+
+- [CF-UX-TECH-001-MONITORAMENTO-QUANTIFICACAO-REVISAO](../docs/CF-UX-TECH-001-MONITORAMENTO-QUANTIFICACAO-REVISAO.md) — PT-17–26, 11 [figuras SVG](../docs/ux/figures/monitoramento-quantificacao-revisao), PT-T34–51, autoria avançada PT-24 reservada.

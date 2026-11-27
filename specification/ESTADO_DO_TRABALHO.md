@@ -53,3 +53,6 @@ V68 e V94 já existem, mas plano IR textual e guia de cenário não conciliam re
 
 ## Adendo UX — guias e inventário (26/11/2026)
 V68 contém seis guias; baseline/additionality também são renderizados nos workbenches. Capturas mostram 1 carregador/0 medidores; não confirmam estado do banco. open-monitoring.html usa siteCode textual, timestamps textuais e indicadores ED/EC fixos. V69 já permite prova SITE/CHARGER. [Especificação PT-09–16](../docs/CF-UX-TECH-001-GUIAS-FRONTEIRA-J04-J05.md) planejada, J04/J05 e consolidação dos guias; auditoria integral de monitoramento, quantificação e documentos pendente.
+
+## Adendo UX — operação, quantificação e documentos (26/11/2026)
+Oito capturas legíveis; QA de 1×1 analisado pelo código. V53–V59 e contratos de admissão, E8 runs internos e consulta anual existentes; UI usa fallback M1 e diagnóstico repetitivo. PdSections/PdReviews e prévia JSON existentes, sem PD completo. [PT-17–26](../docs/CF-UX-TECH-001-MONITORAMENTO-QUANTIFICACAO-REVISAO.md) planejados, com central documental/revisão/exportação; autoria aprofundada PT-24 reservada. Não se afirma execução, homologação ou admissão normativa.

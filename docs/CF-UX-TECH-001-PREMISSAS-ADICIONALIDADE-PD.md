@@ -199,3 +199,6 @@ O PR documenta e prioriza, não altera a implementação, banco, parecer, metodo
 
 ## Complemento transversal
 [PT-09–16: Guias, fronteira, sustentabilidade e plano operacional](CF-UX-TECH-001-GUIAS-FRONTEIRA-J04-J05.md) estende o roteiro; PT-14 integra PT-06, PT-16 estende PT-07. Auditoria completa de Monitorar/Quantificar/Redigir/Revisar reservada para próximas capturas.
+
+## Complemento de operação e documentos
+[PT-17–26](CF-UX-TECH-001-MONITORAMENTO-QUANTIFICACAO-REVISAO.md) detalha monitoramento, quantificação, central documental, revisão e exportação. PT-24 estende PT-07/16; especificação aprofundada do editor e insumos será objeto do próximo adendo, sem substituir #43/#122.

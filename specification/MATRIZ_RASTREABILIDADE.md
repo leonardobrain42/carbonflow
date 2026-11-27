@@ -72,3 +72,19 @@ Contrato e figuras: [CF-UX-TECH-001-PREMISSAS-ADICIONALIDADE-PD](../docs/CF-UX-T
 | PT-16 | #43/#122/#128 | PT-T32 |
 | PT-QA | #101/#45 | PT-T19–33 |
 [Contrato e figuras](../docs/CF-UX-TECH-001-GUIAS-FRONTEIRA-J04-J05.md); planejados, não executados; PT-14–16 escopo parcial sujeito a auditoria posterior.
+
+## Adendo PT-17–26
+| Fatia | Owners | Aceite planejado |
+|---|---|---|
+| PT-17 | #98/#124 | PT-T34–35 |
+| PT-18 | #98/#124 | PT-T36 |
+| PT-19 | #98/#33/#35 | PT-T37–39 |
+| PT-20 | #98/#42/#124 | PT-T39–40 |
+| PT-21 | #96/#98/#97 | PT-T41–42 |
+| PT-22 | #97/#128/#124 | PT-T40,43–44 |
+| PT-23 | #97/#128 | PT-T45–46 |
+| PT-24 | #43/#122 | PT-T47,51; aprofundamento reservado |
+| PT-25 | #35/#37/#43/#124 | PT-T48 |
+| PT-26 | #43/#122/#128 | PT-T49 |
+| PT-QA | #101/#45 | PT-T34–50 |
+[Contrato e figuras](../docs/CF-UX-TECH-001-MONITORAMENTO-QUANTIFICACAO-REVISAO.md); não executados. PT-T51 é verificação de interface entre especificações, não homologação de autoria.

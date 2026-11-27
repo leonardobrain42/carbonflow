@@ -40,3 +40,5 @@ E0–E8 são rótulos históricos de organização, não fases novamente executa
 - [Premissas, adicionalidade, direitos, revisão e PD](../docs/CF-UX-TECH-001-PREMISSAS-ADICIONALIDADE-PD.md): complemento P0, oito figuras e critérios PT-T01–18.
 
 - [Guias, fronteira, J04 e J05](../docs/CF-UX-TECH-001-GUIAS-FRONTEIRA-J04-J05.md): PT-09–16, nove figuras, PT-T19–33. Auditoria parcial do inventário e guia de quantificação; demais telas reservadas.
+
+- [Monitoramento, quantificação e revisão documental](../docs/CF-UX-TECH-001-MONITORAMENTO-QUANTIFICACAO-REVISAO.md): PT-17–26, 11 figuras, PT-T34–51. PT-24 autoria avançada reservada ao próximo adendo.

@@ -161,3 +161,6 @@ Os critérios complementam BL-T01–17 e PT-T01–18; não substituem UX-T01–1
 ## 12. Pendências de auditoria e limites
 
 O responsável enviará capturas adicionais de Monitorar, Quantificação, Redigir e Revisar. Não declarar lacunas residuais exaustivas nem aprovação dessas telas. Próxima auditoria deve confrontar telas, APIs, serviço, persistência, issues e estados: (a) importação ED/EC/lotes, ocorrências/correção, QA/conciliação, admissão, EFel/VT0011/TOOL07 e MR; (b) execução, memória, resolução temporal, fechamento, reexecução e resultados; (c) outline/template, editor, revisão, claims/provas, manifesto, exportação e freeze. Atualizar PT-14/15/16 sem duplicar entrega. As figuras são mockups SVG originais, não screenshots funcionais; nomes de campos/estados novos são sugestões, não APIs já disponíveis. Sem alteração de código, dado, decisão, norma, licença ou merge neste adendo.
+
+## Atualização das pendências de auditoria
+[PT-17–26](CF-UX-TECH-001-MONITORAMENTO-QUANTIFICACAO-REVISAO.md) consolida a análise subsequente de oito capturas legíveis e código (QA visual ilegível), detalhando PT-13–16. Autoria avançada do PD (PT-24) explicitamente reservada a próximo adendo; não confundir esta análise documental com homologação funcional.

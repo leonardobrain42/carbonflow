@@ -36,3 +36,6 @@ O responsável solicitou correção da jornada após constatar ausência de vín
 
 ## Adendo P0 — consolidação de guias, J04/J05 e inventário (26/11/2026)
 [Contrato PT-09–16](../docs/CF-UX-TECH-001-GUIAS-FRONTEIRA-J04-J05.md). PT-09 elimina edição paralela, PT-10 integra fronteira, PT-11 plano ex ante, PT-12 J04, PT-13 inventário e provas, PT-14/15/16 são escopo inicial de prontidão, quantificação e saídas (aprofundar em auditoria posterior). PT-14 integra PT-06/UX-08D.3, PT-16 estende PT-07. Preservar UX-08D.1/BL-EX e owners. Sem conclusão de auditoria das demais telas de Monitorar, Quantificar, Redigir e Revisar.
+
+## Adendo P0 — monitoramento, quantificação e revisão (26/11/2026)
+[Contrato PT-17–26](../docs/CF-UX-TECH-001-MONITORAMENTO-QUANTIFICACAO-REVISAO.md). PT-17 importação, PT-18 ocorrências, PT-19 QA, PT-20 períodos (base de contexto quando incidente), PT-21 EFel/caderno, PT-22 execução/memória, PT-23 histórico/consolidação, PT-25 revisão e PT-26 exportação. PT-24 autoria híbrida e oferta máxima de insumos tem contrato existente #43/#122 preservado e aprofundamento reservado ao próximo adendo por decisão do responsável. PT-14/15/16 são integrados, não duplicados. Não condicionar PD ex ante a MR futuro. PT-T34–51 planejados; sem alterar código/gates.

@@ -1,4 +1,6 @@
 # Changelog da especificação viva
+## Adendo documental — monitoramento, quantificação e revisão (26/11/2026, planejado)
+- [PT-17–26](../docs/CF-UX-TECH-001-MONITORAMENTO-QUANTIFICACAO-REVISAO.md), 11 SVG e PT-T34–51. PT-24 autoria aprofundada reservada; QA visual ilegível, contratos analisados, nenhum teste funcional ou guarda alterada.
 ## Adendo documental — guias, fronteira e J04/J05 (26/11/2026, planejado)
 - [PT-09–16](../docs/CF-UX-TECH-001-GUIAS-FRONTEIRA-J04-J05.md), nove SVG e PT-T19–33. Auditoria limitada às capturas de guias e inventário, demais telas de monitoramento, quantificação e documentação pendentes. Sem alteração de código ou gates.
 ## Adendo documental — premissas, adicionalidade e PD (26/11/2026, planejado)
