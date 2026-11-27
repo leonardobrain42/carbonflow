@@ -137,6 +137,12 @@ test('Fila de candidatos: importar lote, dupla custódia explicada e perfil sem 
     await page.getByRole('alert').getByText('não é um JSON válido',{exact:false}).waitFor();
     assert.equal(state.imports.length,0);
     await page.getByLabel('Lote em JSON',{exact:false}).fill(JSON.stringify({observationPeriod:'2026-09',pbevSourceSha256:SHA,items:[]}));
+    // A 422 shows the server's specific message (which field failed), not the generic list.
+    await page.route('**/v1/platform/fleet/alias-candidates/dry-run', route => route.fulfill({status:422,
+      json:{code:'CANDIDATO_INVALIDO',message:'Falta o SHA-256 da Senatran (senatranSourceSha256): 64 caracteres hexadecimais minúsculos.'}}));
+    await page.getByRole('button',{name:'Simular importação'}).click();
+    await page.getByRole('alert').getByText('Falta o SHA-256 da Senatran',{exact:false}).waitFor();
+    await page.unroute('**/v1/platform/fleet/alias-candidates/dry-run');
     // The dry run writes nothing and says which source still lacks independently approved rights.
     await page.getByRole('button',{name:'Simular importação'}).click();
     await page.getByRole('status').getByText('Importação bloqueada: direitos sem aprovação independente vigente',{exact:false}).waitFor();
