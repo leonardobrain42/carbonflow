@@ -54,6 +54,20 @@ class OpenBaselineFleetSelectionIntegrationTest {
         assertTrue(mine.path("calendarGate").isNull(),mine.toString());
         assertEquals(0,mine.path("currentVersion").asInt());
 
+        // BL-EX-02, BL-T02: before any selection the project sees an explained empty state, never zeros or an invented year.
+        String ctxPath="/v1/projects/"+s.project()+"/technical/baseline/fleet-context";
+        JsonNode empty=fx.json(fx.call("GET",ctxPath,s.owner().cookie(),null,null));
+        assertEquals("NO_EX_ANTE_REFERENCE",empty.path("state").asText(),empty.toString());
+        assertTrue(empty.path("current").isNull());
+        assertEquals(0,empty.path("history").size());
+        assertFalse(empty.path("usableForE8").asBoolean());
+        assertEquals("2025-08-01",empty.path("creditStart").asText());
+        assertTrue(empty.path("gaps").toString().contains("NO_EX_ANTE_REFERENCE_CONFIRMED"),empty.toString());
+        assertTrue(empty.path("gaps").get(0).path("owner").asText().length()>3);
+        // Not a member of the project, and not signed in: the project is not even confirmed to exist.
+        assertEquals(404,fx.call("GET",ctxPath,s.outside().cookie(),null,null).statusCode());
+        assertTrue(fx.call("GET",ctxPath,"",null,null).statusCode()==401||fx.call("GET",ctxPath,"",null,null).statusCode()==404);
+
         // Version 1: a reference date in 2025 selects the 2025 snapshot; the observation year comes from the DECLARED date.
         String key=OpenE8TestFixture.key();
         var first=fx.postMethod(API,s.staffManager().cookie(),key,"\"0\"",body("2025-09-15",rating2025,WHY));
@@ -110,6 +124,22 @@ class OpenBaselineFleetSelectionIntegrationTest {
         assertTrue(history.get(1).path("stale").asBoolean());
         assertEquals("STALE_NOT_ADMITTED",history.get(1).path("state").asText());
         assertTrue(history.get(1).path("gates").toString().contains("SELECTION_VERSION_SUPERSEDED"));
+
+        // BL-EX-02: the project reads metadata only; the current version is the latest, the older one is stale; still not an E8 input.
+        var seen=fx.call("GET",ctxPath,s.owner().cookie(),null,null);
+        assertEquals(200,seen.statusCode(),seen.body());
+        assertTrue(seen.headers().firstValue("Cache-Control").orElse("").contains("no-store"));
+        JsonNode view=fx.json(seen);
+        assertEquals("PREPARATORY_NOT_ADMITTED",view.path("state").asText(),view.toString());
+        assertEquals(2,view.path("current").path("version").asInt());
+        assertEquals(2,view.path("history").size());
+        assertEquals("STALE_NOT_ADMITTED",view.path("history").get(1).path("state").asText());
+        assertFalse(view.path("usableForE8").asBoolean());
+        assertEquals(0,view.path("gaps").size(),view.toString());
+        assertFalse(seen.body().contains("rationale\":null"));
+        assertTrue(database.transaction(c->PilotSql.first(c,
+            "SELECT count(*) FROM app_project_technical_access_event WHERE action='VIEW_OPEN_BASELINE_FLEET_CONTEXT' AND outcome='PERMITTED'",
+            r->r.getLong(1)))>=2,"the project-side reads are audited");
 
         // Immutable and never touching the monitored handoff (V64).
         assertThrows(RuntimeException.class,()->database.transaction(c->PilotSql.update(c,

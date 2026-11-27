@@ -67,6 +67,9 @@ const pdSections=['baseline','additionality'].map(id=>({
  latest:{number:2,guideVersion:id==='baseline'?3:1,sha256:'f'.repeat(64)},
  monitoringDependency:null
 }));
+const exAnteContext={projectId:project,state:'NO_EX_ANTE_REFERENCE',creditStart:'2026-01-01',current:null,history:[],
+ gaps:[{code:'NO_EX_ANTE_REFERENCE_CONFIRMED',owner:'Gestor de fontes da plataforma',nextAction:'Aguardar a seleção da frota de referência.'}],
+ usableForE8:false,notes:['A referência ex ante é preparatória: não é admitida e não alimenta o E8.']};
 const baselineSelections=[{
  id:'c0000000-0000-4000-8000-000000000001',
  projectId:project,period:'P-2027',version:2,observationYear:2027,
@@ -111,6 +114,7 @@ async function mock(page,actions,observed){
   ['/open-monitoring/dossiers', [{reference:{code:'P-2027',version:1},
     state:'READY_FOR_NORMATIVE_REVIEW',stale:false,gates:[]}]],
   ['/open-monitoring/dossiers/P-2027/e8-fleet-selections',baselineSelections],
+  ['/baseline/fleet-context',exAnteContext],
   ['/open-ir-ex-ante-plan',{projectId:project,context:{triageVersion:1,intakeVersion:1,applicabilityVersion:0,state:'SCOPE_PENDING',sha256:'c'.repeat(64)},latestVersion:0,editable:false,revisions:[]}],
   ['/pd-sections',pdSections]
  ];
@@ -133,6 +137,11 @@ test('UX-BL-01: baseline presents actual period selection, factor blockers and P
   await page.goto(base+'/workspace/projects/'+project+'/technical?secao=linha-base&etapa=frota');
   await page.getByRole('heading',{name:/2\. EVR e comparáveis/}).waitFor();
   await page.getByText('Seleção v2 · ano 2027').waitFor();
+  // BL-EX-02: the ex ante reference has its own explained empty state, independent of the monitored periods.
+  await page.getByRole('heading',{name:'Frota de referência ex ante (PD)'}).waitFor();
+  await page.getByText('Ainda não há frota de referência vinculada a este projeto.',{exact:false}).waitFor();
+  await page.getByText('Responsável: Gestor de fontes da plataforma',{exact:false}).waitFor();
+  assert.ok(observed.includes('/baseline/fleet-context'));
   await page.getByText('Não autentica a fonte nem admite o cálculo.').waitFor();
   await page.getByText('Snapshot preparatório — não admitido').waitFor();
   await page.getByText('Estoque EVR e ratings continuam sem admissão normativa.').waitFor();

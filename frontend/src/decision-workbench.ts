@@ -35,7 +35,10 @@ type Opinion={declarationRoute:string|null;declarationIsOpinion:boolean;
   marketTestClosesApplicability:boolean;concludesAdditionality:boolean;usableForE8:boolean;
   criteria:OpinionCriterion[]};
 type SourceStatus='not_requested'|'loading'|'ready'|'restricted'|'error';
-type SourceName='typed'|'applicability'|'calculation'|'monitoring'|'fleet'|'pd';
+type SourceName='typed'|'applicability'|'calculation'|'monitoring'|'fleet'|'exAnte'|'pd';
+type ExAnteVersion={id:string;version:number;referenceDate:string;observationYear:number;cycle:string;state:string;stale:boolean;usableForE8:boolean;selectionSha256:string;gates:string[]};
+type ExAnte={projectId:string;state:string;creditStart:string|null;current:ExAnteVersion|null;history:ExAnteVersion[];
+  gaps:{code:string;owner:string;nextAction:string}[];usableForE8:boolean;notes:string[]};
 
 const STEPS:Record<WorkbenchKind,{id:string;label:string;detail:string}[]>={
   baseline:[
@@ -90,11 +93,12 @@ export class DecisionWorkbenchComponent implements OnChanges {
   readonly calculation=signal<Calc|null>(null);
   readonly dossiers=signal<Dossier[]>([]);
   readonly fleet=signal<Selection[]>([]);
+  readonly exAnte=signal<ExAnte|null>(null);
   readonly pdSections=signal<PdSection[]>([]);
   readonly opinion=signal<Opinion|null>(null);
   readonly status=signal<Record<SourceName,SourceStatus>>({
     typed:'not_requested',applicability:'not_requested',calculation:'not_requested',
-    monitoring:'not_requested',fleet:'not_requested',pd:'not_requested'
+    monitoring:'not_requested',fleet:'not_requested',exAnte:'not_requested',pd:'not_requested'
   });
   readonly failures=signal<Partial<Record<SourceName,string>>>({});
   readonly loading=signal(false);
@@ -155,13 +159,14 @@ export class DecisionWorkbenchComponent implements OnChanges {
     if(!project)return;
     this.loading.set(true);
     this.typed.set(null);this.applicability.set(null);this.calculation.set(null);
-    this.dossiers.set([]);this.fleet.set([]);this.pdSections.set([]);this.opinion.set(null);
+    this.dossiers.set([]);this.fleet.set([]);this.exAnte.set(null);this.pdSections.set([]);this.opinion.set(null);
     this.failures.set({});
     const active:Record<SourceName,boolean>={
       typed:true,applicability:this.canViewApplicability,
       calculation:this.kind==='baseline'&&this.canViewCalculation,
       monitoring:this.kind==='baseline'&&this.canViewMonitoring,
       fleet:this.kind==='baseline'&&this.canViewFleet&&this.canViewMonitoring,
+      exAnte:this.kind==='baseline'&&this.canViewCalculation,
       pd:this.canViewPd
     };
     this.status.set({
@@ -170,6 +175,7 @@ export class DecisionWorkbenchComponent implements OnChanges {
       calculation:active.calculation?'loading':'restricted',
       monitoring:active.monitoring?'loading':'restricted',
       fleet:active.fleet?'loading':'restricted',
+      exAnte:active.exAnte?'loading':'restricted',
       pd:active.pd?'loading':'restricted'
     });
     const base='/v1/projects/'+encodeURIComponent(project)+'/technical';
@@ -207,6 +213,9 @@ export class DecisionWorkbenchComponent implements OnChanges {
     if(active.calculation)actions.push(get<Calc>('calculation',base+'/open-calculation-readiness',
       value=>{if(value.projectId!==project||value.environment!=='SANDBOX')
         throw new Error('Contexto de projeto incorreto');this.calculation.set(value);}));
+    if(active.exAnte)actions.push(get<ExAnte>('exAnte',base+'/baseline/fleet-context',value=>{
+      if(value.projectId!==project||value.usableForE8)throw new Error('Contexto de projeto incorreto');
+      this.exAnte.set(value);}));
     if(active.pd)actions.push(get<PdSection[]>('pd',base+'/pd-sections',
       value=>this.pdSections.set(value)));
     if(active.monitoring){
@@ -248,6 +257,7 @@ export class DecisionWorkbenchComponent implements OnChanges {
   term(code:string){return plainTerm(code);}
   labelState(value:string){
     const map:Record<string,string>={
+      NO_EX_ANTE_REFERENCE:'Sem referência de frota ex ante',
       FORM_COMPLETED_DECLARED:'Campos declarados, sem comprovação',
       INCOMPLETE_DECLARED:'Campos incompletos',
       LEGACY_UNSTRUCTURED_REVIEW_REQUIRED:'Legado exige reconciliação',

@@ -163,6 +163,14 @@ class OpenBaselineFleetSelections {
     }
 
     /** Derived status is recomputed from the owners at read time; a stored row is never edited. */
+    /** Metadata-only history of a project (newest first, at most 20), with the state derived now; used by the project-side read. */
+    static List<View> history(Connection c,String project)throws SQLException{
+        var out=new ArrayList<View>();
+        for(var record:query(c,SELECT+" WHERE project_id=? ORDER BY version DESC LIMIT 20",
+            OpenBaselineFleetSelections::stored,project))out.add(view(c,record));
+        return List.copyOf(out);
+    }
+
     private static View view(Connection c,Stored saved)throws SQLException{
         var gates=new ArrayList<String>();
         var calendar=OpenE8Timing.calendar(c,saved.project(),1);
