@@ -42,3 +42,5 @@ E0–E8 são rótulos históricos de organização, não fases novamente executa
 - [Guias, fronteira, J04 e J05](../docs/CF-UX-TECH-001-GUIAS-FRONTEIRA-J04-J05.md): PT-09–16, nove figuras, PT-T19–33. Auditoria parcial do inventário e guia de quantificação; demais telas reservadas.
 
 - [Monitoramento, quantificação e revisão documental](../docs/CF-UX-TECH-001-MONITORAMENTO-QUANTIFICACAO-REVISAO.md): PT-17–26, 11 figuras, PT-T34–51. PT-24 autoria avançada reservada ao próximo adendo.
+
+- [Redigir PD — autoria fundamentada](../docs/CF-UX-TECH-001-REDIGIR-PD-AUTORIA-FUNDAMENTADA.md): PT-24A–J, 11 SVG e PT-T52–79. Conclui a reserva de especificação, não a implementação.

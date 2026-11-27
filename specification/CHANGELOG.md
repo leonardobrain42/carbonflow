@@ -1,4 +1,6 @@
 # Changelog da especificação viva
+## Adendo documental — Redigir PD e autoria fundamentada (26/11/2026, planejado)
+- [PT-24A–J](../docs/CF-UX-TECH-001-REDIGIR-PD-AUTORIA-FUNDAMENTADA.md), 11 SVG, PT-T52–79; reserva anterior atendida em especificação; autoria manual P0, IA P1 opcional nesta fatia. Sem código, testes ou alteração de gate.
 ## Adendo documental — monitoramento, quantificação e revisão (26/11/2026, planejado)
 - [PT-17–26](../docs/CF-UX-TECH-001-MONITORAMENTO-QUANTIFICACAO-REVISAO.md), 11 SVG e PT-T34–51. PT-24 autoria aprofundada reservada; QA visual ilegível, contratos analisados, nenhum teste funcional ou guarda alterada.
 ## Adendo documental — guias, fronteira e J04/J05 (26/11/2026, planejado)

@@ -88,3 +88,15 @@ Contrato e figuras: [CF-UX-TECH-001-PREMISSAS-ADICIONALIDADE-PD](../docs/CF-UX-T
 | PT-26 | #43/#122/#128 | PT-T49 |
 | PT-QA | #101/#45 | PT-T34–50 |
 [Contrato e figuras](../docs/CF-UX-TECH-001-MONITORAMENTO-QUANTIFICACAO-REVISAO.md); não executados. PT-T51 é verificação de interface entre especificações, não homologação de autoria.
+
+## Adendo PT-24 — autoria fundamentada
+| Fatia | Owners | Aceites planejados |
+|---|---|---|
+| PT-24A | #43/#124 | PT-T52–54,78 |
+| PT-24B/C | #43/#92/#128/#33/#26 | PT-T55–58,70 |
+| PT-24D/E | #43/#128 | PT-T59–63,72 |
+| PT-24F | #43/#35 | PT-T64–67 |
+| PT-24G/H | #35/#46/#43/#37 | PT-T65–69,71 |
+| PT-24I/J | #100/#43/#47 | PT-T74–77 (opcional) |
+| PT-QA | #101/#45/#49 | PT-T52–73,78–79; 74–77 quando IA habilitada |
+[Contrato e figuras](../docs/CF-UX-TECH-001-REDIGIR-PD-AUTORIA-FUNDAMENTADA.md). PT-T51 recebe o adendo de autoria previsto; não implica aceite de produto. PT-25/26 e PD-A–F preservados.

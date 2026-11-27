@@ -189,3 +189,6 @@ Backend Quarkus/PostgreSQL e Angular: autorização ACL-first, escopo/tenant, gr
 | PT-T51 | PT-24 continua extensão explícita do contrato #43/#122; sem duplicar editor, dados ou ledger; próximo adendo de autoria pode enriquecer insumos mantendo os mesmos refs e gates, modo manual preservado |
 
 Complementam BL-T01–17 e PT-T01–33, UX-T e UX08-T. O último é verificação de integração da especificação; não equivale a teste da autoria avançada, que terá critérios próprios. Não afirmar aprovação de QA visual: print ilegível, testes interativos ainda necessários. Mockups SVG são propostas, exemplos fictícios, não telas executadas. Nenhuma alteração de código, banco, normas, direitos ou decisões reais. Não fazer merge por esta atualização.
+
+## Adendo posterior — reserva PT-24 atendida
+O responsável solicitou a atualização seguinte e a especificação [Redigir PD — autoria técnica fundamentada](CF-UX-TECH-001-REDIGIR-PD-AUTORIA-FUNDAMENTADA.md) foi incorporada. A reserva descrita nos §§10/13 era histórica; agora PT-24A–J está especificada (não implementada), PT-T52–79, PT-25/26 e owners preservados. IA opcional sem gate para #122.

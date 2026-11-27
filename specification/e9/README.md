@@ -23,3 +23,5 @@ A [jornada canônica J01–J07](../CF-JOURNEY-001.md) passa a orientar navegaç�
 - [Consolidação de guias, fronteira, sustentabilidade e planejamento](../../docs/CF-UX-TECH-001-GUIAS-FRONTEIRA-J04-J05.md): complemento P0 da #124; nove figuras e PT-T19–33; sem auditoria integral das telas operacionais/documentais.
 
 - [Monitoramento, quantificação e revisão](../../docs/CF-UX-TECH-001-MONITORAMENTO-QUANTIFICACAO-REVISAO.md): detalha PT-13–16, PT-17–26; PT-24 editor e insumos reservados. QA visual ilegível, análise do código; sem implementação.
+
+- [PT-24 — autoria fundamentada do PD](../../docs/CF-UX-TECH-001-REDIGIR-PD-AUTORIA-FUNDAMENTADA.md): editor híbrido, biblioteca contextual, blocos/claims, consistência, diffs, IA opcional, 11 figuras e 28 aceites planejados.

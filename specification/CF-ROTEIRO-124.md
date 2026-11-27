@@ -39,3 +39,6 @@ O responsável solicitou correção da jornada após constatar ausência de vín
 
 ## Adendo P0 — monitoramento, quantificação e revisão (26/11/2026)
 [Contrato PT-17–26](../docs/CF-UX-TECH-001-MONITORAMENTO-QUANTIFICACAO-REVISAO.md). PT-17 importação, PT-18 ocorrências, PT-19 QA, PT-20 períodos (base de contexto quando incidente), PT-21 EFel/caderno, PT-22 execução/memória, PT-23 histórico/consolidação, PT-25 revisão e PT-26 exportação. PT-24 autoria híbrida e oferta máxima de insumos tem contrato existente #43/#122 preservado e aprofundamento reservado ao próximo adendo por decisão do responsável. PT-14/15/16 são integrados, não duplicados. Não condicionar PD ex ante a MR futuro. PT-T34–51 planejados; sem alterar código/gates.
+
+## Adendo P0 — PT-24 autoria técnica fundamentada (26/11/2026)
+[Contrato completo](../docs/CF-UX-TECH-001-REDIGIR-PD-AUTORIA-FUNDAMENTADA.md). Reserva documental PT-24 concluída por este adendo. PT-24A–H P0 manual (shell/outline, resolvedor, biblioteca, inserção/ref, figuras, ClaimSupport, consistência, versões); PT-24I/J P1 da autoria (IA fundamentada, tradução e perguntas simuladas), sem reduzir prioridade da #100 e sem gate IA no #122. Reusar PD-A–F/#43, #36/#37, #128, #35/#46, #100; PT-25/26 consomem mesmos snapshots. PT-T52–79 planejados. Preservar UX-08D.1/BL-EX e demais prioridades. Sem implementação ou teste.

@@ -56,3 +56,6 @@ V68 contém seis guias; baseline/additionality também são renderizados nos wor
 
 ## Adendo UX — operação, quantificação e documentos (26/11/2026)
 Oito capturas legíveis; QA de 1×1 analisado pelo código. V53–V59 e contratos de admissão, E8 runs internos e consulta anual existentes; UI usa fallback M1 e diagnóstico repetitivo. PdSections/PdReviews e prévia JSON existentes, sem PD completo. [PT-17–26](../docs/CF-UX-TECH-001-MONITORAMENTO-QUANTIFICACAO-REVISAO.md) planejados, com central documental/revisão/exportação; autoria aprofundada PT-24 reservada. Não se afirma execução, homologação ou admissão normativa.
+
+## Adendo UX — editor PD fundamentado (26/11/2026)
+PdSections salva narrativa e guideVersion, possui consultas contextuais de run exato, pinos, energia, frota e memória; consulta não fixa ClaimSupport. [PT-24A–J](../docs/CF-UX-TECH-001-REDIGIR-PD-AUTORIA-FUNDAMENTADA.md) especificada, com biblioteca por seção, blocos derivados, alegações, consistência, versões e IA opcional. Reserva documental concluída; entrega funcional e marco #122 permanecem abertos. Sem homologação.

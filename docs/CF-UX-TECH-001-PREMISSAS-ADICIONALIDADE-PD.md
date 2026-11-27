@@ -202,3 +202,6 @@ O PR documenta e prioriza, não altera a implementação, banco, parecer, metodo
 
 ## Complemento de operação e documentos
 [PT-17–26](CF-UX-TECH-001-MONITORAMENTO-QUANTIFICACAO-REVISAO.md) detalha monitoramento, quantificação, central documental, revisão e exportação. PT-24 estende PT-07/16; especificação aprofundada do editor e insumos será objeto do próximo adendo, sem substituir #43/#122.
+
+## Adendo de autoria fundamentada
+[PT-24A–J](CF-UX-TECH-001-REDIGIR-PD-AUTORIA-FUNDAMENTADA.md) detalha biblioteca, editor e suporte por alegação; PT-07/16 alimentam contratos de saída, não criam editor paralelo. Reserva anterior atendida documentalmente, não implementada.
