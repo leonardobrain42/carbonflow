@@ -47,3 +47,12 @@ Nível D17: projeto. Migração aditiva **V117** (`app_open_ir_fuel_transition`,
 - **Na resposta:** `fuelTransition` (ato, evidência, entradas, hash) ou nulo.
 - **Ainda não faz (passo 2b):** usar a declaração para o IR atender períodos de outra vigência do mesmo ano e para a consolidação anual aceitar dois fatores do mesmo ano. Sem o 2b, esses casos continuam bloqueados (`REFERENCE_MISMATCH`, `FUEL_REFERENCE_MISMATCH`).
 
+## Interface: pino do fator fóssil pelo catálogo (UX-08D.1)
+Nível D17: projeto (interface administrativa do pino, API existente). Sem migração e sem mudança de API ou de regra.
+- **Antes:** a tela "Pinos do projeto" só fixava `EF_FUEL` por candidato de arquivo; o pino por catálogo (V116) existia só na API.
+- **Agora:** para `EF_FUEL`, a origem padrão é **Catálogo de combustíveis (CO2 fóssil, só CO2)**: combustível (só os que têm fator de CO2 fóssil registrado), escopo (TTW/WTW) e **data de referência** (que escolhe a vigência, por exemplo E30 ou E32). A fronteira é fixa em `CO2_ONLY`.
+- **Conferência antes de gravar (somente leitura):** consulta `boundary-resolution` e mostra o valor e a unidade resolvidos e o estado da revisão do catálogo, com a frase fixa "continua não admitido para o cálculo". Sem fator resolvido ou sem revisão, a tela avisa e o servidor recusa o pino.
+- **Legado preservado:** "Candidato de arquivo (legado)" continua disponível e nunca envia referência de catálogo. Não há valor digitado nem default.
+- **Teste:** `platform-source-readiness.test.mjs` (navegador real, API mockada): lista só combustíveis com fator, consulta com os parâmetros certos, corpo do pino `{catalog:{fuelId,boundary:'CO2_ONLY',scope,date}, candidateId:null, declaredValue:null}`, e o caminho legado sem `catalog`.
+- **Limites:** o formulário ainda não mostra os pinos já gravados do ano nem o conjunto E30/E32 lado a lado (próxima fatia de interface); o servidor continua sendo a única autoridade sobre vigência e revisão.
+

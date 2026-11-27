@@ -7,6 +7,9 @@ type Option = {projectId:string; title:string; triageVersion:number;
   pins:{parameterKind:string; vintageYear:number; version:number}[]};
 type Factor = {id:string; periodYear:number; status:string; normalizedUnit:string};
 type Board = {candidates:Factor[]};
+type CatalogFuel = {id:string; name:string};
+type CatalogResolution = {state:string; admission?:string; blockers?:string[]; requirements?:{review?:string;
+  methodValue?:string; methodUnit?:string; value?:string; unit?:string}[]};
 type DyAllocation = {method:string;totalTco2e:string;shareNumerator:string;shareDenominator:string;basisUnit:string;
   sourceId:string;sourceEdition:string;locator:string;rationale:string};
 type DyAllocationView = DyAllocation & {program:string;registryProject:string;issuanceId:string;brazilTco2e:string};
@@ -80,6 +83,15 @@ export class PlatformParameterPinsComponent implements OnChanges, OnDestroy {
   kind='EF_FUEL';
   year='';
   candidateId='';
+  /** UX-08D.1: the fossil factor is pinned by reference to the fuel catalog (CO2_ONLY) or, legacy, to a file candidate. */
+  fuelSource:'CATALOG'|'CANDIDATE'='CATALOG';
+  catalogFuel='';
+  catalogScope='TTW';
+  catalogDate='';
+  readonly catalogFuels=signal<CatalogFuel[]>([]);
+  readonly catalogPreview=signal<CatalogResolution|null>(null);
+  readonly catalogLoaded=signal(false);
+  private previewRequest=0;
   declaredValue='';
   ruleReference='';
   evidenceLocator='';
@@ -108,6 +120,7 @@ export class PlatformParameterPinsComponent implements OnChanges, OnDestroy {
       this.fuel.set(fuel.candidates.filter(item=>item.status==='CHECKED_INTERNAL_NOT_ADMITTED'));
       this.grid.set(grid.candidates.filter(item=>item.status==='CHECKED_INTERNAL_NOT_ADMITTED'));
       if(!options.some(item=>item.projectId===this.projectId))this.projectId='';
+      void this.loadCatalogFuels();
 
     }catch(err){this.error.set(this.problem(err));}
     finally{this.busy.set(false);}
@@ -115,9 +128,44 @@ export class PlatformParameterPinsComponent implements OnChanges, OnDestroy {
 
   candidates(){return this.kind==='EF_GRID'?this.grid():this.fuel();}
 
+  /** Fuels that have at least one fossil-CO2 emission factor registered; the catalog itself decides validity and review. */
+  async loadCatalogFuels(){
+    try{
+      const catalog=await firstValueFrom(this.http.get<{fuels:CatalogFuel[];entries:{fuelId:string;parameter:string;gas?:string}[]}>(
+        '/v1/platform/fuel-catalog'));
+      const withFactor=new Set(catalog.entries.filter(item=>item.parameter==='EMISSION_FACTOR'&&item.gas==='CO2_FOSSIL').map(item=>item.fuelId));
+      this.catalogFuels.set(catalog.fuels.filter(item=>withFactor.has(item.id)));
+    }catch{this.catalogFuels.set([]);}
+    finally{this.catalogLoaded.set(true);}
+  }
+
+  usesCatalog(){return this.kind==='EF_FUEL'&&this.fuelSource==='CATALOG';}
+
+  /** Read-only: what the catalog resolves for the chosen fuel, scope and date, before anything is pinned. */
+  async previewCatalog(){
+    this.catalogPreview.set(null);
+    if(!this.catalogFuel||!this.catalogDate)return;
+    const request=++this.previewRequest;
+    try{
+      const result=await firstValueFrom(this.http.get<CatalogResolution>('/v1/platform/fuel-catalog/boundary-resolution',
+        {params:{fuelId:this.catalogFuel,scope:this.catalogScope,boundary:'CO2_ONLY',date:this.catalogDate}}));
+      if(request===this.previewRequest)this.catalogPreview.set(result);
+    }catch(err){if(request===this.previewRequest){this.catalogPreview.set(null);this.error.set(this.problem(err));}}
+  }
+
+  catalogStateText(){
+    const preview=this.catalogPreview();
+    if(!preview)return '';
+    const review=preview.requirements?.[0]?.review;
+    if(preview.state!=='RESOLVED_CANDIDATE')return 'O catálogo não resolve um fator de CO2 fóssil para este combustível, escopo e data. Nada será gravado.';
+    if(review==='INTERNAL_OK'||review==='INDEPENDENT_OK')return 'Resolvido com revisão do catálogo. Continua não admitido para o cálculo.';
+    return 'Resolvido, mas a entrada ainda não tem revisão do catálogo; o servidor recusa o pino.';
+  }
+
   async pin(event:Event){
     event.preventDefault();
     if(this.busy()||!this.projectId||!this.year)return;
+    if(this.usesCatalog()&&(!this.catalogFuel||!this.catalogDate))return;
     const option=this.options().find(item=>item.projectId===this.projectId);
     const current=option?.pins.find(item=>item.parameterKind===this.kind
       && item.vintageYear===Number(this.year))?.version??0;
@@ -125,7 +173,8 @@ export class PlatformParameterPinsComponent implements OnChanges, OnDestroy {
     try{
       await firstValueFrom(this.http.post('/v1/platform/open-parameter-bindings',{
         projectId:this.projectId, parameterKind:this.kind, vintageYear:Number(this.year),
-        candidateId:this.kind==='IR'||this.kind==='DY'?null:this.candidateId||null,
+        candidateId:this.kind==='IR'||this.kind==='DY'||this.usesCatalog()?null:this.candidateId||null,
+        catalog:this.usesCatalog()?{fuelId:this.catalogFuel,boundary:'CO2_ONLY',scope:this.catalogScope,date:this.catalogDate}:undefined,
         declaredValue:this.kind==='IR'||this.kind==='DY'?this.declaredValue:null,
         ruleReference:this.kind==='IR'||this.kind==='DY'?this.ruleReference:null,
         evidenceLocator:this.kind==='IR'||this.kind==='DY'?this.evidenceLocator:null,

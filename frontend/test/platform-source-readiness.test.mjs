@@ -84,6 +84,17 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
       status:'CHECKED_INTERNAL_NOT_ADMITTED', normalizedUnit:'tCO2e/USgal',
     }]}}));
     await page.route('**/v1/platform/open-grid-factors', route => route.fulfill({json:{candidates:[]}}));
+    const catalogResolutions=[];
+    await page.route(url => new URL(url).pathname === '/v1/platform/fuel-catalog', route => route.fulfill({json:{
+      fuels:[{id:'GASOLINE_C',name:'Gasolina C'},{id:'ETHANOL_HYDRATED',name:'Etanol hidratado'}],
+      entries:[{fuelId:'GASOLINE_C',parameter:'EMISSION_FACTOR',gas:'CO2_FOSSIL'},
+               {fuelId:'ETHANOL_HYDRATED',parameter:'DENSITY'}]}}));
+    await page.route(url => new URL(url).pathname === '/v1/platform/fuel-catalog/boundary-resolution', route => {
+      const params = new URL(route.request().url()).searchParams;
+      catalogResolutions.push(Object.fromEntries(params));
+      return route.fulfill({json:{state:'RESOLVED_CANDIDATE',admission:'NOT_ADMITTED',
+        requirements:[{review:'INTERNAL_OK',methodValue:'0.005693',methodUnit:'tCO2e/USgal'}]}});
+    });
     await page.route(url => new URL(url).pathname === '/v1/platform/open-parameter-bindings', async route => {
       posted = {
         body: route.request().postDataJSON(),
@@ -155,6 +166,36 @@ test('staff MFA vê as fontes e necessidades de projetos, sem aprovação fictí
     assert.equal(posted.body.candidateId, null);
     assert.equal(posted.body.useDefault, undefined);
     assert.equal(posted.match, '"0"');
+    // UX-08D.1: the fossil factor is pinned by reference to the fuel catalog (CO2_ONLY), previewed read-only first.
+    await page.getByLabel('Parâmetro', {exact:true}).selectOption('EF_FUEL');
+    await page.getByLabel('Ano', {exact:true}).fill('2026');
+    await page.getByLabel('Origem do fator').waitFor();
+    assert.equal(await page.getByLabel('Combustível', {exact:true}).locator('option').allTextContents().then(x=>x.join('|')),
+      'Selecione o combustível|Gasolina C'); // only fuels with a fossil-CO2 factor are offered
+    await page.getByLabel('Combustível', {exact:true}).selectOption('GASOLINE_C');
+    await page.getByLabel('Data de referência').fill('2026-09-01');
+    await page.getByText('Resolvido com revisão do catálogo. Continua não admitido para o cálculo.').waitFor();
+    assert.match(await page.getByRole('status').allTextContents().then(x=>x.join(' ')), /0\.005693 tCO2e\/USgal/);
+    assert.deepEqual(catalogResolutions.at(-1), {fuelId:'GASOLINE_C', scope:'TTW', boundary:'CO2_ONLY', date:'2026-09-01'});
+    posted = null;
+    const catalogPinned = page.waitForResponse(response => new URL(response.url()).pathname === '/v1/platform/open-parameter-bindings'
+      && response.request().method() === 'POST');
+    await page.getByRole('button', {name:'Gravar pino'}).click();
+    await catalogPinned;
+    assert.equal(posted.body.parameterKind, 'EF_FUEL');
+    assert.equal(posted.body.candidateId, null);
+    assert.equal(posted.body.declaredValue, null);
+    assert.deepEqual(posted.body.catalog, {fuelId:'GASOLINE_C', boundary:'CO2_ONLY', scope:'TTW', date:'2026-09-01'});
+    // The legacy file-candidate path stays available and never carries a catalog reference.
+    await page.getByLabel('Origem do fator').selectOption('CANDIDATE');
+    await page.getByLabel('Fator revisado internamente').selectOption('30000000-0000-4000-8000-000000000001');
+    posted = null;
+    const legacyPinned = page.waitForResponse(response => new URL(response.url()).pathname === '/v1/platform/open-parameter-bindings'
+      && response.request().method() === 'POST');
+    await page.getByRole('button', {name:'Gravar pino'}).click();
+    await legacyPinned;
+    assert.equal(posted.body.candidateId, '30000000-0000-4000-8000-000000000001');
+    assert.equal(posted.body.catalog, undefined);
     await page.getByText('Nenhum pino admite o cálculo nem emite crédito.').waitFor();
     const irPanel=page.getByRole('region',{name:'Avaliações de melhoria tecnológica (IR)'});
     await irPanel.getByLabel('Projeto da avaliação de IR').selectOption(irProject);

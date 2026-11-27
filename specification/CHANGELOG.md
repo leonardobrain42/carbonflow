@@ -1,4 +1,7 @@
 # Changelog da especificação viva
+## 0.3.0-rc.93 — 26/11/2026 (proposta)
+- **Roteiro #124, UX-08D.1: pino do fator fóssil pelo catálogo na interface.** Nível D17: projeto (interface administrativa; API V116 existente). Sem migração, API ou regra novas. A tela "Pinos do projeto" passa a fixar `EF_FUEL` por combustível, escopo e data do catálogo (só CO2, `CO2_ONLY`), com conferência somente leitura do valor, da unidade e da revisão antes de gravar; o candidato de arquivo segue como legado. Nada é admitido.
+- **Limites:** teste de navegador real com API mockada (Chrome local, Node 24); o build do Angular compila. Não mostra ainda os pinos do ano nem E30/E32 lado a lado.
 ## 0.3.0-rc.92 — 26/11/2026 (proposta)
 - **Roteiro #124, Q13 (D21), passo 2a: declaração da transição do fator fóssil no IR.** Nível D17: projeto. Migração aditiva **V117** (`app_open_ir_fuel_transition`, imutável). Campo opcional `fuelTransition` (ato normativo e local da evidência, declarados) no comando de IR; o servidor calcula o conjunto de entradas dos pinos do ano e só aceita com duas ou mais entradas do mesmo combustível, parâmetro, gás e escopo (senão 409). Hash do comando sem declaração inalterado; com declaração, `OPEN-IR-COMMAND@2`.
 - **Limites:** **nenhuma guarda relaxada**; o reuso intra-ano e a consolidação anual seguem iguais (passo 2b). Nada admitido. A suíte `OpenIrTwoPeriodIntegrationTest` falha ao ser reexecutada em banco já usado (chave de `app_content_license_decision`), preexistente e não relacionada; passa em banco novo.
