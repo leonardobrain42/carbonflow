@@ -1,4 +1,6 @@
 # Changelog da especificação viva
+## 0.3.0-rc.103 — 27/11/2026 (proposta)
+- **Sandbox local: chave de criptografia dos arquivos de fonte.** Nível D17: plataforma (ambiente local). O demo nunca teve a chave AES do armazenamento de fontes, e o upload respondia 503 `ARMAZENAMENTO_INDISPONIVEL`, impedindo percorrer o caminho de fonte (quarentena, parecer, prévia, snapshot) com o estoque do BL-DATA-01E. `demo_sandbox` gera uma chave só local (`.carbonflow-demo/source-files.key`, 0600, fora do Git) quando a conta administrativa existe e a repassa ao serviço. Sem mudança no backend nem de regra; produção segue exigindo a chave por configuração.
 ## 0.3.0-rc.102 — 27/11/2026 (proposta)
 - **BL-DATA-01E: preparação e reconciliação do estoque (ferramenta offline).** Nível D17: plataforma (ferramenta) sobre dados de jurisdição. `scripts/prepare_stock_ingestion.py` cruza o estoque candidato (01B) com o catálogo e gera um arquivo por modelo LDV BEV (nomes literais do mesmo modelo somados) mais um relatório de reconciliação em que cada linha e cada veículo estão contados (incluídos, fora do recorte, pendentes de classificação, sem alias). Sem denominador nacional (`coverage=UNKNOWN`), sem peso, sem E8; recorte vazio é lacuna. Sem migração nem mudança de backend; a segmentação além de 2.000 modelos fica pendente (BD-T07 parcial).
 ## 0.3.0-rc.101 — 27/11/2026 (proposta)
