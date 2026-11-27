@@ -72,3 +72,6 @@ A entrega realiza **navegação, organização e descoberta**. Ainda faltam: sch
 
 ## Escopo D17
 Os agrupamentos, links e guias descritos neste contrato são projeções da preparação técnica do recorte OPEN, não menu obrigatório para outras metodologias. A [jornada canônica J01–J07](../specification/CF-JOURNEY-001.md) orienta evolução incremental; #124/#19 resolvem subetapas pelo pack e mantêm compatibilidade dos deep links e D16.
+
+## Evolução planejada (26/11/2026)
+[Consolidação de guias e J04/J05](CF-UX-TECH-001-GUIAS-FRONTEIRA-J04-J05.md) propõe edição canônica única, ajuda/histórico de guias, módulos de salvaguardas e plano ex ante, preservando rotas e grants. A navegação acima permanece descrição da implementação existente; adendo não implementado.

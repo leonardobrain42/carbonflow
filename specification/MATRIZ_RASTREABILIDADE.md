@@ -36,3 +36,67 @@ Estas linhas são posteriores ao corte `507bf268…` do cabeçalho; os vínculos
 | CF-SPEC-S22 | Fila de candidatos de alias e plano de cadastro | [#94](https://github.com/leonardobrain42/carbonflow/issues/94), [#95](https://github.com/leonardobrain42/carbonflow/issues/95) | [CF-OPEN-005-EVR-STOCK-BR](../docs/CF-OPEN-005-EVR-STOCK-BR.md) | [FleetAliasCandidatesIntegrationTest.java](../backend/src/test/java/br/carbonflow/pilot/FleetAliasCandidatesIntegrationTest.java); [platform-alias-candidates.test.mjs](../frontend/test/platform-alias-candidates.test.mjs); [test_build_fleet_model_registrations.py](../scripts/test_build_fleet_model_registrations.py) | Aceitar não cria modelo nem alias; responsáveis das listas e classe/propulsão pendentes |
 | CF-SPEC-S23 | Dossiês SIN/MCTI e créditos concorrentes | [#96](https://github.com/leonardobrain42/carbonflow/issues/96) | [CF-DATA-003](../docs/CF-DATA-003-SIN-MCTI-DOSSIE.md); [CF-DATA-004](../docs/CF-DATA-004-CREDITOS-CONCORRENTES-MATRIZ.md); [consulta](../docs/CF-DATA-003-CONSULTA-MCTI.md) | Sem teste executável (documentação); fontes lidas listadas em cada dossiê | Nenhuma fonte admitida; Q03/Q05 e licenças pendentes |
 
+
+## Adendo de rastreabilidade — seleção de frota ex ante (26/11/2026)
+| Requisito/fatia | Owner | Contrato | Aceite planejado (não executado) |
+|---|---|---|---|
+| BL-EX-01: contexto e referência imutável PD sem MR | #40/#97 | [Especificação](../docs/CF-UX-TECH-001-FROTA-BASELINE-EX-ANTE.md) | BL-T01,05–08,10,16 |
+| BL-EX-02: seleção contextual, vazio e lacunas | #124/#40 | mesmo contrato, figuras 02/03 | BL-T01–07,13–14,17 |
+| BL-DATA-01: estoque, ratings e cobertura | #94/#95/#92 | V48/V49 e docs owners | BL-T02–04,12 |
+| BL-EX-03: projeção por ato e PD | #124/#13/#19/#122 | mesmo contrato | BL-T08,10–11,15 |
+| BL-EX-04: inspeção autorizada | #124/#128 | figura 04 | BL-T06,12–14 |
+| BL-EX-05: handoff operacional | #97/#98 | V64 preservada | BL-T09,16 |
+| BL-QA | #101/#45 | matriz BL-T01–17 | execução futura, sem homologação presumida |
+
+## Adendo — PT premissas e adicionalidade
+| Fatia | Owners | Aceite planejado |
+|---|---|---|
+| PT-01 | #40/#96/#124 | PT-T01–05 |
+| PT-02/03/04 | #38/#99/#93/#24/#33/#124 | PT-T07–11 |
+| PT-05 | #99/#35/#13/#124 | PT-T12–14 |
+| PT-06 | #124/#13/#19/#97 | PT-T06,14 (BL-EX-03) |
+| PT-07 | #43/#122/#128 | PT-T15–16 |
+| PT-QA | #101/#45 | PT-T01–18, incluindo 17–18 |
+Contrato e figuras: [CF-UX-TECH-001-PREMISSAS-ADICIONALIDADE-PD](../docs/CF-UX-TECH-001-PREMISSAS-ADICIONALIDADE-PD.md). Não executados.
+
+## Adendo PT-09–16
+| Fatia | Owners | Aceites planejados |
+|---|---|---|
+| PT-09 | #124/#13/#19/#90 | PT-T19–20,33 |
+| PT-10 | #93/#98/#33/#124 | PT-T21–22,28 |
+| PT-11 | #41/#98/#24/#33/#97 | PT-T23–24 |
+| PT-12 | #41/#33/#13/#35 | PT-T25–27 |
+| PT-13 | #98/#33/#124 | PT-T28–29 |
+| PT-14 | #98/#97/#13/#19/#124 | PT-T30 |
+| PT-15 | #97/#96/#124/#128 | PT-T31 |
+| PT-16 | #43/#122/#128 | PT-T32 |
+| PT-QA | #101/#45 | PT-T19–33 |
+[Contrato e figuras](../docs/CF-UX-TECH-001-GUIAS-FRONTEIRA-J04-J05.md); planejados, não executados; PT-14–16 escopo parcial sujeito a auditoria posterior.
+
+## Adendo PT-17–26
+| Fatia | Owners | Aceite planejado |
+|---|---|---|
+| PT-17 | #98/#124 | PT-T34–35 |
+| PT-18 | #98/#124 | PT-T36 |
+| PT-19 | #98/#33/#35 | PT-T37–39 |
+| PT-20 | #98/#42/#124 | PT-T39–40 |
+| PT-21 | #96/#98/#97 | PT-T41–42 |
+| PT-22 | #97/#128/#124 | PT-T40,43–44 |
+| PT-23 | #97/#128 | PT-T45–46 |
+| PT-24 | #43/#122 | PT-T47,51; aprofundamento reservado |
+| PT-25 | #35/#37/#43/#124 | PT-T48 |
+| PT-26 | #43/#122/#128 | PT-T49 |
+| PT-QA | #101/#45 | PT-T34–50 |
+[Contrato e figuras](../docs/CF-UX-TECH-001-MONITORAMENTO-QUANTIFICACAO-REVISAO.md); não executados. PT-T51 é verificação de interface entre especificações, não homologação de autoria.
+
+## Adendo PT-24 — autoria fundamentada
+| Fatia | Owners | Aceites planejados |
+|---|---|---|
+| PT-24A | #43/#124 | PT-T52–54,78 |
+| PT-24B/C | #43/#92/#128/#33/#26 | PT-T55–58,70 |
+| PT-24D/E | #43/#128 | PT-T59–63,72 |
+| PT-24F | #43/#35 | PT-T64–67 |
+| PT-24G/H | #35/#46/#43/#37 | PT-T65–69,71 |
+| PT-24I/J | #100/#43/#47 | PT-T74–77 (opcional) |
+| PT-QA | #101/#45/#49 | PT-T52–73,78–79; 74–77 quando IA habilitada |
+[Contrato e figuras](../docs/CF-UX-TECH-001-REDIGIR-PD-AUTORIA-FUNDAMENTADA.md). PT-T51 recebe o adendo de autoria previsto; não implica aceite de produto. PT-25/26 e PD-A–F preservados.

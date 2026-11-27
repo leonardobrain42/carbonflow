@@ -33,3 +33,14 @@ E0–E8 são rótulos históricos de organização, não fases novamente executa
 - [CF-JOURNEY-001 — Jornada de sete etapas e núcleo metodológico agnóstico](CF-JOURNEY-001.md): contrato de produto e extensão, sem impor VM0038/VCS ao núcleo.
 - [CF-PACKAGES-001 — Estratégia de pacotes: administração, fontes e código](CF-PACKAGES-001-ESTRATEGIA-DE-PACOTES.md): decisão D18 e sequência de entregas do registro de metodologias.
 - [CF-JOURNEY-001-AUDITORIA — alinhamento do repositório e matriz normativa preliminar](CF-JOURNEY-001-AUDITORIA.md): achados, owners, escopo da revisão e lacunas. A primeira fatia OPEN e a ordem técnica E8 permanecem.
+
+## Linha de base ex ante — prioridade #124/#40
+- [Frota EVR, comparáveis, fatores e seleção ex ante](../docs/CF-UX-TECH-001-FROTA-BASELINE-EX-ANTE.md): contrato de produto, arquitetura, quatro figuras SVG e critérios BL-T01–17. Proposta de implementação P0; não declara dados admitidos.
+
+- [Premissas, adicionalidade, direitos, revisão e PD](../docs/CF-UX-TECH-001-PREMISSAS-ADICIONALIDADE-PD.md): complemento P0, oito figuras e critérios PT-T01–18.
+
+- [Guias, fronteira, J04 e J05](../docs/CF-UX-TECH-001-GUIAS-FRONTEIRA-J04-J05.md): PT-09–16, nove figuras, PT-T19–33. Auditoria parcial do inventário e guia de quantificação; demais telas reservadas.
+
+- [Monitoramento, quantificação e revisão documental](../docs/CF-UX-TECH-001-MONITORAMENTO-QUANTIFICACAO-REVISAO.md): PT-17–26, 11 figuras, PT-T34–51. PT-24 autoria avançada reservada ao próximo adendo.
+
+- [Redigir PD — autoria fundamentada](../docs/CF-UX-TECH-001-REDIGIR-PD-AUTORIA-FUNDAMENTADA.md): PT-24A–J, 11 SVG e PT-T52–79. Conclui a reserva de especificação, não a implementação.

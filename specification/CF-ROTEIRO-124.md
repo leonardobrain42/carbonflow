@@ -27,3 +27,18 @@ Fases 2 a 4 (etapas 8 a 18, #93, #38/#99, #98, #92/#96, #97, #124, #33/#35, #41,
 8. **(etapa 13 em diante)** requisitos dinâmicos nos formulários e o restante da fase 3, com a verificação do estado real das etapas 8 a 10 antes de começar.
 
 **Regra de entrega mantida:** cada PR com base em `main`, migração aditiva, API, interface, testes, rastreabilidade e a pendência residual precisa; `NOT_ADMITTED` e `usableForE8=false` até os gates; bloqueios descritos por tipo (desenvolvimento, dados, processamento, admissão, uso operacional, certificação externa).
+
+## Adendo P0 — integração contextual de frota e fatores (26/11/2026)
+O responsável solicitou correção da jornada após constatar ausência de vínculo de frota sem MR e EF_FUEL não vinculado apesar de revisão interna informada. A sequência UX-08D.1 (catálogo combustível → pino) continua primeira fatia UX. Em paralelo às decisões D21/Q13 e dados #94/#95, executar BL-EX-01 (#40/#97: seleção ex ante sem V63/MR), BL-EX-02 (#124: tela contextual), BL-EX-03 (projeção por ato e PD), depois BL-EX-04/05 (inspeção e handoff), com BL-QA/#101. A base nacional e direitos continuam pendentes; testes com fixture não são admissão. Detalhamento, dependências, figuras e critérios BL-T01–17: [CF-UX-TECH-001-FROTA-BASELINE-EX-ANTE](../docs/CF-UX-TECH-001-FROTA-BASELINE-EX-ANTE.md). Não substituir sequência técnica das guardas nem fechar issues.
+
+## Adendo P0 — premissas, adicionalidade, revisão e PD
+[Contrato PT](../docs/CF-UX-TECH-001-PREMISSAS-ADICIONALIDADE-PD.md). UX-08D.1 e BL-EX-01/02 continuam primeiro caminho crítico. PT-01 (V68/V94 assistidos), PT-02/03/04 (rota, timeline, direitos) em paralelo quando independentes; PT-05 (V100 UI e contexto), PT-06 = BL-EX-03/UX-08D.3, PT-07 (blocos PD #43/#122), PT-QA por fatia; VT0008/IA P1. Sem criar backlog duplicado ou relaxar gates.
+
+## Adendo P0 — consolidação de guias, J04/J05 e inventário (26/11/2026)
+[Contrato PT-09–16](../docs/CF-UX-TECH-001-GUIAS-FRONTEIRA-J04-J05.md). PT-09 elimina edição paralela, PT-10 integra fronteira, PT-11 plano ex ante, PT-12 J04, PT-13 inventário e provas, PT-14/15/16 são escopo inicial de prontidão, quantificação e saídas (aprofundar em auditoria posterior). PT-14 integra PT-06/UX-08D.3, PT-16 estende PT-07. Preservar UX-08D.1/BL-EX e owners. Sem conclusão de auditoria das demais telas de Monitorar, Quantificar, Redigir e Revisar.
+
+## Adendo P0 — monitoramento, quantificação e revisão (26/11/2026)
+[Contrato PT-17–26](../docs/CF-UX-TECH-001-MONITORAMENTO-QUANTIFICACAO-REVISAO.md). PT-17 importação, PT-18 ocorrências, PT-19 QA, PT-20 períodos (base de contexto quando incidente), PT-21 EFel/caderno, PT-22 execução/memória, PT-23 histórico/consolidação, PT-25 revisão e PT-26 exportação. PT-24 autoria híbrida e oferta máxima de insumos tem contrato existente #43/#122 preservado e aprofundamento reservado ao próximo adendo por decisão do responsável. PT-14/15/16 são integrados, não duplicados. Não condicionar PD ex ante a MR futuro. PT-T34–51 planejados; sem alterar código/gates.
+
+## Adendo P0 — PT-24 autoria técnica fundamentada (26/11/2026)
+[Contrato completo](../docs/CF-UX-TECH-001-REDIGIR-PD-AUTORIA-FUNDAMENTADA.md). Reserva documental PT-24 concluída por este adendo. PT-24A–H P0 manual (shell/outline, resolvedor, biblioteca, inserção/ref, figuras, ClaimSupport, consistência, versões); PT-24I/J P1 da autoria (IA fundamentada, tradução e perguntas simuladas), sem reduzir prioridade da #100 e sem gate IA no #122. Reusar PD-A–F/#43, #36/#37, #128, #35/#46, #100; PT-25/26 consomem mesmos snapshots. PT-T52–79 planejados. Preservar UX-08D.1/BL-EX e demais prioridades. Sem implementação ou teste.
