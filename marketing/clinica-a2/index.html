@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo · Recepção com IA</title>
+<style>
+  *{box-sizing:border-box} body{margin:0;font-family:system-ui,sans-serif;background:#0f172a;color:#e2e8f0;display:grid;grid-template-columns:420px 1fr;height:100vh}
+  .phone{background:#0b141a;display:flex;flex-direction:column;border-right:1px solid #1e293b}
+  .top{background:#202c33;padding:12px 16px;font-weight:600}.top small{display:block;font-weight:400;color:#8696a0}
+  #msgs{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:8px;background:#0b141a}
+  .b{max-width:80%;padding:8px 12px;border-radius:10px;white-space:pre-wrap;line-height:1.35;font-size:15px}
+  .me{align-self:flex-end;background:#005c4b}.bot{align-self:flex-start;background:#202c33}
+  form{display:flex;gap:8px;padding:10px;background:#202c33}input{flex:1;padding:10px;border-radius:20px;border:0;background:#2a3942;color:#e9edef;font-size:15px}
+  button{border:0;border-radius:20px;padding:10px 16px;background:#00a884;color:#fff;font-weight:600;cursor:pointer}
+  .panel{padding:20px;overflow:auto;display:grid;grid-template-columns:1fr 1fr;gap:16px;align-content:start}
+  .card{background:#1e293b;border-radius:12px;padding:14px}.card h3{margin:0 0 10px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#94a3b8}
+  .full{grid-column:1/-1}.row{padding:6px 0;border-bottom:1px solid #334155;font-size:14px}
+  .tag{font-size:11px;padding:2px 8px;border-radius:99px;margin-left:6px}.ok{background:#14532d}.pend{background:#713f12}.alta{background:#7f1d1d}
+  .feed{font-family:ui-monospace,monospace;font-size:12.5px;color:#a7f3d0}
+  .head{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center}
+  .ghost{background:#334155}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="top">Clínica Sorriso <small>recepção virtual · DEMO (dados fictícios)</small></div>
+  <div id="msgs"></div>
+  <form id="f"><input id="t" placeholder="Digite uma mensagem" autocomplete="off"><button>Enviar</button></form>
+</div>
+<div class="panel">
+  <div class="head"><h2 style="margin:0">Painel da clínica</h2>
+    <div><span id="modo" class="tag ok"></span> <button class="ghost" id="reset">Reiniciar demo</button></div></div>
+  <div class="card"><h3>Agenda</h3><div id="agenda"></div></div>
+  <div class="card"><h3>Avisos para a recepção humana</h3><div id="humano"></div>
+    <h3 style="margin-top:16px">Lista de espera</h3><div id="espera"></div></div>
+  <div class="card full"><h3>O que o agente fez (ferramentas)</h3><div id="feed" class="feed"></div></div>
+</div>
+<script>
+const $=s=>document.querySelector(s), msgs=$('#msgs');
+const add=(txt,cls)=>{const d=document.createElement('div');d.className='b '+cls;d.textContent=txt;msgs.appendChild(d);msgs.scrollTop=1e9};
+function draw(s){
+  $('#modo').textContent='cérebro: '+s.modo;
+  $('#agenda').innerHTML=s.agenda.map(a=>`<div class=row>${a.quando} · ${a.nome} · ${a.proc}<span class="tag ${a.confirmado?'ok':'pend'}">${a.confirmado?'confirmado':'a confirmar'}</span></div>`).join('')||'—';
+  $('#humano').innerHTML=s.humano.map(h=>`<div class=row>${h.resumo}<span class="tag ${h.urgencia=='alta'?'alta':'pend'}">${h.urgencia}</span></div>`).join('')||'—';
+  $('#espera').innerHTML=s.espera.map(e=>`<div class=row>${e.nome} · ${e.pref}</div>`).join('')||'—';
+  $('#feed').innerHTML=s.feed.map(l=>'⚙ '+l).join('<br>')||'—';
+}
+async function post(u,b){return (await fetch(u,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(b||{})})).json()}
+$('#f').onsubmit=async e=>{e.preventDefault();const v=$('#t').value.trim();if(!v)return;$('#t').value='';add(v,'me');
+  const r=await post('/api/chat',{texto:v});add(r.resposta,'bot');draw(r)};
+$('#reset').onclick=async()=>{msgs.innerHTML='';draw(await post('/api/reset'))};
+fetch('/api/state').then(r=>r.json()).then(draw);
+</script>
+</body>
+</html>
