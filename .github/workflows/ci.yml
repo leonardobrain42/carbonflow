@@ -489,6 +489,7 @@ jobs:
             DROP TABLE app_fuel;
             DROP VIEW app_fleet_model_effective;
             DROP TABLE app_fleet_model_classification;
+            DROP TABLE app_fleet_alias_application;
             DROP TABLE app_fleet_alias_candidate_decision;
             DROP TABLE app_fleet_alias_candidate;
             DROP TABLE app_project_methodology_pin;
