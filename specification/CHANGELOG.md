@@ -1,4 +1,7 @@
 # Changelog da especificação viva
+## 0.3.0-rc.93 — 26/11/2026 (proposta)
+- **Roteiro #124, UX-08D.1: pino do fator fóssil pelo catálogo na interface.** Nível D17: projeto (interface administrativa; API V116 existente). Sem migração, API ou regra novas. A tela "Pinos do projeto" passa a fixar `EF_FUEL` por combustível, escopo e data do catálogo (só CO2, `CO2_ONLY`), com conferência somente leitura do valor, da unidade e da revisão antes de gravar; o candidato de arquivo segue como legado. Nada é admitido.
+- **Limites:** teste de navegador real com API mockada (Chrome local, Node 24); o build do Angular compila. Não mostra ainda os pinos do ano nem E30/E32 lado a lado.
 ## Adendo documental — Redigir PD e autoria fundamentada (26/11/2026, planejado)
 - [PT-24A–J](../docs/CF-UX-TECH-001-REDIGIR-PD-AUTORIA-FUNDAMENTADA.md), 11 SVG, PT-T52–79; reserva anterior atendida em especificação; autoria manual P0, IA P1 opcional nesta fatia. Sem código, testes ou alteração de gate.
 ## Adendo documental — monitoramento, quantificação e revisão (26/11/2026, planejado)

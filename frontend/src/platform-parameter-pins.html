@@ -47,7 +47,47 @@
         <label for="cf-pin-evidence">Prova</label>
         <input id="cf-pin-evidence" [value]="evidenceLocator"
           (input)="evidenceLocator=$any($event.target).value" required>
+      } @else if (usesCatalog()) {
+        <label for="cf-pin-source">Origem do fator</label>
+        <select id="cf-pin-source" [value]="fuelSource" (change)="fuelSource=$any($event.target).value;catalogPreview.set(null)">
+          <option value="CATALOG">Catálogo de combustíveis (CO2 fóssil, só CO2)</option>
+          <option value="CANDIDATE">Candidato de arquivo (legado)</option>
+        </select>
+        <label for="cf-pin-fuel">Combustível</label>
+        <select id="cf-pin-fuel" [value]="catalogFuel" (change)="catalogFuel=$any($event.target).value;previewCatalog()">
+          <option value="">Selecione o combustível</option>
+          @for (item of catalogFuels(); track item.id) {
+            <option [value]="item.id">{{item.name}}</option>
+          }
+        </select>
+        @if (catalogLoaded() && !catalogFuels().length) {
+          <p role="status">O catálogo não tem fator de CO2 fóssil registrado ou você não tem acesso a ele.</p>
+        }
+        <label for="cf-pin-scope">Escopo</label>
+        <select id="cf-pin-scope" [value]="catalogScope" (change)="catalogScope=$any($event.target).value;previewCatalog()">
+          <option value="TTW">Uso do combustível (TTW)</option>
+          <option value="WTW">Do poço à roda (WTW)</option>
+        </select>
+        <label for="cf-pin-date">Data de referência</label>
+        <input id="cf-pin-date" type="date" [value]="catalogDate" (change)="catalogDate=$any($event.target).value;previewCatalog()" required>
+        <p>A data decide qual vigência do catálogo vale (por exemplo, a mistura E30 ou E32). O E8 só usa o fator
+          se a vigência cobrir todo o período calculado.</p>
+        @if (catalogPreview(); as preview) {
+          <p role="status" class="cf-pin-preview">
+            @if (preview.requirements?.[0]?.methodValue) {
+              <strong>{{preview.requirements?.[0]?.methodValue}} {{preview.requirements?.[0]?.methodUnit}}</strong> ·
+            }
+            {{catalogStateText()}}
+          </p>
+        }
       } @else {
+        @if (kind==='EF_FUEL') {
+          <label for="cf-pin-source-legacy">Origem do fator</label>
+          <select id="cf-pin-source-legacy" [value]="fuelSource" (change)="fuelSource=$any($event.target).value">
+            <option value="CATALOG">Catálogo de combustíveis (CO2 fóssil, só CO2)</option>
+            <option value="CANDIDATE">Candidato de arquivo (legado)</option>
+          </select>
+        }
         <label for="cf-pin-candidate">Fator revisado internamente</label>
         <select id="cf-pin-candidate" [value]="candidateId"
           (change)="candidateId=$any($event.target).value">
