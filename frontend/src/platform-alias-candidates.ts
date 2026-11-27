@@ -5,6 +5,9 @@ import {firstValueFrom} from 'rxjs';
 
 interface StaffSession {verified: boolean; expiresAt: string | null}
 interface PbevMatch {brand: string; model: string; version: string | null; category: string; pbevLine: number}
+interface Risk {code: string; text: string}
+interface RightsCheck {role: string; sha256: string; operation: string; registered: boolean}
+interface DryRun {importable: boolean; rightsGateEnabled: boolean; rights: RightsCheck[]; newItems: number; alreadyPresent: number}
 
 /** Mirrors FleetAliasCandidates.Candidate. The state is what the server derived from the single decision. */
 interface Candidate {
@@ -22,6 +25,8 @@ interface Candidate {
   selectedPbevLine: number | null;
   decisionReason: string | null;
   decisionBasis: 'INDEPENDENT' | 'OWNER_INTERNAL' | null;
+  senatranSourceSha256: string | null;
+  risks: Risk[];
   limits: string;
 }
 
@@ -65,6 +70,8 @@ export class PlatformAliasCandidatesComponent {
   readonly deciding = signal<string | null>(null);
   readonly line = signal<number | null>(null);
   readonly basis = signal<'INDEPENDENT' | 'OWNER_INTERNAL'>('INDEPENDENT');
+  readonly acknowledged = signal<string[]>([]);
+  readonly dryRun = signal<DryRun | null>(null);
   readonly unlocked = computed(() => {
     if (this.denied()) return false;
     const session = this.session();
@@ -77,6 +84,13 @@ export class PlatformAliasCandidatesComponent {
   stateLabel(item: Candidate): string { return STATES[item.state] ?? item.state; }
   basisLabel(item: Candidate): string { return item.decisionBasis ? (BASES[item.decisionBasis] ?? item.decisionBasis) : ''; }
   shortHash(item: Candidate): string { return item.pbevSourceSha256.slice(0, 12); }
+  /** EXACT only informs; MODEL_ONLY and AMBIGUOUS need every risk acknowledged before accepting (the server enforces it too). */
+  risksAcknowledged(item: Candidate): boolean {
+    return item.level === 'EXACT' || item.risks.every(risk => this.acknowledged().includes(risk.code));
+  }
+  toggleRisk(code: string, checked: boolean) {
+    this.acknowledged.update(list => checked ? [...new Set([...list, code])] : list.filter(entry => entry !== code));
+  }
   chosen(item: Candidate): PbevMatch | undefined {
     return item.matches.find(match => match.pbevLine === item.selectedPbevLine);
   }
@@ -149,6 +163,7 @@ export class PlatformAliasCandidatesComponent {
     this.saving.set(true);
     this.error.set('');
     this.feedback.set('');
+    this.dryRun.set(null);
     try {
       const result = await firstValueFrom(this.http.post<{created: number; alreadyPresent: number}>(this.api, body));
       this.feedback.set('Lote importado: ' + result.created + ' novo(s) candidato(s), ' + result.alreadyPresent
@@ -156,7 +171,31 @@ export class PlatformAliasCandidatesComponent {
       area.value = '';
       await this.load();
     } catch (reason) {
-      this.error.set(this.message(reason, 'Não foi possível importar o lote.'));
+      const blocked = reason instanceof HttpErrorResponse && reason.status === 403 && reason.error?.code === 'DIREITOS_NAO_REGISTRADOS';
+      this.error.set(blocked ? String(reason.error.message) : this.message(reason, 'Não foi possível importar o lote.'));
+    } finally {
+      this.saving.set(false);
+    }
+  }
+
+  /** Writes nothing: reports new/existing items and whether both sources have independently approved rights. */
+  async simulate(area: HTMLTextAreaElement) {
+    if (this.saving()) return;
+    let body: unknown;
+    try {
+      body = JSON.parse(area.value);
+    } catch {
+      this.error.set('O lote não é um JSON válido. Cole a saída de prepare_alias_review.py prepare.');
+      return;
+    }
+    this.saving.set(true);
+    this.error.set('');
+    this.feedback.set('');
+    try {
+      this.dryRun.set(await firstValueFrom(this.http.post<DryRun>(this.api + '/dry-run', body)));
+    } catch (reason) {
+      this.dryRun.set(null);
+      this.error.set(this.message(reason, 'Não foi possível simular a importação.'));
     } finally {
       this.saving.set(false);
     }
@@ -166,6 +205,7 @@ export class PlatformAliasCandidatesComponent {
     this.deciding.set(item.id);
     this.line.set(item.matches.length === 1 ? item.matches[0].pbevLine : null);
     this.basis.set('INDEPENDENT');
+    this.acknowledged.set([]);
     this.error.set('');
     this.feedback.set('');
   }
@@ -184,6 +224,7 @@ export class PlatformAliasCandidatesComponent {
     try {
       await firstValueFrom(this.http.post<Candidate>(this.api + '/' + item.id + '/decision', {
         outcome, reason: reason.trim(), selectedPbevLine: outcome === 'ACCEPTED' ? this.line() : null, basis: this.basis(),
+        acknowledgedRisks: outcome === 'ACCEPTED' ? this.acknowledged() : [],
       }));
       this.feedback.set(outcome === 'ACCEPTED'
         ? 'Candidato aceito. Nenhum modelo nem alias foi criado: o cadastro segue pelas rotas do catálogo.'
@@ -196,6 +237,7 @@ export class PlatformAliasCandidatesComponent {
       this.error.set(status === 403 && code === 'DUPLA_CUSTODIA' ? 'Quem importou o candidato não pode decidir como revisor independente. Peça a outra pessoa ou, se este é o seu papel, use a decisão interna do responsável.'
         : status === 403 && code === 'BASE_NAO_AUTORIZADA' ? 'Seu perfil não está autorizado a decidir nesta base. Escolha a outra base ou peça o privilégio.'
         : status === 409 ? 'Este candidato já tem decisão. Atualize a lista.'
+        : status === 422 && code === 'RISCOS_NAO_RECONHECIDOS' ? 'Reconheça cada risco do casamento por nome antes de aceitar.'
         : this.message(reason, 'Não foi possível registrar a decisão.'));
     } finally {
       this.saving.set(false);

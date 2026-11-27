@@ -11,6 +11,8 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -35,10 +37,14 @@ class FleetAliasCandidatesIntegrationTest {
     // Identities of the owner-basis test are separate: a one-time code cannot be replayed by the same identity.
     private static final UUID REVIEWER2 = UUID.fromString("b77f1011-84bf-478a-8b86-2b5fd2881d46");
     private static final UUID IMPORTER2 = UUID.fromString("b77f1011-84bf-478a-8b86-2b5fd2881d47");
+    private static final UUID REVIEWER3 = UUID.fromString("b77f1011-84bf-478a-8b86-2b5fd2881d48");
+    private static final UUID IMPORTER3 = UUID.fromString("b77f1011-84bf-478a-8b86-2b5fd2881d49");
+    private static final UUID OTHER3 = UUID.fromString("b77f1011-84bf-478a-8b86-2b5fd2881d4a");
     private static final UUID ORG = UUID.fromString("71e71a49-e926-4eaa-aab8-86b04add8a41");
     private static final byte[] OTP = "78901234567890123456".getBytes(StandardCharsets.US_ASCII);
     private static final String API = "/v1/platform/fleet/alias-candidates";
     private static final String SHA = "c".repeat(64);
+    private static final String SEN = "d".repeat(64);
 
     @Inject PilotDatabase database;
     @Inject ObjectMapper json;
@@ -55,8 +61,39 @@ class FleetAliasCandidatesIntegrationTest {
     }
 
     private static String batch(String period, String sha, String... items) {
-        return "{\"observationPeriod\":\"" + period + "\",\"pbevSourceSha256\":\"" + sha + "\",\"items\":["
-                + String.join(",", items) + "]}";
+        return batchWith(period, sha, SEN, items);
+    }
+
+    private static String batchWith(String period, String sha, String senatran, String... items) {
+        return "{\"observationPeriod\":\"" + period + "\",\"pbevSourceSha256\":\"" + sha + "\",\"senatranSourceSha256\":\""
+                + senatran + "\",\"items\":[" + String.join(",", items) + "]}";
+    }
+
+    /** Independently approved, effective licence (EXTRACT_TEXT) for a source identified by its SHA-256; test fixtures only. */
+    private void seedRights(String sha, String name, String lastOutcome, String submitter, String decider, String endsAt) {
+        session(IMPORTER);
+        session(REVIEWER2);
+        database.transaction(c -> {
+            update(c, "INSERT INTO app_source_version(source_id,edition,category,title,rights_holder,sha256,origin) "
+                    + "VALUES (?,'t1','EXTERNAL_SOURCE','Fonte sintética de teste','Teste',?,'EXTERNAL') ON CONFLICT DO NOTHING", name, sha);
+            UUID license = UUID.randomUUID();
+            update(c, "INSERT INTO app_content_license(id,source_id,edition,submitted_by,environment,purpose,authorization_ref,"
+                    + "proof_sha256,starts_at,ends_at) VALUES (?,?,'t1',?::uuid,'SANDBOX','AUTHORIZED_PROCESSING','Fixture sintética',?,"
+                    + "statement_timestamp()-interval '1 day',?::timestamptz)", license, name, submitter, "e".repeat(64), endsAt);
+            update(c, "INSERT INTO app_content_license_decision(license_id,version,outcome,decided_by,reason) "
+                    + "VALUES (?,1,'APPROVED',?::uuid,'Fixture sintética de teste')", license, decider);
+            update(c, "INSERT INTO app_content_license_capability(license_id,decision_version,operation) VALUES (?,1,'EXTRACT_TEXT')", license);
+            if (!lastOutcome.equals("APPROVED")) {
+                update(c, "INSERT INTO app_content_license_decision(license_id,version,outcome,decided_by,reason) "
+                        + "VALUES (?,2,?,?::uuid,'Fixture sintética de teste')", license, lastOutcome, decider);
+            }
+            return null;
+        });
+    }
+
+    private void seedDefaultRights() {
+        seedRights(SHA, "TEST-ALIAS-PBEV", "APPROVED", IMPORTER.toString(), REVIEWER2.toString(), null);
+        seedRights(SEN, "TEST-ALIAS-SENATRAN", "APPROVED", IMPORTER.toString(), REVIEWER2.toString(), null);
     }
 
     private long count(String table) {
@@ -75,6 +112,7 @@ class FleetAliasCandidatesIntegrationTest {
         String itemB = item(nameB, "I_RENAULT_" + suffix, "MODEL_ONLY", "[" + match(10, "INTENS") + "," + match(11, "CARGO") + "]");
         database.transaction(c -> update(c, "INSERT INTO app_organization(id,environment,display_name) VALUES (?,'SANDBOX','Organização de teste') ON CONFLICT(id) DO NOTHING", ORG));
         long models = count("app_fleet_model"), aliases = count("app_fleet_model_alias");
+        seedDefaultRights();
         String importer = session(IMPORTER), reviewer = session(REVIEWER), dual = session(DUAL), other = session(OTHER_STAFF);
         assertEquals(401, call("GET", API, null, null, null).statusCode());
         assertEquals(403, call("GET", API, importer, null, null).statusCode());
@@ -175,6 +213,7 @@ class FleetAliasCandidatesIntegrationTest {
     void ownerInternalDecisionIsExplicitNeverIndependentAndLimitedToTheOwnersRoster() throws Exception {
         database.transaction(c -> update(c, "INSERT INTO app_organization(id,environment,display_name) VALUES (?,'SANDBOX','Organização de teste') ON CONFLICT(id) DO NOTHING", ORG));
         String suffix = UUID.randomUUID().toString().substring(0, 8);
+        seedDefaultRights();
         String owner = session(OWNER), reviewer = session(REVIEWER2), importer = session(IMPORTER2);
         for (String who : new String[]{owner, reviewer, importer}) verify(who);
         long models = count("app_fleet_model"), aliases = count("app_fleet_model_alias");
@@ -214,6 +253,129 @@ class FleetAliasCandidatesIntegrationTest {
         assertEquals("INDEPENDENT", find(listed, idTwo).path("decisionBasis").asText());
         assertEquals(models, count("app_fleet_model"));
         assertEquals(aliases, count("app_fleet_model_alias"));
+    }
+
+    private static String hex64() {
+        return (UUID.randomUUID().toString() + UUID.randomUUID()).replace("-", "").substring(0, 64);
+    }
+
+    private JsonNode pendingByName(String who, String suffix) throws Exception {
+        var found = json.createObjectNode();
+        for (var c : json.readTree(ok(call("GET", API + "?state=PENDING", who, null, null)).body()))
+            if (c.path("literalName").asText().endsWith(suffix)) found.set(c.path("literalName").asText(), c);
+        return found;
+    }
+
+    /** BL-DATA-01C/D: no real import without independent approval of both sources; MODEL_ONLY risks are explicit. */
+    @Test
+    void rightsGateBlocksImportUntilBothSourcesAreIndependentlyApprovedAndRisksAreExplicit() throws Exception {
+        database.transaction(c -> update(c, "INSERT INTO app_organization(id,environment,display_name) VALUES (?,'SANDBOX','Organização de teste') ON CONFLICT(id) DO NOTHING", ORG));
+        String suffix = UUID.randomUUID().toString().substring(0, 8), tag = " G" + suffix;
+        String pbev = hex64(), sen = hex64();
+        String importer = session(IMPORTER3), reviewer = session(REVIEWER3), other = session(OTHER3);
+        for (String who : new String[]{importer, reviewer, other}) verify(who);
+        String exact = item("I/GATE EXACT" + tag, "G_E_" + suffix, "EXACT", "[" + match(1, "GS") + "]");
+        String modelOnly = item("I/GATE MODELO" + tag, "G_M_" + suffix, "MODEL_ONLY", "[" + match(10, "INTENS") + "," + match(11, "CARGO") + "]");
+        String ambiguous = item("I/GATE AMBIGUO" + tag, "G_A_" + suffix, "AMBIGUOUS", "[" + match(20, "A") + "," + match(21, "B") + "]");
+        String body = batchWith("2026-09", pbev, sen, exact, modelOnly, ambiguous);
+        long before = count("app_fleet_alias_candidate");
+
+        // Without any registered right: the dry run reports it, the real import is refused and nothing is written.
+        var dry = json.readTree(ok(call("POST", API + "/dry-run", importer, null, body)).body());
+        assertFalse(dry.path("importable").asBoolean());
+        assertTrue(dry.path("rightsGateEnabled").asBoolean());
+        assertEquals(2, dry.path("rights").size());
+        for (var right : dry.path("rights")) assertFalse(right.path("registered").asBoolean());
+        assertEquals(3, dry.path("newItems").asInt());
+        assertEquals(List.of("NAME_MATCH_ONLY", "HOMONYM", "DISTINCT_PROPULSION", "VERSION_UNCONFIRMED"),
+                json.convertValue(dry.path("items").get(1).path("riskCodes"), List.class));
+        var refused = call("POST", API, importer, null, body);
+        assertEquals(403, refused.statusCode());
+        assertEquals("DIREITOS_NAO_REGISTRADOS", json.readTree(refused.body()).path("code").asText());
+        assertEquals(before, count("app_fleet_alias_candidate"));
+        assertEquals(404, call("POST", API + "/dry-run", other, null, body).statusCode());
+        assertEquals(422, call("POST", API + "/dry-run", importer, null, body.replace(sen, "curto")).statusCode());
+        assertEquals(422, call("POST", API, importer, null, body.replace(",\"senatranSourceSha256\":\"" + sen + "\"", "")).statusCode());
+
+        // One source approved is not enough; nor a self-approval, a revoked licence or an expired one.
+        seedRights(pbev, "GATE-PBEV-" + suffix, "APPROVED", IMPORTER.toString(), REVIEWER2.toString(), null);
+        assertEquals(403, call("POST", API, importer, null, body).statusCode());
+        seedRights(sen, "GATE-SEN-SELF-" + suffix, "APPROVED", REVIEWER2.toString(), REVIEWER2.toString(), null);
+        assertEquals(403, call("POST", API, importer, null, body).statusCode());
+        String sen2 = hex64(), sen3 = hex64();
+        seedRights(sen2, "GATE-SEN-REV-" + suffix, "REVOKED", IMPORTER.toString(), REVIEWER2.toString(), null);
+        assertEquals(403, call("POST", API, importer, null, body.replace(sen, sen2)).statusCode());
+        seedRights(sen3, "GATE-SEN-EXP-" + suffix, "APPROVED", IMPORTER.toString(), REVIEWER2.toString(), OffsetDateTime.now().minusHours(1).toString());
+        assertEquals(403, call("POST", API, importer, null, body.replace(sen, sen3)).statusCode());
+        assertEquals(before, count("app_fleet_alias_candidate"));
+
+        // Both approved by someone else: dry run is importable, the import records the senatran provenance.
+        seedRights(sen, "GATE-SEN-" + suffix, "APPROVED", IMPORTER.toString(), REVIEWER2.toString(), null);
+        assertTrue(json.readTree(ok(call("POST", API + "/dry-run", importer, null, body)).body()).path("importable").asBoolean());
+        assertEquals(before, count("app_fleet_alias_candidate"));
+        assertEquals(3, json.readTree(ok(call("POST", API, importer, null, body)).body()).path("created").asInt());
+        var again = json.readTree(ok(call("POST", API + "/dry-run", importer, null, body)).body());
+        assertEquals(0, again.path("newItems").asInt());
+        assertEquals(3, again.path("alreadyPresent").asInt());
+
+        // Risks are part of every listed candidate; names alone never decide.
+        var pending = pendingByName(reviewer, tag);
+        var cExact = pending.path("I/GATE EXACT" + tag);
+        var cModel = pending.path("I/GATE MODELO" + tag);
+        var cAmb = pending.path("I/GATE AMBIGUO" + tag);
+        assertEquals(sen, cModel.path("senatranSourceSha256").asText());
+        assertEquals(List.of("NAME_MATCH_ONLY"), json.convertValue(cExact.path("risks").findValues("code"), List.class));
+        assertEquals(List.of("NAME_MATCH_ONLY", "HOMONYM", "DISTINCT_PROPULSION", "VERSION_UNCONFIRMED"),
+                json.convertValue(cModel.path("risks").findValues("code"), List.class));
+        assertEquals(5, cAmb.path("risks").size());
+        assertTrue(cModel.path("risks").get(1).path("text").asText().contains("combustão"));
+
+        // Accepting MODEL_ONLY/AMBIGUOUS needs every risk acknowledged; rejecting does not.
+        String idModel = cModel.path("id").asText(), idAmb = cAmb.path("id").asText(), idExact = cExact.path("id").asText();
+        String acceptModel = "{\"outcome\":\"ACCEPTED\",\"selectedPbevLine\":10,\"reason\":\"Versão conferida manualmente no PBEV.\"%s}";
+        var noAck = call("POST", API + "/" + idModel + "/decision", reviewer, null, acceptModel.formatted(""));
+        assertEquals(422, noAck.statusCode());
+        assertEquals("RISCOS_NAO_RECONHECIDOS", json.readTree(noAck.body()).path("code").asText());
+        assertEquals(422, call("POST", API + "/" + idModel + "/decision", reviewer, null,
+                acceptModel.formatted(",\"acknowledgedRisks\":[\"HOMONYM\"]")).statusCode());
+        String allAck = ",\"acknowledgedRisks\":[\"NAME_MATCH_ONLY\",\"HOMONYM\",\"DISTINCT_PROPULSION\",\"VERSION_UNCONFIRMED\"]";
+        assertEquals("PENDING", find(json.readTree(ok(call("GET", API, reviewer, null, null)).body()), idModel).path("state").asText());
+
+        // Bulk decisions: dry run reports every item, applying is all-or-nothing, there is no accept-all.
+        String ok1 = "{\"candidateId\":\"" + idExact + "\",\"outcome\":\"ACCEPTED\",\"selectedPbevLine\":1,\"reason\":\"Nome e versão conferidos no PBEV.\"}";
+        String weak = "{\"candidateId\":\"" + idModel + "\",\"outcome\":\"ACCEPTED\",\"selectedPbevLine\":10,\"reason\":\"Versão conferida manualmente no PBEV.\"}";
+        String strong = weak.replace("}", allAck.substring(0, allAck.length()) + "}");
+        String rej = "{\"candidateId\":\"" + idAmb + "\",\"outcome\":\"REJECTED\",\"reason\":\"Dois modelos candidatos; recusado.\"}";
+        String dryBody = "{\"items\":[" + ok1 + "," + weak + "," + rej + "]}";
+        var plan = json.readTree(ok(call("POST", API + "/decisions/dry-run", reviewer, null, dryBody)).body());
+        assertTrue(plan.path("dryRun").asBoolean());
+        assertFalse(plan.path("applied").asBoolean());
+        assertEquals(1, plan.path("failed").asInt());
+        assertEquals("RISCOS_NAO_RECONHECIDOS", plan.path("results").get(1).path("code").asText());
+        var blocked = call("POST", API + "/decisions", reviewer, null, dryBody);
+        assertEquals(422, blocked.statusCode());
+        assertFalse(json.readTree(blocked.body()).path("applied").asBoolean());
+        assertEquals(3, pendingByName(reviewer, tag).size());  // nothing was decided
+        assertEquals(404, call("POST", API + "/decisions", importer, null, dryBody).statusCode());
+        assertEquals(422, call("POST", API + "/decisions", reviewer, null, "{\"items\":[]}").statusCode());
+        var repeated = json.readTree(ok(call("POST", API + "/decisions/dry-run", reviewer, null, "{\"items\":[" + ok1 + "," + ok1 + "]}")).body());
+        assertEquals("CANDIDATO_REPETIDO", repeated.path("results").get(1).path("code").asText());
+        var many = new StringBuilder("{\"items\":[");
+        for (int i = 0; i <= FleetAliasCandidates.MAX_BULK; i++) many.append(i == 0 ? "" : ",").append(ok1);
+        assertEquals(422, call("POST", API + "/decisions/dry-run", reviewer, null, many + "]}").statusCode());
+
+        var applied = call("POST", API + "/decisions", reviewer, null, "{\"items\":[" + ok1 + "," + strong + "," + rej + "]}");
+        assertEquals(201, applied.statusCode(), applied.body());
+        var result = json.readTree(applied.body());
+        assertTrue(result.path("applied").asBoolean());
+        assertEquals(2, result.path("accepted").asInt());
+        assertEquals(1, result.path("rejected").asInt());
+        var listed = json.readTree(ok(call("GET", API, reviewer, null, null)).body());
+        assertEquals("ACCEPTED", find(listed, idModel).path("state").asText());
+        assertEquals("REJECTED", find(listed, idAmb).path("state").asText());
+        // A candidate already decided is reported, not decided again.
+        var again2 = json.readTree(ok(call("POST", API + "/decisions/dry-run", reviewer, null, "{\"items\":[" + ok1 + "]}")).body());
+        assertEquals("CANDIDATO_DECIDIDO", again2.path("results").get(0).path("code").asText());
     }
 
     /** A one-time code cannot be replayed, so a session already verified by an earlier test is reused. */
@@ -276,10 +438,11 @@ class FleetAliasCandidatesIntegrationTest {
             String secret = Base64.getUrlEncoder().withoutPadding().encodeToString(OTP);
             result.put("carbonflow.compliance.staff", IMPORTER + ":" + secret + ":" + ORG + ";" + REVIEWER + ":" + secret + ":" + ORG
                     + ";" + DUAL + ":" + secret + ":" + ORG + ";" + OTHER_STAFF + ":" + secret + ":" + ORG + ";" + OWNER + ":" + secret + ":" + ORG
-                    + ";" + REVIEWER2 + ":" + secret + ":" + ORG + ";" + IMPORTER2 + ":" + secret + ":" + ORG);
+                    + ";" + REVIEWER2 + ":" + secret + ":" + ORG + ";" + IMPORTER2 + ":" + secret + ":" + ORG
+                    + ";" + REVIEWER3 + ":" + secret + ":" + ORG + ";" + IMPORTER3 + ":" + secret + ":" + ORG + ";" + OTHER3 + ":" + secret + ":" + ORG);
             result.put("carbonflow.compliance.document-key", Base64.getUrlEncoder().withoutPadding().encodeToString(new byte[32]));
-            result.put("carbonflow.platform.fleet-alias-candidates.importers", IMPORTER + "," + DUAL + "," + IMPORTER2);
-            result.put("carbonflow.platform.fleet-alias-candidates.reviewers", REVIEWER + "," + DUAL + "," + REVIEWER2);
+            result.put("carbonflow.platform.fleet-alias-candidates.importers", IMPORTER + "," + DUAL + "," + IMPORTER2 + "," + IMPORTER3);
+            result.put("carbonflow.platform.fleet-alias-candidates.reviewers", REVIEWER + "," + DUAL + "," + REVIEWER2 + "," + REVIEWER3);
             result.put("carbonflow.platform.fleet-alias-candidates.owners", OWNER.toString());
             return result;
         }

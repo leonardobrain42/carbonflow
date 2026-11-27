@@ -34,6 +34,28 @@ public class FleetAliasCandidatesResource {
     }
 
     @POST
+    @Path("/dry-run")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response dryRunImport(@CookieParam(AccountAccess.COOKIE) String token, FleetAliasCandidates.ImportInput input) {
+        return Response.ok(candidates.dryRunImport(token, input)).header("Cache-Control", "private, no-store").build();
+    }
+
+    @POST
+    @Path("/decisions/dry-run")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response dryRunDecisions(@CookieParam(AccountAccess.COOKIE) String token, FleetAliasCandidates.BulkInput input) {
+        return Response.ok(candidates.bulkDecide(token, input, false)).header("Cache-Control", "private, no-store").build();
+    }
+
+    @POST
+    @Path("/decisions")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response decideInBulk(@CookieParam(AccountAccess.COOKIE) String token, FleetAliasCandidates.BulkInput input) {
+        var result = candidates.bulkDecide(token, input, true);
+        return Response.status(result.applied() ? 201 : 422).entity(result).header("Cache-Control", "private, no-store").build();
+    }
+
+    @POST
     @Path("/{id}/decision")
     @Consumes(MediaType.APPLICATION_JSON)
     public Response decide(@CookieParam(AccountAccess.COOKIE) String token, @PathParam("id") UUID id,

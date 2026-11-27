@@ -194,6 +194,8 @@ jobs:
           python3 -m unittest discover -s scripts -p 'test_match_senatran_pbev.py' -v
           python3 -m unittest discover -s scripts -p 'test_build_fleet_model_registrations.py' -v
           python3 -m unittest discover -s scripts -p 'test_reconcile_fleet_catalog.py' -v
+          python3 -m unittest discover -s scripts -p 'test_prepare_alias_review.py' -v
+          python3 -m unittest discover -s scripts -p 'test_fleet_sources_rights.py' -v
           python3 -m unittest discover -s scripts -p 'test_import_mcti_hourly.py' -v
           python3 -m unittest discover -s scripts -p 'test_fuel_catalog.py' -v
           python3 -m unittest discover -s scripts -p 'test_prepare_dy_evidence.py' -v
@@ -419,7 +421,7 @@ jobs:
           set -euo pipefail
           # Only CI's isolated demo: model the legacy schema with the exact
           # Calendar SQL already applied by V81, retaining its actual checksum.
-          # Revert V82/V83/V84/V85/V86/V87/V88/V89/V90/V91/V92/V93/V94/V95/V96/V97/V98/V99/V100/V101/V102/V103/V104/V105/V106/V107/V108/V109/V110/V111/V112/V113/V114/V115/V116/V117/V118 as well: the original V79 must be the last migration.
+          # Revert V82/V83/V84/V85/V86/V87/V88/V89/V90/V91/V92/V93/V94/V95/V96/V97/V98/V99/V100/V101/V102/V103/V104/V105/V106/V107/V108/V109/V110/V111/V112/V113/V114/V115/V116/V117/V118/V119 as well: the original V79 must be the last migration.
           # The real demo compatibility guard must continue to reject newer history.
           python3 -c 'import sys; sys.path.insert(0,"scripts"); import demo_sandbox as d; d.compose("stop","app")'
           dc=(docker compose -p "$CARBONFLOW_DEMO_PROJECT" -f compose.yaml -f compose.demo.yaml)
@@ -480,7 +482,7 @@ jobs:
             ALTER TABLE app_content_license_decision DROP CONSTRAINT app_content_license_decision_outcome_check;
             ALTER TABLE app_content_license_decision ADD CONSTRAINT app_content_license_decision_outcome_check
               CHECK (outcome IN ('APPROVED','REVOKED','DENIED','SYNTHETIC_FIXTURE'));
-            DELETE FROM app_source_version WHERE source_id='MCTI-SIN-DESPACHO';
+            DELETE FROM app_source_version WHERE source_id IN ('MCTI-SIN-DESPACHO','SENATRAN-RENAVAM-FROTA','INMETRO-PBEV');
             DROP TABLE app_fuel_entry_review;
             DROP TABLE app_fuel_entry;
             DROP TABLE app_fuel;
@@ -490,7 +492,7 @@ jobs:
             DROP TABLE app_fleet_alias_candidate;
             DROP TABLE app_project_methodology_pin;
             DROP TABLE app_methodology_registry;
-            DELETE FROM flyway_schema_history WHERE version IN ('79','80','82','83','84','85','86','87','88','89','90','91','92','93','94','95','96','97','98','99','100','101','102','103','104','105','106','107','108','109','110','111','112','113','114','115','116','117','118');
+            DELETE FROM flyway_schema_history WHERE version IN ('79','80','82','83','84','85','86','87','88','89','90','91','92','93','94','95','96','97','98','99','100','101','102','103','104','105','106','107','108','109','110','111','112','113','114','115','116','117','118','119');
             UPDATE flyway_schema_history SET version='79',
               script='db/migration/V79__open_e8_run_calendar.sql'
               WHERE version='81' AND checksum=-898586753 AND success;
@@ -567,7 +569,7 @@ jobs:
               AND to_regclass('public.app_open_ir_assessment') IS NOT NULL
               AND to_regclass('public.app_open_ir_review') IS NOT NULL
               AND to_regclass('public.app_open_ir_annual_evidence') IS NOT NULL
-              AND (SELECT count(*) FROM flyway_schema_history WHERE version IN ('82','83','84','85','86','87','88','89','90','91','92','93','94','95','96','97','98','99','100','101','102','103','104','105','106','107','108','109','110','111','112','113','114','115','116','117','118') AND success)=37
+              AND (SELECT count(*) FROM flyway_schema_history WHERE version IN ('82','83','84','85','86','87','88','89','90','91','92','93','94','95','96','97','98','99','100','101','102','103','104','105','106','107','108','109','110','111','112','113','114','115','116','117','118','119') AND success)=38
               AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='app_open_dy_assessment' AND column_name='cumulative_erc')
               AND to_regclass('public.app_open_additionality_opinion') IS NOT NULL
               AND to_regclass('public.app_open_ir_annual_temporal_evidence') IS NOT NULL

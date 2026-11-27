@@ -1,0 +1,37 @@
+{
+  "note": "Corpo pronto para POST /v1/platform/source-licenses/public pelo responsável do produto (rol 'owners'). Valores de docs/data/evidence/pbev-license-capture.json. Autorização do responsável registrada na conversa de 27/11/2026; esta declaração NÃO é aprovação: a extração factual é interpretação e exige aprovação independente. Operações sem fundamento suficiente (conversão de unidades, cálculos derivados, exibição de dados reorganizados) e a exportação (vedada pela cláusula ND) NÃO foram declaradas.",
+  "sourceId": "INMETRO-PBEV",
+  "edition": "2026-rev01-43e928f8",
+  "purpose": "AUTHORIZED_PROCESSING",
+  "licenseIdentifier": "CC-BY-ND-3.0",
+  "legalTextSha256": "f38359a4f5241e61cf1a98c0974cdc0062ddbfd6fd5892f7af961ce5228ad2f5",
+  "evidenceUri": "https://www.gov.br/inmetro/pt-br/assuntos/regulamentacao/avaliacao-da-conformidade/programa-brasileiro-de-etiquetagem/tabelas-de-eficiencia-energetica/veiculos-automotivos-pbe-veicular",
+  "evidenceCapturedAt": "2026-11-27T01:12:00Z",
+  "evidenceSha256": "42300c797734f150f666def53e627e401422be7534bc53178c3a7938dc91f08d",
+  "startsAt": "2026-11-27T01:12:00Z",
+  "startsAtBasis": "CAPTURE_DATE",
+  "endsAt": null,
+  "reason": "Rodapé do site do Inmetro declara o conteúdo sob CC BY-ND 3.0; captura e texto jurídico preservados por SHA-256; extração factual fundada no art. 7º, XIII e §2º da Lei 9.610/1998.",
+  "operations": [
+    {
+      "operation": "REFERENCE_REQUIREMENT",
+      "groundKind": "LICENSE_GRANT",
+      "grounds": "Cláusula 3: reproduzir a obra e distribuí-la com atribuição (cláusula 4); citar a fonte e a edição não exige direito adicional."
+    },
+    {
+      "operation": "STORE_ORIGINAL",
+      "groundKind": "LICENSE_GRANT",
+      "grounds": "Cláusula 3: direito de Reproduzir a Obra, em todos os meios e formatos, mantidos os avisos e a atribuição ao Inmetro (cláusula 4); o PDF fica sem alteração."
+    },
+    {
+      "operation": "SHOW_EXCERPTS",
+      "groundKind": "LICENSE_GRANT",
+      "grounds": "Cláusula 3: Distribuir e Executar publicamente a Obra, com atribuição ao Inmetro (cláusula 4(b)); somente trechos sem alteração do conteúdo."
+    },
+    {
+      "operation": "EXTRACT_TEXT",
+      "groundKind": "LEGAL_INTERPRETATION",
+      "grounds": "Lei 9.610/1998, art. 7º, XIII e §2º: a proteção recai sobre a seleção/organização da tabela, não sobre os dados em si; extrai-se só o fato (categoria, marca, modelo, versão, propulsão) linha a linha, sem reproduzir a organização. Interpretação a confirmar de forma independente."
+    }
+  ]
+}

@@ -116,6 +116,19 @@ Cada etapa apresenta fonte/versão, escopo e contadores autorizados, próximo pa
 
 Complementam BL-T01–17; não substituem #94/#95/#92 nem D19. Não foi executado teste nesta especificação. Entrega funcional depende de autorização de fontes, evidência de população, avaliações independentes e resolução dos contratos; manter flags PREPARATORY/usableForE8=false enquanto owners não admitirem. Não alterar código, dados, licenças ou revisão neste PR.
 
+## 7B. Estado de implementação — BL-DATA-01C+D (rc.96)
+
+Nível D17: **plataforma** (gate e fila) sobre **programa/jurisdição** (fontes). V119 aditiva: metadados das duas fontes e a coluna `senatran_source_sha256` em cada candidato. Direitos: [matriz](CF-OPEN-005-MATRIZ-DIREITOS-FROTA.md). Reuso: fila V108–110 e licenças V107/V112; nenhum motor paralelo.
+
+- **Gate de direitos na importação:** o lote exige `senatranSourceSha256` e `pbevSourceSha256`, e as duas fontes precisam de licença **APROVADA por pessoa distinta**, vigente, com `EXTRACT_TEXT`. `DECLARED_INTERNAL`, revogada, vencida ou autoaprovada não vale (403 `DIREITOS_NAO_REGISTRADOS`; nada é gravado). Chave `carbonflow.platform.fleet-alias-candidates.rights-gate` (padrão ligado).
+- **Dry-run da importação** (`POST …/alias-candidates/dry-run`): valida, informa novos/existentes, os riscos de cada item e quais fontes ainda não têm direitos; não grava.
+- **Riscos explícitos:** todo candidato traz `risks`. `MODEL_ONLY` e `AMBIGUOUS` carregam homônimo (propulsão a combustão), propulsão distinta, versão não confirmada (e, no ambíguo, vários modelos); **aceitar exige reconhecer cada risco** (422 `RISCOS_NAO_RECONHECIDOS`). Nada é classificado ou aprovado por nome.
+- **Decisões em lote** (`POST …/decisions/dry-run` e `…/decisions`): até 100 itens, cada um com candidato, desfecho, motivo, base e riscos reconhecidos; **sem “aceitar todos” e sem desfecho padrão**; dry-run não grava; aplicar é **tudo ou nada**. Mesmas regras da decisão unitária (dupla custódia, base, linha escolhida).
+- **Ferramenta offline** `scripts/prepare_alias_review.py`: gera os lotes de importação (com as duas SHA-256) e uma **planilha de decisão em branco** a partir da saída de `build_fleet_universe.py` (#356); converte a planilha preenchida pelo humano em corpos de lote, recusando linhas incompletas.
+- **Tela** (`/workspace/platform/alias-candidates`): riscos sempre visíveis, aceite de candidato por modelo só após marcar cada risco, e “Simular importação” com o resultado dos direitos.
+
+**Cobertura:** BD-T04 (sem aprovação automática; NONE continua fora da fila), BD-T05 (decisão por item, base, segregação e licença) e BD-T06 parcial (dry-run não escreve; aplicação em lote atômica e idempotente por candidato decidido). **Não coberto:** criação/reuso/alias/classificação por comandos canônicos a partir das decisões aceitas (aceitar não cria modelo nem alias) e retomada de lotes grandes; ficam para a continuação da D. Dados reais **não** foram importados: as declarações aguardam a postagem do responsável e a aprovação independente.
+
 ## 8. Primeira entrega recomendada ao Codex
 
 BL-DATA-01A–D em fatias verticais: manifesto + universo (A/B), reconciliação e fila existente (C), dry-run + aplicação autorizada de decisões (D). Teste com fixture multi-modelo e amostra já registrada quando direitos permitirem; depois estoque, ratings, cobertura e publicação (E–H). Não impor seleção ex ante implementada como pré-condição do catálogo; BL-EX consome contratos estáveis em paralelo. Não usar base sintética para alimentar projeto real. Abrir PRs de código pequenos, com critérios BD-T associados, preservar owner e issues existentes.

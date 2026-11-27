@@ -1,0 +1,42 @@
+{
+  "note": "Corpo pronto para POST /v1/platform/source-licenses/public pelo responsável do produto (rol 'owners'). Valores de docs/data/evidence/renavam-license-capture.json. Autorização do responsável registrada na conversa de 27/11/2026; esta declaração NÃO é aprovação: depende de aprovação independente (pessoa distinta) para valer no gate de importação. Nenhum prazo, protocolo ou data de concessão foi inventado.",
+  "sourceId": "SENATRAN-RENAVAM-FROTA",
+  "edition": "2026-09-005963d4",
+  "purpose": "AUTHORIZED_PROCESSING",
+  "licenseIdentifier": "PUBLIC-DOMAIN-DECLARED",
+  "legalTextSha256": "df265df508edff2ea935b60d22a7b52fab9ac48a5b8e451e60c2159116d00644",
+  "evidenceUri": "https://dados.transportes.gov.br/dataset/12686da0-3d71-4499-b432-d270f785c907",
+  "evidenceCapturedAt": "2026-11-27T01:11:00Z",
+  "evidenceSha256": "df265df508edff2ea935b60d22a7b52fab9ac48a5b8e451e60c2159116d00644",
+  "startsAt": "2026-11-27T01:11:00Z",
+  "startsAtBasis": "CAPTURE_DATE",
+  "endsAt": null,
+  "reason": "Declaração oficial do portal de dados abertos (other-pd, Domínio Público) para o recurso de setembro de 2026; escopo: agregados de veículos registrados, sem dados pessoais.",
+  "operations": [
+    {
+      "operation": "REFERENCE_REQUIREMENT",
+      "groundKind": "LICENSE_GRANT",
+      "grounds": "Declaração oficial do portal (license_id other-pd, 'Outra (Domínio Público)'): citar a fonte e a edição não exige direito adicional."
+    },
+    {
+      "operation": "STORE_ORIGINAL",
+      "groundKind": "LICENSE_GRANT",
+      "grounds": "Domínio público declarado pelo portal: guardar o arquivo original (ZIP, SHA-256 005963d4…) com proveniência; armazenamento local, fora do Git."
+    },
+    {
+      "operation": "EXTRACT_TEXT",
+      "groundKind": "LICENSE_GRANT",
+      "grounds": "Domínio público declarado pelo portal: extrair os fatos agregados (marca/modelo, ano de fabricação, UF, quantidade) do TXT, com a edição e o hash como proveniência."
+    },
+    {
+      "operation": "SHOW_EXCERPTS",
+      "groundKind": "LICENSE_GRANT",
+      "grounds": "Domínio público declarado pelo portal: exibir trechos e agregados com atribuição ao Ministério dos Transportes/Senatran e a edição 2026-09."
+    },
+    {
+      "operation": "EXPORT_DERIVATIVES",
+      "groundKind": "LICENSE_GRANT",
+      "grounds": "Domínio público declarado pelo portal: exportar agregados derivados (contagens por literal/ano), sem dados pessoais e sem apresentá-los como circulação, BEV elegível ou frota ativa."
+    }
+  ]
+}
