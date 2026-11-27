@@ -17,8 +17,10 @@ import java.util.UUID;
 @Produces(MediaType.APPLICATION_JSON)
 public class FleetAliasCandidatesResource {
     private final FleetAliasCandidates candidates;
+    private final FleetCatalogApplication application;
 
-    FleetAliasCandidatesResource(FleetAliasCandidates candidates) {
+    FleetAliasCandidatesResource(FleetAliasCandidates candidates, FleetCatalogApplication application) {
+        this.application = application;
         this.candidates = candidates;
     }
 
@@ -52,6 +54,21 @@ public class FleetAliasCandidatesResource {
     @Consumes(MediaType.APPLICATION_JSON)
     public Response decideInBulk(@CookieParam(AccountAccess.COOKIE) String token, FleetAliasCandidates.BulkInput input) {
         var result = candidates.bulkDecide(token, input, true);
+        return Response.status(result.applied() ? 201 : 422).entity(result).header("Cache-Control", "private, no-store").build();
+    }
+
+    @POST
+    @Path("/applications/dry-run")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response dryRunApplications(@CookieParam(AccountAccess.COOKIE) String token, FleetCatalogApplication.Input input) {
+        return Response.ok(application.run(token, input, false)).header("Cache-Control", "private, no-store").build();
+    }
+
+    @POST
+    @Path("/applications")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response applyToCatalog(@CookieParam(AccountAccess.COOKIE) String token, FleetCatalogApplication.Input input) {
+        var result = application.run(token, input, true);
         return Response.status(result.applied() ? 201 : 422).entity(result).header("Cache-Control", "private, no-store").build();
     }
 

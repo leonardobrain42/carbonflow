@@ -4,6 +4,9 @@ into bulk bodies. Offline; it never calls the platform, never decides and never 
 
   prepare    candidates.json + universe-manifest.json  ->  import batches (<= 500, with both source SHA-256) and a decision
              sheet whose decision columns are BLANK. Candidates whose record_key collides are left out and listed.
+  applications  sheet + queue export (after the decisions were applied) -> catalog application bodies (<= 100) for
+             POST .../alias-candidates/applications: model + alias for each ACCEPTED candidate. Classification is written
+             only when the reviewer filled all four classification_* columns (class, propulsion, evidence, reason).
   decisions  filled sheet + queue export (GET /v1/platform/fleet/alias-candidates)  ->  bulk decision bodies (<= 100).
              Blank rows stay pending. An ACCEPTED row needs the chosen PBEV line and, for MODEL_ONLY/AMBIGUOUS, every risk
              code written in the sheet by the reviewer. Nothing is inferred from names.
@@ -19,13 +22,15 @@ from pathlib import Path
 
 MAX_IMPORT = 500  # FleetAliasCandidates.MAX_ITEMS
 MAX_BULK = 100    # FleetAliasCandidates.MAX_BULK
+MAX_APPLY = 100   # FleetCatalogApplication.MAX_ITEMS
+CLASS_COLUMNS = ["classification_class", "classification_propulsion", "classification_evidence", "classification_reason"]
 RISKS = {
     "EXACT": ["NAME_MATCH_ONLY"],
     "MODEL_ONLY": ["NAME_MATCH_ONLY", "HOMONYM", "DISTINCT_PROPULSION", "VERSION_UNCONFIRMED"],
     "AMBIGUOUS": ["NAME_MATCH_ONLY", "HOMONYM", "DISTINCT_PROPULSION", "VERSION_UNCONFIRMED", "MULTIPLE_CANDIDATES"],
 }
 COLUMNS = ["literal_name", "level", "registered_count", "risks_to_acknowledge", "pbev_options",
-           "decision", "selected_pbev_line", "acknowledged_risks", "reason"]
+           "decision", "selected_pbev_line", "acknowledged_risks", "reason"] + CLASS_COLUMNS
 
 
 class ReviewError(ValueError):
@@ -64,7 +69,7 @@ def prepare(candidates, manifest, out):
         for c in sendable:
             level = c["match"]["level"]
             writer.writerow([c["literal_name"], level, c["registered_count"], " ".join(RISKS[level]),
-                             options_text(c["match"]), "", "", "", ""])
+                             options_text(c["match"]), "", "", "", "", "", "", "", ""])
     summary = {"observation_period": period, "importable": len(sendable), "left_out_key_collisions": sorted(
         c["literal_name"] for c in left_out), "batches": batches, "decision_sheet": "decision-sheet.csv",
         "decisions_prefilled": 0, "usableForE8": False,
@@ -129,6 +134,43 @@ def decisions(sheet_rows, queue, basis, out):
             "note": "Rode primeiro POST .../alias-candidates/decisions/dry-run; aplicar é tudo-ou-nada por arquivo."}
 
 
+def applications(sheet_rows, queue, organization, out):
+    """Catalog application bodies for candidates the sheet marks ACCEPTED and the queue confirms ACCEPTED. Never decides."""
+    by_name = {}
+    for item in queue:
+        by_name.setdefault(item["literalName"], []).append(item)
+    errors, items = [], []
+    for number, row in enumerate(sheet_rows, 2):
+        if (row.get("decision") or "").strip().upper() != "ACCEPTED":
+            continue
+        name = row["literal_name"]
+        found = [q for q in by_name.get(name, []) if q["state"] == "ACCEPTED"]
+        if len(found) != 1:
+            errors.append(f"linha {number}: {name!r} não tem exatamente um candidato ACEITO na fila ({len(found)}).")
+            continue
+        filled = [(row.get(c) or "").strip() for c in CLASS_COLUMNS]
+        item = {"candidateId": found[0]["id"]}
+        if any(filled):
+            if not all(filled):
+                errors.append(f"linha {number}: classificação exige classe, propulsão, evidência e motivo juntos.")
+                continue
+            item["classification"] = {"vehicleClass": filled[0].upper(), "propulsion": filled[1].upper(),
+                                      "evidence": filled[2], "reason": filled[3]}
+        items.append(item)
+    if errors:
+        raise ReviewError("\n".join(errors))
+    out.mkdir(parents=True, exist_ok=True)
+    files = []
+    for number, start in enumerate(range(0, len(items), MAX_APPLY), 1):
+        path = out / f"applications-{number:03d}.json"
+        path.write_text(json.dumps({"organizationId": organization, "items": items[start:start + MAX_APPLY]},
+                                   ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+        files.append(path.name)
+    return {"applications": len(items), "files": files,
+            "note": "Rode primeiro POST .../alias-candidates/applications/dry-run; aplicar é tudo-ou-nada por arquivo e "
+                    "repetir o arquivo retoma sem duplicar. Sem classificação, o modelo fica pendente."}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -141,11 +183,20 @@ def main():
     d.add_argument("--queue", type=Path, required=True, help="JSON de GET /v1/platform/fleet/alias-candidates")
     d.add_argument("--basis", choices=["INDEPENDENT", "OWNER_INTERNAL"], required=True)
     d.add_argument("--output-dir", type=Path, required=True)
+    a = sub.add_parser("applications")
+    a.add_argument("--sheet", type=Path, required=True)
+    a.add_argument("--queue", type=Path, required=True, help="JSON de GET /v1/platform/fleet/alias-candidates")
+    a.add_argument("--organization", required=True, help="id da organização dona do catálogo")
+    a.add_argument("--output-dir", type=Path, required=True)
     args = parser.parse_args()
     try:
         if args.command == "prepare":
             result = prepare(json.loads(args.candidates.read_text(encoding="utf-8")),
                              json.loads(args.universe_manifest.read_text(encoding="utf-8")), args.output_dir)
+        elif args.command == "applications":
+            with args.sheet.open(encoding="utf-8", newline="") as stream:
+                rows = list(csv.DictReader(stream))
+            result = applications(rows, json.loads(args.queue.read_text(encoding="utf-8")), args.organization, args.output_dir)
         else:
             with args.sheet.open(encoding="utf-8", newline="") as stream:
                 rows = list(csv.DictReader(stream))

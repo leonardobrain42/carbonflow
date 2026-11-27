@@ -118,7 +118,28 @@ class PrepareTest(unittest.TestCase):
         self.assertEqual(3, len(result["files"]))
         self.assertEqual(30, len(json.loads((self.dir / "decisions-bulk-003.json").read_text(encoding="utf-8"))["items"]))
 
+    def test_applications_only_for_accepted_and_classification_only_when_complete(self):
+        queue = [{"id": "id-A", "literalName": "A", "state": "ACCEPTED"}, {"id": "id-B", "literalName": "B", "state": "ACCEPTED"},
+                 {"id": "id-C", "literalName": "C", "state": "PENDING"}]
+        cls = {"classification_class": "ldv", "classification_propulsion": "bev",
+               "classification_evidence": "Ficha p.3", "classification_reason": "Confirmado na ficha."}
+        rows = [{"literal_name": "A", "decision": "ACCEPTED", **cls}, {"literal_name": "B", "decision": "ACCEPTED"},
+                {"literal_name": "C", "decision": "REJECTED"}]
+        result = par.applications(rows, queue, "org-1", self.dir)
+        self.assertEqual(2, result["applications"])
+        body = json.loads((self.dir / "applications-001.json").read_text(encoding="utf-8"))
+        self.assertEqual("org-1", body["organizationId"])
+        self.assertEqual({"vehicleClass": "LDV", "propulsion": "BEV", "evidence": "Ficha p.3", "reason": "Confirmado na ficha."},
+                         body["items"][0]["classification"])
+        self.assertNotIn("classification", body["items"][1])  # names never classify: the model stays pending
+        with self.assertRaises(par.ReviewError):  # half-filled classification, or a candidate the queue does not show as ACCEPTED
+            par.applications([{"literal_name": "A", "decision": "ACCEPTED", "classification_class": "LDV"}], queue, "o", self.dir)
+        with self.assertRaises(par.ReviewError):
+            par.applications([{"literal_name": "C", "decision": "ACCEPTED"}], queue, "o", self.dir)
+
     def test_constants_match_the_backend(self):
+        apply_java = (ROOT / "backend/src/main/java/br/carbonflow/pilot/FleetCatalogApplication.java").read_text(encoding="utf-8")
+        self.assertEqual(par.MAX_APPLY, int(re.search(r"MAX_ITEMS = (\d+)", apply_java).group(1)))
         self.assertEqual(par.MAX_IMPORT, int(re.search(r"MAX_ITEMS = (\d+)", JAVA).group(1)))
         self.assertEqual(par.MAX_BULK, int(re.search(r"MAX_BULK = (\d+)", JAVA).group(1)))
         codes = re.findall(r'new Risk\("([A-Z_]+)"', JAVA)
