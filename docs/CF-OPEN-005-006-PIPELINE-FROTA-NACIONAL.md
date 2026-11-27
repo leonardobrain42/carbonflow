@@ -128,6 +128,18 @@ Nível D17: **projeto/jurisdição (ferramenta offline de preparação)**; nenhu
 - Nenhum alias, classe, peso ou cobertura foi aprovado; `usableForE8=false`. Os CSVs são parciais (candidatos), não snapshot completo (BD-T07).
 - Dados brutos e derivados do RENAVAM/PBEV **não** são versionados; direitos de processamento (#92) seguem a decidir pelo responsável. Somente contagens agregadas estão neste documento.
 - Cobertura: BD-T01 (manifesto/hash/totais/erros), BD-T02 (limites e ZIP bomb em teste; tempo/memória medidos acima), BD-T03 (universo sem lista, desconhecidos preservados, sem join por município) e BD-T04 parcial (EXACT/MODEL_ONLY/AMBIGUOUS/NONE; matcher indexado testado equivalente ao `match_senatran_pbev`). Fila C/D (V108–110) não é tocada.
+## 7B. Estado de implementação — BL-DATA-01C+D (rc.96)
+
+Nível D17: **plataforma** (gate e fila) sobre **programa/jurisdição** (fontes). V119 aditiva: metadados das duas fontes e a coluna `senatran_source_sha256` em cada candidato. Direitos: [matriz](CF-OPEN-005-MATRIZ-DIREITOS-FROTA.md). Reuso: fila V108–110 e licenças V107/V112; nenhum motor paralelo.
+
+- **Gate de direitos na importação:** o lote exige `senatranSourceSha256` e `pbevSourceSha256`, e as duas fontes precisam de licença **APROVADA por pessoa distinta**, vigente, com `EXTRACT_TEXT`. `DECLARED_INTERNAL`, revogada, vencida ou autoaprovada não vale (403 `DIREITOS_NAO_REGISTRADOS`; nada é gravado). Chave `carbonflow.platform.fleet-alias-candidates.rights-gate` (padrão ligado).
+- **Dry-run da importação** (`POST …/alias-candidates/dry-run`): valida, informa novos/existentes, os riscos de cada item e quais fontes ainda não têm direitos; não grava.
+- **Riscos explícitos:** todo candidato traz `risks`. `MODEL_ONLY` e `AMBIGUOUS` carregam homônimo (propulsão a combustão), propulsão distinta, versão não confirmada (e, no ambíguo, vários modelos); **aceitar exige reconhecer cada risco** (422 `RISCOS_NAO_RECONHECIDOS`). Nada é classificado ou aprovado por nome.
+- **Decisões em lote** (`POST …/decisions/dry-run` e `…/decisions`): até 100 itens, cada um com candidato, desfecho, motivo, base e riscos reconhecidos; **sem “aceitar todos” e sem desfecho padrão**; dry-run não grava; aplicar é **tudo ou nada**. Mesmas regras da decisão unitária (dupla custódia, base, linha escolhida).
+- **Ferramenta offline** `scripts/prepare_alias_review.py`: gera os lotes de importação (com as duas SHA-256) e uma **planilha de decisão em branco** a partir da saída de `build_fleet_universe.py` (#356); converte a planilha preenchida pelo humano em corpos de lote, recusando linhas incompletas.
+- **Tela** (`/workspace/platform/alias-candidates`): riscos sempre visíveis, aceite de candidato por modelo só após marcar cada risco, e “Simular importação” com o resultado dos direitos.
+
+**Cobertura:** BD-T04 (sem aprovação automática; NONE continua fora da fila), BD-T05 (decisão por item, base, segregação e licença) e BD-T06 parcial (dry-run não escreve; aplicação em lote atômica e idempotente por candidato decidido). **Não coberto:** criação/reuso/alias/classificação por comandos canônicos a partir das decisões aceitas (aceitar não cria modelo nem alias) e retomada de lotes grandes; ficam para a continuação da D. Dados reais **não** foram importados: as declarações aguardam a postagem do responsável e a aprovação independente.
 
 ## 8. Primeira entrega recomendada ao Codex
 

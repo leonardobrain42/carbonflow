@@ -12,7 +12,16 @@ import java.util.Set;
 final class PublicLicenses {
     record Terms(String identifier, String legalTextUri, Set<String> granted, Set<String> refused, String basis) {}
 
-    static final Map<String, Terms> KNOWN = Map.of("CC-BY-ND-3.0", new Terms("CC-BY-ND-3.0",
+    static final Map<String, Terms> KNOWN = Map.of("PUBLIC-DOMAIN-DECLARED", new Terms("PUBLIC-DOMAIN-DECLARED",
+            // Not a licence text: the open-data portal's own record, which declares the resource "Outra (Domínio Público)".
+            "https://dados.transportes.gov.br/api/3/action/package_show?id=12686da0-3d71-4499-b432-d270f785c907",
+            // The declaration covers the data operations below; it does not reach personal data or third-party rights, and the
+            // AI operations were not requested. The scope (aggregate registered vehicles, one observation period) lives in the
+            // declaration's reason and in the rights matrix.
+            Set.of("REFERENCE_REQUIREMENT", "STORE_ORIGINAL", "EXTRACT_TEXT", "SHOW_EXCERPTS", "EXPORT_DERIVATIVES"),
+            Set.of(),
+            "declaração oficial de domínio público do recurso no portal de dados abertos (metadado, não análise jurídica)"),
+            "CC-BY-ND-3.0", new Terms("CC-BY-ND-3.0",
             "https://creativecommons.org/licenses/by-nd/3.0/legalcode",
             // Cl. 3: to Reproduce the Work, incorporate it in Collections, Distribute and Publicly Perform it; also the
             // modifications "technically necessary to exercise the rights in other media and formats".

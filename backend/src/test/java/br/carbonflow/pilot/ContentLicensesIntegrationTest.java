@@ -198,6 +198,16 @@ class ContentLicensesIntegrationTest {
         Long grounds = database.read(c -> first(c, "SELECT count(*) FROM app_content_license_declared_ground WHERE license_id=?::uuid",
                 r -> r.getLong(1), pl.path("id").asText()));
         assertEquals(2L, grounds.longValue());
+        // BL-DATA-01: a public-domain declaration by the open-data portal covers the data operations only; the AI operations
+        // are not part of it and nothing here becomes an approval.
+        String pd = declare.replace("CC-BY-ND-3.0", "PUBLIC-DOMAIN-DECLARED")
+                .replace("LEGAL_INTERPRETATION", "LICENSE_GRANT");
+        assertEquals("FUNDAMENTO_NAO_E_CLAUSULA", json.readTree(call("POST", pub, owner, null,
+                pd.replace("EXTRACT_TEXT", "INDEX_SEARCH")).body()).path("code").asText());
+        var pdDeclared = call("POST", pub, owner, null, pd.replace("STORE_ORIGINAL", "EXPORT_DERIVATIVES"));
+        assertEquals(201, pdDeclared.statusCode(), pdDeclared.body());
+        assertEquals("DECLARED_INTERNAL", json.readTree(pdDeclared.body()).path("state").asText());
+        assertEquals("PUBLIC-DOMAIN-DECLARED", json.readTree(pdDeclared.body()).path("licenseIdentifier").asText());
         // The owner cannot approve their own declaration; an independent approver can (new decision version).
         String pdecision = API + "/" + pl.path("id").asText() + "/decision";
         String papprove = "{\"outcome\":\"APPROVED\",\"reason\":\"Termos conferidos de forma independente.\",\"operations\":[\"STORE_ORIGINAL\"]}";

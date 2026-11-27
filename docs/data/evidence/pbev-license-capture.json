@@ -1,0 +1,33 @@
+{
+  "schema": "cf.public-license-evidence/1",
+  "capturedOn": "2026-11-27",
+  "note": "Registro da evidência. O HTML integral da página e o PDF ficam fora do Git, preservados pelo SHA-256.",
+  "page": {
+    "uri": "https://www.gov.br/inmetro/pt-br/assuntos/regulamentacao/avaliacao-da-conformidade/programa-brasileiro-de-etiquetagem/tabelas-de-eficiencia-energetica/veiculos-automotivos-pbe-veicular",
+    "sha256OfSavedHtml": "42300c797734f150f666def53e627e401422be7534bc53178c3a7938dc91f08d",
+    "capturedAt": "2026-11-27T01:12:00Z",
+    "capturedAtNote": "horário aproximado (a captura ocorreu pouco antes das 01:12:02 UTC)",
+    "licenseNotice": "Todo o conteúdo deste site está publicado sob a licença Creative Commons Atribuição-SemDerivações 3.0 Não Adaptada."
+  },
+  "legalText": {
+    "uri": "https://creativecommons.org/licenses/by-nd/3.0/legalcode",
+    "sha256OfSavedHtml": "f38359a4f5241e61cf1a98c0974cdc0062ddbfd6fd5892f7af961ce5228ad2f5",
+    "note": "mesmo hash do texto jurídico já preservado na evidência do MCTI (docs/data/evidence/mcti-license-capture.json)"
+  },
+  "pdf": {
+    "uri": "https://www.gov.br/inmetro/pt-br/assuntos/regulamentacao/avaliacao-da-conformidade/programa-brasileiro-de-etiquetagem/tabelas-de-eficiencia-energetica/veiculos-automotivos-pbe-veicular/mascara-pbev-2026_19_jan-rev01.pdf/@@download/file",
+    "sha256": "43e928f89a526f7b59013faca3501b2b0716e5a8cdc2e097b8653638aa688ba0",
+    "sizeBytes": 3387564,
+    "edition": "2026-rev01-43e928f8"
+  },
+  "lawCheck": {
+    "uri": "https://www2.camara.leg.br/legin/fed/lei/1998/lei-9610-19-fevereiro-1998-365399-normaatualizada-pl.html",
+    "sha256OfSavedHtml": "8c5ce400de169f6578ebc579eaed3a497fe89205b8f4c4b81c3ae20a45a9eb69",
+    "art7_XIII": "as coletâneas ou compilações, antologias, enciclopédias, dicionários, bases de dados e outras obras, que, por sua seleção, organização ou disposição de seu conteúdo, constituam uma criação intelectual",
+    "art7_par2": "A proteção concedida no inciso XIII não abarca os dados ou materiais em si mesmos e se entende sem prejuízo de quaisquer direitos autorais que subsistam a respeito dos dados ou materiais contidos nas obras."
+  },
+  "limits": [
+    "A proteção recai sobre a seleção/organização da tabela; os dados em si não são protegidos pelo §2º, mas a licença ND não autoriza redistribuir adaptação da obra.",
+    "A extração factual é interpretação jurídica declarada e depende de confirmação independente (aprovação por pessoa distinta)."
+  ]
+}

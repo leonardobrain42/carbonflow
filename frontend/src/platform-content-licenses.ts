@@ -89,6 +89,8 @@ export class PlatformContentLicensesComponent {
     REFERENCE_REQUIREMENT: {on: false, kind: 'LICENSE_GRANT', grounds: ''}, STORE_ORIGINAL: {on: false, kind: 'LICENSE_GRANT', grounds: ''},
     SHOW_EXCERPTS: {on: false, kind: 'LICENSE_GRANT', grounds: ''}, EXTRACT_TEXT: {on: false, kind: 'LEGAL_INTERPRETATION', grounds: ''},
     EXPORT_DERIVATIVES: {on: false, kind: 'LEGAL_INTERPRETATION', grounds: ''}});
+  readonly publicLicenses = [{value: 'CC-BY-ND-3.0', label: 'CC BY-ND 3.0 (Creative Commons, sem derivações)'},
+    {value: 'PUBLIC-DOMAIN-DECLARED', label: 'Domínio público declarado pelo portal de dados abertos'}];
   readonly publicOpKeys = ['REFERENCE_REQUIREMENT', 'STORE_ORIGINAL', 'SHOW_EXCERPTS', 'EXTRACT_TEXT', 'EXPORT_DERIVATIVES'];
   readonly unlocked = computed(() => {
     if (this.denied()) return false;
@@ -103,7 +105,7 @@ export class PlatformContentLicensesComponent {
   operationLabel(value: string): string { return OPERATIONS.find(o => o.value === value)?.label ?? value; }
   publicOpLabel(key: string): string {
     return ({REFERENCE_REQUIREMENT: 'Citar a fonte como referência', STORE_ORIGINAL: 'Guardar a cópia original',
-      SHOW_EXCERPTS: 'Mostrar trechos com atribuição', EXTRACT_TEXT: 'Extrair valores da planilha',
+      SHOW_EXCERPTS: 'Mostrar trechos com atribuição', EXTRACT_TEXT: 'Extrair dados da fonte',
       EXPORT_DERIVATIVES: 'Redistribuir derivados'} as Record<string, string>)[key] ?? key;
   }
   basisLabel(item: LicenseItem): string { return item.decisionBasis === 'OWNER_INTERNAL' ? 'declaração interna do responsável' : item.decisionBasis === 'INDEPENDENT' ? 'decisão independente' : ''; }
@@ -170,6 +172,43 @@ export class PlatformContentLicensesComponent {
     const target = event.target as HTMLInputElement;
     this.publicOps.update(current => ({...current, [operation]: {...current[operation],
       [field]: field === 'on' ? target.checked : target.value}}));
+  }
+
+  /**
+   * Fills the form from a prepared declaration (docs/data/*-license-declaration.json). Nothing is sent: the owner reviews every
+   * field and submits. Unknown operations, licences or malformed fields are refused instead of being guessed.
+   */
+  loadDeclaration(area: HTMLTextAreaElement) {
+    this.error.set('');
+    this.feedback.set('');
+    let data: Record<string, unknown>;
+    try {
+      data = JSON.parse(area.value);
+    } catch {
+      this.error.set('O conteúdo não é um JSON válido. Cole uma declaração preparada (docs/data/*-license-declaration.json).');
+      return;
+    }
+    const text = (key: string): string | null => typeof data[key] === 'string' ? data[key] as string : null;
+    const fields = ['sourceId', 'edition', 'licenseIdentifier', 'legalTextSha256', 'evidenceUri', 'evidenceCapturedAt',
+      'evidenceSha256', 'startsAt', 'startsAtBasis', 'reason'];
+    const missing = fields.filter(key => text(key) === null);
+    const known = new Set(this.publicOpKeys);
+    const operations = Array.isArray(data['operations']) ? data['operations'] as Record<string, unknown>[] : [];
+    const invalidOps = operations.filter(o => typeof o?.['operation'] !== 'string' || !known.has(o['operation'] as string)
+      || !['LICENSE_GRANT', 'LEGAL_INTERPRETATION'].includes(o['groundKind'] as string) || typeof o['grounds'] !== 'string');
+    if (missing.length > 0 || operations.length === 0 || invalidOps.length > 0
+        || !this.publicLicenses.some(l => l.value === text('licenseIdentifier'))
+        || !['CAPTURE_DATE', 'PROVEN_AVAILABILITY'].includes(text('startsAtBasis') ?? '')) {
+      this.error.set('Declaração incompleta ou fora do que a plataforma modela (campos, licença, critério de vigência ou operações).');
+      return;
+    }
+    this.publicForm.set(Object.fromEntries(fields.map(key => [key, text(key) as string])));
+    const next: Record<string, {on: boolean; kind: string; grounds: string}> = {};
+    for (const key of this.publicOpKeys) next[key] = {on: false, kind: this.publicOps()[key].kind, grounds: ''};
+    for (const o of operations) next[o['operation'] as string] = {on: true, kind: o['groundKind'] as string, grounds: o['grounds'] as string};
+    this.publicOps.set(next);
+    area.value = '';
+    this.feedback.set('Declaração carregada no formulário. Nada foi enviado: revise cada campo e clique em "Declarar licença pública".');
   }
 
   async declarePublic(event: Event) {

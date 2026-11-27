@@ -87,6 +87,14 @@ Este registro resume decisões **documentadas no repositório/backlog**, não re
 
 **Efeito nas dúvidas:** Q13 e Q11 deixam de aguardar decisão (decididas, implementação pendente); Q05 mantém D14 com pendência de confirmação externa.
 
+## CF-SPEC-D23 — Direitos das fontes de frota e regras da fila de candidatos (27/11/2026)
+**Decisão do responsável do produto** (mensagem de 27/11/2026), registrada sem ampliação.
+1. **RENAVAM 2026-09:** autoriza registrar os direitos de processamento fundamentados na declaração oficial de domínio público do recurso (`other-pd`), preservando proveniência e escopo (agregados de veículos registrados; sem dados pessoais).
+2. **PBEV 2026:** considerar CC BY-ND 3.0 e a distinção entre dados factuais e proteção da organização (Lei 9.610/1998, art. 7º, XIII e §2º). Registrar só os direitos incontroversos e a matriz fundamentada; **manter bloqueado** o que não estiver fundamentado.
+3. `MODEL_ONLY` apresenta explicitamente homônimo, propulsões distintas e versões não confirmadas; **sem classificação ou aprovação automática por nome**.
+4. Gates preservados: direitos, revisão independente, cobertura nacional, admissibilidade E8; **lotes reais não são importados** sem as permissões registradas.
+Efeitos: V119, gate de importação, matriz, declarações em `docs/data/`. A declaração do responsável é interna (`DECLARED_INTERNAL`); a aprovação independente continua devida. **Reversão:** nova edição ou parecer independente pode liberar operações hoje bloqueadas, por nova declaração.
+
 ## CF-SPEC-D22 — Ano de observação da seleção de frota ex ante (26/11/2026)
 **Decisão tomada pelo agente por delegação do responsável** ("siga com a próxima fatia", após a análise que apontou o ponto como bloqueio do BL-EX-01). **Política interna reversível** no regime da D14/D21: sem consulta a Verra/VVB, nada admitido, `usableForE8=false`.
 1. O ano de observação da seleção ex ante é o **ano civil da data de referência declarada** pelo responsável para o ato do PD.

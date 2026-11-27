@@ -1,0 +1,34 @@
+{
+  "schema": "cf.public-license-evidence/1",
+  "capturedOn": "2026-11-27",
+  "note": "Registro da evidência. A resposta integral da API do portal fica fora do Git, preservada pelo SHA-256; aqui vão só a identificação e os campos de licença. Não é parecer jurídico: é o metadado oficial do portal.",
+  "page": {
+    "uri": "https://dados.transportes.gov.br/dataset/12686da0-3d71-4499-b432-d270f785c907",
+    "apiUri": "https://dados.transportes.gov.br/api/3/action/package_show?id=12686da0-3d71-4499-b432-d270f785c907",
+    "sha256OfSavedResponse": "df265df508edff2ea935b60d22a7b52fab9ac48a5b8e451e60c2159116d00644",
+    "capturedAt": "2026-11-27T01:11:00Z",
+    "capturedAtNote": "horário aproximado (a captura ocorreu pouco antes das 01:12 UTC)",
+    "dataset": "Registro Nacional de Veículos Automotores - RENAVAM",
+    "organization": "Ministério dos Transportes",
+    "license_id": "other-pd",
+    "license_title": "Outra (Domínio Público)",
+    "license_url": null,
+    "metadata_modified": "2026-11-23T13:34:45.983471"
+  },
+  "resource": {
+    "id": "4408da67-7821-4abf-96db-58acdf1497da",
+    "last_modified": "2026-10-09T18:12:59.124642",
+    "lastModifiedNote": "data de última modificação do recurso no portal; não é usada como início de vigência (conservador: início = captura)",
+    "file": {
+      "uri": "https://dados.transportes.gov.br/dataset/12686da0-3d71-4499-b432-d270f785c907/resource/4408da67-7821-4abf-96db-58acdf1497da/download/i_frota_por_uf_municipio_marca_e_modelo_ano_setembro_2026.zip",
+      "sha256": "005963d4c677c50354bcdb094bf55119beacc25dc644f1d7bfe3611c26fe40a8",
+      "sizeBytes": 136926215,
+      "edition": "2026-09-005963d4"
+    }
+  },
+  "limits": [
+    "A declaração é do portal; o recurso não traz URL de texto legal da licença.",
+    "Dados agregados de veículos registrados: sem dados pessoais; a declaração não afasta direitos de terceiros nem restrições legais sobre dados pessoais.",
+    "Cobre o recurso de setembro de 2026; outras edições exigem nova captura e nova declaração."
+  ]
+}

@@ -1,0 +1,158 @@
+{
+  "schema": "cf.fleet-sources-rights-matrix/1",
+  "date": "2026-11-27",
+  "note": "Matriz fundamentada das operações por fonte. LEGAL_INTERPRETATION_DECLARED só vale após aprovação independente; BLOCKED_NOT_GROUNDED e REFUSED_BY_LICENSE permanecem bloqueadas e não constam das declarações. Registrar uma licença não admite dados, não cria cobertura nacional e não habilita E8.",
+  "sources": [
+    {
+      "sourceId": "SENATRAN-RENAVAM-FROTA",
+      "edition": "2026-09-005963d4",
+      "licenseIdentifier": "PUBLIC-DOMAIN-DECLARED",
+      "declaration": "docs/data/renavam-license-declaration.json",
+      "evidence": "docs/data/evidence/renavam-license-capture.json",
+      "operations": [
+        {
+          "operation": "reference",
+          "label": "Referenciar a fonte e a edição",
+          "status": "GRANTED_BY_LICENSE",
+          "platformOperation": "REFERENCE_REQUIREMENT",
+          "grounds": "Declaração do portal (other-pd)."
+        },
+        {
+          "operation": "store_original",
+          "label": "Guardar o arquivo original",
+          "status": "GRANTED_BY_LICENSE",
+          "platformOperation": "STORE_ORIGINAL",
+          "grounds": "Domínio público declarado; guarda local fora do Git; upload à plataforma segue o limite do #92 (BD-T02)."
+        },
+        {
+          "operation": "factual_extraction",
+          "label": "Extração factual (marca/modelo, ano de fabricação, UF, quantidade)",
+          "status": "GRANTED_BY_LICENSE",
+          "platformOperation": "EXTRACT_TEXT",
+          "grounds": "Fatos agregados; proveniência: edição, SHA-256, período e linha."
+        },
+        {
+          "operation": "unit_conversion",
+          "label": "Conversão de unidades",
+          "status": "NOT_APPLICABLE",
+          "platformOperation": null,
+          "grounds": "A fonte só tem contagem de veículos; não há unidade a converter."
+        },
+        {
+          "operation": "derived_calculation",
+          "label": "Cálculos derivados (somas, participações, reconciliação)",
+          "status": "GRANTED_BY_LICENSE",
+          "platformOperation": "EXTRACT_TEXT",
+          "grounds": "Agregações dos fatos extraídos; cada resultado leva proveniência e não vira circulação, BEV elegível ou frota ativa."
+        },
+        {
+          "operation": "display",
+          "label": "Exibição de trechos e agregados",
+          "status": "GRANTED_BY_LICENSE",
+          "platformOperation": "SHOW_EXCERPTS",
+          "grounds": "Com atribuição ao Ministério dos Transportes/Senatran e à edição 2026-09."
+        },
+        {
+          "operation": "export",
+          "label": "Exportação de agregados derivados",
+          "status": "GRANTED_BY_LICENSE",
+          "platformOperation": "EXPORT_DERIVATIVES",
+          "grounds": "Sem dados pessoais; com proveniência; escopo setembro de 2026."
+        },
+        {
+          "operation": "ai_operations",
+          "label": "Indexação, embeddings, RAG, inferência e redação por IA",
+          "status": "BLOCKED_NOT_GROUNDED",
+          "platformOperation": null,
+          "grounds": "Não solicitadas pelo responsável; não declaradas."
+        },
+        {
+          "operation": "municipality_join",
+          "label": "Cruzar município com combustível/fabricação",
+          "status": "BLOCKED_NOT_GROUNDED",
+          "platformOperation": null,
+          "grounds": "Bloqueio metodológico (sem chave comum), não de direitos; ver CF-OPEN-005."
+        }
+      ]
+    },
+    {
+      "sourceId": "INMETRO-PBEV",
+      "edition": "2026-rev01-43e928f8",
+      "licenseIdentifier": "CC-BY-ND-3.0",
+      "declaration": "docs/data/pbev-license-declaration.json",
+      "evidence": "docs/data/evidence/pbev-license-capture.json",
+      "operations": [
+        {
+          "operation": "reference",
+          "label": "Referenciar a fonte e a edição",
+          "status": "GRANTED_BY_LICENSE",
+          "platformOperation": "REFERENCE_REQUIREMENT",
+          "grounds": "CC BY-ND 3.0, cláusulas 3 e 4."
+        },
+        {
+          "operation": "store_original",
+          "label": "Guardar o PDF original sem alteração",
+          "status": "GRANTED_BY_LICENSE",
+          "platformOperation": "STORE_ORIGINAL",
+          "grounds": "CC BY-ND 3.0, cláusula 3 (Reproduzir), com atribuição."
+        },
+        {
+          "operation": "display_unaltered_excerpt",
+          "label": "Exibir trechos sem alteração, com atribuição",
+          "status": "GRANTED_BY_LICENSE",
+          "platformOperation": "SHOW_EXCERPTS",
+          "grounds": "CC BY-ND 3.0, cláusulas 3 e 4(b)."
+        },
+        {
+          "operation": "factual_extraction",
+          "label": "Extração factual de identidade (categoria, marca, modelo, versão, propulsão), linha a linha",
+          "status": "LEGAL_INTERPRETATION_DECLARED",
+          "platformOperation": "EXTRACT_TEXT",
+          "grounds": "Lei 9.610/1998, art. 7º, XIII e §2º: dados em si não são protegidos; a organização da tabela é. Exige aprovação independente."
+        },
+        {
+          "operation": "rating_value_extraction",
+          "label": "Extração dos valores de eficiência/consumo",
+          "status": "BLOCKED_NOT_GROUNDED",
+          "platformOperation": null,
+          "grounds": "Fatia F (#95) ainda não implementada; fundamento e revisão próprios antes de liberar."
+        },
+        {
+          "operation": "unit_conversion",
+          "label": "Conversão de unidades dos valores",
+          "status": "BLOCKED_NOT_GROUNDED",
+          "platformOperation": null,
+          "grounds": "Sem operação licenciável equivalente e sem parecer independente de que não constitui adaptação (ND)."
+        },
+        {
+          "operation": "derived_calculation",
+          "label": "Cálculos derivados (médias, pesos, comparações)",
+          "status": "BLOCKED_NOT_GROUNDED",
+          "platformOperation": null,
+          "grounds": "Depende da extração de valores e de fundamento próprio; bloqueado."
+        },
+        {
+          "operation": "display_extracted",
+          "label": "Exibir fatos extraídos reorganizados pela plataforma",
+          "status": "BLOCKED_NOT_GROUNDED",
+          "platformOperation": null,
+          "grounds": "Risco de reproduzir a organização protegida (art. 7º, XIII); só trechos sem alteração estão liberados."
+        },
+        {
+          "operation": "export",
+          "label": "Exportar derivados do PBEV",
+          "status": "REFUSED_BY_LICENSE",
+          "platformOperation": "EXPORT_DERIVATIVES",
+          "grounds": "ND: a concessão não inclui Adaptações; redistribuir obra modificada não é coberto."
+        },
+        {
+          "operation": "ai_operations",
+          "label": "Indexação, embeddings, RAG, inferência e redação por IA",
+          "status": "BLOCKED_NOT_GROUNDED",
+          "platformOperation": null,
+          "grounds": "Não solicitadas; não declaradas."
+        }
+      ]
+    }
+  ]
+}

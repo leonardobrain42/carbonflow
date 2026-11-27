@@ -59,10 +59,18 @@
         <section class="cf-workspace-card cf-platform-source-form-card" aria-labelledby="cf-candidates-import-title">
           <h2 id="cf-candidates-import-title">Importar lote</h2>
           <form (submit)="importBatch($event, batch)" class="cf-platform-source-form">
-            <label for="cf-candidates-batch">Lote em JSON (saída de match_senatran_pbev.py --emit-import)</label>
+            <label for="cf-candidates-batch">Lote em JSON (saída de prepare_alias_review.py prepare)</label>
             <textarea #batch id="cf-candidates-batch" rows="6" required></textarea>
-            <p class="cf-platform-meta">O lote é idempotente por nome, período e arquivo do PBEV. Importar não cria modelo nem alias.</p>
+            <p class="cf-platform-meta">O lote é idempotente por nome, período e arquivo do PBEV. A importação exige direitos de processamento aprovados de forma independente para as duas fontes (Senatran e PBEV). Importar não cria modelo nem alias.</p>
+            <button type="button" class="cf-workspace-outline" [disabled]="saving()" (click)="simulate(batch)">Simular importação</button>
             <button type="submit" class="cf-workspace-primary" [disabled]="saving()">Importar lote</button>
+            @if (dryRun(); as plan) {
+              <p role="status" class="cf-platform-meta">Simulação (nada gravado): {{ plan.newItems }} novo(s), {{ plan.alreadyPresent }} já existente(s).
+                @if (plan.importable) { Direitos aprovados: a importação está liberada. }
+                @else { Importação bloqueada: direitos sem aprovação independente vigente
+                  @for (right of plan.rights; track right.role) { @if (!right.registered) { · {{ right.role }} } }. }
+              </p>
+            }
           </form>
         </section>
 
@@ -87,6 +95,14 @@
                 <p><strong>{{ stateLabel(item) }}</strong> · {{ levelLabel(item) }}</p>
                 <p class="cf-platform-meta">Período {{ item.observationPeriod }} · chave {{ item.recordKey }} · PBEV {{ shortHash(item) }}</p>
                 <p class="cf-platform-meta">{{ item.reason }}</p>
+                @if (item.risks.length > 0) {
+                  <section [attr.aria-label]="'Riscos do casamento de ' + item.literalName" class="cf-platform-meta">
+                    <strong>{{ item.level === 'EXACT' ? 'Atenção' : 'Riscos do casamento por nome (reconhecer para aceitar)' }}</strong>
+                    <ul>
+                      @for (risk of item.risks; track risk.code) { <li>{{ risk.text }}</li> }
+                    </ul>
+                  </section>
+                }
                 <table>
                   <caption>Linhas candidatas do PBEV</caption>
                   <thead><tr><th scope="col">Linha</th><th scope="col">Categoria</th><th scope="col">Marca</th><th scope="col">Modelo</th><th scope="col">Versão</th></tr></thead>
@@ -121,9 +137,18 @@
                         (change)="setBasis('OWNER_INTERNAL')"/> Decisão interna do responsável do produto</label>
                       <p class="cf-platform-meta">A decisão interna do responsável fica registrada como tal: não é revisão independente e não admite nada.</p>
                     </fieldset>
+                    @if (item.level !== 'EXACT') {
+                      <fieldset>
+                        <legend>Riscos a reconhecer (obrigatório para aceitar um candidato por modelo)</legend>
+                        @for (risk of item.risks; track risk.code) {
+                          <label><input type="checkbox" [checked]="acknowledged().includes(risk.code)"
+                            (change)="toggleRisk(risk.code, $any($event.target).checked)"/> Reconheço: {{ risk.text }}</label>
+                        }
+                      </fieldset>
+                    }
                     <label [attr.for]="'cf-cand-reason-' + item.id">Motivo (mín. 10 caracteres)</label>
                     <input #reason [id]="'cf-cand-reason-' + item.id" type="text" minlength="10" maxlength="1000" required/>
-                    <button type="button" class="cf-workspace-primary" [disabled]="saving() || line() === null"
+                    <button type="button" class="cf-workspace-primary" [disabled]="saving() || line() === null || !risksAcknowledged(item)"
                       (click)="decide(item, 'ACCEPTED', reason.value)">Aceitar candidato</button>
                     <button type="button" class="cf-workspace-outline" [disabled]="saving()"
                       (click)="decide(item, 'REJECTED', reason.value)">Recusar</button>

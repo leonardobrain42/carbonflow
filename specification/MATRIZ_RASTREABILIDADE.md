@@ -105,7 +105,7 @@ Contrato e figuras: [CF-UX-TECH-001-PREMISSAS-ADICIONALIDADE-PD](../docs/CF-UX-T
 | Fatia | Owners | Aceites planejados |
 |---|---|---|
 | A/B | #92/#94/#95 | BD-T01–03 (executado em rc.95: `build_fleet_universe.py`; BD-T04 parcial) |
-| C/D | #94/#95/#92 | BD-T04–06 |
+| C/D | #94/#95/#92 | BD-T04–06 (rc.96: gate de direitos, riscos, dry-run e lote atômico; BD-T06 parcial, ver [§7B](../docs/CF-OPEN-005-006-PIPELINE-FROTA-NACIONAL.md)) |
 | E | #94/#92 | BD-T07–08 |
 | F/G | #95/#92 | BD-T09–10 |
 | H | #94/#95/#40/#97/#124 | BD-T11 |
