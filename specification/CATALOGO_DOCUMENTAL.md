@@ -122,3 +122,5 @@ Inventário de 94 arquivos em docs/ (86 no corte `507bf268d6955cd0c317d2ff404a90
 - [CF-UX-TECH-001-MONITORAMENTO-QUANTIFICACAO-REVISAO](../docs/CF-UX-TECH-001-MONITORAMENTO-QUANTIFICACAO-REVISAO.md) — PT-17–26, 11 [figuras SVG](../docs/ux/figures/monitoramento-quantificacao-revisao), PT-T34–51, autoria avançada PT-24 reservada.
 
 - [CF-UX-TECH-001-REDIGIR-PD-AUTORIA-FUNDAMENTADA](../docs/CF-UX-TECH-001-REDIGIR-PD-AUTORIA-FUNDAMENTADA.md) — PT-24A–J, 11 [figuras SVG](../docs/ux/figures/redigir-pd), PT-T52–79, especificação planejada.
+
+- [BL-DATA-01 — pipeline nacional EVR/PBEV](../docs/CF-OPEN-005-006-PIPELINE-FROTA-NACIONAL.md) — automação em massa, A–H, 14 aceites planejados.

@@ -100,3 +100,14 @@ Contrato e figuras: [CF-UX-TECH-001-PREMISSAS-ADICIONALIDADE-PD](../docs/CF-UX-T
 | PT-24I/J | #100/#43/#47 | PT-T74–77 (opcional) |
 | PT-QA | #101/#45/#49 | PT-T52–73,78–79; 74–77 quando IA habilitada |
 [Contrato e figuras](../docs/CF-UX-TECH-001-REDIGIR-PD-AUTORIA-FUNDAMENTADA.md). PT-T51 recebe o adendo de autoria previsto; não implica aceite de produto. PT-25/26 e PD-A–F preservados.
+
+## BL-DATA-01 — preparação em massa
+| Fatia | Owners | Aceites planejados |
+|---|---|---|
+| A/B | #92/#94/#95 | BD-T01–03 |
+| C/D | #94/#95/#92 | BD-T04–06 |
+| E | #94/#92 | BD-T07–08 |
+| F/G | #95/#92 | BD-T09–10 |
+| H | #94/#95/#40/#97/#124 | BD-T11 |
+| QA | #101/#45/#49 | BD-T12–14 |
+[Contrato](../docs/CF-OPEN-005-006-PIPELINE-FROTA-NACIONAL.md). Não executados.
