@@ -42,6 +42,23 @@ def validate() -> None:
         raise ValueError("CARBONFLOW_PORT deve estar entre 1 e 65535.")
 
 
+def read_roster(path: Path) -> dict | None:
+    """Private local staff roster (0600, never printed or committed); None when the account was not provisioned."""
+    if not path.exists():
+        return None
+    if path.is_symlink() or path.stat().st_mode & 0o077:
+        raise ValueError("Configuração administrativa não é privada (0600).")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    import uuid
+    import base64
+    uuid.UUID(payload["identity"])
+    uuid.UUID(payload["organization"])
+    secret = payload["secret"]
+    if len(base64.urlsafe_b64decode(secret + "=" * (-len(secret) % 4))) != 20:
+        raise ValueError("Credencial MFA local inválida.")
+    return payload
+
+
 def compose(*args: str, capture: bool = False) -> str:
     command = [
         "docker", "compose", "-p", PROJECT,
@@ -52,37 +69,41 @@ def compose(*args: str, capture: bool = False) -> str:
     # Without this override, Compose falls back to 8080 while this script
     # connects to its own default of 18088 (connection refused on first run).
     env = {**os.environ, "CARBONFLOW_PORT": PORT}
-    roster = SECRET_DIR / "admin-roster.json"
-    if roster.exists():
-        if roster.is_symlink() or roster.stat().st_mode & 0o077:
-            raise ValueError("Configuração administrativa não é privada (0600).")
-        payload = json.loads(roster.read_text(encoding="utf-8"))
-        identity = payload["identity"]
-        secret = payload["secret"]
-        organization = payload["organization"]
-        # The roster is never printed to output or added to a committed file.
-        import uuid
-        import base64
-        uuid.UUID(identity)
-        uuid.UUID(organization)
-        if len(base64.urlsafe_b64decode(secret + "=" * (-len(secret) % 4))) != 20:
-            raise ValueError("Credencial MFA local inválida.")
+    owner = read_roster(SECRET_DIR / "admin-roster.json")
+    approver = read_roster(SECRET_DIR / "admin2-roster.json")
+    if owner:
+        identity = owner["identity"]
+        # Both accounts read the platform; only the owner declares, imports and decides on the OWNER_INTERNAL basis.
+        readers = f"{identity},{approver['identity']}" if approver else identity
         env.update({
-            "CARBONFLOW_COMPLIANCE_STAFF": f"{identity}:{secret}:{organization}",
-            "CARBONFLOW_PLATFORM_SOURCE_READINESS_VIEWERS": identity,
+            "CARBONFLOW_COMPLIANCE_STAFF": ";".join(f"{r['identity']}:{r['secret']}:{r['organization']}"
+                                                    for r in (owner, approver) if r),
+            "CARBONFLOW_PLATFORM_SOURCE_READINESS_VIEWERS": readers,
             "CARBONFLOW_PLATFORM_SOURCE_WORK_MANAGERS": identity,
-            "CARBONFLOW_PLATFORM_SOURCE_INGESTION_REVIEWERS": identity,
-            "CARBONFLOW_PLATFORM_SOURCE_TECHNICAL_REVIEWERS": identity,
-            "CARBONFLOW_PLATFORM_VEHICLE_RATINGS_REVIEWERS": identity,
-            # Only the product-owner roles (D19/D20): this local account can declare a public licence, register and
-            # import, and review on the OWNER_INTERNAL basis. It is deliberately NOT an independent reviewer or a
-            # licence approver, so it never simulates dual custody.
+            "CARBONFLOW_PLATFORM_SOURCE_INGESTION_REVIEWERS": readers,
+            "CARBONFLOW_PLATFORM_SOURCE_TECHNICAL_REVIEWERS": readers,
+            "CARBONFLOW_PLATFORM_VEHICLE_RATINGS_REVIEWERS": readers,
+            # Product-owner roles (D19/D20): this local account can declare a public licence, register and import, and
+            # review on the OWNER_INTERNAL basis. It is deliberately NOT an independent reviewer or a licence approver.
             "CARBONFLOW_PLATFORM_CONTENT_LICENSES_OWNERS": identity,
             "CARBONFLOW_PLATFORM_FUEL_CATALOG_MANAGERS": identity,
             "CARBONFLOW_PLATFORM_FUEL_CATALOG_OWNERS": identity,
             "CARBONFLOW_PLATFORM_GRID_SERIES_MANAGERS": identity,
             "CARBONFLOW_PLATFORM_GRID_SERIES_OWNERS": identity,
+            "CARBONFLOW_PLATFORM_FLEET_ALIAS_CANDIDATES_IMPORTERS": identity,
+            "CARBONFLOW_PLATFORM_FLEET_ALIAS_CANDIDATES_OWNERS": identity,
         })
+        if approver:
+            # Second local account: the INDEPENDENT side of dual custody. It approves, reviews and reads, but is never an
+            # owner or submitter, so it cannot approve what it declared and never simulates both sides.
+            other = approver["identity"]
+            env.update({
+                "CARBONFLOW_PLATFORM_CONTENT_LICENSES_APPROVERS": other,
+                "CARBONFLOW_PLATFORM_FUEL_CATALOG_REVIEWERS": other,
+                "CARBONFLOW_PLATFORM_GRID_SERIES_REVIEWERS": other,
+                "CARBONFLOW_PLATFORM_FLEET_COVERAGE_REVIEWERS": other,
+                "CARBONFLOW_PLATFORM_FLEET_ALIAS_CANDIDATES_REVIEWERS": other,
+            })
     result = subprocess.run(
         command, cwd=ROOT, check=True,
         capture_output=capture, text=True, env=env,
