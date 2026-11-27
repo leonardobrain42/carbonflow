@@ -86,6 +86,21 @@ class AdminSandboxTest(unittest.TestCase):
             demo_sandbox.compose("ps")
         return captured
 
+    def test_source_files_key_is_local_private_stable_and_passed_only_with_the_admin_account(self):
+        import base64
+        with tempfile.TemporaryDirectory() as directory:
+            folder=Path(directory); folder.chmod(0o700)
+            self.assertNotIn("CARBONFLOW_PLATFORM_SOURCE_FILES_ENCRYPTION_KEY",self.captured_env(folder))
+            self.assertFalse((folder/"source-files.key").exists())  # no admin account, nothing generated
+            self.roster(folder,"admin-roster.json")
+            first=self.captured_env(folder)["CARBONFLOW_PLATFORM_SOURCE_FILES_ENCRYPTION_KEY"]
+            self.assertEqual(32,len(base64.urlsafe_b64decode(first+"="*(-len(first)%4))))
+            self.assertEqual(0o600,(folder/"source-files.key").stat().st_mode&0o777)
+            self.assertEqual(first,self.captured_env(folder)["CARBONFLOW_PLATFORM_SOURCE_FILES_ENCRYPTION_KEY"])  # stable
+            (folder/"source-files.key").chmod(0o644)
+            with self.assertRaises(ValueError):
+                self.captured_env(folder)
+
     def test_owner_can_import_and_second_account_is_only_the_independent_side(self):
         with tempfile.TemporaryDirectory() as directory:
             folder=Path(directory); folder.chmod(0o700)

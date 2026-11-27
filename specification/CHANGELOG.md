@@ -1,4 +1,6 @@
 # Changelog da especificação viva
+## 0.3.0-rc.103 — 27/11/2026 (proposta)
+- **Sandbox local: chave de criptografia dos arquivos de fonte.** Nível D17: plataforma (ambiente local). O demo nunca teve a chave AES do armazenamento de fontes, e o upload respondia 503 `ARMAZENAMENTO_INDISPONIVEL`, impedindo percorrer o caminho de fonte (quarentena, parecer, prévia, snapshot) com o estoque do BL-DATA-01E. `demo_sandbox` gera uma chave só local (`.carbonflow-demo/source-files.key`, 0600, fora do Git) quando a conta administrativa existe e a repassa ao serviço. Sem mudança no backend nem de regra; produção segue exigindo a chave por configuração.
 ## 0.3.0-rc.101 — 27/11/2026 (proposta)
 - **Fila de candidatos de alias: mensagens de erro específicas.** Nível D17: plataforma. Os 422 da importação e das decisões deixam de ser uma lista genérica e dizem qual campo falhou (período, SHA-256 do PBEV ou da Senatran, itens, nome repetido, chave, nível, motivo, linhas do PBEV, linha escolhida, desfecho, base), com o número do item no lote; a tela mostra a mensagem do servidor. Lotes gerados antes da exigência do SHA-256 da Senatran são orientados a gerar de novo. Sem migração, sem mudança de regra.
 ## 0.3.0-rc.100 — 27/11/2026 (proposta)
