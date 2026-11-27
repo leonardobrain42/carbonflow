@@ -203,6 +203,9 @@ No sandbox, admin com competência e MFA pode abrir Fontes → Frota EVR / Efici
 
 **Decisões de desenho propostas pelo autor deste documento:** separar finalidade PD/MR, manter V64 intacta, usar serviço owner #40 e autorização atual, apresentar seletor contextual e detalhes condicionados a direitos, preservar layout dark/verde. A implementação deve confirmar nomes de API/tabelas, mapeamento de estados e disponibilidade de dados. Nenhuma nova interpretação metodológica, mudança de direitos ou admissão foi aprovada neste PR. O estado do banco local e a revisão independente não foram verificados.
 
+## Estado de implementação
+**BL-EX-01 implementado em 26/11/2026 (rc.94)** como backend de staff: [CF-OPEN-008-BASELINE-FLEET-EX-ANTE](CF-OPEN-008-BASELINE-FLEET-EX-ANTE.md). Resolve o ponto de desenho "ano de observação ex ante" pela D22 (política interna reversível). Leitura pelo projeto e tela (BL-EX-02) seguem planejadas.
+
 ## Complemento de preparação técnica
 Ver [Premissas, adicionalidade, direitos, revisão e PD](CF-UX-TECH-001-PREMISSAS-ADICIONALIDADE-PD.md) para V68/V94, telas de revisão, V100, eventos/direitos e composição documental. PT-06 é BL-EX-03/UX-08D.3, não outra entrega duplicada.
 

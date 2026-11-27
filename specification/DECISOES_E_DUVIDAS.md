@@ -87,3 +87,12 @@ Este registro resume decisões **documentadas no repositório/backlog**, não re
 
 **Efeito nas dúvidas:** Q13 e Q11 deixam de aguardar decisão (decididas, implementação pendente); Q05 mantém D14 com pendência de confirmação externa.
 
+## CF-SPEC-D22 — Ano de observação da seleção de frota ex ante (26/11/2026)
+**Decisão tomada pelo agente por delegação do responsável** ("siga com a próxima fatia", após a análise que apontou o ponto como bloqueio do BL-EX-01). **Política interna reversível** no regime da D14/D21: sem consulta a Verra/VVB, nada admitido, `usableForE8=false`.
+1. O ano de observação da seleção ex ante é o **ano civil da data de referência declarada** pelo responsável para o ato do PD.
+2. O **início de creditação do projeto** (calendário V88) precisa estar resolvido, senão a seleção é recusada. O valor fica gravado e a seleção fica **obsoleta** se ele mudar.
+3. O ano do snapshot EVR/ratings precisa ser **igual** ao ano de observação. Não há aproximação, "ano mais próximo" nem uso da data corrente.
+4. O ano de observação **não** é convertido em ano relativo do projeto.
+5. **Reversão:** se o método, Verra ou a VVB exigirem outra regra (por exemplo, um intervalo de referência em vez de uma data), cria-se nova versão da regra (`@2`); as seleções gravadas seguem com a regra com que foram criadas.
+Implementação: V118, `OpenBaselineFleetSelections` (BL-EX-01).
+
