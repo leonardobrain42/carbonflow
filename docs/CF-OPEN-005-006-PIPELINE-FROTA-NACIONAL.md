@@ -164,6 +164,15 @@ Nível D17: **plataforma** (ferramenta offline) sobre dados de **jurisdição** 
 - **Limites:** até 2.000 modelos por snapshot (igual ao parser). **Segmentar além disso** (manifesto pai, chunks) **não foi implementado**: exige evolução aditiva do backend, que hoje cria o snapshot de uma única fonte (BD-T07 parcial). Veículo registrado não prova circulação nem LDV; isso é do parecer independente.
 - **Amostra real (setembro de 2026, demo):** 327 chaves e 496.391 veículos registrados; com 4 modelos no catálogo, 4 chaves e 32.849 veículos entram e 323 chaves (463.542) ficam sem alias. A cobertura cresce com as decisões aplicadas.
 
+## 7E. Estado de implementação — BL-DATA-01E parte 2, caminho #92 no demo (rc.106)
+Nível D17: plataforma/projeto (demo local); sem regra nova. Com os 4 modelos LDV/BEV do catálogo (7D), o estoque derivado percorreu o caminho de fonte no **sandbox local**: fonte `BR-LDV-BEV-STOCK-BY-MODEL` 2026 (metadados e revisão), **licença pública própria** (`PUBLIC-DOMAIN-DECLARED`, 5 operações, declarada por `admin@` e aprovada por `admin2@`), upload do CSV (252 bytes, SHA-256 `8732bdff…`), quarentena e leitura (4 linhas), parecer independente `APPROVED_FOR_SCOPE`, prévia válida (4 linhas mapeadas LDV/BEV, sem pendências, denominador 32.849), snapshot `PREPARATORY` (pesos somam 1) e decisão de cobertura `NO_OFFICIAL_TOTAL` (revisor `admin2@`). O snapshot continua `usableForE8=false`, `RATINGS_NOT_LINKED`, `OFFICIAL_TOTAL_NOT_VERIFIED`.
+**Limites que permanecem:** são 4 modelos, **não** a frota nacional; os valores são veículos **registrados**, não circulantes; nenhum total oficial foi citado, então cobertura nacional não é afirmada (a decisão só admite `NOT_COVERED`, que exige total citado, ou `NO_OFFICIAL_TOTAL`); segmentação acima de 2.000 modelos (BD-T07) segue sem implementação.
+**Lacunas achadas pelo caminho (todas corrigidas ou registradas):**
+1. Fonte derivada exige **licença própria** por `source_id`+edição; a do RENAVAM não vale (declarada de novo, com a mesma evidência).
+2. `PlatformSourceFiles.granted` exigia organização na licença, mas licença pública é global: nenhuma autorizava (corrigido no #365, CF-SPEC-D25).
+3. O escopo de equipe é configuração do servidor (`CARBONFLOW_COMPLIANCE_STAFF`), não membro nem convite; `admin2@` recebia 404 no arquivo do responsável (corrigido no #366, só demo).
+4. A primeira decisão de cobertura exige `If-Match: "0"`; o contrato HTTP não documenta isso para clientes que não sejam a tela.
+
 ## 8. Primeira entrega recomendada ao Codex
 
 BL-DATA-01A–D em fatias verticais: manifesto + universo (A/B), reconciliação e fila existente (C), dry-run + aplicação autorizada de decisões (D). Teste com fixture multi-modelo e amostra já registrada quando direitos permitirem; depois estoque, ratings, cobertura e publicação (E–H). Não impor seleção ex ante implementada como pré-condição do catálogo; BL-EX consome contratos estáveis em paralelo. Não usar base sintética para alimentar projeto real. Abrir PRs de código pequenos, com critérios BD-T associados, preservar owner e issues existentes.
