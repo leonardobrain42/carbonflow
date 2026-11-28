@@ -131,6 +131,58 @@ class PlatformSourceFilesIntegrationTest {
         assertEquals(404,request("POST",parse,manager,new byte[0],null,null).statusCode());
     }
 
+    @Test
+    void globalPublicLicenceAuthorisesUploadButGlobalParticularAuthorisationDoesNot() throws Exception {
+        String manager=actor(MANAGER),reviewer=actor(REVIEWER);
+        seed();
+        database.transaction(c->{
+            update(c,"DELETE FROM app_compliance_mfa WHERE identity_id=?",MANAGER);
+            update(c,"DELETE FROM app_content_license_decision WHERE license_id=? AND version=2",LICENSE);
+            return null;
+        });
+        assertEquals(200,request("POST","/v1/compliance/session",manager,
+                currentCode().getBytes(StandardCharsets.UTF_8),"application/json",null).statusCode());
+        String upload=ROOT+"/submissions/"+SUBMISSION;
+        var hdr=Map.of("X-CarbonFlow-File-Request","1","X-Source-Filename","test.csv","X-Source-Format","CSV");
+
+        UUID object=null;
+        try {
+            database.transaction(c->update(c,"UPDATE app_content_license SET organization_id=NULL WHERE id=?",LICENSE));
+            assertEquals(403,request("POST",upload,manager,CSV,"application/octet-stream",hdr).statusCode(),
+                "Global particular authorisation must not grant organisation rights.");
+
+            database.transaction(c->update(c, """
+                UPDATE app_content_license SET kind='PUBLIC_LICENSE',license_identifier='PUBLIC-DOMAIN-DECLARED',
+                  legal_text_uri='https://example.org/legal',legal_text_sha256=?,evidence_uri='https://example.org/ev',
+                  evidence_captured_at=statement_timestamp() WHERE id=?
+                ""","b".repeat(64),LICENSE));
+            JsonNode result=json(request("POST",upload,manager,CSV,"application/octet-stream",hdr),201);
+            UUID created=UUID.fromString(result.path("id").asText());
+            object=created;
+            assertEquals(ORG,database.read(c->first(c,
+                "SELECT organization_id FROM app_platform_source_object WHERE id=?",
+                r->r.getObject(1,UUID.class),created)));
+
+            database.transaction(c->update(c, """
+                INSERT INTO app_content_license_decision(license_id,version,outcome,decided_by,reason)
+                VALUES (?,2,'REVOKED',?,'Direitos revogados para o teste')
+                """,LICENSE,REVIEWER));
+            assertEquals(403,request("POST",upload,manager,CSV,"application/octet-stream",hdr).statusCode());
+        } finally {
+            UUID finalObject=object;
+            database.transaction(c->{
+                update(c,"DELETE FROM app_content_license_decision WHERE license_id=? AND version=2",LICENSE);
+                update(c,"DELETE FROM app_platform_source_object WHERE id=?",finalObject);
+                update(c, """
+                    UPDATE app_content_license SET organization_id=?,kind='PARTICULAR_AUTHORIZATION',
+                      license_identifier=NULL,legal_text_uri=NULL,legal_text_sha256=NULL,evidence_uri=NULL,
+                      evidence_captured_at=NULL WHERE id=?
+                    """,ORG,LICENSE);
+                return null;
+            });
+        }
+    }
+
     private void seed() {
         database.transaction(c->{
             update(c, """
