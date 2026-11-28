@@ -365,6 +365,18 @@
       @if (baseline.declaredRating && !baseline.declarationIsRating) {
         <p>Texto do guia: {{baseline.declaredRating}}. Não é o rating PBEV.</p>
       }
+      @if (baseline.exAnte; as exAnte) {
+        <h4>Frota de referência ex ante nomeada nesta seção</h4>
+        <p>{{exAnte.text}}</p>
+        <dl class="cf-tech-capabilities">
+          <div><dt>Versão da referência</dt><dd>{{exAnte.version}}</dd></div>
+          <div><dt>Ano de observação</dt><dd>{{exAnte.observationYear}}</dd></div>
+          <div><dt>Ciclo</dt><dd>{{exAnte.cycle}}</dd></div>
+          <div><dt>Situação</dt><dd>{{exAnte.stale ? 'Desatualizada, reconfirmar' : 'Preparatória, não admitida'}}</dd></div>
+          <div><dt>Hash da seleção</dt><dd>{{exAnte.selectionSha256}}</dd></div>
+          <div><dt>Alimenta o E8</dt><dd>Não</dd></div>
+        </dl>
+      }
       <p>O documento não fica pronto.</p>
     }
     <label for="pd-narrative">Narrativa da seção</label>
