@@ -13,7 +13,7 @@ Migração `V45__platform_source_metadata_intake.sql`:
 - `app_platform_source_submission_event`: revisões imutáveis por versão, status, ator, motivo e data.
 - Estados: `PENDING_REVIEW`, `METADATA_ACCEPTED`, `NEEDS_CORRECTION`, `REJECTED`. Decisões terminais não são reabertas silenciosamente; uma correção é outra submissão identificável.
 - Deduplicação transacional por `(need_code,metadata_fingerprint)`. Repetir a mesma submissão retorna o registro original, sem duplicar evento ou fonte.
-- Ao aceitar metadados: tentativa de registrar `app_source_version` com `origin='EXTERNAL'` e dados exatos. Se a edição já existir com valores divergentes, resposta **409** sem sobrescrever histórico. Um advisory transaction lock serializa a aceitação simultânea por `source_id/edition`.
+- Ao aceitar metadados: tentativa de registrar `app_source_version` com `origin='EXTERNAL'` e dados exatos. Se a edição já existir com valores divergentes, resposta **409** sem sobrescrever histórico. Um advisory transaction lock serializa a aceitação simultânea por `source_id/edition`. A comparação cobre `category`, `title`, `rightsHolder`, `officialUri` e a origem; a mensagem do 409 **nomeia os campos que divergem** (sem expor valores). Se todos forem idênticos, a edição **admite outras submissões com outro arquivo** (outro SHA-256 declarado): cada uma recebe o seu upload e a edição publicada não muda. Foi esse o caso do estoque derivado de 24 modelos depois do de 4.
 - Nenhum dado é inserido em `app_content_license`, `app_norm_rule`, `app_norm_pack` ou em tabelas E8.
 
 ## Endpoints
