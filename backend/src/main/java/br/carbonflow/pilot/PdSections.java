@@ -24,7 +24,8 @@ class PdSections {
                    OpenPdCalculationNote.Note calculation,
                    OpenPdAdditionalityNote.Note additionality,
                    OpenPdApplicabilityNote.Note applicability,
-                   OpenPdBaselineNote.Note baseline) {}
+                   OpenPdBaselineNote.Note baseline,
+                   OpenPdBaselineDependency.Dependency baselineDependency) {}
     record Artifact(String text, String sha256) {}
     private final DynamicProjectScope scopes;
     private final ProjectGuides guides;
@@ -75,7 +76,10 @@ class PdSections {
                     "applicability".equals(guide.id())
                         ? OpenPdApplicabilityNote.from(readiness) : null,
                     "baseline".equals(guide.id())
-                        ? OpenPdBaselineNote.from(fleet, exAnte, guide.answers()) : null));
+                        ? OpenPdBaselineNote.from(fleet, exAnte, guide.answers()) : null,
+                    // BL-EX-03 (BL-T08/T15): the frozen reference of THIS version against the current one.
+                    current != null && scope.actions().contains(OpenBaselineFleetContext.ACTION)
+                        ? OpenPdBaselineDependency.evaluate(c, project, guide.id(), current.number()) : null));
             }
             return sections;
         });
@@ -104,6 +108,13 @@ class PdSections {
                 current==null?0:current.number());
             boolean sameMonitoringDependencies = !java.util.Set.of("monitoring","quantification").contains(id)
                 || java.util.Objects.equals(currentMrManifest,pinnedMrManifest);
+            // BL-EX-03: a new baseline version is needed when the EX ANTE reference changed since the last one.
+            var exAnteNow = OpenPdBaselineDependency.SECTION.equals(id)
+                ? OpenPdBaselineDependency.current(c,project) : null;
+            boolean sameBaselineReference = !OpenPdBaselineDependency.SECTION.equals(id)
+                || OpenPdBaselineDependency.same(
+                    OpenPdBaselineDependency.pinned(c,project,current==null?0:current.number()),exAnteNow);
+            sameMonitoringDependencies = sameMonitoringDependencies && sameBaselineReference;
             String text = input.narrative().strip();
             if (current != null && expected == current.number()-1 && current.author().equals(scope.actor().id())
                     && input.guideVersion() == current.guideVersion() && text.equals(current.narrative())
@@ -126,6 +137,14 @@ class PdSections {
                     .put("guideVersion",guide.version()).put("narrative",text);
             if (java.util.Set.of("monitoring","quantification").contains(id) && currentMrManifest!=null)
                 artifact.put("mrDependencyManifestSha256",currentMrManifest);
+            if (exAnteNow != null) {
+                // Frozen inside the hashed artifact: exact version and selection hash, never values or "latest".
+                var reference = mapper.createObjectNode();
+                reference.put("version",exAnteNow.version()).put("selectionSha256",exAnteNow.selectionSha256())
+                    .put("observationYear",exAnteNow.observationYear()).put("cycle",exAnteNow.cycle())
+                    .put("usableForE8",false);
+                artifact.set("exAnteReference",reference);
+            }
             artifact.set("fields",mapper.valueToTree(guide.fields()));
             artifact.set("inputs",mapper.valueToTree(new java.util.TreeMap<>(guide.answers())));
             artifact.set("missing",mapper.valueToTree(guide.missing()));
@@ -136,6 +155,7 @@ class PdSections {
                     VALUES(?,?,?,?,?,?,?,?)
                     """,project,id,version,guide.version(),scope.actor().id(),text,payload,digest);
             OpenMonitoringDossiers.pinPd(c,project,id,version);
+            if (OpenPdBaselineDependency.SECTION.equals(id)) OpenPdBaselineDependency.pin(c,project,version);
             return new Version(version,guide.version(),scope.actor().id(),text,digest);
         });
     }

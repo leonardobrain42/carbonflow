@@ -15,7 +15,8 @@ class PdReviews {
     record Event(int seq, State state, String reason, UUID actor, String actorName, OffsetDateTime at, Integer competenceVersion) {}
     record Item(String id,String title, PdSections.Version section, boolean outdated, boolean ownerOnly,
                 String authorName, List<Event> history, List<State> actions,
-                OpenMonitoringDossiers.PdDependency monitoringDependency) {}
+                OpenMonitoringDossiers.PdDependency monitoringDependency,
+                OpenPdBaselineDependency.Dependency baselineDependency) {}
     record Decision(State state,String reason) {}
     private final DynamicProjectScope scopes;
     private final PdSections sections;
@@ -76,8 +77,10 @@ class PdReviews {
         State state=history.isEmpty()?State.DRAFT:history.getLast().state();
         OpenMonitoringDossiers.PdDependency dependency=OpenMonitoringDossiers.pdDependency(
             c,scope.id(),guide.id(),section.number());
+        OpenPdBaselineDependency.Dependency baseline=OpenPdBaselineDependency.evaluate(
+            c,scope.id(),guide.id(),section.number());
         boolean outdated=guide.version()!=section.guideVersion() ||
-            dependency!=null && dependency.outdated();
+            dependency!=null && dependency.outdated() || baseline!=null && baseline.outdated();
         List<State> actions=new ArrayList<>();
         boolean ownerOnly = Boolean.TRUE.equals(first(c, "SELECT activity='OWNER' FROM app_technical_guide WHERE id=?",
                 r -> r.getBoolean(1),guide.id()));
@@ -98,7 +101,8 @@ class PdReviews {
             }
         }
         String authorName = first(c,"SELECT display_name FROM app_identity WHERE id=?",r -> r.getString(1),section.author());
-        return new Item(guide.id(),guide.title(),section,outdated,ownerOnly,authorName,history,actions,dependency);
+        return new Item(guide.id(),guide.title(),section,outdated,ownerOnly,authorName,history,actions,dependency,
+            scope.actions().contains(OpenBaselineFleetContext.ACTION) ? baseline : null);
     }
 
     private static Integer competence(Connection c,DynamicProjectScope.Context scope,String id) throws SQLException {
