@@ -171,7 +171,7 @@ Nível D17: plataforma/projeto (demo local); sem regra nova. Com os 4 modelos LD
 1. Fonte derivada exige **licença própria** por `source_id`+edição; a do RENAVAM não vale (declarada de novo, com a mesma evidência).
 2. `PlatformSourceFiles.granted` exigia organização na licença, mas licença pública é global: nenhuma autorizava (corrigido no #365, CF-SPEC-D25).
 3. O escopo de equipe é configuração do servidor (`CARBONFLOW_COMPLIANCE_STAFF`), não membro nem convite; `admin2@` recebia 404 no arquivo do responsável (corrigido no #366, só demo).
-4. A primeira decisão de cobertura exige `If-Match: "0"`; o contrato HTTP não documenta isso para clientes que não sejam a tela.
+4. A primeira decisão de cobertura exige `If-Match: "0"` e o contrato HTTP não dizia isso para clientes que não sejam a tela (corrigido em `CF-OPEN-005-NATIONAL-COVERAGE-DECISION.md`).
 
 ## 8. Primeira entrega recomendada ao Codex
 
