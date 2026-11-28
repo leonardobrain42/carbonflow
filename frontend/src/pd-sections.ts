@@ -58,9 +58,12 @@ interface OpinionCriterion {code:string;title:string;stateLabel:string;text:stri
 interface AdditionalityNote {declarationRoute:string|null;declarationIsOpinion:boolean;
   concludesAdditionality:boolean;usableForE8:boolean;marksDocumentReady:boolean;text:string;
   criteria:OpinionCriterion[]}
+interface ExAnteReference {version:number;observationYear:number;cycle:string;selectionSha256:string;
+  state:string;stale:boolean;usableForE8:boolean;text:string}
 interface BaselineNote {period:string;situation:string;observationYear:number|null;cycle:string|null;
   declaredRating:string|null;declarationIsRating:boolean;admitsBaseline:boolean;
-  copiesLicensedRatings:boolean;usableForE8:boolean;marksDocumentReady:boolean;text:string}
+  copiesLicensedRatings:boolean;usableForE8:boolean;marksDocumentReady:boolean;text:string;
+  exAnte?:ExAnteReference|null}
 interface ApplicabilityNote {situation:string;citation:string;citedStockPercent:string;
   citedVintageYear:number;stockLimitPercent:string;salesLimitPercent:string;
   citationBelowStockLimit:boolean;stockSeriesLabel:string;salesSeriesLabel:string;

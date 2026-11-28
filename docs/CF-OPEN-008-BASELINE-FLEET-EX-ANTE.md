@@ -34,7 +34,18 @@ A resposta é só metadado: `state` (`NO_EX_ANTE_REFERENCE`, `PREPARATORY_NOT_AD
 
 A etapa 2 (Linha de base) mostra primeiro a frota de referência ex ante e depois os vínculos por período monitorado; a ausência de períodos de monitoramento deixa de ser apresentada como pendência da etapa. Critérios cobertos: BL-T02 (estado vazio, sem snapshot nem percentual; próxima etapa acessível), BL-T06 (acesso), parte de BL-T14 (restrição sem dado stale). Não cobertos: BL-T13 (1440×900 e teclado), BL-T17 (teste humano).
 
+## Referência ex ante nomeada no PD (BL-EX-03, rc.108)
+**Nível D17: projeto** (OPEN BR LDV BEV DCFC SIN GRID_ONLY). Sem migração, sem rota nova e sem tabela nova: `GET /v1/projects/{project}/technical/pd-sections` passa a devolver, na nota da seção `baseline`, o campo `exAnte` (nulo quando não há referência ou quando quem lê não tem a ação `VIEW_OPEN_BASELINE_FLEET_CONTEXT`).
+
+`exAnte` traz só metadados: `version`, `observationYear`, `cycle`, `selectionSha256` (a referência exata por versão), `state` (`PREPARATORY_NOT_ADMITTED` ou `STALE_NOT_ADMITTED`), `stale`, `usableForE8` (sempre falso) e um texto. **Nenhum estoque, rating, AFEC, MPG ou percentual é copiado.** É sempre a versão mais recente da seleção ex ante, citada por número e hash, e não um "latest" implícito de um documento congelado.
+
+**Sem fallback:** a seleção monitorada (V64) continua lida como antes e a ex ante **não a substitui nem a promove**; sem período, sem energia e sem MR a nota `situation` segue `ABSENT` e a ex ante aparece ao lado. Uma seleção marcada utilizável nunca aparece como corrente. Quem não é membro continua recebendo 404.
+
+A seção do PD na tela (`pd-sections`) mostra o bloco "Frota de referência ex ante nomeada nesta seção" com versão, ano, ciclo, situação, hash e "Alimenta o E8: Não".
+
+Critérios cobertos: BL-T01 (o PD recebe a referência exata sem MR e sem admissão automática), BL-T10 (sem energia medida o PD nomeia a referência e as lacunas, sem número falso), parte de BL-T06 (acesso). **Não cobertos:** BL-T08 (marcar só os dependentes como obsoletos), BL-T15 (referência congelada em versão de PD e histórico), diagnóstico por ato (UX-08D.3/PT-06), BL-T13 (1440×900 e teclado reais) e BL-T17 (teste humano). Testes: `OpenPdBaselineNoteTest`, `OpenBaselineFleetSelectionIntegrationTest` e `frontend/test/pd-baseline-note.test.mjs`.
+
 ## O que ainda não faz
-- Uso da referência no **PD** e no diagnóstico por ato: BL-EX-03. A leitura atual do PD continua a monitorada, sem fallback.
+- Diagnóstico **por ato** (UX-08D.3/PT-06), congelamento da referência exata no PD versionado e as demais regras de obsolescência do PD (BL-T08/T15): ainda **não** feitos (resíduo do BL-EX-03).
 - **Dados reais**: o teste usa os snapshots **sintéticos** da fixture. Sem estoque EVR e ratings reais importados e revisados (BL-DATA-01), não há o que selecionar no ambiente de trabalho.
 - Não coberto por teste: início de creditação não resolvido (a fixture sempre o resolve); BL-T02 a BL-T05 e BL-T08 em diante dependem de dados e de interface.

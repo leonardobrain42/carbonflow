@@ -29,6 +29,11 @@ class OpenBaselineFleetSelectionIntegrationTest {
     private OpenE8TestFixture fx;
     private OpenE8TestFixture.Scenario s;
 
+    private static JsonNode baselineSection(JsonNode sections) {
+        for(JsonNode section:sections) if("baseline".equals(section.path("guide").path("id").asText())) return section;
+        throw new AssertionError("Seção baseline ausente: "+sections);
+    }
+
     private String body(String date,UUID rating,String rationale){
         return "{\"projectId\":\""+s.project()+"\",\"referenceDate\":\""+date+"\",\"ratingSnapshotId\":\""+rating
             +"\",\"rationale\":\""+rationale+"\"}";
@@ -64,6 +69,9 @@ class OpenBaselineFleetSelectionIntegrationTest {
         assertEquals("2025-08-01",empty.path("creditStart").asText());
         assertTrue(empty.path("gaps").toString().contains("NO_EX_ANTE_REFERENCE_CONFIRMED"),empty.toString());
         assertTrue(empty.path("gaps").get(0).path("owner").asText().length()>3);
+        // BL-EX-03, BL-T10: before any selection the PD baseline section names no ex ante reference (no object, no zero).
+        String pdPath="/v1/projects/"+s.project()+"/technical/pd-sections";
+        assertTrue(baselineSection(fx.json(fx.call("GET",pdPath,s.owner().cookie(),null,null))).path("baseline").path("exAnte").isNull());
         // Not a member of the project, and not signed in: the project is not even confirmed to exist.
         assertEquals(404,fx.call("GET",ctxPath,s.outside().cookie(),null,null).statusCode());
         assertTrue(fx.call("GET",ctxPath,"",null,null).statusCode()==401||fx.call("GET",ctxPath,"",null,null).statusCode()==404);
@@ -137,6 +145,23 @@ class OpenBaselineFleetSelectionIntegrationTest {
         assertFalse(view.path("usableForE8").asBoolean());
         assertEquals(0,view.path("gaps").size(),view.toString());
         assertFalse(seen.body().contains("rationale\":null"));
+        // BL-EX-03, BL-T01/T10: the PD names the EXACT current version without any period, energy or monitored selection.
+        var pdSeen=fx.call("GET",pdPath,s.owner().cookie(),null,null);
+        assertEquals(200,pdSeen.statusCode(),pdSeen.body());
+        JsonNode pdBaseline=baselineSection(fx.json(pdSeen)).path("baseline");
+        JsonNode exAnte=pdBaseline.path("exAnte");
+        assertEquals("ABSENT",pdBaseline.path("situation").asText(),"No fallback: the monitored reading stays absent.");
+        assertEquals(2,exAnte.path("version").asInt(),exAnte.toString());
+        assertEquals(2025,exAnte.path("observationYear").asInt());
+        assertEquals(view.path("current").path("selectionSha256").asText(),exAnte.path("selectionSha256").asText());
+        assertEquals("PREPARATORY_NOT_ADMITTED",exAnte.path("state").asText());
+        assertFalse(exAnte.path("stale").asBoolean());
+        assertFalse(exAnte.path("usableForE8").asBoolean());
+        assertFalse(pdBaseline.path("usableForE8").asBoolean());
+        assertFalse(pdBaseline.path("admitsBaseline").asBoolean());
+        assertFalse(pdBaseline.path("marksDocumentReady").asBoolean());
+        assertFalse(exAnte.toString().contains("AFEC") || exAnte.toString().contains("MPG"),"No licensed value is copied.");
+        assertEquals(404,fx.call("GET",pdPath,s.outside().cookie(),null,null).statusCode());
         assertTrue(database.transaction(c->PilotSql.first(c,
             "SELECT count(*) FROM app_project_technical_access_event WHERE action='VIEW_OPEN_BASELINE_FLEET_CONTEXT' AND outcome='PERMITTED'",
             r->r.getLong(1)))>=2,"the project-side reads are audited");

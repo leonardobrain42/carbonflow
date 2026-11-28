@@ -53,6 +53,50 @@ class OpenPdBaselineNoteTest {
         assertFalse(forced.marksDocumentReady());
     }
 
+    @Test
+    void theExactExAnteReferenceIsNamedWithoutAMonitoredSelectionAndWithoutAdmission() {
+        var none = OpenPdBaselineNote.from(null, (OpenBaselineFleetSelections.View) null, Map.of());
+        assertNull(none.exAnte(), "Sem referência ex ante não há objeto nem zero.");
+        assertEquals("ABSENT", none.situation());
+
+        var note = OpenPdBaselineNote.from(null, exAnte("PREPARATORY_NOT_ADMITTED", false, false), Map.of());
+        assertEquals("ABSENT", note.situation(), "A seleção monitorada continua ausente: sem fallback.");
+        var ref = note.exAnte();
+        assertNotNull(ref);
+        assertEquals(3, ref.version());
+        assertEquals(2026, ref.observationYear());
+        assertEquals("COMBINED", ref.cycle());
+        assertEquals("d".repeat(64), ref.selectionSha256());
+        assertEquals("PREPARATORY_NOT_ADMITTED", ref.state());
+        assertFalse(ref.stale());
+        assertFalse(ref.usableForE8());
+        assertFalse(note.usableForE8());
+        assertFalse(note.admitsBaseline());
+        assertFalse(note.marksDocumentReady());
+        assertTrue(ref.text().contains("versão 3"));
+        assertTrue(ref.text().contains("não alimenta o E8"));
+        assertTrue(ref.text().contains("não copia estoque nem rating"));
+        assertFalse(ref.text().contains("AFEC"));
+        assertFalse(ref.text().contains("%"));
+
+        var stale = OpenPdBaselineNote.from(null, exAnte("STALE_NOT_ADMITTED", true, false), Map.of()).exAnte();
+        assertEquals("STALE_NOT_ADMITTED", stale.state());
+        assertTrue(stale.stale());
+        assertTrue(stale.text().contains("não está corrente"));
+
+        var forced = OpenPdBaselineNote.from(null, exAnte("PREPARATORY_NOT_ADMITTED", false, true), Map.of()).exAnte();
+        assertEquals("STALE_NOT_ADMITTED", forced.state(), "Seleção marcada utilizável nunca vira referência corrente.");
+        assertFalse(forced.usableForE8());
+    }
+
+    private static OpenBaselineFleetSelections.View exAnte(String state, boolean stale, boolean usable) {
+        return new OpenBaselineFleetSelections.View(
+            UUID.randomUUID(), "project", 3, "PD", java.time.LocalDate.parse("2026-06-01"), 2026,
+            java.time.LocalDate.parse("2026-07-01"), "REFERENCE_DATE_CALENDAR_YEAR",
+            UUID.randomUUID(), UUID.randomUUID(), "COMBINED", "a".repeat(64), "b".repeat(64), "d".repeat(64),
+            "justificativa", state, stale, usable, OffsetDateTime.parse("2026-11-27T12:00:00Z"), List.of());
+    }
+
     private static OpenE8FleetSelections.View view(String state, boolean stale, boolean usable) {
         return new OpenE8FleetSelections.View(
             UUID.randomUUID(), "project", "M1", 1,

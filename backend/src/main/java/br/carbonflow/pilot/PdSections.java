@@ -60,6 +60,10 @@ class PdSections {
                 : OpenPdCalculationNote.restricted();
             OpenApplicability.Readiness readiness = applicability.readinessOf(c, project);
             OpenE8FleetSelections.View fleet = OpenE8FleetSelections.newest(c, project);
+            // BL-EX-03: the exact EX ANTE reference (newest version) named in the baseline section, for those who
+            // may read the project's fleet context. Without that action the field stays null (no inference).
+            var exAnte = scope.actions().contains(OpenBaselineFleetContext.ACTION)
+                ? OpenBaselineFleetSelections.history(c, project).stream().findFirst().orElse(null) : null;
             for (var guide : guides.catalog(c, scope).guides()) {
                 Version current=latest(c,project,guide.id());
                 sections.add(new Section(guide,current,
@@ -71,7 +75,7 @@ class PdSections {
                     "applicability".equals(guide.id())
                         ? OpenPdApplicabilityNote.from(readiness) : null,
                     "baseline".equals(guide.id())
-                        ? OpenPdBaselineNote.from(fleet, guide.answers()) : null));
+                        ? OpenPdBaselineNote.from(fleet, exAnte, guide.answers()) : null));
             }
             return sections;
         });
