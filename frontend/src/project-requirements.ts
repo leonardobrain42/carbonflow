@@ -9,12 +9,20 @@ type Requirement = {
   state:string;situation:string;reason:string;ownerRole:string;
   nextAction:string;actionLabel:string|null;destination:Destination|null;group:string;
   clientAction:boolean;blocksExAntePd:boolean;admitsE8:boolean;affectedOutputs:string[];
+  acts?:string[];
 };
 type Summary = {mine:number;awaitingSource:number;awaitingReview:number;outOfScope:number};
 type View = {
   projectId:string;methodology:string|null;openBranch:boolean;diagnosticVisible:boolean;
   canRunE8:boolean;canIssueVcu:boolean;exAnteRequiresMeasuredEnergy:boolean;
   limits:string;summary:Summary;requirements:Requirement[];
+  actSummary?:{act:string;requirements:number}[];
+};
+
+const ACT_LABELS:Record<string,string> = {
+  PD_EX_ANTE:'Descrição do projeto (ex ante)',
+  MR_MONITORED:'Monitoramento (MR)',
+  QUANTIFICATION:'Quantificação',
 };
 
 const GROUPS = [
@@ -36,6 +44,14 @@ export class ProjectRequirementsComponent implements OnChanges, OnDestroy {
   private readonly http = inject(HttpClient);
   readonly groups = GROUPS;
   readonly roleLabel = plannedRole;
+
+  actsText(acts:string[]|undefined):string {
+    return (acts ?? []).map(act => this.actLabel(act)).join(', ');
+  }
+
+  actLabel(act:string):string {
+    return ACT_LABELS[act] ?? act;
+  }
 
   requirementName(code:string):string {
     const label = plainTerm(code);

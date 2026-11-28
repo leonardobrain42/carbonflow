@@ -59,9 +59,18 @@ Critérios cobertos: BL-T01 (o PD recebe a referência exata sem MR e sem admiss
 
 Na revisão interna do PD, versão desatualizada **não pode ser submetida, aprovada nem congelada** (reabrir e devolver continuam); a versão antiga, seu artefato e seu hash **nunca** são reescritos. O campo só aparece para quem tem `VIEW_OPEN_BASELINE_FLEET_CONTEXT`; a decisão de `outdated` na revisão é interna. Nada de estoque, rating ou percentual é copiado. As telas de seção e de revisão do PD mostram o texto e o aviso.
 
-Critérios cobertos: BL-T08 (só o dependente fica desatualizado; versão anterior íntegra) e BL-T15 (referência exata, sem `latest` automático; nenhum documento pronto por vínculo). Não cobertos: diagnóstico por ato (UX-08D.3/PT-06), BL-T13 e BL-T17. Testes: `OpenPdBaselineDependencyTest`, `OpenBaselineFleetSelectionIntegrationTest` (novo caso) e `frontend/test/pd-baseline-note.test.mjs`.
+Critérios cobertos: BL-T08 (só o dependente fica desatualizado; versão anterior íntegra) e BL-T15 (referência exata, sem `latest` automático; nenhum documento pronto por vínculo). Não cobertos nesta parte: diagnóstico por ato (feito na parte 3, abaixo), BL-T13 e BL-T17. Testes: `OpenPdBaselineDependencyTest`, `OpenBaselineFleetSelectionIntegrationTest` (novo caso) e `frontend/test/pd-baseline-note.test.mjs`.
 
 ## O que ainda não faz
-- Diagnóstico **por ato** (UX-08D.3/PT-06): ainda **não** feito (resíduo do BL-EX-03). O congelamento no PD versionado foi feito (próxima seção).
+- BL-EX-03 está completo no backend e na tela de pendências (partes 1 a 3). Faltam só BL-T13 (1440×900/teclado) e BL-T17 (teste humano).
 - **Dados reais**: o teste usa os snapshots **sintéticos** da fixture. Sem estoque EVR e ratings reais importados e revisados (BL-DATA-01), não há o que selecionar no ambiente de trabalho.
 - Não coberto por teste: início de creditação não resolvido (a fixture sempre o resolve); BL-T02 a BL-T05 e BL-T08 em diante dependem de dados e de interface.
+
+## BL-EX-03 parte 3 — diagnóstico por ato (UX-08D.3/PT-06)
+Nível D17: projeto (OPEN BR LDV BEV DCFC SIN GRID_ONLY). Sem migração. `GET …/technical/requirements` passa a devolver:
+- `acts` em cada requisito: em quais atos ele pesa (`PD_EX_ANTE`, `MR_MONITORED`, `QUANTIFICATION`). É **derivado** dos produtos que o item já declarava (`affectedOutputs`) e da origem (gate de pré-cálculo pesa na quantificação). Não afirma incidência metodológica nova; item sem produto conhecido fica sem ato, sem palpite.
+- `actSummary`: contagem por ato. Um requisito pode estar em mais de um ato, então as contagens **não somam**.
+- Requisito `EX_ANTE_FLEET_REFERENCE` (ato `PD_EX_ANTE`, produto "linha de base"): `NOT_ADMITTED` sem referência (ausência não vale zero nem percentual), `SOURCE_CANDIDATE` com a referência corrente (versão e ano), `STALE` se superada. Só aparece com `VIEW_OPEN_BASELINE_FLEET_CONTEXT`; sem a permissão não há item (sem acesso ≠ ausência). Nunca bloqueia o PD ex ante, nunca admite E8, nunca é número.
+- A frota monitorada (V64) e a energia medida continuam nos atos MR/quantificação e continuam bloqueando o cálculo; a referência ex ante não é fallback delas.
+
+Critérios cobertos: BL-T05 e BL-T10/T16 (PD sem MR, MR/quantificação bloqueados, sem zero). Testes: `ProjectRequirementProjectionTest` (3 casos novos), `OpenBaselineFleetSelectionIntegrationTest` (leitura pelo endpoint, antes e depois da seleção, 404 fora), `frontend/test/project-requirements.test.mjs`.

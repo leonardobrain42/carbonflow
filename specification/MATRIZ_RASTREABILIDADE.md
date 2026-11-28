@@ -43,7 +43,7 @@ Estas linhas são posteriores ao corte `507bf268…` do cabeçalho; os vínculos
 | BL-EX-01: contexto e referência imutável PD sem MR | #40/#97 | [Especificação](../docs/CF-UX-TECH-001-FROTA-BASELINE-EX-ANTE.md); implementado (backend de staff, V118): [CF-OPEN-008-BASELINE-FLEET-EX-ANTE](../docs/CF-OPEN-008-BASELINE-FLEET-EX-ANTE.md), [`OpenBaselineFleetSelectionIntegrationTest`](../backend/src/test/java/br/carbonflow/pilot/OpenBaselineFleetSelectionIntegrationTest.java) | BL-T01,05–08,10,16 (cobertos: 01, 06, 07; demais pendentes) |
 | BL-EX-02: seleção contextual, vazio e lacunas | #124/#40 | mesmo contrato, figuras 02/03; implementado (leitura pelo projeto, V120, etapa 2): [CF-OPEN-008](../docs/CF-OPEN-008-BASELINE-FLEET-EX-ANTE.md) | BL-T01–07,13–14,17 (cobertos: T02, T06, parte de T14; pendentes: T13, T17) |
 | BL-DATA-01: estoque, ratings e cobertura | #94/#95/#92 | V48/V49 e docs owners | BL-T02–04,12 |
-| BL-EX-03: projeção por ato e PD | #124/#13/#19/#122 | mesmo contrato; [CF-OPEN-008](../docs/CF-OPEN-008-BASELINE-FLEET-EX-ANTE.md) (partes 1 e 2: PD nomeia e congela a referência ex ante; falta o diagnóstico por ato) | BL-T08,10–11,15 (T01, T08, T10, T15 cobertos para a seção de linha de base) |
+| BL-EX-03: projeção por ato e PD | #124/#13/#19/#122 | mesmo contrato; [CF-OPEN-008](../docs/CF-OPEN-008-BASELINE-FLEET-EX-ANTE.md) (partes 1 a 3: PD nomeia e congela a referência ex ante; diagnóstico por ato) | BL-T08,10–11,15 (T01, T05, T08, T10, T15, T16 cobertos; faltam T13 e T17) |
 | BL-EX-04: inspeção autorizada | #124/#128 | figura 04 | BL-T06,12–14 |
 | BL-EX-05: handoff operacional | #97/#98 | V64 preservada | BL-T09,16 |
 | BL-QA | #101/#45 | matriz BL-T01–17 | execução futura, sem homologação presumida |

@@ -121,6 +121,11 @@ class OpenBaselineFleetSelectionIntegrationTest {
         assertEquals(404,fx.call("GET",technical+"/pd-sections",s.outside().cookie(),null,null).statusCode());
     }
 
+    private static JsonNode requirement(JsonNode view,String id) {
+        for(JsonNode item:view.path("requirements")) if(id.equals(item.path("requirementId").asText())) return item;
+        throw new AssertionError("Requisito ausente: "+id+" em "+view);
+    }
+
     private static JsonNode baselineSection(JsonNode sections) {
         for(JsonNode section:sections) if("baseline".equals(section.path("guide").path("id").asText())) return section;
         throw new AssertionError("Seção baseline ausente: "+sections);
@@ -164,6 +169,17 @@ class OpenBaselineFleetSelectionIntegrationTest {
         // BL-EX-03, BL-T10: before any selection the PD baseline section names no ex ante reference (no object, no zero).
         String pdPath="/v1/projects/"+s.project()+"/technical/pd-sections";
         assertTrue(baselineSection(fx.json(fx.call("GET",pdPath,s.owner().cookie(),null,null))).path("baseline").path("exAnte").isNull());
+        // BL-EX-03, diagnóstico por ato: without a reference the PD act names the gap, never zero, never blocking.
+        String reqPath="/v1/projects/"+s.project()+"/technical/requirements";
+        JsonNode reqEmpty=requirement(fx.json(fx.call("GET",reqPath,s.owner().cookie(),null,null)),"EX_ANTE_FLEET_REFERENCE");
+        assertEquals("NOT_ADMITTED",reqEmpty.path("state").asText(),reqEmpty.toString());
+        assertEquals("AWAITING_SOURCE",reqEmpty.path("group").asText());
+        assertEquals("PD_EX_ANTE",reqEmpty.path("acts").get(0).asText());
+        assertFalse(reqEmpty.path("blocksExAntePd").asBoolean());
+        assertFalse(reqEmpty.path("admitsE8").asBoolean());
+        JsonNode energyAct=requirement(fx.json(fx.call("GET",reqPath,s.owner().cookie(),null,null)),"ED_EC");
+        assertEquals("MR_MONITORED",energyAct.path("acts").get(0).asText(),"Measured energy is the monitored act.");
+        assertFalse(energyAct.path("blocksExAntePd").asBoolean());
         // Not a member of the project, and not signed in: the project is not even confirmed to exist.
         assertEquals(404,fx.call("GET",ctxPath,s.outside().cookie(),null,null).statusCode());
         assertTrue(fx.call("GET",ctxPath,"",null,null).statusCode()==401||fx.call("GET",ctxPath,"",null,null).statusCode()==404);
@@ -254,6 +270,16 @@ class OpenBaselineFleetSelectionIntegrationTest {
         assertFalse(pdBaseline.path("marksDocumentReady").asBoolean());
         assertFalse(exAnte.toString().contains("AFEC") || exAnte.toString().contains("MPG"),"No licensed value is copied.");
         assertEquals(404,fx.call("GET",pdPath,s.outside().cookie(),null,null).statusCode());
+        JsonNode reqView=fx.json(fx.call("GET",reqPath,s.owner().cookie(),null,null));
+        JsonNode reqRef=requirement(reqView,"EX_ANTE_FLEET_REFERENCE");
+        assertEquals("SOURCE_CANDIDATE",reqRef.path("state").asText(),reqRef.toString());
+        assertTrue(reqRef.path("reason").asText().contains("versão 2"),reqRef.toString());
+        assertTrue(reqRef.path("reason").asText().contains("não alimenta o E8"));
+        assertFalse(reqRef.path("blocksExAntePd").asBoolean());
+        assertEquals(1,reqRef.path("acts").size());
+        assertEquals("PD_EX_ANTE",reqView.path("actSummary").get(0).path("act").asText());
+        assertTrue(reqView.path("actSummary").get(0).path("requirements").asInt()>=1);
+        assertEquals(404,fx.call("GET",reqPath,s.outside().cookie(),null,null).statusCode());
         assertTrue(database.transaction(c->PilotSql.first(c,
             "SELECT count(*) FROM app_project_technical_access_event WHERE action='VIEW_OPEN_BASELINE_FLEET_CONTEXT' AND outcome='PERMITTED'",
             r->r.getLong(1)))>=2,"the project-side reads are audited");

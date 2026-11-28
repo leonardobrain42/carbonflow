@@ -8,6 +8,15 @@
     <button type="button" class="cf-workspace-outline" (click)="load()">Tentar novamente</button>
   } @else if (view(); as state) {
     <p role="status">{{state.limits}}</p>
+    @if (state.actSummary?.length) {
+      <p>Por ato:</p>
+      <ul aria-label="Pendências por ato">
+        @for (entry of state.actSummary; track entry.act) {
+          <li>{{actLabel(entry.act)}}: {{entry.requirements}}</li>
+        }
+      </ul>
+      <p>Uma pendência pode pesar em mais de um ato. Energia medida não bloqueia a descrição do projeto ex ante.</p>
+    }
     @if (!state.diagnosticVisible) {
       <p>O diagnóstico detalhado não está disponível para esta conta.</p>
     } @else if (!state.requirements.length) {
@@ -38,6 +47,9 @@
                   <p>Papel previsto: {{roleLabel(item.ownerRole)}}. Nenhuma pessoa foi designada por este diagnóstico.</p>
                   @if (item.affectedOutputs.length) {
                     <p>Entra em: {{item.affectedOutputs.join(', ')}}.</p>
+                  }
+                  @if (item.acts?.length) {
+                    <p>Incide em: {{actsText(item.acts)}}.</p>
                   }
                   @if (!item.blocksExAntePd && item.requirementId === 'ED_EC') {
                     <p>Não bloqueia o documento ex ante.</p>
