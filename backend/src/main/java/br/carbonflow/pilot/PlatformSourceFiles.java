@@ -379,7 +379,8 @@ class PlatformSourceFiles {
         var array=connection.createArrayOf("uuid",organizations.toArray(UUID[]::new));
         try {
             return first(connection, """
-                SELECT l.id,d.version,l.organization_id
+                SELECT l.id,d.version,
+                       COALESCE(l.organization_id,(SELECT o FROM unnest(?::uuid[]) o ORDER BY o LIMIT 1))
                 FROM app_content_license l
                 JOIN LATERAL (
                     SELECT version,outcome,decided_by,decided_at FROM app_content_license_decision
@@ -389,7 +390,8 @@ class PlatformSourceFiles {
                     AND cap.decision_version=d.version
                 WHERE l.source_id=? AND l.edition=?
                   AND (?::uuid IS NULL OR l.id=?)
-                  AND l.organization_id=ANY(?) AND l.project_id IS NULL AND l.actor_id IS NULL
+                  AND (l.organization_id=ANY(?) OR (l.organization_id IS NULL AND l.kind='PUBLIC_LICENSE'
+                       AND l.license_identifier IS NOT NULL)) AND l.project_id IS NULL AND l.actor_id IS NULL
                   AND l.environment='SANDBOX' AND l.purpose='AUTHORIZED_PROCESSING'
                   AND l.provider IS NULL AND cap.operation=?
                   AND l.proof_sha256 IS NOT NULL AND l.submitted_by IS NOT NULL
@@ -399,7 +401,7 @@ class PlatformSourceFiles {
                   AND (l.ends_at IS NULL OR l.ends_at>statement_timestamp())
                 ORDER BY l.id LIMIT 1
                 """,r->new Grant(r.getObject(1,UUID.class),r.getInt(2),
-                    r.getObject(3,UUID.class)),source,edition,bound,bound,array,operation);
+                    r.getObject(3,UUID.class)),array,source,edition,bound,bound,array,operation);
         } finally {array.free();}
     }
 

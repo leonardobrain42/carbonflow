@@ -1,4 +1,6 @@
 # Changelog da especificação viva
+## 0.3.0-rc.104 — 27/11/2026 (proposta)
+- **Licença pública global passa a autorizar fontes (CF-SPEC-D25).** Nível D17: plataforma. `PlatformSourceFiles.granted` exigia `organization_id` do ator, mas licenças `PUBLIC_LICENSE` são globais; nenhuma podia autorizar upload/prévia/snapshot (achado no caminho #92 do demo, 403 `DIREITOS_NAO_AUTORIZADOS`). A consulta aceita organização nula só para `PUBLIC_LICENSE` com identificador; autorização particular global segue recusada; demais guardas e revogação intactas. Sem migração. Teste novo em `PlatformSourceFilesIntegrationTest`; suíte do backend: 354 testes, 0 falhas.
 ## 0.3.0-rc.103 — 27/11/2026 (proposta)
 - **Sandbox local: chave de criptografia dos arquivos de fonte.** Nível D17: plataforma (ambiente local). O demo nunca teve a chave AES do armazenamento de fontes, e o upload respondia 503 `ARMAZENAMENTO_INDISPONIVEL`, impedindo percorrer o caminho de fonte (quarentena, parecer, prévia, snapshot) com o estoque do BL-DATA-01E. `demo_sandbox` gera uma chave só local (`.carbonflow-demo/source-files.key`, 0600, fora do Git) quando a conta administrativa existe e a repassa ao serviço. Sem mudança no backend nem de regra; produção segue exigindo a chave por configuração.
 ## 0.3.0-rc.102 — 27/11/2026 (proposta)
