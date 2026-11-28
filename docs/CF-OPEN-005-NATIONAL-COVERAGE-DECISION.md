@@ -16,4 +16,6 @@ Um revisor com MFA, diferente de quem importou o retrato de estoque em circulaç
 
 `POST /v1/platform/fleet/imports/{ingestion}/coverage` com `Idempotency-Key` e `If-Match`.
 
+**`If-Match`:** obrigatório, com a versão da decisão corrente **entre aspas** (ex.: `If-Match: "0"`). Quando o retrato ainda não tem decisão de cobertura, a versão corrente é `0`, então a **primeira decisão usa `"0"`**; cada nova decisão usa a versão devolvida na anterior (cabeçalho `ETag` da resposta). Sem o cabeçalho a resposta é `428 PRECONDICAO_VERSIONADA_AUSENTE`; fora do formato, `400 PEDIDO_INVALIDO`; versão desatualizada, conflito. Corpo: `{"outcome":"NO_OFFICIAL_TOTAL"|"NOT_COVERED","reason":"20–500 caracteres","citedTotal":<inteiro positivo, só em NOT_COVERED>}`. Quem decide não pode ser quem importou o retrato.
+
 A leitura do import inclui `coverageDecision`. O estado de cobertura do retrato não muda.
