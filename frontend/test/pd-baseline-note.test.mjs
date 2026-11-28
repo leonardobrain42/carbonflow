@@ -7,7 +7,7 @@ const executablePath = process.env.CARBONFLOW_CHROME ?? '/usr/bin/google-chrome'
 const project = '20000000-0000-4000-8000-000000000095';
 const organization = '10000000-0000-4000-8000-000000000095';
 
-async function mockProject(page, baseline) {
+async function mockProject(page, baseline, extra = {}) {
     await page.route('**/v1/account-session', route => route.fulfill({json:{
       identity:{id:'00000000-0000-4000-8000-000000000095', email:'teste@carbonflow.test', name:'Teste'},
       projects:[{projectId:project, organizationId:organization, environment:'SANDBOX', state:'DRAFT', version:1}],
@@ -37,7 +37,7 @@ async function mockProject(page, baseline) {
     await page.route('**/v1/projects/*/technical/pd-sections', route => route.fulfill({json:[{
       guide:{id:'baseline', title:'Linha de base e comparáveis', version:1, fields:[], answers:{}, missing:[]},
       latest:null, monitoringDependency:null, calculation:null, additionality:null, applicability:null,
-      baseline,
+      baseline, ...extra,
     }]}));
 }
 
@@ -97,6 +97,31 @@ test('a seção nomeia a referência ex ante exata sem seleção monitorada e se
     assert.equal((await row('Hash da seleção').innerText()).trim(), 'd'.repeat(64));
     await section.getByText('O documento não fica pronto.').first().waitFor();
     assert.equal(await section.getByText('Esta seção não copia AFEC nem MPG.').count(), 0);
+    await page.setViewportSize({width:390, height:844});
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1), false);
+  } finally {
+    await browser.close();
+  }
+});
+
+test('a versão que cita referência ex ante superada é sinalizada e permanece íntegra', async () => {
+  const browser = await chromium.launch({executablePath});
+  try {
+    const page = await browser.newPage({viewport:{width:1440, height:900}});
+    await mockProject(page, {
+      period:'M1', situation:'ABSENT', observationYear:null, cycle:null, declaredRating:null,
+      declarationIsRating:false, admitsBaseline:false, copiesLicensedRatings:false, usableForE8:false,
+      marksDocumentReady:false, text:'Nenhuma seleção de frota está nomeada neste documento.',
+    }, {baselineDependency:{
+      state:'REFERENCE_SUPERSEDED', outdated:true, pinnedVersion:1, pinnedSelectionSha256:'a'.repeat(64),
+      currentVersion:2, currentSelectionSha256:'b'.repeat(64),
+      text:'A referência de frota ex ante mudou desde a redação desta versão (citava a versão 1; a vigente é a 2). Esta versão continua íntegra.',
+    }});
+    await page.goto(base + '/workspace/projects/' + project + '/technical?secao=redigir&guia=baseline');
+    const section = page.getByRole('region', {name:'Seções da descrição do projeto'});
+    await section.getByText('citava a versão 1; a vigente é a 2').waitFor();
+    await section.getByRole('alert').getByText('não é mais a vigente').waitFor();
+    await section.getByText('permanece íntegra no histórico').waitFor();
     await page.setViewportSize({width:390, height:844});
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1), false);
   } finally {

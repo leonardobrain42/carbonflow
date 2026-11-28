@@ -379,6 +379,13 @@
       }
       <p>O documento não fica pronto.</p>
     }
+    @if (item.baselineDependency; as reference) {
+      <p role="status">Referência de frota ex ante desta versão: {{reference.text}}</p>
+      @if (reference.outdated) {
+        <p role="alert">Esta versão cita uma referência que não é mais a vigente. Grave uma nova versão para citar a atual;
+          esta versão permanece íntegra no histórico.</p>
+      }
+    }
     <label for="pd-narrative">Narrativa da seção</label>
     <textarea id="pd-narrative" rows="6" maxlength="12000" #body [value]="text()" [readOnly]="!editable() || !item.guide.version || busy()"
       (input)="text.set(body.value)"></textarea>

@@ -11,10 +11,13 @@ interface MonitoringDependency {
   pinnedManifestSha256:string|null;currentManifestSha256:string|null;
   gates:{code:string;detail:string}[];
 }
+interface BaselineDependency {state:string;outdated:boolean;pinnedVersion:number|null;
+  pinnedSelectionSha256:string|null;currentVersion:number|null;currentSelectionSha256:string|null;text:string}
 interface Item {
   id:string; title:string; section:{number:number; guideVersion:number; author:string; narrative:string; sha256:string};
   outdated:boolean; ownerOnly:boolean; authorName:string; history:ReviewEvent[]; actions:Action[];
   monitoringDependency:MonitoringDependency|null;
+  baselineDependency?:BaselineDependency|null;
 }
 @Component({selector:'carbonflow-pd-reviews', imports:[DatePipe], templateUrl:'./pd-reviews.html'})
 export class PdReviewsComponent implements OnInit {

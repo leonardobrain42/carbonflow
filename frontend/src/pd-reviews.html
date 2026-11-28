@@ -37,6 +37,13 @@
             Uma aprovação anterior permanece no histórico, mas não atesta a versão atual.</p>
         }
       }
+      @if (item.baselineDependency; as reference) {
+        <p role="status">Referência de frota ex ante: {{reference.text}}</p>
+        @if (reference.outdated) {
+          <p>Produza uma nova versão desta seção citando a referência vigente. Uma aprovação anterior
+            permanece no histórico, mas não atesta a versão atual.</p>
+        }
+      }
     } @else if (previous(); as old) {
       <p>Autor · {{old.authorId}} · guia de origem v{{old.guideVersion}}</p>
       <p style="white-space: pre-wrap">{{old.narrative}}</p>

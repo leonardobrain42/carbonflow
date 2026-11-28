@@ -45,7 +45,23 @@ A seção do PD na tela (`pd-sections`) mostra o bloco "Frota de referência ex 
 
 Critérios cobertos: BL-T01 (o PD recebe a referência exata sem MR e sem admissão automática), BL-T10 (sem energia medida o PD nomeia a referência e as lacunas, sem número falso), parte de BL-T06 (acesso). **Não cobertos:** BL-T08 (marcar só os dependentes como obsoletos), BL-T15 (referência congelada em versão de PD e histórico), diagnóstico por ato (UX-08D.3/PT-06), BL-T13 (1440×900 e teclado reais) e BL-T17 (teste humano). Testes: `OpenPdBaselineNoteTest`, `OpenBaselineFleetSelectionIntegrationTest` e `frontend/test/pd-baseline-note.test.mjs`.
 
+## Congelamento da referência ex ante no PD versionado (BL-EX-03 parte 2, rc.109)
+**Nível D17: projeto** (OPEN BR LDV BEV DCFC SIN GRID_ONLY). Migração aditiva **V122**: tabela `app_pd_baseline_dependency` (imutável por gatilho; chave estrangeira para a versão da seção e para a versão da seleção ex ante). Sem rota nova. Decisão: CF-SPEC-D26.
+
+| Quando | O que acontece |
+|---|---|
+| `PUT …/pd-sections/baseline` com referência ex ante vigente | O artefato (com hash) ganha `exAnteReference` (versão, hash da seleção, ano, ciclo, `usableForE8=false`) e o pin é gravado |
+| Mesmo texto, mesma referência | Mesma versão (idempotente) |
+| Mesmo texto, referência mudou | Nova versão, citando a atual |
+| Referência nova, vencida ou perdida | `GET …/pd-sections` e `GET …/pd-reviews` trazem `baselineDependency` com `REFERENCE_SUPERSEDED`, `REFERENCE_STALE` ou `REFERENCE_MISSING` (`outdated=true`); só a seção `baseline` é afetada |
+| Versão redigida antes da referência existir | `REFERENCE_NOT_CITED`, informativa (`outdated=false`) |
+| Referência citada e vigente | `REFERENCE_CURRENT` |
+
+Na revisão interna do PD, versão desatualizada **não pode ser submetida, aprovada nem congelada** (reabrir e devolver continuam); a versão antiga, seu artefato e seu hash **nunca** são reescritos. O campo só aparece para quem tem `VIEW_OPEN_BASELINE_FLEET_CONTEXT`; a decisão de `outdated` na revisão é interna. Nada de estoque, rating ou percentual é copiado. As telas de seção e de revisão do PD mostram o texto e o aviso.
+
+Critérios cobertos: BL-T08 (só o dependente fica desatualizado; versão anterior íntegra) e BL-T15 (referência exata, sem `latest` automático; nenhum documento pronto por vínculo). Não cobertos: diagnóstico por ato (UX-08D.3/PT-06), BL-T13 e BL-T17. Testes: `OpenPdBaselineDependencyTest`, `OpenBaselineFleetSelectionIntegrationTest` (novo caso) e `frontend/test/pd-baseline-note.test.mjs`.
+
 ## O que ainda não faz
-- Diagnóstico **por ato** (UX-08D.3/PT-06), congelamento da referência exata no PD versionado e as demais regras de obsolescência do PD (BL-T08/T15): ainda **não** feitos (resíduo do BL-EX-03).
+- Diagnóstico **por ato** (UX-08D.3/PT-06): ainda **não** feito (resíduo do BL-EX-03). O congelamento no PD versionado foi feito (próxima seção).
 - **Dados reais**: o teste usa os snapshots **sintéticos** da fixture. Sem estoque EVR e ratings reais importados e revisados (BL-DATA-01), não há o que selecionar no ambiente de trabalho.
 - Não coberto por teste: início de creditação não resolvido (a fixture sempre o resolve); BL-T02 a BL-T05 e BL-T08 em diante dependem de dados e de interface.

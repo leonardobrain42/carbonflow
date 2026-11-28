@@ -64,6 +64,8 @@ interface BaselineNote {period:string;situation:string;observationYear:number|nu
   declaredRating:string|null;declarationIsRating:boolean;admitsBaseline:boolean;
   copiesLicensedRatings:boolean;usableForE8:boolean;marksDocumentReady:boolean;text:string;
   exAnte?:ExAnteReference|null}
+interface BaselineDependency {state:string;outdated:boolean;pinnedVersion:number|null;
+  pinnedSelectionSha256:string|null;currentVersion:number|null;currentSelectionSha256:string|null;text:string}
 interface ApplicabilityNote {situation:string;citation:string;citedStockPercent:string;
   citedVintageYear:number;stockLimitPercent:string;salesLimitPercent:string;
   citationBelowStockLimit:boolean;stockSeriesLabel:string;salesSeriesLabel:string;
@@ -72,7 +74,8 @@ interface Section {guide:Guide;latest:Version | null;
   monitoringDependency:{state:string;outdated:boolean;
     gates:{code:string;detail:string}[]} | null;
   calculation?:CalculationNote|null;additionality?:AdditionalityNote|null;
-  applicability?:ApplicabilityNote|null;baseline?:BaselineNote|null}
+  applicability?:ApplicabilityNote|null;baseline?:BaselineNote|null;
+  baselineDependency?:BaselineDependency|null}
 
 @Component({selector:'carbonflow-pd-sections',templateUrl:'./pd-sections.html'})
 export class PdSectionsComponent implements OnInit, OnDestroy {
