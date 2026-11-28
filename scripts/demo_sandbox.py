@@ -100,8 +100,13 @@ def compose(*args: str, capture: bool = False) -> str:
         # Both accounts read the platform; only the owner declares, imports and decides on the OWNER_INTERNAL basis.
         readers = f"{identity},{approver['identity']}" if approver else identity
         env.update({
-            "CARBONFLOW_COMPLIANCE_STAFF": ";".join(f"{r['identity']}:{r['secret']}:{r['organization']}"
-                                                    for r in (owner, approver) if r),
+            # The independent reviewer also needs the owner's organization in scope: file, preview, snapshot and
+            # coverage access are organization-scoped (404 otherwise). Staff scope is server configuration, not a
+            # membership or invitation, so this widens read/decision scope only for the sandbox reviewer.
+            "CARBONFLOW_COMPLIANCE_STAFF": ";".join(
+                f"{r['identity']}:{r['secret']}:" + (f"{r['organization']},{owner['organization']}"
+                                                       if r is approver else r['organization'])
+                for r in (owner, approver) if r),
             "CARBONFLOW_PLATFORM_SOURCE_FILES_ENCRYPTION_KEY": source_files_key(),
             "CARBONFLOW_PLATFORM_SOURCE_READINESS_VIEWERS": readers,
             "CARBONFLOW_PLATFORM_SOURCE_WORK_MANAGERS": identity,

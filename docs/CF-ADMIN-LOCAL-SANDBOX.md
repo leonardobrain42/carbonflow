@@ -33,6 +33,8 @@ python3 scripts/admin_sandbox.py code-approver      # código MFA próprio da co
 ```
 Papéis de `admin2@carbonflow.test`: aprovar licenças (`content-licenses.approvers`), revisar de forma independente candidatos de alias, catálogo de combustíveis, séries de rede e cobertura de frota, e ler fontes/ratings. **Não** é owner, importador nem submissor: nunca aprova o que ele mesmo declarou, e o responsável nunca ocupa o papel independente. O roster fica em `.carbonflow-demo/admin2-roster.json` (0600, fora do Git). Use sessões separadas (outro navegador ou janela anônima), uma por conta.
 O responsável também passou a ter, no demo, os papéis de **importador e owner da fila de candidatos de alias** (antes não tinha nenhum, e a tela de candidatos ficava inacessível).
+O escopo de equipe de `admin2@` lista **as duas organizações** (a dele e a de `admin@`), pois acesso a arquivo, prévia, snapshot e cobertura é por organização; sem isso o parecer técnico volta 404. É configuração do servidor, não convite nem vínculo de membro. Depois de atualizar, rode de novo o setup do demo.
+
 Isto é uma conta de sandbox para testar o fluxo; **não substitui a aprovação independente real** de uma segunda pessoa.
 
 ## Papéis do responsável pelo produto (D19/D20)
