@@ -114,7 +114,8 @@ class AdminSandboxTest(unittest.TestCase):
             approver=self.roster(folder,"admin2-roster.json")
             both=self.captured_env(folder)
             self.assertEqual(both["CARBONFLOW_COMPLIANCE_STAFF"],";".join(
-                r["identity"]+":"+r["secret"]+":"+r["organization"] for r in (owner,approver)))
+                r["identity"]+":"+r["secret"]+":"+r["organization"]+(","+owner["organization"] if r is approver else "")
+                for r in (owner,approver)))
             for role in ("CONTENT_LICENSES_APPROVERS","FUEL_CATALOG_REVIEWERS","GRID_SERIES_REVIEWERS",
                          "FLEET_COVERAGE_REVIEWERS","FLEET_ALIAS_CANDIDATES_REVIEWERS"):
                 self.assertEqual(both["CARBONFLOW_PLATFORM_"+role],approver["identity"])
