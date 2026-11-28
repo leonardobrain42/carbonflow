@@ -550,6 +550,75 @@ class ProjectRequirementProjectionTest {
         assertFalse(view.requirements().stream().anyMatch(item -> item.reason().contains("3000")));
     }
 
+    private static ProjectRequirementProjection.View withExAnte(ProjectRequirementProjection.ExAnteReference ref) {
+        return ProjectRequirementProjection.project(new ProjectRequirementProjection.Input(
+            "p", "VM0038", true, true, true, true, true, true,
+            disclosurePresent(), preflight(false),
+            new ProjectRequirementProjection.Owners(false, "FLEET_SELECTION_MISSING", "BINDING_MISSING",
+                OpenProjectStations.EnergyPosture.NONE, java.util.Map.of(), ref)));
+    }
+
+    @Test
+    void theFleetReferenceOfThePdActIsNamedPerStateWithoutBlockingOrAdmitting() {
+        var none = item(withExAnte(new ProjectRequirementProjection.ExAnteReference(
+            "NO_EX_ANTE_REFERENCE", null, null)), "EX_ANTE_FLEET_REFERENCE");
+        assertEquals("NOT_ADMITTED", none.state());
+        assertEquals("AWAITING_SOURCE", none.group());
+        assertEquals(java.util.List.of("PD_EX_ANTE"), none.acts());
+        assertTrue(none.reason().contains("não vale zero"));
+        assertTrue(none.reason().contains("energia medida não é necessária"));
+
+        var current = item(withExAnte(new ProjectRequirementProjection.ExAnteReference(
+            "PREPARATORY_NOT_ADMITTED", 3, 2026)), "EX_ANTE_FLEET_REFERENCE");
+        assertEquals("SOURCE_CANDIDATE", current.state());
+        assertTrue(current.reason().contains("versão 3") && current.reason().contains("2026"));
+        assertTrue(current.reason().contains("não alimenta o E8"));
+
+        var stale = item(withExAnte(new ProjectRequirementProjection.ExAnteReference(
+            "STALE_NOT_ADMITTED", 3, 2026)), "EX_ANTE_FLEET_REFERENCE");
+        assertEquals("STALE", stale.state());
+        assertEquals("AWAITING_REVIEW", stale.group());
+
+        for (var ref : java.util.List.of(none, current, stale)) {
+            assertFalse(ref.blocksExAntePd(), "The ex ante PD is never blocked by this requirement.");
+            assertFalse(ref.admitsE8());
+            assertFalse(ref.clientAction());
+            assertFalse(ref.reason().contains("%"));
+        }
+    }
+
+    @Test
+    void withoutPermissionToReadTheContextThereIsNoItemAndNoInference() {
+        var view = withExAnte(null);
+        assertTrue(view.requirements().stream().noneMatch(i -> "EX_ANTE_FLEET_REFERENCE".equals(i.requirementId())),
+            "Not allowed to read is not the same as having no reference.");
+    }
+
+    @Test
+    void everyRequirementSaysWhichActsItAffectsWithoutDecidingNewIncidence() {
+        var view = withExAnte(new ProjectRequirementProjection.ExAnteReference("NO_EX_ANTE_REFERENCE", null, null));
+        // Measured energy belongs to the monitored act; it does not block the ex ante PD.
+        var energy = item(view, "ED_EC");
+        assertEquals(java.util.List.of("MR_MONITORED"), energy.acts());
+        assertFalse(energy.blocksExAntePd());
+        // A calculation preflight gate always matters to quantification, and keeps the PD section it feeds.
+        var evr = item(view, "EVR");
+        assertTrue(evr.acts().contains("QUANTIFICATION"), evr.acts().toString());
+        assertTrue(evr.acts().contains("PD_EX_ANTE"), evr.acts().toString());
+        // No known output: no act, never a guess.
+        var unknown = new ProjectRequirementProjection.Item("X", null, null, null, null, "ABSENT", "s", "r", "PREP",
+            "n", null, null, "MINE", true, false, false, java.util.List.of());
+        assertEquals(java.util.List.of(), ProjectRequirementProjection.actsOf(unknown, false));
+
+        var counts = view.actSummary();
+        assertEquals(java.util.List.of("PD_EX_ANTE", "MR_MONITORED", "QUANTIFICATION"),
+            counts.stream().map(ProjectRequirementProjection.ActCount::act).toList());
+        assertEquals(view.requirements().stream().filter(i -> i.acts().contains("PD_EX_ANTE")).count(),
+            counts.get(0).requirements());
+        assertTrue(counts.get(0).requirements() > 0 && counts.get(2).requirements() > 0);
+        assertTrue(view.requirements().stream().noneMatch(ProjectRequirementProjection.Item::admitsE8));
+    }
+
     private static ProjectRequirementProjection.View monitored(OpenApplicability.Readiness readiness,
             OpenProjectStations.EnergyPosture posture) {
         return ProjectRequirementProjection.project(new ProjectRequirementProjection.Input(

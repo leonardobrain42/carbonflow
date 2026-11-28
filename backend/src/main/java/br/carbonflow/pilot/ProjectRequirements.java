@@ -42,11 +42,13 @@ class ProjectRequirements {
             calculation && open ? OpenCalculationReadiness.diagnose(
                 connection, context.id(), context.environment()) : null,
             owners(connection, context.id(), applicability, calculation,
-                actions.contains("VIEW_OPEN_MONITORING"))));
+                actions.contains("VIEW_OPEN_MONITORING"),
+                open && actions.contains(OpenBaselineFleetContext.ACTION))));
     }
 
     private static ProjectRequirementProjection.Owners owners(Connection connection, String project,
-            boolean applicability, boolean calculation, boolean monitoring) throws SQLException {
+            boolean applicability, boolean calculation, boolean monitoring, boolean exAnteContext)
+            throws SQLException {
         String fleet = "FLEET_SELECTION_MISSING";
         String binding = "BINDING_MISSING";
         if (calculation) {
@@ -56,11 +58,21 @@ class ProjectRequirements {
                 binding = prefer(binding, OpenE8InputBindings.currentState(connection, project, period));
             }
         }
+        // BL-EX-03: the PD act's fleet reference, only for accounts allowed to read the fleet context.
+        ProjectRequirementProjection.ExAnteReference exAnte = null;
+        if (exAnteContext) {
+            var ref = OpenPdBaselineDependency.current(connection, project);
+            exAnte = ref == null
+                ? new ProjectRequirementProjection.ExAnteReference("NO_EX_ANTE_REFERENCE", null, null)
+                : new ProjectRequirementProjection.ExAnteReference(
+                    ref.stale() ? "STALE_NOT_ADMITTED" : "PREPARATORY_NOT_ADMITTED",
+                    ref.version(), ref.observationYear());
+        }
         return new ProjectRequirementProjection.Owners(
             applicability && rightsRecheck(connection, project), fleet, binding,
             monitoring ? OpenProjectStations.posture(connection, project)
                 : OpenProjectStations.EnergyPosture.NONE,
-            applicability ? OpenAdditionality.opinionStates(connection, project) : Map.of());
+            applicability ? OpenAdditionality.opinionStates(connection, project) : Map.of(), exAnte);
     }
 
     /** A present proof that changed needs review. A still-missing proof stays a gap. */

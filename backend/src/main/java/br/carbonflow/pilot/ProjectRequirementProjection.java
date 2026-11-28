@@ -25,16 +25,43 @@ final class ProjectRequirementProjection {
             String ruleRef, String state, String situation, String reason, String ownerRole,
             String nextAction, String actionLabel, Destination destination, String group,
             boolean clientAction, boolean blocksExAntePd, boolean admitsE8,
-            List<String> affectedOutputs) {}
+            List<String> affectedOutputs, List<String> acts) {
+        /** Acts are derived once, in {@link #project}; builders do not state them. */
+        Item(String requirementId, String methodologyId, String edition, String scenario,
+                String ruleRef, String state, String situation, String reason, String ownerRole,
+                String nextAction, String actionLabel, Destination destination, String group,
+                boolean clientAction, boolean blocksExAntePd, boolean admitsE8,
+                List<String> affectedOutputs) {
+            this(requirementId, methodologyId, edition, scenario, ruleRef, state, situation, reason, ownerRole,
+                nextAction, actionLabel, destination, group, clientAction, blocksExAntePd, admitsE8,
+                affectedOutputs, List.of());
+        }
+
+        Item withActs(List<String> acts) {
+            return new Item(requirementId, methodologyId, edition, scenario, ruleRef, state, situation, reason,
+                ownerRole, nextAction, actionLabel, destination, group, clientAction, blocksExAntePd, admitsE8,
+                affectedOutputs, acts);
+        }
+    }
+    /** Requirements listed per act. An item can belong to more than one act, so the counts are not additive. */
+    record ActCount(String act, int requirements) {}
+    /** BL-EX-03: newest EX ANTE reference seen by someone allowed to read it (metadata only). */
+    record ExAnteReference(String state, Integer version, Integer observationYear) {}
     record Summary(int mine, int awaitingSource, int awaitingReview, int outOfScope) {}
     record View(String projectId, String methodology, boolean openBranch, boolean diagnosticVisible,
             boolean canRunE8, boolean canIssueVcu, boolean exAnteRequiresMeasuredEnergy,
-            String limits, Summary summary, List<Item> requirements) {}
+            String limits, Summary summary, List<Item> requirements, List<ActCount> actSummary) {}
     /** Owner signals already decided elsewhere. Missing means the owner has no row. */
     record Owners(boolean rightsRecheck, String fleetState, String bindingState,
-            OpenProjectStations.EnergyPosture inventory, Map<String, String> opinions) {
+            OpenProjectStations.EnergyPosture inventory, Map<String, String> opinions,
+            ExAnteReference exAnte) {
         static final Owners NONE = new Owners(false, "FLEET_SELECTION_MISSING", "BINDING_MISSING",
             OpenProjectStations.EnergyPosture.NONE);
+
+        Owners(boolean rightsRecheck, String fleetState, String bindingState,
+                OpenProjectStations.EnergyPosture inventory, Map<String, String> opinions) {
+            this(rightsRecheck, fleetState, bindingState, inventory, opinions, null);
+        }
 
         Owners(boolean rightsRecheck, String fleetState, String bindingState,
                 OpenProjectStations.EnergyPosture inventory) {
@@ -68,18 +95,25 @@ final class ProjectRequirementProjection {
         boolean open = "VM0038".equals(input.methodology());
         boolean visible = input.canViewApplicability() || input.canViewCalculation();
         var items = new LinkedHashMap<String, Item>();
+        var fromPreflight = new java.util.HashSet<String>();
         if (visible && open) {
             if (input.canViewApplicability()) projectApplicability(input, items);
-            if (input.canViewCalculation() && input.preflight() != null) projectPreflight(input, items);
+            if (input.canViewCalculation() && input.preflight() != null) {
+                var before = Set.copyOf(items.keySet());
+                projectPreflight(input, items);
+                items.keySet().stream().filter(id -> !before.contains(id)).forEach(fromPreflight::add);
+            }
             applyOwners(input, items);
+            applyExAnte(input, items);
             if (!items.containsKey("ED_EC")) items.put("ED_EC", energyNotRequired(false));
             applyInventory(input, items);
         } else if (visible) {
             items.put("METHODOLOGY_BRANCH", methodologyLimit(input));
         }
+        items.replaceAll((id, item) -> item.withActs(actsOf(item, fromPreflight.contains(id))));
         var list = List.copyOf(items.values());
         return new View(input.projectId(), input.methodology(), open, visible,
-            false, false, false, LIMITS, summary(list), list);
+            false, false, false, LIMITS, summary(list), list, actSummary(list));
     }
 
     private static void projectApplicability(Input input, LinkedHashMap<String, Item> items) {
@@ -211,6 +245,73 @@ final class ProjectRequirementProjection {
         if (code.startsWith("E8_EFEL") || code.startsWith("E8_VT0011") || code.startsWith("E8_TOOL07")
                 || "EF_GRID".equals(code)) return "emissões do projeto";
         return "quantificação";
+    }
+
+    static final String ACT_PD = "PD_EX_ANTE", ACT_MR = "MR_MONITORED", ACT_QUANTIFICATION = "QUANTIFICATION";
+    private static final List<String> ACTS = List.of(ACT_PD, ACT_MR, ACT_QUANTIFICATION);
+
+    /**
+     * BL-EX-03: in which acts a requirement matters. Derived, never decided here: from the outputs the item already
+     * declares it affects (PD sections, monitoring, quantification) and from its origin (a calculation preflight gate
+     * always matters to the quantification act). It states no new methodological incidence, and an item with
+     * no known output gets no act instead of a guess.
+     */
+    static List<String> actsOf(Item item, boolean fromCalculationPreflight) {
+        var acts = new java.util.LinkedHashSet<String>();
+        for (String output : item.affectedOutputs()) {
+            switch (output) {
+                case "aplicabilidade", "adicionalidade", "direitos", "linha de base" -> acts.add(ACT_PD);
+                case "monitoramento" -> acts.add(ACT_MR);
+                case "quantificação", "emissões do projeto" -> acts.add(ACT_QUANTIFICATION);
+                default -> { }
+            }
+        }
+        if (fromCalculationPreflight) acts.add(ACT_QUANTIFICATION);
+        return ACTS.stream().filter(acts::contains).toList();
+    }
+
+    private static List<ActCount> actSummary(List<Item> items) {
+        var counts = new ArrayList<ActCount>();
+        for (String act : ACTS)
+            counts.add(new ActCount(act, (int) items.stream().filter(item -> item.acts().contains(act)).count()));
+        return List.copyOf(counts);
+    }
+
+    /**
+     * The fleet reference of the PD act (BL-EX-01/02). Only for someone allowed to read the project's fleet context:
+     * without that, no item and no inference. Never blocks the ex ante PD, never admitted, never a number.
+     */
+    private static void applyExAnte(Input input, LinkedHashMap<String, Item> items) {
+        Owners owners = input.owners();
+        if (owners == null || owners.exAnte() == null) return;
+        var ref = owners.exAnte();
+        String id = "EX_ANTE_FLEET_REFERENCE";
+        String next = "Aguardar a equipe CarbonFlow. Nenhuma ação sua é necessária agora.";
+        Item item = switch (ref.state()) {
+            case "PREPARATORY_NOT_ADMITTED" -> new Item(id, "VM0038", "1.1", OpenCalculationPreflight.SCENARIO,
+                "CF-OPEN-008", "SOURCE_CANDIDATE", "Referência vinculada, não admitida",
+                "A frota de referência ex ante (versão " + ref.version() + ", ano de observação "
+                    + ref.observationYear() + ") está nomeada para o PD. É preparatória: não é fonte admitida, "
+                    + "não alimenta o E8 e não produz BE, PE, LE ou ER. Não depende de energia medida.",
+                "equipe CarbonFLow", next, null, null, "AWAITING_SOURCE", false, false, false,
+                List.of("linha de base"));
+            case "STALE_NOT_ADMITTED" -> new Item(id, "VM0038", "1.1", OpenCalculationPreflight.SCENARIO,
+                "CF-OPEN-008", "STALE", "Desatualizado",
+                "A frota de referência ex ante (versão " + ref.version() + ") deixou de estar corrente: "
+                    + "fonte, classificação, direitos ou início de creditação mudaram. "
+                    + "Só esta referência pede reconfirmação; a energia medida não muda por ela.",
+                "equipe CarbonFLow", "Aguardar a reconfirmação da referência pela equipe CarbonFlow.", null, null,
+                "AWAITING_REVIEW", false, false, false, List.of("linha de base"));
+            default -> new Item(id, "VM0038", "1.1", OpenCalculationPreflight.SCENARIO,
+                "CF-OPEN-008", "NOT_ADMITTED", "Ainda não vinculado",
+                "Este projeto ainda não tem uma frota de referência ex ante confirmada. A ausência não vale "
+                    + "zero nem percentual, e a energia medida não é necessária para confirmá-la.",
+                "equipe CarbonFLow",
+                "Aguardar a seleção da frota de referência pela equipe CarbonFlow, a partir de estoque e ratings "
+                    + "publicados e licenciados.", null, null, "AWAITING_SOURCE", false, false, false,
+                List.of("linha de base"));
+        };
+        items.put(id, item);
     }
 
     private static void applyOwners(Input input, LinkedHashMap<String, Item> items) {

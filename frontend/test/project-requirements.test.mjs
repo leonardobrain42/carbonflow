@@ -50,53 +50,54 @@ test('analisar mostra ação, espera e recorte sem concluir as quatro pendência
       canRunE8:false,canIssueVcu:false,exAnteRequiresMeasuredEnergy:false,
       limits:'Nenhum BE, PE, LE ou ER foi calculado. Este diagnóstico não aprova adicionalidade, direitos, fonte ou crédito.',
       summary:{mine:1,awaitingSource:1,awaitingReview:1,outOfScope:1},
+      actSummary:[{act:'PD_EX_ANTE',requirements:4},{act:'MR_MONITORED',requirements:3},{act:'QUANTIFICATION',requirements:2}],
       requirements:[
         {requirementId:'BOUNDARY',methodologyId:'VM0038',edition:'1.1',ruleRef:'CF-OPEN-009',
           state:'ABSENT',situation:'Ainda não informado',
           reason:'A fronteira ainda não seleciona carregador DCFC do SIN. Estação planejada não produz energia medida, e a falta de leitura não vale zero.',
           ownerRole:'PREP',nextAction:'Selecionar as estações e os carregadores da fronteira.',
           actionLabel:'Abrir as estações',destination:{area:'technical',screen:'estacoes',step:null},
-          group:'MINE',clientAction:true,blocksExAntePd:false,admitsE8:false,affectedOutputs:['monitoramento']},
+          group:'MINE',clientAction:true,blocksExAntePd:false,admitsE8:false,affectedOutputs:['monitoramento'],acts:['MR_MONITORED']},
         {requirementId:'ED_METER',methodologyId:'VM0038',edition:'1.1',ruleRef:'CF-OPEN-009',
           state:'ABSENT',situation:'Ainda não informado',
           reason:'Falta o medidor da energia entregue (ED), a jusante, distinto da energia consumida.',
           ownerRole:'OP',nextAction:'Cadastrar o instrumento de ED na fronteira atual.',
           actionLabel:'Abrir o monitoramento',destination:{area:'technical',screen:'monitorar',step:null},
-          group:'MINE',clientAction:true,blocksExAntePd:false,admitsE8:false,affectedOutputs:['monitoramento']},
+          group:'MINE',clientAction:true,blocksExAntePd:false,admitsE8:false,affectedOutputs:['monitoramento'],acts:['MR_MONITORED']},
         {requirementId:'DRIVER_DISCLOSURE',methodologyId:'VM0038',edition:'1.1',ruleRef:'CF-OPEN-004',
           state:'NEEDS_EVIDENCE',situation:'Falta comprovante',
           reason:'Falta a prova datada de divulgação aos motoristas.',ownerRole:'PREP',
           nextAction:'Indicar a referência do comprovante na declaração.',actionLabel:'Abrir a declaração',
           destination:{area:'technical',screen:'analisar',step:null},group:'MINE',clientAction:true,
-          blocksExAntePd:false,admitsE8:false,affectedOutputs:['direitos']},
+          blocksExAntePd:false,admitsE8:false,affectedOutputs:['direitos'],acts:['PD_EX_ANTE']},
         {requirementId:'E8_FLEET_SELECTION_M1',methodologyId:'VM0038',edition:'1.1',ruleRef:'CF-OPEN-008',
           state:'SOURCE_CANDIDATE',situation:'Fonte vinculada, não admitida',
           reason:'Frota vinculada ao período M1. O vínculo não é fonte admitida e não produz BE, PE, LE ou ER.',
           ownerRole:'equipe CarbonFlow',
           nextAction:'Aguardar a equipe CarbonFlow. Um vínculo interno não admite a fonte nem libera o cálculo.',
           actionLabel:null,destination:null,group:'AWAITING_SOURCE',clientAction:false,
-          blocksExAntePd:false,admitsE8:false,affectedOutputs:['linha de base','quantificação']},
+          blocksExAntePd:false,admitsE8:false,affectedOutputs:['linha de base','quantificação'],acts:['PD_EX_ANTE','QUANTIFICATION']},
         {requirementId:'MARKET_ROUTE',state:'AWAITING_NORMATIVE_EVALUATION',situation:'Aguardando avaliação da equipe',
           reason:'O teste de mercado da VM0038 §4 aguarda dados oficiais e a avaliação da equipe.',
           ownerRole:'equipe CarbonFlow',nextAction:'Aguardar a equipe CarbonFlow.',actionLabel:null,
           destination:null,group:'AWAITING_SOURCE',clientAction:false,blocksExAntePd:false,admitsE8:false,
-          affectedOutputs:['aplicabilidade']},
+          affectedOutputs:['aplicabilidade'],acts:['PD_EX_ANTE']},
         {requirementId:'E8_INPUT_BINDING_M1',methodologyId:'VM0038',edition:'1.1',ruleRef:'CF-OPEN-008',
           state:'STALE',situation:'Desatualizado',
           reason:'A fronteira da estação mudou. Só o vínculo de energia deste período pede rechecagem.',
           ownerRole:'equipe CarbonFlow',
           nextAction:'Aguardar a equipe CarbonFlow. Um vínculo interno não admite a fonte nem libera o cálculo.',
           actionLabel:null,destination:null,group:'AWAITING_REVIEW',clientAction:false,
-          blocksExAntePd:false,admitsE8:false,affectedOutputs:['emissões do projeto','quantificação']},
+          blocksExAntePd:false,admitsE8:false,affectedOutputs:['emissões do projeto','quantificação'],acts:['QUANTIFICATION']},
         {requirementId:'REGULATORY_SURPLUS',state:'AWAITING_NORMATIVE_EVALUATION',situation:'Aguardando avaliação da equipe',
           reason:'Preencher a declaração não aprova o excedente regulatório.',ownerRole:'REV',
           nextAction:'Aguardar parecer humano.',actionLabel:null,destination:null,group:'AWAITING_REVIEW',
-          clientAction:false,blocksExAntePd:false,admitsE8:false,affectedOutputs:['adicionalidade']},
+          clientAction:false,blocksExAntePd:false,admitsE8:false,affectedOutputs:['adicionalidade'],acts:['PD_EX_ANTE']},
         {requirementId:'ED_EC',state:'NOT_INCIDENT',situation:'Não se aplica a este ato',
           reason:'ED e EC pertencem ao monitoramento e não são condição do documento ex ante.',
           ownerRole:'OP',nextAction:'Nenhuma ação agora.',actionLabel:null,destination:null,
           group:'OUT_OF_SCOPE',clientAction:false,blocksExAntePd:false,admitsE8:false,
-          affectedOutputs:['monitoramento']},
+          affectedOutputs:['monitoramento'],acts:['MR_MONITORED']},
       ],
     }}));
     await page.goto(base+'/workspace/projects/'+project+'/technical?secao=analisar');
@@ -106,6 +107,11 @@ test('analisar mostra ação, espera e recorte sem concluir as quatro pendência
     await page.getByRole('heading',{name:'Aguardando revisão'}).waitFor();
     await page.getByRole('heading',{name:'Fora do recorte'}).waitFor();
     await page.getByText('Nenhum BE, PE, LE ou ER foi calculado.').waitFor();
+    const perAct=page.getByRole('list',{name:'Pendências por ato'});
+    await perAct.getByText('Descrição do projeto (ex ante): 4',{exact:true}).waitFor();
+    await perAct.getByText('Monitoramento (MR): 3',{exact:true}).waitFor();
+    await perAct.getByText('Quantificação: 2',{exact:true}).waitFor();
+    await page.getByText('Energia medida não bloqueia a descrição do projeto ex ante.').waitFor();
     await page.getByText('Divulgação aos motoristas',{exact:true}).waitFor();
     await page.getByText('Fronteira do projeto',{exact:true}).waitFor();
     await page.getByText('Medidor da energia entregue',{exact:true}).waitFor();
@@ -121,6 +127,8 @@ test('analisar mostra ação, espera e recorte sem concluir as quatro pendência
     assert.equal(await notes.count(),8);
     for (let i=0;i<8;i++) await notes.nth(i).click();
     await page.getByText('Não bloqueia o documento ex ante.').waitFor();
+    await page.getByText('Incide em: Descrição do projeto (ex ante), Quantificação.',{exact:true}).waitFor();
+    await page.getByText('Incide em: Monitoramento (MR).',{exact:true}).first().waitFor();
     await page.getByText('Metodologia aplicável: VM0038 v1.1',{exact:true}).first().waitFor();
     await page.getByText('Regra: CF-OPEN-004',{exact:true}).waitFor();
     await page.getByText('Regra: CF-OPEN-009',{exact:true}).first().waitFor();

@@ -9,6 +9,7 @@ const GATE_NAMES: Record<string, string> = {
   CARBON_RIGHTS: 'Direitos sobre as reduções',
   EVR: 'Estoque nacional EVR',
   AFEC_MPG: 'Ratings e comparáveis',
+  EX_ANTE_FLEET_REFERENCE: 'Frota de referência ex ante',
   EF_FUEL: 'Fator fóssil',
   IR: 'Melhoria tecnológica',
   IR_STRUCTURED: 'Avaliação estruturada de IR',
