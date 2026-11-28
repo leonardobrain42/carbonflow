@@ -118,9 +118,24 @@ class PlatformSourceIngestionIntegrationTest {
         JsonNode conflict=body(post(API,manager,
                 metadata("2024","Outra versão conflitante de titulo"),null),201);
         String other=conflict.path("intake").path("id").asText();
-        assertEquals(409,post(API+"/"+other+"/reviews",reviewer,
-                "{\"outcome\":\"ACCEPT_METADATA\",\"reason\":\"Tentativa de substituir registro\"}","1").statusCode());
+        var refused=post(API+"/"+other+"/reviews",reviewer,
+                "{\"outcome\":\"ACCEPT_METADATA\",\"reason\":\"Tentativa de substituir registro\"}","1");
+        assertEquals(409,refused.statusCode());
+        String refusal=body(refused,409).path("message").asText();
+        assertTrue(refusal.contains("title"),refusal);
+        assertFalse(refusal.contains("category") || refusal.contains("officialUri") || refusal.contains("rightsHolder"),refusal);
         assertEquals("PENDING_REVIEW",body(get(API+"/"+other,reviewer),200).path("intake").path("state").asText());
+
+        // Same edition, identical published metadata, another original file (other SHA-256): accepted, no new version.
+        JsonNode sibling=body(post(API,manager,metadata("2024","Teste frota por modelo 2024")
+                .replace("a".repeat(64),"b".repeat(64)),null),201);
+        assertEquals("METADATA_ACCEPTED",body(post(API+"/"+sibling.path("intake").path("id").asText()+"/reviews",
+                reviewer,"{\"outcome\":\"ACCEPT_METADATA\",\"reason\":\"Outro arquivo da mesma edição\"}","1"),200)
+            .path("intake").path("state").asText());
+        assertEquals(1,database.read(c -> first(c, """
+            SELECT count(*) FROM app_source_version
+            WHERE source_id='BR-LDV-BEV-STOCK-BY-MODEL' AND edition='2024' AND origin='EXTERNAL'
+            """,row -> row.getInt(1))).intValue());
 
         JsonNode correction=body(post(API,manager,metadata("2023","Frota 2023 para correção"),null),201);
         String correctionId=correction.path("intake").path("id").asText();

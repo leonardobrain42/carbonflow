@@ -195,13 +195,19 @@ class PlatformSourceIngestion {
                     FOR UPDATE
                     """,row -> new Published(row.getString(1),row.getString(2),row.getString(3),row.getString(4),row.getString(5)),
                     intake.sourceId(),intake.edition());
-                if (published != null && (!"EXTERNAL".equals(published.origin()) ||
-                        !published.category().equals(intake.category()) ||
-                        !published.title().equals(intake.title()) ||
-                        !published.rightsHolder().equals(intake.rightsHolder()) ||
-                        !java.util.Objects.equals(published.officialUri(),intake.officialUri()))) {
-                    throw new PilotProblem(409,"EDICAO_JA_CADASTRADA","edition","CF-OPEN-003",
-                            "Esta edição já possui metadados distintos. Registre uma nova edição ou reconcilie.");
+                if (published != null) {
+                    var differing = new java.util.ArrayList<String>();
+                    if (!"EXTERNAL".equals(published.origin())) differing.add("origem");
+                    if (!published.category().equals(intake.category())) differing.add("category");
+                    if (!published.title().equals(intake.title())) differing.add("title");
+                    if (!published.rightsHolder().equals(intake.rightsHolder())) differing.add("rightsHolder");
+                    if (!java.util.Objects.equals(published.officialUri(),intake.officialUri())) differing.add("officialUri");
+                    if (!differing.isEmpty()) {
+                        throw new PilotProblem(409,"EDICAO_JA_CADASTRADA","edition","CF-OPEN-003",
+                                "Esta edição já tem metadados publicados e os seguintes campos divergem: "
+                                + String.join(", ",differing) + ". Para enviar outro arquivo da mesma edição, "
+                                + "repita esses campos idênticos aos publicados; senão registre uma nova edição.");
+                    }
                 }
                 if (published == null) update(connection, """
                     INSERT INTO app_source_version
