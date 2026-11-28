@@ -124,7 +124,7 @@ test('UX-08: respostas fora de ordem, seletores persistidos, conflito e revogaç
     const canonical = await json(await session.request.get(requirements));
     const journey = await json(await session.request.get(root + '/journey'));
     assert.deepEqual(journey.diagnosis, canonical);
-    assert.equal(await panel.locator('li').count(), canonical.requirements.length);
+    assert.equal(await panel.locator('ul.cf-tech-gates > li').count(), canonical.requirements.length);
     assert.equal(canonical.canRunE8, false);
     assert.equal(canonical.canIssueVcu, false);
     assert.equal(sql(`SELECT count(*) FROM app_project_open_applicability_revision
